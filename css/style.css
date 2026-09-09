@@ -54,7 +54,6 @@ body {
 .center-circle .icon { font-size: 28px; }
 
 .btn-refresh { width: 100%; padding: 12px; background: #6b9be2; color: white; border: none; border-radius: 12px; font-size: 16px; margin-top: 20px; display: flex; justify-content: center; align-items: center; gap: 8px;}
-#loading { position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(255,255,255,0.8); display: none; justify-content: center; align-items: center; z-index: 100; color: #6b9be2; font-weight: bold; }
 
 /* ================= 聊天界面专属样式 ================= */
 .chat-container { display: flex; flex-direction: column; gap: 20px; padding-top: 10px; }
@@ -66,14 +65,7 @@ body {
 .chat-content-box { display: flex; flex-direction: column; max-width: 72%; }
 .chat-msg.right .chat-content-box { align-items: flex-end; }
 
-.chat-bubble { 
-    padding: 12px 16px; 
-    border-radius: 18px; 
-    font-size: 15px; 
-    line-height: 1.5; 
-    word-wrap: break-word;
-    box-shadow: 0 2px 8px rgba(107, 139, 189, 0.08);
-}
+.chat-bubble { padding: 12px 16px; border-radius: 18px; font-size: 15px; line-height: 1.5; word-wrap: break-word; box-shadow: 0 2px 8px rgba(107, 139, 189, 0.08); }
 .chat-msg.left .chat-bubble { background: #fff; color: #333; border-top-left-radius: 4px; }
 .chat-msg.right .chat-bubble { background: #e8f0fa; color: #333; border-top-right-radius: 4px; }
 
@@ -88,3 +80,30 @@ body {
 .chat-input-bar input { flex: 1; border: none; background: transparent; outline: none; font-size: 15px; color: #333; }
 .chat-input-bar .icon-btn { color: #6b8bbd; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;}
 .chat-input-bar .send-btn { color: #fff; background: #6b9be2; width: 30px; height: 30px; border-radius: 50%; font-size: 16px; margin-left: 5px;}
+
+/* ================= 核心修复：高级 Loading 动画 ================= */
+#loading { 
+    position: absolute; top:0; left:0; right:0; bottom:0; 
+    background: rgba(255,255,255,0.6); backdrop-filter: blur(5px); /* 毛玻璃背景 */
+    display: none; flex-direction: column; justify-content: center; align-items: center; 
+    z-index: 100; color: #6b9be2; font-weight: bold; gap: 15px;
+}
+.spinner {
+    width: 40px; height: 40px;
+    border: 4px solid rgba(107, 155, 226, 0.3);
+    border-top-color: #6b9be2;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ================= 核心修复：高级 Toast 弹窗 ================= */
+#toast {
+    position: absolute; top: -100px; left: 50%; transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8); color: white; padding: 12px 24px;
+    border-radius: 30px; font-size: 14px; font-weight: bold;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    transition: top 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    z-index: 999; display: flex; align-items: center; gap: 8px;
+}
+#toast.show { top: 50px; }

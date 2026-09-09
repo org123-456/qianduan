@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Claire & Claude</title>
-    <!-- 记得修改这里的 ?t=999 来强制刷新缓存！ -->
-    <link rel="stylesheet" href="css/style.css?t=999">
+    <!-- 强制刷新 CSS 缓存 -->
+    <link rel="stylesheet" href="css/style.css?t=1001">
 </head>
 <body>
     <div id="app-container">
@@ -16,7 +16,7 @@
             <div class="heart">❤️ 100%</div>
         </div>
 
-        <!-- 页面区域 (现在是一个可以左右滑动的长条) -->
+        <!-- 页面区域 (横向滑动) -->
         <div class="page-container" id="scroll-box">
             
             <!-- 0. Home 首页 -->
@@ -37,12 +37,20 @@
                 <div id="desktop" class="memory-grid"></div>
             </div>
 
-            <!-- 2. Chat 聊天页 -->
-            <div id="page-chat" class="page">
-                <div id="app-content-list"></div>
+            <!-- 2. Chat 聊天页 (已更新结构) -->
+            <div id="page-chat" class="page" style="position: relative; padding-bottom: 0;">
+                <div id="app-content-list" style="flex: 1; overflow-y: auto; padding-bottom: 80px;"></div>
+                
+                <!-- 聊天底部输入框 -->
+                <div class="chat-input-bar">
+                    <div class="icon-btn">⊕</div>
+                    <input type="text" placeholder="宝宝，说话..." readonly>
+                    <div class="icon-btn" style="font-size: 20px;">🙂</div>
+                    <div class="icon-btn send-btn">➤</div>
+                </div>
             </div>
 
-            <!-- 3. Together 音乐/共同页 (占位) -->
+            <!-- 3. Together 音乐/共同页 -->
             <div id="page-together" class="page">
                 <div class="card" style="text-align: center;">
                     <h3 style="color: #6b8bbd;">Together</h3>
@@ -87,28 +95,19 @@
         <div id="loading">生成中，请稍候...</div>
     </div>
 
-    <!-- 滑动与点击联动的 JS 逻辑 -->
     <script>
         const scrollBox = document.getElementById('scroll-box');
         const navItems = document.querySelectorAll('.nav-item');
         const pages = document.querySelectorAll('.page');
 
-        // 1. 点击底部按钮，平滑滚动到对应页面
         function switchTab(index) {
-            // 滚动到对应页面 (页面宽度 * index)
             scrollBox.scrollTo({ left: pages[index].offsetLeft, behavior: 'smooth' });
-            
-            // 触发对应页面的数据加载
             if(index === 1 && window.PhoneUI) window.PhoneUI.renderDesktop();
             if(index === 2 && window.PhoneUI) window.PhoneUI.openApp('wechat');
         }
 
-        // 2. 监听手指滑动，自动更新底部按钮高亮
         scrollBox.addEventListener('scroll', () => {
-            // 计算当前滚到了第几个页面
             let currentIndex = Math.round(scrollBox.scrollLeft / scrollBox.clientWidth);
-            
-            // 更新底部高亮状态
             navItems.forEach((nav, i) => {
                 if (i === currentIndex) {
                     nav.classList.add('active');

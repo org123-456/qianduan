@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <!-- 强制刷新 -->
-    <link rel="stylesheet" href="css/style.css?t=2009">
+    <link rel="stylesheet" href="css/style.css?t=2010">
 </head>
 <body>
     <div id="app-container">
@@ -69,7 +68,7 @@
                         </div>
                     </div>
                     
-                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                         <div style="flex: 1;">
                             <label style="font-size: 12px; color: #666;">我的头像(网址)</label>
                             <input type="text" id="my-avatar" placeholder="http..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
@@ -78,11 +77,6 @@
                             <label style="font-size: 12px; color: #666;">TA的头像(网址)</label>
                             <input type="text" id="ta-avatar" placeholder="http..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
                         </div>
-                    </div>
-
-                    <div style="margin-bottom: 15px;">
-                        <label style="font-size: 12px; color: #666;">TA 的人设与性格 (Prompt)</label>
-                        <textarea id="char-persona" rows="3" placeholder="例如: 你是我的男朋友，性格温柔..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px; resize: none;"></textarea>
                     </div>
                     
                     <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 10px; border-radius: 8px;">
@@ -147,8 +141,6 @@
                 <div class="icon"><i class="ph ph-moon"></i></div><div class="text">Mine</div>
             </div>
         </div>
-
-        <!-- 删掉了旧的 loading 蒙版！ -->
     </div>
 
     <script>

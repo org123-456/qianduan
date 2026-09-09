@@ -4,25 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Claire & Claude</title>
-    <!-- 引入高级矢量图标库 -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <link rel="stylesheet" href="css/style.css?t=2006">
+    <link rel="stylesheet" href="css/style.css?t=2007">
 </head>
 <body>
     <div id="app-container">
-        <!-- 顶部标题栏 -->
         <div class="top-bar">
-            <!-- 替换了 ≡ -->
             <div class="menu-btn"><i class="ph ph-list" style="font-size: 18px;"></i></div>
             <div class="title" id="top-title">Claire & Claude</div>
-            <!-- 替换了 ❤️ -->
             <div class="heart"><i class="ph-fill ph-heart"></i> 100%</div>
         </div>
 
-        <!-- 页面区域 (横向滑动) -->
         <div class="page-container" id="scroll-box">
             
-            <!-- 0. Home 首页 -->
             <div id="page-home" class="page">
                 <div class="card" style="text-align: center; padding: 30px 15px;">
                     <h3 style="color: #6b8bbd;">Little love record</h3>
@@ -31,7 +25,6 @@
                 </div>
             </div>
 
-            <!-- 1. Memory 回忆页 -->
             <div id="page-memory" class="page">
                 <div style="padding: 0 5px; margin-bottom: 10px; color: #4a70a8; font-weight: bold; display: flex; justify-content: space-between;">
                     <span>我们的回忆</span>
@@ -40,23 +33,17 @@
                 <div id="desktop" class="memory-grid"></div>
             </div>
 
-            <!-- 2. Chat 聊天页 -->
             <div id="page-chat" class="page" style="position: relative; padding-bottom: 0;">
                 <div id="app-content-list" style="flex: 1; overflow-y: auto; padding-bottom: 80px;"></div>
                 
-                <!-- 聊天底部输入框 -->
                 <div class="chat-input-bar">
-                    <!-- 替换了 ⊕ -->
                     <div class="icon-btn"><i class="ph ph-plus-circle"></i></div>
                     <input type="text" id="chat-input" placeholder="宝宝，说话...">
-                    <!-- 替换了 🙂 -->
                     <div class="icon-btn" style="font-size: 22px;"><i class="ph ph-smiley"></i></div>
-                    <!-- 替换了 ➤ -->
                     <div class="icon-btn send-btn" onclick="window.PhoneEngine.sendChatMessage()"><i class="ph-fill ph-paper-plane-right"></i></div>
                 </div>
             </div>
 
-            <!-- 3. Together 音乐/共同页 -->
             <div id="page-together" class="page">
                 <div class="card" style="text-align: center;">
                     <h3 style="color: #6b8bbd;">Together</h3>
@@ -64,17 +51,30 @@
                 </div>
             </div>
 
-            <!-- 4. Mine 我的页 -->
             <div id="page-mine" class="page">
                 <div class="card">
                     <h3 style="color: #6b8bbd; margin-bottom: 15px;"><i class="ph ph-note-pencil"></i> 专属角色设定</h3>
+                    
                     <div style="margin-bottom: 10px;">
                         <label style="font-size: 12px; color: #666;">TA 的名字</label>
                         <input type="text" id="char-name" placeholder="例如: 小克" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
                     </div>
+                    
+                    <!-- 新增：头像设置 -->
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <div style="flex: 1;">
+                            <label style="font-size: 12px; color: #666;">我的头像(网址)</label>
+                            <input type="text" id="my-avatar" placeholder="http..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 12px; color: #666;">TA的头像(网址)</label>
+                            <input type="text" id="ta-avatar" placeholder="http..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
+                        </div>
+                    </div>
+
                     <div style="margin-bottom: 15px;">
                         <label style="font-size: 12px; color: #666;">TA 的人设与性格 (Prompt)</label>
-                        <textarea id="char-persona" rows="4" placeholder="例如: 你是我的男朋友，性格温柔，占有欲强..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px; resize: none;"></textarea>
+                        <textarea id="char-persona" rows="3" placeholder="例如: 你是我的男朋友，性格温柔..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px; resize: none;"></textarea>
                     </div>
                     
                     <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 10px; border-radius: 8px;">
@@ -110,11 +110,16 @@
                     </div>
                     <button class="btn-refresh" onclick="window.PhoneAPI.saveSettings()" style="margin-top: 0;"><i class="ph ph-floppy-disk"></i> 保存设置</button>
                 </div>
+
+                <!-- 新增：数据管理 -->
+                <div class="card">
+                    <h3 style="color: #ff4d4f; margin-bottom: 15px;"><i class="ph ph-trash"></i> 危险操作</h3>
+                    <button class="btn-refresh" onclick="window.PhoneAPI.clearChat()" style="background: #ff4d4f; margin-top: 0;"><i class="ph ph-warning-circle"></i> 清空聊天记录</button>
+                </div>
             </div>
             
         </div>
 
-        <!-- 底部导航栏 (全换成了高级矢量图标) -->
         <div class="bottom-nav">
             <div class="nav-item active" onclick="switchTab(0)">
                 <div class="icon"><i class="ph ph-house"></i></div><div class="text">Home</div>
@@ -136,7 +141,6 @@
             </div>
         </div>
 
-        <!-- Loading 遮罩 -->
         <div id="loading">生成中，请稍候...</div>
     </div>
 
@@ -147,7 +151,6 @@
 
         function switchTab(index) {
             scrollBox.scrollTo({ left: pages[index].offsetLeft, behavior: 'smooth' });
-            
             if(index === 1 && window.PhoneUI) window.PhoneUI.renderDesktop();
             if(index === 2 && window.PhoneUI) {
                 window.Config.currentAppId = 'wechat'; 

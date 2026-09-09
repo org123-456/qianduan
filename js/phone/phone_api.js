@@ -13,34 +13,47 @@ export const PhoneAPI = {
         }
     },
 
+    // 真正的保存逻辑
+    _doSave() {
+        const getVal = (id) => document.getElementById(id)?.value.trim() || '';
+        
+        localStorage.setItem('ai_api_url', getVal('api-url'));
+        localStorage.setItem('ai_api_key', getVal('api-key'));
+        localStorage.setItem('ai_api_model', getVal('api-model'));
+        
+        localStorage.setItem('my_name', getVal('my-name'));
+        localStorage.setItem('char_name', getVal('char-name'));
+        
+        localStorage.setItem('ban_emoji', document.getElementById('ban-emoji')?.checked || false);
+        localStorage.setItem('reply_length', getVal('reply-length') || 'short');
+
+        localStorage.setItem('my_avatar', getVal('my-avatar'));
+        localStorage.setItem('ta_avatar', getVal('ta-avatar'));
+        
+        const charName = getVal('char-name');
+        const myName = getVal('my-name');
+        if (charName && myName) {
+            const titleEl = document.getElementById('top-title');
+            if (titleEl) titleEl.innerText = `${myName} & ${charName}`;
+        }
+    },
+
+    // 打字时自动触发，不弹窗
+    autoSave() {
+        try {
+            this._doSave();
+        } catch (e) {
+            console.error("自动保存失败", e);
+        }
+    },
+
+    // 点击按钮手动触发，弹窗提示
     saveSettings() {
         try {
-            const getVal = (id) => document.getElementById(id)?.value.trim() || '';
-            
-            localStorage.setItem('ai_api_url', getVal('api-url'));
-            localStorage.setItem('ai_api_key', getVal('api-key'));
-            localStorage.setItem('ai_api_model', getVal('api-model'));
-            
-            localStorage.setItem('my_name', getVal('my-name'));
-            localStorage.setItem('char_name', getVal('char-name'));
-            
-            localStorage.setItem('ban_emoji', document.getElementById('ban-emoji')?.checked || false);
-            localStorage.setItem('reply_length', getVal('reply-length') || 'short');
-
-            localStorage.setItem('my_avatar', getVal('my-avatar'));
-            localStorage.setItem('ta_avatar', getVal('ta-avatar'));
-            
+            this._doSave();
             this.showToast("✅ 设置保存成功！");
-            
-            const charName = getVal('char-name');
-            const myName = getVal('my-name');
-            if (charName && myName) {
-                const titleEl = document.getElementById('top-title');
-                if (titleEl) titleEl.innerText = `${myName} & ${charName}`;
-            }
             window.PhoneUI.renderAppContent('wechat');
         } catch (error) {
-            console.error("保存失败:", error);
             alert("保存失败，请检查代码");
         }
     },
@@ -52,7 +65,6 @@ export const PhoneAPI = {
             setVal('api-url', localStorage.getItem('ai_api_url') || '');
             setVal('api-key', localStorage.getItem('ai_api_key') || '');
             
-            // 恢复模型名称，并同步下拉框
             const savedModel = localStorage.getItem('ai_api_model') || '';
             setVal('api-model', savedModel);
             const selectEl = document.getElementById('api-model-select');
@@ -99,11 +111,6 @@ export const PhoneAPI = {
         let url = localStorage.getItem('ai_api_url');
         let key = localStorage.getItem('ai_api_key');
         let model = localStorage.getItem('ai_api_model');
-
-        // 如果缓存没读到，直接去页面上硬抓
-        if (!url) url = document.getElementById('api-url')?.value.trim();
-        if (!key) key = document.getElementById('api-key')?.value.trim();
-        if (!model) model = document.getElementById('api-model')?.value.trim();
 
         if (!url || !key || !model) {
             throw new Error("请先去 Mine 页面配置 API 接口和模型！");

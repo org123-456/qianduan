@@ -5,10 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <link rel="stylesheet" href="css/style.css?t=2007">
+    <link rel="stylesheet" href="css/style.css?t=2008">
 </head>
 <body>
     <div id="app-container">
+        <!-- 高级提示弹窗 -->
+        <div id="toast"><i class="ph-fill ph-check-circle" style="color: #4ade80; font-size: 18px;"></i> <span id="toast-msg">保存成功</span></div>
+
         <div class="top-bar">
             <div class="menu-btn"><i class="ph ph-list" style="font-size: 18px;"></i></div>
             <div class="title" id="top-title">Claire & Claude</div>
@@ -34,7 +37,7 @@
             </div>
 
             <div id="page-chat" class="page" style="position: relative; padding-bottom: 0;">
-                <div id="app-content-list" style="flex: 1; overflow-y: auto; padding-bottom: 80px;"></div>
+                <div id="app-content-list" style="flex: 1; overflow-y: auto; padding-bottom: 140px;"></div>
                 
                 <div class="chat-input-bar">
                     <div class="icon-btn"><i class="ph ph-plus-circle"></i></div>
@@ -55,12 +58,18 @@
                 <div class="card">
                     <h3 style="color: #6b8bbd; margin-bottom: 15px;"><i class="ph ph-note-pencil"></i> 专属角色设定</h3>
                     
-                    <div style="margin-bottom: 10px;">
-                        <label style="font-size: 12px; color: #666;">TA 的名字</label>
-                        <input type="text" id="char-name" placeholder="例如: 小克" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
+                    <!-- 新增：你的名字（防 OOC 关键） -->
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <div style="flex: 1;">
+                            <label style="font-size: 12px; color: #666;">我的名字</label>
+                            <input type="text" id="my-name" placeholder="例如: 小棋" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 12px; color: #666;">TA的名字</label>
+                            <input type="text" id="char-name" placeholder="例如: 小克" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
+                        </div>
                     </div>
                     
-                    <!-- 新增：头像设置 -->
                     <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                         <div style="flex: 1;">
                             <label style="font-size: 12px; color: #666;">我的头像(网址)</label>
@@ -111,7 +120,6 @@
                     <button class="btn-refresh" onclick="window.PhoneAPI.saveSettings()" style="margin-top: 0;"><i class="ph ph-floppy-disk"></i> 保存设置</button>
                 </div>
 
-                <!-- 新增：数据管理 -->
                 <div class="card">
                     <h3 style="color: #ff4d4f; margin-bottom: 15px;"><i class="ph ph-trash"></i> 危险操作</h3>
                     <button class="btn-refresh" onclick="window.PhoneAPI.clearChat()" style="background: #ff4d4f; margin-top: 0;"><i class="ph ph-warning-circle"></i> 清空聊天记录</button>
@@ -141,7 +149,11 @@
             </div>
         </div>
 
-        <div id="loading">生成中，请稍候...</div>
+        <!-- 高级 Loading 动画 -->
+        <div id="loading">
+            <div class="spinner"></div>
+            <div>对方正在输入中...</div>
+        </div>
     </div>
 
     <script>

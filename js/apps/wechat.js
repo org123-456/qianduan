@@ -17,7 +17,6 @@ export const WechatApp = {
         const avatarOther = localStorage.getItem('ta_avatar') || defaultTa;
 
         let html = '<div class="chat-container">';
-        // 注意这里加了 index 索引
         data.items.forEach((item, index) => {
             if (item.sender === 'typing') {
                 html += `
@@ -38,12 +37,19 @@ export const WechatApp = {
             }
 
             const isMe = item.sender === 'me';
+            
+            // 🌟 核心：调用借来的 marked 神器，把文字变成高级排版！
+            // 加上了防报错机制，如果没加载出来，就用普通文字
+            let finalContent = item.content;
+            if (window.marked) {
+                finalContent = window.marked.parse(item.content);
+            }
+
             html += `
                 <div class="chat-msg ${isMe ? 'right' : 'left'}">
                     <img class="chat-avatar" src="${isMe ? avatarMe : avatarOther}" />
                     <div class="chat-content-box">
-                        <!-- 点击气泡，呼出操作菜单 -->
-                        <div class="chat-bubble" onclick="window.PhoneEngine.openMsgMenu(${index}, '${item.sender}')">${item.content}</div>
+                        <div class="chat-bubble markdown-body" onclick="window.PhoneEngine.openMsgMenu(${index}, '${item.sender}')">${finalContent}</div>
                         <div class="chat-time">${item.time} ${isMe ? '· 已读' : ''}</div>
                     </div>
                 </div>

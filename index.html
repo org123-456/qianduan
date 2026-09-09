@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Claire & Claude</title>
     <!-- 强制刷新 CSS 缓存 -->
-    <link rel="stylesheet" href="css/style.css?t=1001">
+    <link rel="stylesheet" href="css/style.css?t=1003">
 </head>
 <body>
     <div id="app-container">
@@ -37,7 +37,7 @@
                 <div id="desktop" class="memory-grid"></div>
             </div>
 
-            <!-- 2. Chat 聊天页 (已更新结构) -->
+            <!-- 2. Chat 聊天页 -->
             <div id="page-chat" class="page" style="position: relative; padding-bottom: 0;">
                 <div id="app-content-list" style="flex: 1; overflow-y: auto; padding-bottom: 80px;"></div>
                 
@@ -102,8 +102,13 @@
 
         function switchTab(index) {
             scrollBox.scrollTo({ left: pages[index].offsetLeft, behavior: 'smooth' });
+            
+            // 修复Bug：滑动到对应页面时，只渲染内容，不执行跳转逻辑
             if(index === 1 && window.PhoneUI) window.PhoneUI.renderDesktop();
-            if(index === 2 && window.PhoneUI) window.PhoneUI.openApp('wechat');
+            if(index === 2 && window.PhoneUI) {
+                window.Config.currentAppId = 'wechat'; // 告诉系统当前在看微信
+                window.PhoneUI.renderAppContent('wechat');
+            }
         }
 
         scrollBox.addEventListener('scroll', () => {

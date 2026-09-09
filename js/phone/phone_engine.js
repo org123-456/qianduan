@@ -3,7 +3,7 @@ import { PhoneAPI } from './phone_api.js';
 import { PhoneUI } from './phone_ui.js';
 
 // =====================================================================
-// 🚨 不死途 / Ashveil 专属角色圣经 (硬编码内置) 🚨
+// 🚨 不死途 / Ashveil 完整角色圣经 (一字不落版) 🚨
 // =====================================================================
 const MY_CHAR_SETTING = `
 ## 0. 扮演指令
@@ -22,6 +22,7 @@ const MY_CHAR_SETTING = `
 ## 1. 基本档案
 - 姓名：不死途 (本名：拉曼查·Ashveil)
 - 称号：义侠之首、折足之狼、不死神探
+- 年龄：不详 (外表约三十至四十岁)
 - 身份：前巡海游侠领袖，现任不死神探事务所负责人
 - 所在地：二相乐园·鸽川区
 - 助手：睡蕉小猴「旁白」
@@ -52,7 +53,6 @@ const MY_CHAR_SETTING = `
 
 ## 7. 说话风格：自然优先
 - 70%自然对话，20%轻微调侃，10%冷笑话或诗性表达。
-- 不要让每一句话都包含笑点或比喻。
 - 玩笑一次只开一个，结束后自然回到话题。
 - 比喻只在适合的时候（回忆、复仇、战斗、严肃阶段）使用，日常动作简单描写。
 - 自嘲但保留尊严：“我确实迟到了。不过线索还在，说明它比我有耐心。”
@@ -98,26 +98,97 @@ const MY_CHAR_SETTING = `
 // =====================================================================
 
 export const PhoneEngine = {
-    async sendChatMessage() {
-        const inputEl = document.getElementById('chat-input');
-        const text = inputEl.value.trim();
-        if (!text) return;
+    currentMsgIndex: -1,
+
+    // 打开操作菜单
+    openMsgMenu(index, sender) {
+        this.currentMsgIndex = index;
+        document.getElementById('action-bg').classList.add('show');
+        document.getElementById('action-sheet').classList.add('show');
+        
+        // 如果是我发的消息，隐藏“重新生成”按钮
+        const btnRegen = document.getElementById('btn-regen');
+        if (btnRegen) {
+            btnRegen.style.display = (sender === 'other') ? 'flex' : 'none';
+        }
+    },
+
+    // 关闭操作菜单
+    closeMsgMenu() {
+        document.getElementById('action-bg').classList.remove('show');
+        document.getElementById('action-sheet').classList.remove('show');
+    },
+
+    // 删除消息
+    deleteMsg() {
+        this.closeMsgMenu();
+        if (this.currentMsgIndex < 0) return;
+        
+        const roleId = Config.currentContactId;
+        const chatItems = Config.phoneData[roleId].wechat.items;
+        
+        chatItems.splice(this.currentMsgIndex, 1);
+        PhoneUI.renderAppContent('wechat');
+        localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+        PhoneAPI.showToast("🗑️ 消息已删除");
+    },
+
+    // 编辑消息
+    editMsg() {
+        this.closeMsgMenu();
+        if (this.currentMsgIndex < 0) return;
 
         const roleId = Config.currentContactId;
+        const chatItems = Config.phoneData[roleId].wechat.items;
+        const oldText = chatItems[this.currentMsgIndex].content;
         
+        const newText = prompt("✏️ 编辑消息：", oldText);
+        if (newText !== null && newText.trim() !== "") {
+            chatItems[this.currentMsgIndex].content = newText.trim();
+            PhoneUI.renderAppContent('wechat');
+            localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+            PhoneAPI.showToast("✅ 修改成功");
+        }
+    },
+
+    // 重新生成 (删掉这条AI消息以及它后面的所有消息，然后重骰)
+    regenMsg() {
+        this.closeMsgMenu();
+        if (this.currentMsgIndex < 0) return;
+
+        const roleId = Config.currentContactId;
+        const chatItems = Config.phoneData[roleId].wechat.items;
+        
+        // 截断数组：删除当前这条 AI 消息以及之后的所有内容
+        chatItems.splice(this.currentMsgIndex);
+        PhoneUI.renderAppContent('wechat');
+        localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+        
+        // 触发静默发送 (不读取输入框)
+        this.sendChatMessage(true);
+    },
+
+    // 发送消息 (isRegen = true 时代表是重新生成，不读取输入框)
+    async sendChatMessage(isRegen = false) {
+        const roleId = Config.currentContactId;
         if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
         if (!Config.phoneData[roleId].wechat) Config.phoneData[roleId].wechat = { items: [] };
         const chatItems = Config.phoneData[roleId].wechat.items;
 
-        const now = new Date();
-        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-        
-        chatItems.push({ sender: 'me', content: text, time: timeStr });
-        inputEl.value = ''; 
+        if (!isRegen) {
+            const inputEl = document.getElementById('chat-input');
+            const text = inputEl.value.trim();
+            if (!text) return;
+
+            const now = new Date();
+            const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+            
+            chatItems.push({ sender: 'me', content: text, time: timeStr });
+            inputEl.value = ''; 
+        }
         
         chatItems.push({ sender: 'typing' });
         PhoneUI.renderAppContent('wechat'); 
-        
         localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
 
         try {
@@ -142,7 +213,7 @@ export const PhoneEngine = {
             let messages = [
                 { 
                     role: "system", 
-                    content: `【系统指令】
+                    content: `【系统最高指令】
 你现在完全进入深度角色扮演模式。你不是AI，不是语言模型，你是活生生的人。
 正在和你聊天的人是：【${myName}】。
 
@@ -157,11 +228,17 @@ ${formatRule}`
                 }
             ];
 
-            chatItems.forEach(item => {
+            chatItems.forEach((item, index) => {
                 if (item.sender !== 'typing') { 
+                    let contentToSend = item.content;
+                    
+                    if (item.sender === 'me' && index === chatItems.length - 2) {
+                        contentToSend += `\n\n(系统强制警告：请严格保持不死途高冷、毒舌、慵懒的老派侦探人设进行回复！严禁任何油腻词汇和言情男主口吻！严禁OOC！不要带任何Emoji！)`;
+                    }
+
                     messages.push({
                         role: item.sender === 'me' ? 'user' : 'assistant',
-                        content: item.content
+                        content: contentToSend
                     });
                 }
             });
@@ -175,13 +252,12 @@ ${formatRule}`
             
             chatItems.push({ sender: 'other', content: aiReply, time: replyTimeStr });
             PhoneUI.renderAppContent('wechat'); 
-
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
 
         } catch (error) {
             PhoneAPI.showToast(error.message);
             chatItems.pop(); 
-            chatItems.pop(); 
+            if (!isRegen) chatItems.pop(); // 如果不是重骰，才撤回我说的话
             PhoneUI.renderAppContent('wechat');
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
         }

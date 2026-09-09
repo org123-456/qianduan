@@ -1,5 +1,4 @@
 export const PhoneAPI = {
-    // 呼出高级弹窗
     showToast(msg) {
         const toast = document.getElementById('toast');
         const toastMsg = document.getElementById('toast-msg');
@@ -8,9 +7,9 @@ export const PhoneAPI = {
             toast.classList.add('show');
             setTimeout(() => {
                 toast.classList.remove('show');
-            }, 3000); // 3秒后自动消失
+            }, 3000); 
         } else {
-            alert(msg); // 兜底
+            alert(msg); 
         }
     },
 
@@ -79,9 +78,12 @@ export const PhoneAPI = {
 
     clearChat() {
         if(confirm("确定要清空所有聊天记录吗？清空后无法恢复！")) {
-            if(window.Config.phoneData['role_001'] && window.Config.phoneData['role_001'].wechat) {
-                window.Config.phoneData['role_001'].wechat.items = [];
+            if(window.Config.phoneData['role_001']) {
+                window.Config.phoneData['role_001'].wechat = { items: [] };
             }
+            // 【核心新增】：把清空后的状态同步到本地缓存
+            localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
+            
             window.PhoneUI.renderAppContent('wechat');
             this.showToast("聊天记录已清空！");
         }

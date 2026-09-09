@@ -5,9 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <!-- 🌟 新增：从开源社区借来的 Markdown 解析神器！ -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=2015">
+    <link rel="stylesheet" href="css/style.css?t=2018">
 </head>
 <body>
     <div id="app-container">
@@ -108,10 +107,21 @@
                         <label style="font-size: 12px; color: #666;">API Key (密钥)</label>
                         <input type="password" id="api-key" placeholder="sk-..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
                     </div>
+                    
+                    <!-- 🌟 新增：高级模型切换器 -->
                     <div style="margin-bottom: 15px;">
                         <label style="font-size: 12px; color: #666;">模型名称 (Model)</label>
-                        <input type="text" id="api-model" placeholder="例如: gpt-4o 或 gemini-pro" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
+                        <div style="display: flex; gap: 8px; margin-top: 4px;">
+                            <select id="api-model-select" onchange="document.getElementById('api-model').value = this.value" style="padding: 8px; border: 1px solid #ddd; border-radius: 8px; outline: none; background: #fff;">
+                                <option value="gemini-1.5-pro-latest">Gemini 1.5 Pro</option>
+                                <option value="claude-3-5-sonnet-20240620">Claude 3.5 Sonnet</option>
+                                <option value="gpt-4o">GPT-4o</option>
+                                <option value="">自定义...</option>
+                            </select>
+                            <input type="text" id="api-model" placeholder="手动输入模型名" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 8px;">
+                        </div>
                     </div>
+
                     <button class="btn-refresh" onclick="window.PhoneAPI.saveSettings()" style="margin-top: 0;"><i class="ph ph-floppy-disk"></i> 保存设置</button>
                 </div>
 
@@ -144,7 +154,6 @@
             </div>
         </div>
 
-        <!-- 消息操作菜单 -->
         <div id="action-bg" class="action-sheet-bg" onclick="window.PhoneEngine.closeMsgMenu()"></div>
         <div id="action-sheet" class="action-sheet">
             <button class="action-btn" onclick="window.PhoneEngine.editMsg()"><i class="ph ph-pencil-simple"></i> 编辑此消息</button>

@@ -1,1 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI 角色小手机</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="phone-container">
+        <div id="loading">生成中，请稍候...</div>
+
+        <div id="page-role-select" class="page active">
+            <div class="header">选择角色</div>
+            <div class="content" id="role-list"></div>
+        </div>
+
+        <div id="page-home" class="page">
+            <div class="header">
+                <span class="back-btn" onclick="window.PhoneUI.goBack('page-role-select')">切换角色</span>
+                <span id="current-role-name">桌面</span>
+            </div>
+            <div class="content">
+                <div id="desktop"></div>
+                <button class="btn-refresh" onclick="window.PhoneEngine.refreshWholePhone()">🔄 一键整机生成 (统一时间线)</button>
+            </div>
+        </div>
+
+        <div id="page-app" class="page">
+            <div class="header">
+                <span class="back-btn" onclick="window.PhoneUI.goBack('page-home')">返回</span>
+                <span id="current-app-name">App</span>
+            </div>
+            <div class="content">
+                <div id="app-content-list"></div>
+                <button class="btn-refresh" onclick="window.PhoneEngine.refreshSingleApp()">🔄 刷新当前 App</button>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
 

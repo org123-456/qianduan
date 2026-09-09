@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <link rel="stylesheet" href="css/style.css?t=2010">
+    <link rel="stylesheet" href="css/style.css?t=2012">
 </head>
 <body>
     <div id="app-container">
@@ -18,7 +18,6 @@
         </div>
 
         <div class="page-container" id="scroll-box">
-            
             <div id="page-home" class="page">
                 <div class="card" style="text-align: center; padding: 30px 15px;">
                     <h3 style="color: #6b8bbd;">Little love record</h3>
@@ -141,6 +140,16 @@
                 <div class="icon"><i class="ph ph-moon"></i></div><div class="text">Mine</div>
             </div>
         </div>
+
+        <!-- 消息操作菜单 -->
+        <div id="action-bg" class="action-sheet-bg" onclick="window.PhoneEngine.closeMsgMenu()"></div>
+        <div id="action-sheet" class="action-sheet">
+            <button class="action-btn" onclick="window.PhoneEngine.editMsg()"><i class="ph ph-pencil-simple"></i> 编辑此消息</button>
+            <button class="action-btn" id="btn-regen" onclick="window.PhoneEngine.regenMsg()"><i class="ph ph-arrows-clockwise"></i> 重新生成 (删除此条并重骰)</button>
+            <button class="action-btn danger" onclick="window.PhoneEngine.deleteMsg()"><i class="ph ph-trash"></i> 删除此消息</button>
+            <button class="action-btn cancel" onclick="window.PhoneEngine.closeMsgMenu()">取消</button>
+        </div>
+
     </div>
 
     <script>

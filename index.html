@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <link rel="stylesheet" href="css/style.css?t=2008">
+    <!-- 强制刷新 -->
+    <link rel="stylesheet" href="css/style.css?t=2009">
 </head>
 <body>
     <div id="app-container">
-        <!-- 高级提示弹窗 -->
         <div id="toast"><i class="ph-fill ph-check-circle" style="color: #4ade80; font-size: 18px;"></i> <span id="toast-msg">保存成功</span></div>
 
         <div class="top-bar">
@@ -58,7 +58,6 @@
                 <div class="card">
                     <h3 style="color: #6b8bbd; margin-bottom: 15px;"><i class="ph ph-note-pencil"></i> 专属角色设定</h3>
                     
-                    <!-- 新增：你的名字（防 OOC 关键） -->
                     <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                         <div style="flex: 1;">
                             <label style="font-size: 12px; color: #666;">我的名字</label>
@@ -149,11 +148,7 @@
             </div>
         </div>
 
-        <!-- 高级 Loading 动画 -->
-        <div id="loading">
-            <div class="spinner"></div>
-            <div>对方正在输入中...</div>
-        </div>
+        <!-- 删掉了旧的 loading 蒙版！ -->
     </div>
 
     <script>

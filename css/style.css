@@ -63,11 +63,15 @@ body {
 .chat-content-box { display: flex; flex-direction: column; max-width: 72%; }
 .chat-msg.right .chat-content-box { align-items: flex-end; }
 
-/* 增加了 cursor: pointer，暗示可以点击 */
 .chat-bubble { padding: 12px 16px; border-radius: 18px; font-size: 15px; line-height: 1.5; word-wrap: break-word; box-shadow: 0 2px 8px rgba(107, 139, 189, 0.08); cursor: pointer; transition: 0.2s;}
 .chat-bubble:active { opacity: 0.7; }
 .chat-msg.left .chat-bubble { background: #fff; color: #333; border-top-left-radius: 4px; }
 .chat-msg.right .chat-bubble { background: #e8f0fa; color: #333; border-top-right-radius: 4px; }
+
+/* 🌟 新增：Markdown 神器排版修复 */
+.markdown-body p { margin: 0; padding: 0; }
+.markdown-body em { color: #6b8bbd; font-style: italic; background: rgba(107, 139, 189, 0.1); padding: 0 4px; border-radius: 4px; }
+.chat-msg.right .markdown-body em { color: #4a70a8; background: rgba(255,255,255,0.5); }
 
 .chat-time { font-size: 11px; color: #999; margin-top: 6px; padding: 0 4px; }
 
@@ -97,7 +101,6 @@ body {
 .typing-dot:nth-child(2) { animation-delay: -0.16s; }
 @keyframes typing { 0%, 80%, 100% { transform: scale(0); opacity: 0.5; } 40% { transform: scale(1); opacity: 1; } }
 
-/* ================= 消息操作菜单 (Action Sheet) ================= */
 .action-sheet-bg {
     position: absolute; top: 0; left: 0; right: 0; bottom: 0;
     background: rgba(0,0,0,0.4); z-index: 998;

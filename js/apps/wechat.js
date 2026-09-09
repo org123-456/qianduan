@@ -17,8 +17,8 @@ export const WechatApp = {
         const avatarOther = localStorage.getItem('ta_avatar') || defaultTa;
 
         let html = '<div class="chat-container">';
-        data.items.forEach(item => {
-            // 如果是正在输入中的假消息，渲染跳动动画
+        // 注意这里加了 index 索引
+        data.items.forEach((item, index) => {
             if (item.sender === 'typing') {
                 html += `
                     <div class="chat-msg left">
@@ -42,7 +42,8 @@ export const WechatApp = {
                 <div class="chat-msg ${isMe ? 'right' : 'left'}">
                     <img class="chat-avatar" src="${isMe ? avatarMe : avatarOther}" />
                     <div class="chat-content-box">
-                        <div class="chat-bubble">${item.content}</div>
+                        <!-- 点击气泡，呼出操作菜单 -->
+                        <div class="chat-bubble" onclick="window.PhoneEngine.openMsgMenu(${index}, '${item.sender}')">${item.content}</div>
                         <div class="chat-time">${item.time} ${isMe ? '· 已读' : ''}</div>
                     </div>
                 </div>

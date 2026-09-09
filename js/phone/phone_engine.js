@@ -1,60 +1,64 @@
 import { Config } from './phone_config.js';
-import { PhoneContext } from './phone_context.js';
 import { PhoneAPI } from './phone_api.js';
-import { PHONE_APPS } from '../apps/app_registry.js';
 import { PhoneUI } from './phone_ui.js';
 
 export const PhoneEngine = {
-    async refreshSingleApp(appId = Config.currentAppId) {
-        PhoneUI.showLoading(true);
-        try {
-            const app = PHONE_APPS[appId];
-            const context = PhoneContext.buildPhoneRoleContext(Config.currentContactId, appId);
-            const finalPrompt = context + PhoneAPI.globalRules + `\n【当前App专属规则】\n${app.prompt}`;
-            
-            const aiResponse = await PhoneAPI.callAI(finalPrompt);
-            const jsonData = PhoneAPI.cleanJSON(aiResponse);
-            
-            if (!Config.phoneData[Config.currentContactId]) Config.phoneData[Config.currentContactId] = {};
-            Config.phoneData[Config.currentContactId][appId] = jsonData;
-            
-            PhoneUI.renderAppContent(appId);
-        } catch (e) {
-            alert(e.message);
-        } finally {
-            PhoneUI.showLoading(false);
-        }
-    },
+    async sendChatMessage() {
+        const inputEl = document.getElementById('chat-input');
+        const text = inputEl.value.trim();
+        if (!text) return;
 
-    async refreshWholePhone() {
-        PhoneUI.showLoading(true);
+        const roleId = Config.currentContactId;
+        
+        if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
+        if (!Config.phoneData[roleId].wechat) Config.phoneData[roleId].wechat = { items: [] };
+        const chatItems = Config.phoneData[roleId].wechat.items;
+
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        
+        chatItems.push({ sender: 'me', content: text, time: timeStr });
+        inputEl.value = ''; 
+        PhoneUI.renderAppContent('wechat'); 
+
+        PhoneUI.showLoading(true); 
         try {
-            const context = PhoneContext.buildPhoneRoleContext(Config.currentContactId);
-            const finalPrompt = context + PhoneAPI.globalRules + `
-【整机生成特殊规则】
-请先在内部构建一个统一的生活事件时间线。
-然后让不同的 App 从同一条时间线中抽取对应的信息，确保跨 App 数据高度一致。
-请一次性返回整部手机的 JSON，格式如下：
-{
-    "wechat": { ...微信的JSON... },
-    "wallet": { ...钱包的JSON... }
-}`;
+            // ================= 核心：读取你自定义的人设 =================
+            const charName = localStorage.getItem('char_name') || '你的伴侣';
+            const charPersona = localStorage.getItem('char_persona') || '温柔体贴，喜欢用微信聊天。';
             
-            const aiResponse = await PhoneAPI.callAI(finalPrompt);
-            const jsonData = PhoneAPI.cleanJSON(aiResponse);
-            
-            if (!Config.phoneData[Config.currentContactId]) Config.phoneData[Config.currentContactId] = {};
-            for (let appId in jsonData) {
-                if (PHONE_APPS[appId]) {
-                    Config.phoneData[Config.currentContactId][appId] = jsonData[appId];
+            let messages = [
+                { 
+                    role: "system", 
+                    content: `你正在扮演 ${charName}，正在和你的伴侣(用户)用微信聊天。
+你的核心人设与性格是：${charPersona}。
+请严格遵循人设，用简短、自然、口语化的微信口吻回复，不要带任何特殊格式标记，不要像AI客服。` 
                 }
-            }
-            alert("整机生成完毕！");
-        } catch (e) {
-            alert(e.message);
+            ];
+
+            // 附带历史聊天记录，让 AI 有记忆
+            chatItems.forEach(item => {
+                messages.push({
+                    role: item.sender === 'me' ? 'user' : 'assistant',
+                    content: item.content
+                });
+            });
+
+            // 发送给大模型
+            const aiReply = await PhoneAPI.chatWithAI(messages);
+
+            const replyTime = new Date();
+            const replyTimeStr = `${replyTime.getHours().toString().padStart(2, '0')}:${replyTime.getMinutes().toString().padStart(2, '0')}`;
+            
+            chatItems.push({ sender: 'other', content: aiReply, time: replyTimeStr });
+            PhoneUI.renderAppContent('wechat'); 
+
+        } catch (error) {
+            alert(error.message);
+            chatItems.pop(); 
+            PhoneUI.renderAppContent('wechat');
         } finally {
             PhoneUI.showLoading(false);
         }
     }
 };
-

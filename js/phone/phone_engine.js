@@ -276,7 +276,6 @@ const MEGA_PROMPT = `
 </OVERRIDE_PROTOCOL>
 `;
 // =====================================================================
-
 export const PhoneEngine = {
     currentMsgIndex: -1,
 
@@ -356,21 +355,28 @@ export const PhoneEngine = {
             
             let formatRule = "";
             if (banEmoji) formatRule += "【最高禁令】：绝对不允许使用任何 Emoji、颜文字、波浪号(~)，违者抹杀！\n";
-            if (replyLength === 'short') formatRule += "【长度要求】：极简微信口吻，每次只回 1 到 2 句话。\n";
+            
+            // 稍微放宽了字数限制，让他可以多发几个气泡
+            if (replyLength === 'short') formatRule += "【长度要求】：极简微信口吻，每次回 1 到 3 句话。\n";
             else if (replyLength === 'medium') formatRule += "【长度要求】：中等长度，可包含括号动作描写。\n";
             else if (replyLength === 'long') formatRule += "【长度要求】：长篇语C风格，包含心理和动作描写。\n";
 
-            // 🌟 核心：逼迫 AI 换行！
             formatRule += "【排版要求】：为了模拟真实的微信连发效果，如果你的回复包含两句或以上的话，请务必使用换行符（回车）将它们分开！不要把所有话挤在同一行！\n";
 
             let messages = [
                 { 
                     role: "system", 
+                    // ⚠️ 注意：这里调用了 MEGA_PROMPT，请确保你文件最上面保留了那个超长的人设字符串！
                     content: `${MEGA_PROMPT}\n\n当前正在和你聊天的人是：【${myName}】。\n${formatRule}` 
                 }
             ];
 
-            chatItems.forEach((item, index) => {
+            // 🌟 核心修复：上下文记忆滑动窗口！
+            // 只截取最近的 20 条消息发给 AI，防止历史记录太长撑爆 API！
+            const MAX_CONTEXT = 20;
+            const recentItems = chatItems.slice(-MAX_CONTEXT);
+
+            recentItems.forEach((item, index) => {
                 if (item.sender !== 'typing') { 
                     messages.push({
                         role: item.sender === 'me' ? 'user' : 'assistant',
@@ -407,3 +413,4 @@ export const PhoneEngine = {
         }
     }
 };
+     

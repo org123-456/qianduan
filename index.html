@@ -6,7 +6,7 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=2018">
+    <link rel="stylesheet" href="css/style.css?t=2025">
 </head>
 <body>
     <div id="app-container">
@@ -61,68 +61,65 @@
                     <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                         <div style="flex: 1;">
                             <label style="font-size: 12px; color: #666;">我的名字</label>
-                            <input type="text" id="my-name" placeholder="例如: 小棋" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
+                            <input type="text" id="my-name" placeholder="例如: 小棋" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
                         </div>
                         <div style="flex: 1;">
                             <label style="font-size: 12px; color: #666;">TA的名字</label>
-                            <input type="text" id="char-name" placeholder="例如: 小克" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
+                            <input type="text" id="char-name" placeholder="例如: 小克" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
                         </div>
                     </div>
                     
                     <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                         <div style="flex: 1;">
                             <label style="font-size: 12px; color: #666;">我的头像(网址)</label>
-                            <input type="text" id="my-avatar" placeholder="http..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
+                            <input type="text" id="my-avatar" placeholder="http..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
                         </div>
                         <div style="flex: 1;">
                             <label style="font-size: 12px; color: #666;">TA的头像(网址)</label>
-                            <input type="text" id="ta-avatar" placeholder="http..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
+                            <input type="text" id="ta-avatar" placeholder="http..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
                         </div>
                     </div>
                     
                     <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 10px; border-radius: 8px;">
                         <label style="font-size: 13px; color: #333; font-weight: bold;"><i class="ph ph-prohibit"></i> 绝对禁止 AI 使用 Emoji</label>
-                        <input type="checkbox" id="ban-emoji" style="width: 18px; height: 18px;">
+                        <input type="checkbox" id="ban-emoji" onchange="window.PhoneAPI.autoSave()" style="width: 18px; height: 18px;">
                     </div>
                     
                     <div style="margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 10px; border-radius: 8px;">
                         <label style="font-size: 13px; color: #333; font-weight: bold;"><i class="ph ph-text-align-left"></i> 回复长度风格</label>
-                        <select id="reply-length" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; outline: none;">
+                        <select id="reply-length" onchange="window.PhoneAPI.autoSave()" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; outline: none;">
                             <option value="short">极简 (真实微信聊天)</option>
                             <option value="medium">中等 (带点动作描写)</option>
                             <option value="long">长篇 (小作文/语C)</option>
                         </select>
                     </div>
-
-                    <button class="btn-refresh" onclick="window.PhoneAPI.saveSettings()" style="margin-top: 0;"><i class="ph ph-floppy-disk"></i> 保存设定</button>
+                    
+                    <!-- 保留按钮，给用户心理安慰，其实后台已经自动存了 -->
+                    <button class="btn-refresh" onclick="window.PhoneAPI.saveSettings()" style="margin-top: 0;"><i class="ph ph-floppy-disk"></i> 手动保存设定</button>
                 </div>
 
                 <div class="card">
-                    <h3 style="color: #6b8bbd; margin-bottom: 15px;"><i class="ph ph-gear"></i> AI 引擎设置</h3>
+                    <h3 style="color: #6b8bbd; margin-bottom: 15px;"><i class="ph ph-gear"></i> AI 引擎设置 (打字自动保存)</h3>
                     <div style="margin-bottom: 10px;">
                         <label style="font-size: 12px; color: #666;">接口地址 (Base URL)</label>
-                        <input type="text" id="api-url" placeholder="例如: https://api.openai.com/v1" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
+                        <input type="text" id="api-url" placeholder="例如: https://api.openai.com/v1" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
                     </div>
                     <div style="margin-bottom: 10px;">
                         <label style="font-size: 12px; color: #666;">API Key (密钥)</label>
-                        <input type="password" id="api-key" placeholder="sk-..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
+                        <input type="password" id="api-key" placeholder="sk-..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
                     </div>
-                    
-                    <!-- 🌟 新增：高级模型切换器 -->
                     <div style="margin-bottom: 15px;">
                         <label style="font-size: 12px; color: #666;">模型名称 (Model)</label>
                         <div style="display: flex; gap: 8px; margin-top: 4px;">
-                            <select id="api-model-select" onchange="document.getElementById('api-model').value = this.value" style="padding: 8px; border: 1px solid #ddd; border-radius: 8px; outline: none; background: #fff;">
+                            <select id="api-model-select" onchange="document.getElementById('api-model').value = this.value; window.PhoneAPI.autoSave();" style="padding: 8px; border: 1px solid #ddd; border-radius: 8px; outline: none; background: #fff;">
                                 <option value="gemini-1.5-pro-latest">Gemini 1.5 Pro</option>
                                 <option value="claude-3-5-sonnet-20240620">Claude 3.5 Sonnet</option>
                                 <option value="gpt-4o">GPT-4o</option>
                                 <option value="">自定义...</option>
                             </select>
-                            <input type="text" id="api-model" placeholder="手动输入模型名" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 8px;">
+                            <input type="text" id="api-model" placeholder="手动输入模型名" oninput="window.PhoneAPI.autoSave()" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 8px;">
                         </div>
                     </div>
-
-                    <button class="btn-refresh" onclick="window.PhoneAPI.saveSettings()" style="margin-top: 0;"><i class="ph ph-floppy-disk"></i> 保存设置</button>
                 </div>
 
                 <div class="card">
@@ -176,7 +173,7 @@
                 window.Config.currentAppId = 'wechat'; 
                 window.PhoneUI.renderAppContent('wechat');
             }
-            if(index === 4 && window.PhoneAPI) window.PhoneAPI.loadSettings();
+            // 🚨 核心修复：去掉了这里的 loadSettings，防止手滑切页面导致输入被覆盖！
         }
 
         scrollBox.addEventListener('scroll', () => {

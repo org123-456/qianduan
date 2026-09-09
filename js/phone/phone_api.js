@@ -1,46 +1,80 @@
 export const PhoneAPI = {
-    globalRules: `
-【全局生成规则】
-1. 必须符合角色人设和世界观。
-2. 必须参考长期记忆和近期聊天。
-3. 必须只返回合法的 JSON 格式，不要包含任何 markdown 标记(如 \`\`\`json )，不要任何解释。
-`,
-    
-    cleanJSON(str) {
-        try {
-            let cleanStr = str.replace(/```json/gi, '').replace(/```/g, '').trim();
-            return JSON.parse(cleanStr);
-        } catch (e) {
-            console.error("JSON 解析失败:", str);
-            throw new Error("AI 返回的数据格式有误，请重试");
+    // 保存所有设置到本地缓存 (API + 人设)
+    saveSettings() {
+        // API 设置
+        const url = document.getElementById('api-url').value.trim();
+        const key = document.getElementById('api-key').value.trim();
+        const model = document.getElementById('api-model').value.trim();
+        
+        // 人设设置
+        const charName = document.getElementById('char-name').value.trim();
+        const charPersona = document.getElementById('char-persona').value.trim();
+        
+        localStorage.setItem('ai_api_url', url);
+        localStorage.setItem('ai_api_key', key);
+        localStorage.setItem('ai_api_model', model);
+        
+        localStorage.setItem('char_name', charName);
+        localStorage.setItem('char_persona', charPersona);
+        
+        alert("✅ 设置保存成功！AI 已经记住了新的人设。");
+        
+        // 动态更新顶部标题
+        if (charName) {
+            document.getElementById('top-title').innerText = `我 & ${charName}`;
         }
     },
 
-    // 模拟调用 AI (以后在这里换成真实的 API)
-    async callAI(prompt) {
-        console.log("发送给 AI 的 Prompt:\n", prompt);
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                let mockRes = {};
-                if (prompt.includes("统一时间线")) {
-                    // 模拟整机生成的数据，匹配最新的蓝白气泡格式！
-                    mockRes = {
-                        wechat: { 
-                            items: [
-                                { sender: "other", content: "宝宝，今天下雨了，记得带伞哦 ☔️", time: "08:30" },
-                                { sender: "me", content: "知道啦，我已经出门咯！你也是！", time: "08:32" },
-                                { sender: "other", content: "乖，晚上想吃什么？", time: "11:45" }
-                            ] 
-                        },
-                        wallet: { 
-                            items: [
-                                { title: "楼下便利店 (买伞)", desc: "-25.00", time: "08:45" }
-                            ] 
-                        }
-                    };
-                }
-                resolve(JSON.stringify(mockRes));
-            }, 1500); 
-        });
+    // 加载设置到页面上
+    loadSettings() {
+        document.getElementById('api-url').value = localStorage.getItem('ai_api_url') || '';
+        document.getElementById('api-key').value = localStorage.getItem('ai_api_key') || '';
+        document.getElementById('api-model').value = localStorage.getItem('ai_api_model') || '';
+        
+        const savedName = localStorage.getItem('char_name') || '';
+        document.getElementById('char-name').value = savedName;
+        document.getElementById('char-persona').value = localStorage.getItem('char_persona') || '';
+        
+        if (savedName) {
+            document.getElementById('top-title').innerText = `我 & ${savedName}`;
+        }
+    },
+
+    // 真正的 AI 聊天请求
+    async chatWithAI(messages) {
+        const url = localStorage.getItem('ai_api_url');
+        const key = localStorage.getItem('ai_api_key');
+        const model = localStorage.getItem('ai_api_model');
+
+        if (!url || !key || !model) {
+            throw new Error("请先去 Mine 页面配置 API 接口！");
+        }
+
+        const endpoint = url.endsWith('/chat/completions') ? url : url.replace(/\/$/, '') + '/chat/completions';
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${key}`
+                },
+                body: JSON.stringify({
+                    model: model,
+                    messages: messages,
+                    temperature: 0.7
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`API 请求失败: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data.choices[0].message.content;
+        } catch (error) {
+            console.error(error);
+            throw new Error("网络错误或 API 配置不正确，请检查。");
+        }
     }
 };

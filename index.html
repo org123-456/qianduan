@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Claire & Claude</title>
-    <!-- 强制刷新 CSS 缓存 -->
-    <link rel="stylesheet" href="css/style.css?t=1005">
+    <link rel="stylesheet" href="css/style.css?t=2000">
 </head>
 <body>
     <div id="app-container">
@@ -119,6 +118,13 @@
                     nav.classList.remove('active');
                 }
             });
+        });
+        
+        // 页面刚加载完，直接渲染一次聊天内容！
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                if(window.PhoneUI) window.PhoneUI.renderAppContent('wechat');
+            }, 500);
         });
     </script>
     <script type="module" src="js/main.js"></script>

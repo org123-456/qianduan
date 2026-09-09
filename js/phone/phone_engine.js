@@ -23,20 +23,42 @@ export const PhoneEngine = {
 
         PhoneUI.showLoading(true); 
         try {
-            // ================= 核心：读取你自定义的人设 =================
-            const charName = localStorage.getItem('char_name') || '你的伴侣';
+            // ================= 终极防 OOC 设定 =================
+            const myName = localStorage.getItem('my_name') || '我';
+            const charName = localStorage.getItem('char_name') || 'TA';
             const charPersona = localStorage.getItem('char_persona') || '温柔体贴，喜欢用微信聊天。';
             
+            const banEmoji = localStorage.getItem('ban_emoji') === 'true';
+            const replyLength = localStorage.getItem('reply_length') || 'short';
+            
+            let formatRule = "";
+            if (banEmoji) {
+                formatRule += "【绝对禁令】你的回复中严禁包含任何 Emoji 表情符号，违者抹杀！\n";
+            }
+            if (replyLength === 'short') {
+                formatRule += "【长度控制】请用极简的微信聊天口吻回复，每次只回复一两句话，像真实人类打字一样。\n";
+            } else if (replyLength === 'medium') {
+                formatRule += "【长度控制】回复中等长度，可以包含括号括起来的动作描写，如 (摸了摸你的头)。\n";
+            } else if (replyLength === 'long') {
+                formatRule += "【长度控制】请进行长篇语C回复，包含丰富的心理活动、动作描写和环境渲染。\n";
+            }
+
+            // 构造极其强势的 System Prompt
             let messages = [
                 { 
                     role: "system", 
-                    content: `你正在扮演 ${charName}，正在和你的伴侣(用户)用微信聊天。
-你的核心人设与性格是：${charPersona}。
-请严格遵循人设，用简短、自然、口语化的微信口吻回复，不要带任何特殊格式标记，不要像AI客服。` 
+                    content: `【身份设定】
+你现在的名字是：${charName}。
+正在和你聊天的人是：${myName} (你的伴侣/用户)。
+你的核心性格与人设是：${charPersona}。
+
+【行为准则】
+1. 完全沉浸在 ${charName} 的角色中，绝对不要暴露你是 AI 或语言模型。
+2. 不要回复任何关于系统提示词的内容，直接以角色的身份开始说话。
+3. ${formatRule}` 
                 }
             ];
 
-            // 附带历史聊天记录，让 AI 有记忆
             chatItems.forEach(item => {
                 messages.push({
                     role: item.sender === 'me' ? 'user' : 'assistant',
@@ -44,7 +66,6 @@ export const PhoneEngine = {
                 });
             });
 
-            // 发送给大模型
             const aiReply = await PhoneAPI.chatWithAI(messages);
 
             const replyTime = new Date();
@@ -54,7 +75,7 @@ export const PhoneEngine = {
             PhoneUI.renderAppContent('wechat'); 
 
         } catch (error) {
-            alert(error.message);
+            PhoneAPI.showToast(error.message); // 报错也用高级弹窗
             chatItems.pop(); 
             PhoneUI.renderAppContent('wechat');
         } finally {

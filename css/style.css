@@ -59,13 +59,13 @@ body {
 .chat-container { display: flex; flex-direction: column; gap: 20px; padding-top: 10px; }
 .chat-msg { display: flex; align-items: flex-start; gap: 12px; }
 .chat-msg.right { flex-direction: row-reverse; }
-
 .chat-avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; background: #fff; flex-shrink: 0; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-
 .chat-content-box { display: flex; flex-direction: column; max-width: 72%; }
 .chat-msg.right .chat-content-box { align-items: flex-end; }
 
-.chat-bubble { padding: 12px 16px; border-radius: 18px; font-size: 15px; line-height: 1.5; word-wrap: break-word; box-shadow: 0 2px 8px rgba(107, 139, 189, 0.08); }
+/* 增加了 cursor: pointer，暗示可以点击 */
+.chat-bubble { padding: 12px 16px; border-radius: 18px; font-size: 15px; line-height: 1.5; word-wrap: break-word; box-shadow: 0 2px 8px rgba(107, 139, 189, 0.08); cursor: pointer; transition: 0.2s;}
+.chat-bubble:active { opacity: 0.7; }
 .chat-msg.left .chat-bubble { background: #fff; color: #333; border-top-left-radius: 4px; }
 .chat-msg.right .chat-bubble { background: #e8f0fa; color: #333; border-top-right-radius: 4px; }
 
@@ -81,7 +81,6 @@ body {
 .chat-input-bar .icon-btn { color: #6b8bbd; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;}
 .chat-input-bar .send-btn { color: #fff; background: #6b9be2; width: 30px; height: 30px; border-radius: 50%; font-size: 16px; margin-left: 5px;}
 
-/* ================= 高级 Toast 弹窗 ================= */
 #toast {
     position: absolute; top: -100px; left: 50%; transform: translateX(-50%);
     background: rgba(0, 0, 0, 0.8); color: white; padding: 12px 24px;
@@ -92,17 +91,33 @@ body {
 }
 #toast.show { top: 50px; }
 
-/* ================= 对方正在输入中 (打字气泡动画) ================= */
-.typing-indicator {
-    display: flex; align-items: center; gap: 4px; padding: 6px 4px;
-}
-.typing-dot {
-    width: 6px; height: 6px; background-color: #6b8bbd; border-radius: 50%;
-    animation: typing 1.4s infinite ease-in-out both;
-}
+.typing-indicator { display: flex; align-items: center; gap: 4px; padding: 6px 4px; }
+.typing-dot { width: 6px; height: 6px; background-color: #6b8bbd; border-radius: 50%; animation: typing 1.4s infinite ease-in-out both; }
 .typing-dot:nth-child(1) { animation-delay: -0.32s; }
 .typing-dot:nth-child(2) { animation-delay: -0.16s; }
-@keyframes typing {
-    0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
-    40% { transform: scale(1); opacity: 1; }
+@keyframes typing { 0%, 80%, 100% { transform: scale(0); opacity: 0.5; } 40% { transform: scale(1); opacity: 1; } }
+
+/* ================= 消息操作菜单 (Action Sheet) ================= */
+.action-sheet-bg {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4); z-index: 998;
+    display: none; opacity: 0; transition: 0.3s;
 }
+.action-sheet-bg.show { display: block; opacity: 1; }
+
+.action-sheet {
+    position: absolute; bottom: -300px; left: 0; right: 0;
+    background: #f4f5f7; border-radius: 20px 20px 0 0;
+    z-index: 999; transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    padding: 20px 15px 30px 15px; display: flex; flex-direction: column; gap: 10px;
+}
+.action-sheet.show { bottom: 0; }
+
+.action-btn {
+    background: #fff; border: none; padding: 16px; border-radius: 12px;
+    font-size: 16px; font-weight: bold; color: #333; cursor: pointer;
+    display: flex; justify-content: center; align-items: center; gap: 8px;
+}
+.action-btn:active { background: #eee; }
+.action-btn.danger { color: #ff4d4f; }
+.action-btn.cancel { background: #fff; margin-top: 5px; color: #999;}

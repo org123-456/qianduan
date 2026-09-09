@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Claire & Claude</title>
-    <link rel="stylesheet" href="css/style.css?v=2">
+    <!-- 记得修改这里的 ?t=999 来强制刷新缓存！ -->
+    <link rel="stylesheet" href="css/style.css?t=999">
 </head>
 <body>
     <div id="app-container">
@@ -15,10 +16,11 @@
             <div class="heart">❤️ 100%</div>
         </div>
 
-        <!-- 页面区域 -->
-        <div class="page-container">
-            <!-- 1. Home 首页 (图1) -->
-            <div id="page-home" class="page active">
+        <!-- 页面区域 (现在是一个可以左右滑动的长条) -->
+        <div class="page-container" id="scroll-box">
+            
+            <!-- 0. Home 首页 -->
+            <div id="page-home" class="page">
                 <div class="card" style="text-align: center; padding: 30px 15px;">
                     <h3 style="color: #6b8bbd;">Little love record</h3>
                     <h1 style="font-size: 48px; color: #4a70a8; margin: 10px 0;">44</h1>
@@ -26,56 +28,58 @@
                 </div>
             </div>
 
-            <!-- 2. Memory 回忆页 (图2，也就是我们的 App 桌面) -->
+            <!-- 1. Memory 回忆页 -->
             <div id="page-memory" class="page">
-                <div style="padding: 0 15px; margin-bottom: 10px; color: #4a70a8; font-weight: bold; display: flex; justify-content: space-between;">
+                <div style="padding: 0 5px; margin-bottom: 10px; color: #4a70a8; font-weight: bold; display: flex; justify-content: space-between;">
                     <span>我们的回忆</span>
                     <span style="font-size: 12px; color: #999; font-weight: normal;">把日子慢慢装满</span>
                 </div>
-                <!-- 这里用来动态渲染 App 列表 -->
                 <div id="desktop" class="memory-grid"></div>
             </div>
 
-            <!-- 3. Chat 聊天页 (图3) -->
+            <!-- 2. Chat 聊天页 -->
             <div id="page-chat" class="page">
                 <div id="app-content-list"></div>
             </div>
 
-            <!-- 4. Mine 我的页 (图4) -->
+            <!-- 3. Together 音乐/共同页 (占位) -->
+            <div id="page-together" class="page">
+                <div class="card" style="text-align: center;">
+                    <h3 style="color: #6b8bbd;">Together</h3>
+                    <p style="color: #999; margin-top: 10px;">功能开发中...</p>
+                </div>
+            </div>
+
+            <!-- 4. Mine 我的页 -->
             <div id="page-mine" class="page">
                 <div class="card">
-                    <h3>Mine</h3>
-                    <p style="color: #999; font-size: 12px;">设置台</p>
+                    <h3 style="color: #6b8bbd;">Mine</h3>
+                    <p style="color: #999; font-size: 12px; margin-top: 5px;">小克和小棋的设置台</p>
                 </div>
-                <!-- 隐藏的刷新按钮，开发测试用 -->
                 <button class="btn-refresh" onclick="window.PhoneEngine.refreshWholePhone()">🔄 重新生成数据</button>
             </div>
+            
         </div>
 
         <!-- 底部导航栏 -->
         <div class="bottom-nav">
-            <div class="nav-item" onclick="switchTab('page-home', this)">
-                <div class="icon">🏠</div>
-                <div class="text">Home</div>
+            <div class="nav-item active" onclick="switchTab(0)">
+                <div class="icon">🏠</div><div class="text">Home</div>
             </div>
-            <div class="nav-item" onclick="switchTab('page-memory', this); window.PhoneUI.renderDesktop();">
-                <div class="icon">🖼️</div>
-                <div class="text">Memory</div>
+            <div class="nav-item" onclick="switchTab(1)">
+                <div class="icon">🖼️</div><div class="text">Memory</div>
             </div>
-            <!-- 中间凸起的 Chat 按钮 -->
-            <div class="nav-item center-btn" onclick="switchTab('page-chat', this); window.PhoneUI.openApp('wechat');">
+            <div class="nav-item center-btn" onclick="switchTab(2)">
                 <div class="center-circle">
                     <div class="icon" style="color: white;">💬</div>
                     <div class="text" style="color: white; margin-top: 2px;">Chat</div>
                 </div>
             </div>
-            <div class="nav-item" onclick="switchTab('page-home', this)">
-                <div class="icon">🎵</div>
-                <div class="text">Together</div>
+            <div class="nav-item" onclick="switchTab(3)">
+                <div class="icon">🎵</div><div class="text">Together</div>
             </div>
-            <div class="nav-item" onclick="switchTab('page-mine', this)">
-                <div class="icon">🌙</div>
-                <div class="text">Mine</div>
+            <div class="nav-item" onclick="switchTab(4)">
+                <div class="icon">🌙</div><div class="text">Mine</div>
             </div>
         </div>
 
@@ -83,21 +87,37 @@
         <div id="loading">生成中，请稍候...</div>
     </div>
 
-    <!-- 简单的切换 Tab 逻辑 -->
+    <!-- 滑动与点击联动的 JS 逻辑 -->
     <script>
-        function switchTab(pageId, element) {
-            // 隐藏所有页面
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            // 显示目标页面
-            document.getElementById(pageId).classList.add('active');
+        const scrollBox = document.getElementById('scroll-box');
+        const navItems = document.querySelectorAll('.nav-item');
+        const pages = document.querySelectorAll('.page');
+
+        // 1. 点击底部按钮，平滑滚动到对应页面
+        function switchTab(index) {
+            // 滚动到对应页面 (页面宽度 * index)
+            scrollBox.scrollTo({ left: pages[index].offsetLeft, behavior: 'smooth' });
             
-            // 移除所有导航的高亮
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            // 给当前点击的导航加高亮
-            if(element) element.classList.add('active');
+            // 触发对应页面的数据加载
+            if(index === 1 && window.PhoneUI) window.PhoneUI.renderDesktop();
+            if(index === 2 && window.PhoneUI) window.PhoneUI.openApp('wechat');
         }
+
+        // 2. 监听手指滑动，自动更新底部按钮高亮
+        scrollBox.addEventListener('scroll', () => {
+            // 计算当前滚到了第几个页面
+            let currentIndex = Math.round(scrollBox.scrollLeft / scrollBox.clientWidth);
+            
+            // 更新底部高亮状态
+            navItems.forEach((nav, i) => {
+                if (i === currentIndex) {
+                    nav.classList.add('active');
+                } else {
+                    nav.classList.remove('active');
+                }
+            });
+        });
     </script>
     <script type="module" src="js/main.js"></script>
 </body>
 </html>
-

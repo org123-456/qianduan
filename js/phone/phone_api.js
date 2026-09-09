@@ -10,7 +10,6 @@ export const PhoneAPI = {
         const banEmoji = document.getElementById('ban-emoji').checked;
         const replyLength = document.getElementById('reply-length').value;
 
-        // 保存头像
         const myAvatar = document.getElementById('my-avatar').value.trim();
         const taAvatar = document.getElementById('ta-avatar').value.trim();
         
@@ -32,7 +31,6 @@ export const PhoneAPI = {
         if (charName) {
             document.getElementById('top-title').innerText = `我 & ${charName}`;
         }
-        // 保存完刷新一下聊天界面，让新头像生效
         window.PhoneUI.renderAppContent('wechat');
     },
 
@@ -59,7 +57,6 @@ export const PhoneAPI = {
         }
     },
 
-    // 新增：一键清空聊天记录
     clearChat() {
         if(confirm("确定要清空所有聊天记录吗？清空后无法恢复！")) {
             if(window.Config.phoneData['role_001'] && window.Config.phoneData['role_001'].wechat) {
@@ -71,13 +68,24 @@ export const PhoneAPI = {
     },
 
     async chatWithAI(messages) {
-        const url = localStorage.getItem('ai_api_url');
-        const key = localStorage.getItem('ai_api_key');
-        const model = localStorage.getItem('ai_api_model');
+        // 先从缓存读
+        let url = localStorage.getItem('ai_api_url');
+        let key = localStorage.getItem('ai_api_key');
+        let model = localStorage.getItem('ai_api_model');
+
+        // 兜底神技：如果缓存是空的，直接去页面输入框里硬抓！
+        if (!url) url = document.getElementById('api-url').value.trim();
+        if (!key) key = document.getElementById('api-key').value.trim();
+        if (!model) model = document.getElementById('api-model').value.trim();
 
         if (!url || !key || !model) {
-            throw new Error("请先去 Mine 页面配置 API 接口！");
+            throw new Error("请先去 Mine 页面配置 API 接口和模型名称！");
         }
+
+        // 顺手帮你保存一下，免得下次刷新没了
+        localStorage.setItem('ai_api_url', url);
+        localStorage.setItem('ai_api_key', key);
+        localStorage.setItem('ai_api_model', model);
 
         const endpoint = url.endsWith('/chat/completions') ? url : url.replace(/\/$/, '') + '/chat/completions';
 
@@ -96,14 +104,16 @@ export const PhoneAPI = {
             });
 
             if (!response.ok) {
-                throw new Error(`API 请求失败: ${response.status}`);
+                // 如果中转站报错，把错误信息弹出来给你看
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(`API 报错: ${response.status} ${errData.error?.message || ''}`);
             }
 
             const data = await response.json();
             return data.choices[0].message.content;
         } catch (error) {
             console.error(error);
-            throw new Error("网络错误或 API 配置不正确，请检查。");
+            throw new Error(error.message || "网络错误或 API 配置不正确，请检查。");
         }
     }
 };

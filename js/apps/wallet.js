@@ -1,7 +1,7 @@
 export const WalletApp = {
     id: 'wallet',
     name: '钱包',
-    icon: '💰',
+    icon: '<i class="ph-fill ph-wallet"></i>', // 换成高级图标
     prompt: `生成3条今天的消费记录。要求：金额合理，消费地点/内容必须与角色的行程、其他App数据一致。
 返回JSON格式：{"items": [{"title": "商户名称", "desc": "消费金额(如 -150.00)", "time": "HH:mm"}]}`,
     getCount: (data) => data?.items?.length || 0,
@@ -18,4 +18,3 @@ export const WalletApp = {
         `).join('');
     }
 };
-

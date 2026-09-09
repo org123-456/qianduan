@@ -68,12 +68,17 @@ body {
 .chat-msg.left .chat-bubble { background: #fff; color: #333; border-top-left-radius: 4px; }
 .chat-msg.right .chat-bubble { background: #e8f0fa; color: #333; border-top-right-radius: 4px; }
 
-/* 🌟 新增：Markdown 神器排版修复 */
+/* 🌟 新增：微信式连发气泡专属样式！ */
+.chat-avatar-placeholder { width: 42px; flex-shrink: 0; } /* 占位符，保证气泡对齐 */
+.chat-msg.consecutive { margin-top: -14px; } /* 抵消父级的 gap，让气泡紧紧贴在一起 */
+.chat-msg.consecutive .chat-bubble { border-radius: 18px; } /* 连发的气泡变得更圆润 */
+
 .markdown-body p { margin: 0; padding: 0; }
 .markdown-body em { color: #6b8bbd; font-style: italic; background: rgba(107, 139, 189, 0.1); padding: 0 4px; border-radius: 4px; }
 .chat-msg.right .markdown-body em { color: #4a70a8; background: rgba(255,255,255,0.5); }
 
 .chat-time { font-size: 11px; color: #999; margin-top: 6px; padding: 0 4px; }
+.chat-msg.consecutive .chat-time { display: none; } /* 连发时隐藏中间的时间，只显示最后一条的时间 */
 
 .chat-input-bar { 
     position: absolute; bottom: 90px; left: 10px; right: 10px; height: 50px; 

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Claire & Claude</title>
     <!-- 强制刷新 CSS 缓存 -->
-    <link rel="stylesheet" href="css/style.css?t=1003">
+    <link rel="stylesheet" href="css/style.css?t=1005">
 </head>
 <body>
     <div id="app-container">
@@ -103,10 +103,9 @@
         function switchTab(index) {
             scrollBox.scrollTo({ left: pages[index].offsetLeft, behavior: 'smooth' });
             
-            // 修复Bug：滑动到对应页面时，只渲染内容，不执行跳转逻辑
             if(index === 1 && window.PhoneUI) window.PhoneUI.renderDesktop();
             if(index === 2 && window.PhoneUI) {
-                window.Config.currentAppId = 'wechat'; // 告诉系统当前在看微信
+                window.Config.currentAppId = 'wechat'; 
                 window.PhoneUI.renderAppContent('wechat');
             }
         }

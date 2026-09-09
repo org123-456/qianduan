@@ -1,9 +1,25 @@
 export const PhoneAPI = {
+    // 呼出高级弹窗
+    showToast(msg) {
+        const toast = document.getElementById('toast');
+        const toastMsg = document.getElementById('toast-msg');
+        if (toast && toastMsg) {
+            toastMsg.innerText = msg;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000); // 3秒后自动消失
+        } else {
+            alert(msg); // 兜底
+        }
+    },
+
     saveSettings() {
         const url = document.getElementById('api-url').value.trim();
         const key = document.getElementById('api-key').value.trim();
         const model = document.getElementById('api-model').value.trim();
         
+        const myName = document.getElementById('my-name').value.trim();
         const charName = document.getElementById('char-name').value.trim();
         const charPersona = document.getElementById('char-persona').value.trim();
         
@@ -17,6 +33,7 @@ export const PhoneAPI = {
         localStorage.setItem('ai_api_key', key);
         localStorage.setItem('ai_api_model', model);
         
+        localStorage.setItem('my_name', myName);
         localStorage.setItem('char_name', charName);
         localStorage.setItem('char_persona', charPersona);
         
@@ -26,10 +43,10 @@ export const PhoneAPI = {
         localStorage.setItem('my_avatar', myAvatar);
         localStorage.setItem('ta_avatar', taAvatar);
         
-        alert("✅ 设置保存成功！");
+        this.showToast("设置保存成功！");
         
-        if (charName) {
-            document.getElementById('top-title').innerText = `我 & ${charName}`;
+        if (charName && myName) {
+            document.getElementById('top-title').innerText = `${myName} & ${charName}`;
         }
         window.PhoneUI.renderAppContent('wechat');
     },
@@ -39,8 +56,11 @@ export const PhoneAPI = {
         document.getElementById('api-key').value = localStorage.getItem('ai_api_key') || '';
         document.getElementById('api-model').value = localStorage.getItem('ai_api_model') || '';
         
-        const savedName = localStorage.getItem('char_name') || '';
-        document.getElementById('char-name').value = savedName;
+        const savedMyName = localStorage.getItem('my_name') || '';
+        const savedCharName = localStorage.getItem('char_name') || '';
+        
+        document.getElementById('my-name').value = savedMyName;
+        document.getElementById('char-name').value = savedCharName;
         document.getElementById('char-persona').value = localStorage.getItem('char_persona') || '';
         
         document.getElementById('ban-emoji').checked = localStorage.getItem('ban_emoji') === 'true';
@@ -52,8 +72,8 @@ export const PhoneAPI = {
         document.getElementById('my-avatar').value = localStorage.getItem('my_avatar') || '';
         document.getElementById('ta-avatar').value = localStorage.getItem('ta_avatar') || '';
 
-        if (savedName) {
-            document.getElementById('top-title').innerText = `我 & ${savedName}`;
+        if (savedCharName && savedMyName) {
+            document.getElementById('top-title').innerText = `${savedMyName} & ${savedCharName}`;
         }
     },
 
@@ -63,26 +83,23 @@ export const PhoneAPI = {
                 window.Config.phoneData['role_001'].wechat.items = [];
             }
             window.PhoneUI.renderAppContent('wechat');
-            alert("🗑️ 聊天记录已清空！");
+            this.showToast("聊天记录已清空！");
         }
     },
 
     async chatWithAI(messages) {
-        // 先从缓存读
         let url = localStorage.getItem('ai_api_url');
         let key = localStorage.getItem('ai_api_key');
         let model = localStorage.getItem('ai_api_model');
 
-        // 兜底神技：如果缓存是空的，直接去页面输入框里硬抓！
         if (!url) url = document.getElementById('api-url').value.trim();
         if (!key) key = document.getElementById('api-key').value.trim();
         if (!model) model = document.getElementById('api-model').value.trim();
 
         if (!url || !key || !model) {
-            throw new Error("请先去 Mine 页面配置 API 接口和模型名称！");
+            throw new Error("请先去 Mine 页面配置 API 接口！");
         }
 
-        // 顺手帮你保存一下，免得下次刷新没了
         localStorage.setItem('ai_api_url', url);
         localStorage.setItem('ai_api_key', key);
         localStorage.setItem('ai_api_model', model);
@@ -104,7 +121,6 @@ export const PhoneAPI = {
             });
 
             if (!response.ok) {
-                // 如果中转站报错，把错误信息弹出来给你看
                 const errData = await response.json().catch(() => ({}));
                 throw new Error(`API 报错: ${response.status} ${errData.error?.message || ''}`);
             }

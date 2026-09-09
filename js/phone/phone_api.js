@@ -14,65 +14,72 @@ export const PhoneAPI = {
     },
 
     saveSettings() {
-        const url = document.getElementById('api-url').value.trim();
-        const key = document.getElementById('api-key').value.trim();
-        const model = document.getElementById('api-model').value.trim();
-        
-        const myName = document.getElementById('my-name').value.trim();
-        const charName = document.getElementById('char-name').value.trim();
-        const charPersona = document.getElementById('char-persona').value.trim();
-        
-        const banEmoji = document.getElementById('ban-emoji').checked;
-        const replyLength = document.getElementById('reply-length').value;
+        try {
+            // 用 ?. 安全读取，找不到也不会崩溃
+            const url = document.getElementById('api-url')?.value.trim() || '';
+            const key = document.getElementById('api-key')?.value.trim() || '';
+            const model = document.getElementById('api-model')?.value.trim() || '';
+            
+            const myName = document.getElementById('my-name')?.value.trim() || '';
+            const charName = document.getElementById('char-name')?.value.trim() || '';
+            
+            const banEmoji = document.getElementById('ban-emoji')?.checked || false;
+            const replyLength = document.getElementById('reply-length')?.value || 'short';
 
-        const myAvatar = document.getElementById('my-avatar').value.trim();
-        const taAvatar = document.getElementById('ta-avatar').value.trim();
-        
-        localStorage.setItem('ai_api_url', url);
-        localStorage.setItem('ai_api_key', key);
-        localStorage.setItem('ai_api_model', model);
-        
-        localStorage.setItem('my_name', myName);
-        localStorage.setItem('char_name', charName);
-        localStorage.setItem('char_persona', charPersona);
-        
-        localStorage.setItem('ban_emoji', banEmoji);
-        localStorage.setItem('reply_length', replyLength);
+            const myAvatar = document.getElementById('my-avatar')?.value.trim() || '';
+            const taAvatar = document.getElementById('ta-avatar')?.value.trim() || '';
+            
+            localStorage.setItem('ai_api_url', url);
+            localStorage.setItem('ai_api_key', key);
+            localStorage.setItem('ai_api_model', model);
+            
+            localStorage.setItem('my_name', myName);
+            localStorage.setItem('char_name', charName);
+            
+            localStorage.setItem('ban_emoji', banEmoji);
+            localStorage.setItem('reply_length', replyLength);
 
-        localStorage.setItem('my_avatar', myAvatar);
-        localStorage.setItem('ta_avatar', taAvatar);
-        
-        this.showToast("设置保存成功！");
-        
-        if (charName && myName) {
-            document.getElementById('top-title').innerText = `${myName} & ${charName}`;
+            localStorage.setItem('my_avatar', myAvatar);
+            localStorage.setItem('ta_avatar', taAvatar);
+            
+            this.showToast("✅ 设置保存成功！");
+            
+            if (charName && myName) {
+                const titleEl = document.getElementById('top-title');
+                if (titleEl) titleEl.innerText = `${myName} & ${charName}`;
+            }
+            window.PhoneUI.renderAppContent('wechat');
+        } catch (error) {
+            alert("保存失败，请检查代码: " + error.message);
         }
-        window.PhoneUI.renderAppContent('wechat');
     },
 
     loadSettings() {
-        document.getElementById('api-url').value = localStorage.getItem('ai_api_url') || '';
-        document.getElementById('api-key').value = localStorage.getItem('ai_api_key') || '';
-        document.getElementById('api-model').value = localStorage.getItem('ai_api_model') || '';
+        const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
+        
+        setVal('api-url', localStorage.getItem('ai_api_url') || '');
+        setVal('api-key', localStorage.getItem('ai_api_key') || '');
+        setVal('api-model', localStorage.getItem('ai_api_model') || '');
         
         const savedMyName = localStorage.getItem('my_name') || '';
         const savedCharName = localStorage.getItem('char_name') || '';
+        setVal('my-name', savedMyName);
+        setVal('char-name', savedCharName);
         
-        document.getElementById('my-name').value = savedMyName;
-        document.getElementById('char-name').value = savedCharName;
-        document.getElementById('char-persona').value = localStorage.getItem('char_persona') || '';
+        setVal('my-avatar', localStorage.getItem('my_avatar') || '');
+        setVal('ta-avatar', localStorage.getItem('ta_avatar') || '');
+
+        const banEmojiEl = document.getElementById('ban-emoji');
+        if(banEmojiEl) banEmojiEl.checked = localStorage.getItem('ban_emoji') === 'true';
         
-        document.getElementById('ban-emoji').checked = localStorage.getItem('ban_emoji') === 'true';
-        const savedLength = localStorage.getItem('reply_length');
-        if(savedLength) {
-            document.getElementById('reply-length').value = savedLength;
+        const replyLengthEl = document.getElementById('reply-length');
+        if(replyLengthEl && localStorage.getItem('reply_length')) {
+            replyLengthEl.value = localStorage.getItem('reply_length');
         }
 
-        document.getElementById('my-avatar').value = localStorage.getItem('my_avatar') || '';
-        document.getElementById('ta-avatar').value = localStorage.getItem('ta_avatar') || '';
-
         if (savedCharName && savedMyName) {
-            document.getElementById('top-title').innerText = `${savedMyName} & ${savedCharName}`;
+            const titleEl = document.getElementById('top-title');
+            if (titleEl) titleEl.innerText = `${savedMyName} & ${savedCharName}`;
         }
     },
 
@@ -81,11 +88,9 @@ export const PhoneAPI = {
             if(window.Config.phoneData['role_001']) {
                 window.Config.phoneData['role_001'].wechat = { items: [] };
             }
-            // 【核心新增】：把清空后的状态同步到本地缓存
             localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
-            
             window.PhoneUI.renderAppContent('wechat');
-            this.showToast("聊天记录已清空！");
+            this.showToast("🗑️ 聊天记录已清空！");
         }
     },
 
@@ -94,9 +99,9 @@ export const PhoneAPI = {
         let key = localStorage.getItem('ai_api_key');
         let model = localStorage.getItem('ai_api_model');
 
-        if (!url) url = document.getElementById('api-url').value.trim();
-        if (!key) key = document.getElementById('api-key').value.trim();
-        if (!model) model = document.getElementById('api-model').value.trim();
+        if (!url) url = document.getElementById('api-url')?.value.trim();
+        if (!key) key = document.getElementById('api-key')?.value.trim();
+        if (!model) model = document.getElementById('api-model')?.value.trim();
 
         if (!url || !key || !model) {
             throw new Error("请先去 Mine 页面配置 API 接口！");

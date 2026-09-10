@@ -28,11 +28,6 @@ body {
 
 .card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px); border-radius: 20px; padding: 20px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(107, 139, 189, 0.1); }
 
-.memory-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
-.app-icon { background: rgba(255, 255, 255, 0.85); border-radius: 15px; padding: 15px; display: flex; flex-direction: column; align-items: flex-start; box-shadow: 0 4px 10px rgba(107, 139, 189, 0.05); cursor: pointer; }
-.app-icon .icon { width: 44px; height: 44px; background: #e8f0fa; color: #6b8bbd; border-radius: 12px; display: flex; justify-content: center; align-items: center; font-size: 24px; margin-bottom: 10px; }
-.app-icon .name { font-size: 15px; font-weight: bold; color: #333; }
-
 .bottom-nav { 
     position: absolute; bottom: 0; left: 0; right: 0; height: 75px; 
     background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
@@ -68,17 +63,16 @@ body {
 .chat-msg.left .chat-bubble { background: #fff; color: #333; border-top-left-radius: 4px; }
 .chat-msg.right .chat-bubble { background: #e8f0fa; color: #333; border-top-right-radius: 4px; }
 
-/* 🌟 新增：微信式连发气泡专属样式！ */
-.chat-avatar-placeholder { width: 42px; flex-shrink: 0; } /* 占位符，保证气泡对齐 */
-.chat-msg.consecutive { margin-top: -14px; } /* 抵消父级的 gap，让气泡紧紧贴在一起 */
-.chat-msg.consecutive .chat-bubble { border-radius: 18px; } /* 连发的气泡变得更圆润 */
+.chat-avatar-placeholder { width: 42px; flex-shrink: 0; } 
+.chat-msg.consecutive { margin-top: -14px; } 
+.chat-msg.consecutive .chat-bubble { border-radius: 18px; } 
 
 .markdown-body p { margin: 0; padding: 0; }
 .markdown-body em { color: #6b8bbd; font-style: italic; background: rgba(107, 139, 189, 0.1); padding: 0 4px; border-radius: 4px; }
 .chat-msg.right .markdown-body em { color: #4a70a8; background: rgba(255,255,255,0.5); }
 
 .chat-time { font-size: 11px; color: #999; margin-top: 6px; padding: 0 4px; }
-.chat-msg.consecutive .chat-time { display: none; } /* 连发时隐藏中间的时间，只显示最后一条的时间 */
+.chat-msg.consecutive .chat-time { display: none; } 
 
 .chat-input-bar { 
     position: absolute; bottom: 90px; left: 10px; right: 10px; height: 50px; 
@@ -129,3 +123,23 @@ body {
 .action-btn:active { background: #eee; }
 .action-btn.danger { color: #ff4d4f; }
 .action-btn.cancel { background: #fff; margin-top: 5px; color: #999;}
+
+/* ================= 🌟 核心升级：应用桌面排版 ================= */
+.memory-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px 15px; padding: 10px 5px; }
+.app-icon { background: transparent; box-shadow: none; padding: 0; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: 0.2s; }
+.app-icon:active { transform: scale(0.9); }
+.app-icon .icon { width: 60px; height: 60px; background: #fff; border-radius: 18px; display: flex; justify-content: center; align-items: center; font-size: 32px; margin-bottom: 8px; box-shadow: 0 4px 12px rgba(107, 139, 189, 0.15); }
+.app-icon .name { font-size: 12px; font-weight: 500; color: #555; text-align: center; }
+
+/* ================= 🌟 核心升级：App 独立子窗口 ================= */
+.app-window {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: #f4f5f7; z-index: 50; 
+    transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    display: flex; flex-direction: column;
+}
+.app-window.open { transform: translateX(0); }
+.app-window-header { display: flex; align-items: center; padding: 45px 20px 15px 20px; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
+.app-window-back { font-size: 24px; color: #6b8bbd; cursor: pointer; margin-right: 15px; display: flex; align-items: center; padding: 5px; }
+.app-window-title { font-size: 17px; font-weight: bold; color: #333; }
+.app-window-content { flex: 1; overflow-y: auto; padding: 20px; }

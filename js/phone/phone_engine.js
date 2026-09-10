@@ -24,7 +24,6 @@ export const PhoneEngine = {
         const roleId = Config.currentContactId;
         Config.phoneData[roleId].wechat.items.splice(this.currentMsgIndex, 1);
         
-        // 🌟 核心：根据当前打开的 App 刷新对应的 UI
         if (Config.currentAppId === 'novel') {
             PhoneUI.renderNovelContent();
         } else {
@@ -63,7 +62,6 @@ export const PhoneEngine = {
         
         localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
         
-        // 🌟 核心：如果在小说界面重骰，就调用小说的生成逻辑！
         if (Config.currentAppId === 'novel') {
             PhoneUI.renderNovelContent();
             this.sendNovelMessage(true);
@@ -181,6 +179,7 @@ ${historyText}`;
         localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
     },
 
+    // 🌟 线上微信模式
     async sendChatMessage(isRegen = false) {
         const roleId = Config.currentContactId;
         if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
@@ -218,6 +217,13 @@ ${historyText}`;
             if (banEmoji) formatRule += "【最高禁令】：绝对不允许使用任何 Emoji、颜文字、波浪号(~)，违者抹杀！\n";
 
             formatRule += "【微信连发强制要求】：你每次回复**必须**输出 4 到 5 句话，并且**每一句话都必须用换行符（回车）隔开**！系统会根据换行符将你的回复切分成多个连续的微信气泡。绝对不要只回一句话，也绝对不要把所有话挤在同一行！\n";
+
+            // 🌟 核心：读取世界书插件 (线上)
+            const wbData = PhoneAPI.getWorldbookData();
+            const activeOnlineWb = wbData.filter(w => w.online).map(w => w.content).join('\n');
+            if (activeOnlineWb) {
+                formatRule += `\n【当前生效的世界书/规则插件】：\n${activeOnlineWb}\n`;
+            }
 
             let messages = [
                 { 
@@ -269,13 +275,12 @@ ${historyText}`;
         }
     },
 
-    // 🌟 核心升级：线下小说模式发送逻辑
+    // 🌟 线下小说模式
     async sendNovelMessage(isRegen = false) {
         const roleId = Config.currentContactId;
         if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
         if (!Config.phoneData[roleId].wechat) Config.phoneData[roleId].wechat = { items: [] };
         
-        // 🚨 核心：直接向微信的数组里塞数据，实现完全互通！
         const chatItems = Config.phoneData[roleId].wechat.items;
 
         let hasNewUserMsg = false;
@@ -305,12 +310,23 @@ ${historyText}`;
             const customSystemPrompt = localStorage.getItem('char_persona') || '';
             const banEmoji = localStorage.getItem('ban_emoji') === 'true';
             
-            // 🚨 核心：小说模式专属排版指令！
-            let formatRule = "【线下沉浸模式】：当前是面对面的真实场景。请用写小说/语C的笔法，包含丰富的动作、神态、心理活动和环境描写。回复长度适中，像小说的段落一样优雅，绝对禁止像微信聊天那样发短句！\n";
+            // 🌟 核心：读取用户自定义的小说字数底线
+            const minWords = localStorage.getItem('novel_min_words') || '150';
+
+            let formatRule = "【线下沉浸模式】：当前是面对面的真实场景。请用写小说/语C的笔法进行演绎。\n";
+            formatRule += `【字数与细节强制要求】：每次回复**必须不少于 ${minWords} 字**（不包含思维链的字数）！请尽情展开环境渲染、细腻的动作刻画和深度的心理描写，让场景充满画面感。绝对禁止像微信聊天那样只发短对话，必须像长篇小说的一段一样丰满！\n`;
+            
             if (banEmoji) formatRule += "【最高禁令】：绝对不允许使用任何 Emoji、颜文字、波浪号(~)，违者抹杀！\n";
 
+            // 🌟 核心：读取世界书插件 (线下)
+            const wbData = PhoneAPI.getWorldbookData();
+            const activeOfflineWb = wbData.filter(w => w.offline).map(w => w.content).join('\n');
+            if (activeOfflineWb) {
+                formatRule += `\n【当前生效的世界书/规则插件】：\n${activeOfflineWb}\n`;
+            }
+
             let messages = [
-                { role: "system", content: `${customSystemPrompt}\n\n当前正在和你互动的人是：【${myName}】。\n${formatRule}` }
+                { role: "system", content: `${customSystemPrompt}\n\n当前正在和你面对面互动的人是：【${myName}】。\n${formatRule}` }
             ];
 
             const MAX_CONTEXT = 20;
@@ -332,7 +348,6 @@ ${historyText}`;
 
             chatItems.pop(); 
             
-            // 小说模式不切分气泡，直接整段存入！
             chatItems.push({ sender: 'other', content: finalReply, time: timeStr, innerThought: innerThought });
 
             PhoneUI.renderNovelContent();

@@ -22,6 +22,8 @@ export const PhoneAPI = {
         
         localStorage.setItem('my_name', getVal('my-name'));
         localStorage.setItem('char_name', getVal('char-name'));
+        
+        // 🌟 核心修复：确保大框框里的提示词被保存！
         localStorage.setItem('char_persona', getVal('char-persona'));
         
         localStorage.setItem('ban_emoji', document.getElementById('ban-emoji')?.checked || false);
@@ -74,6 +76,8 @@ export const PhoneAPI = {
             const savedCharName = localStorage.getItem('char_name') || '';
             setVal('my-name', savedMyName);
             setVal('char-name', savedCharName);
+            
+            // 🌟 核心修复：开机时把提示词填回大框框里！
             setVal('char-persona', localStorage.getItem('char_persona') || '');
             
             setVal('my-avatar', localStorage.getItem('my_avatar') || '');

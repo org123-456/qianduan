@@ -63,7 +63,6 @@ export const PhoneUI = {
                 </div>
             `;
         } else if (appId === 'roulette') {
-            // 🌟 核心：缩小转盘，留出空间放 3 个选项卡片
             contentEl.innerHTML = `
                 <div style="text-align: center; margin-top: 10px;">
                     <div style="width: 120px; height: 120px; border-radius: 50%; border: 6px solid #ffb703; margin: 0 auto; display: flex; align-items: center; justify-content: center; background: #fff; box-shadow: 0 10px 30px rgba(255,183,3,0.2);">
@@ -72,7 +71,6 @@ export const PhoneUI = {
                     <h2 style="margin-top: 15px; color: #333; font-size: 18px;">AI 恋爱军师</h2>
                     <p style="color: #999; margin-top: 5px; font-size: 12px;">根据上下文，为你提供 3 种不同风格的回复</p>
                     
-                    <!-- 这里是用来放 3 个选项的容器 -->
                     <div id="roulette-result" style="margin-top: 20px; min-height: 80px; display: flex; flex-direction: column; gap: 10px;"></div>
 
                     <button id="roulette-btn" class="btn-refresh" onclick="window.PhoneEngine.rollTopic()" style="background: #ffb703; margin-top: 20px; width: 100%;"><i class="ph-fill ph-play"></i> 开始抽取</button>
@@ -92,5 +90,24 @@ export const PhoneUI = {
     closeApp() {
         const winEl = document.getElementById('app-window');
         if(winEl) winEl.classList.remove('open');
+    },
+
+    // 🌟 新增：显示 TA 的心声
+    showThought(index) {
+        const roleId = window.Config?.currentContactId;
+        const item = window.Config.phoneData[roleId]?.wechat?.items[index];
+        if(!item) return;
+        
+        // 如果是老消息没有存心声，就给个默认提示
+        const thought = item.innerThought || "（那时候TA的心思藏得很深，什么也没看出来...）";
+        
+        document.getElementById('thought-content').innerText = thought;
+        document.getElementById('thought-bg').classList.add('show');
+        document.getElementById('thought-modal').classList.add('show');
+    },
+
+    closeThought() {
+        document.getElementById('thought-bg').classList.remove('show');
+        document.getElementById('thought-modal').classList.remove('show');
     }
 };

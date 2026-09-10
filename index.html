@@ -6,7 +6,7 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=2025">
+    <link rel="stylesheet" href="css/style.css?t=2030">
 </head>
 <body>
     <div id="app-container">
@@ -79,6 +79,13 @@
                             <input type="text" id="ta-avatar" placeholder="http..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
                         </div>
                     </div>
+
+                    <!-- 🌟 核心升级：超级上帝控制台 -->
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-size: 13px; color: #333; font-weight: bold;">🌟 终极系统提示词 (System Prompt)</label>
+                        <p style="font-size: 11px; color: #999; margin-top: 4px; margin-bottom: 6px;">请将小红书协议和角色圣经全部粘贴在这里。打字即自动保存，随时修改立刻生效！(右下角可拖动拉伸)</p>
+                        <textarea id="char-persona" rows="12" placeholder="<OVERRIDE_PROTOCOL>&#10;在这里粘贴你的神级提示词...&#10;你就是角色本人...&#10;绝对禁止OOC..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; resize: vertical; font-size: 12px; line-height: 1.5; background: #fdfdfd; font-family: monospace;"></textarea>
+                    </div>
                     
                     <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 10px; border-radius: 8px;">
                         <label style="font-size: 13px; color: #333; font-weight: bold;"><i class="ph ph-prohibit"></i> 绝对禁止 AI 使用 Emoji</label>
@@ -93,9 +100,6 @@
                             <option value="long">长篇 (小作文/语C)</option>
                         </select>
                     </div>
-                    
-                    <!-- 保留按钮，给用户心理安慰，其实后台已经自动存了 -->
-                    <button class="btn-refresh" onclick="window.PhoneAPI.saveSettings()" style="margin-top: 0;"><i class="ph ph-floppy-disk"></i> 手动保存设定</button>
                 </div>
 
                 <div class="card">
@@ -173,7 +177,6 @@
                 window.Config.currentAppId = 'wechat'; 
                 window.PhoneUI.renderAppContent('wechat');
             }
-            // 🚨 核心修复：去掉了这里的 loadSettings，防止手滑切页面导致输入被覆盖！
         }
 
         scrollBox.addEventListener('scroll', () => {
@@ -185,13 +188,6 @@
                     nav.classList.remove('active');
                 }
             });
-        });
-        
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(() => {
-                if(window.PhoneAPI) window.PhoneAPI.loadSettings();
-                if(window.PhoneUI) window.PhoneUI.renderAppContent('wechat');
-            }, 500);
         });
     </script>
     <script type="module" src="js/main.js"></script>

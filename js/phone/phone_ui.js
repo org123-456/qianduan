@@ -35,7 +35,6 @@ export const PhoneUI = {
     },
 
     openApp(appId, appName) {
-        // 记录当前打开的 App，方便重骰时判断
         window.Config.currentAppId = appId;
         
         const titleEl = document.getElementById('app-window-title');
@@ -65,6 +64,52 @@ export const PhoneUI = {
             `;
             this.renderNovelContent();
 
+        } else if (appId === 'worldbook') {
+            // 🌟 核心升级：渲染世界书 (规则控制中心)
+            const minWords = localStorage.getItem('novel_min_words') || '150';
+            const wbData = window.PhoneAPI.getWorldbookData();
+            
+            let wbHtml = '';
+            wbData.forEach(wb => {
+                wbHtml += `
+                    <div class="wb-card">
+                        <div class="wb-header">
+                            <span class="wb-title">${wb.title}</span>
+                        </div>
+                        <div class="wb-content">${wb.content}</div>
+                        <div class="wb-toggles">
+                            <div class="wb-toggle-item">
+                                <label class="switch">
+                                    <input type="checkbox" ${wb.online ? 'checked' : ''} onchange="window.PhoneAPI.toggleWorldbook('${wb.id}', 'online', this.checked)">
+                                    <span class="slider"></span>
+                                </label>
+                                线上微信
+                            </div>
+                            <div class="wb-toggle-item">
+                                <label class="switch">
+                                    <input type="checkbox" ${wb.offline ? 'checked' : ''} onchange="window.PhoneAPI.toggleWorldbook('${wb.id}', 'offline', this.checked)">
+                                    <span class="slider"></span>
+                                </label>
+                                线下小说
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            contentEl.innerHTML = `
+                <div class="card" style="margin-bottom: 20px;">
+                    <h3 style="font-size: 14px; color: var(--primary-color); margin-bottom: 10px;"><i class="ph-fill ph-text-aa"></i> 线下小说字数底线</h3>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="number" id="novel-min-words" value="${minWords}" oninput="window.PhoneAPI.saveNovelWords()" style="width: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 8px; text-align: center;">
+                        <span style="font-size: 12px; color: #999;">字 (打字自动保存)</span>
+                    </div>
+                </div>
+                
+                <h3 style="font-size: 14px; color: var(--primary-color); margin-bottom: 10px; margin-left: 5px;"><i class="ph-fill ph-puzzle-piece"></i> 规则插件挂载</h3>
+                ${wbHtml}
+            `;
+            
         } else if (appId === 'wallet') {
             contentEl.innerHTML = `
                 <div class="card" style="background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: white; text-align: center; padding: 30px 20px;">
@@ -105,14 +150,11 @@ export const PhoneUI = {
     closeApp() {
         const winEl = document.getElementById('app-window');
         if(winEl) winEl.classList.remove('open');
-        // 关闭 App 时，把当前状态切回微信
         window.Config.currentAppId = 'wechat';
     },
 
-    // 🌟 核心升级：渲染小说内容 (数据源改为 wechat.items，实现完全互通！)
     renderNovelContent() {
         const roleId = window.Config.currentContactId;
-        // 直接读取微信的聊天记录数组！
         const items = window.Config.phoneData[roleId]?.wechat?.items || [];
         const listEl = document.getElementById('novel-content-list');
         if (!listEl) return;
@@ -137,7 +179,7 @@ export const PhoneUI = {
             if (window.marked) content = window.marked.parse(content);
 
             const avatarHtml = isMe ? `<img src="${avatar}" class="novel-avatar">` 
-                                    : `<img src="${avatar}" class="novel-avatar" onclick="window.PhoneUI.showThought(${index})">`;
+                                    : `<img src="${avatar}" class="novel-avatar" onclick="window.PhoneUI.showThought(${index}, 'novel')">`;
 
             html += `
                 <div class="novel-card">
@@ -151,7 +193,6 @@ export const PhoneUI = {
                             <span class="novel-name">${name}</span>
                             <span class="novel-time">${item.time || '12:00 PM'}</span>
                         </div>
-                        <!-- 🌟 点击文本也能呼出操作菜单！ -->
                         <div class="novel-content markdown-body" onclick="window.PhoneEngine.openMsgMenu(${index}, '${item.sender}')">${content}</div>
                     </div>
                 </div>
@@ -163,7 +204,6 @@ export const PhoneUI = {
 
     showThought(index) {
         const roleId = window.Config?.currentContactId;
-        // 统一从 wechat.items 读取心声
         const item = window.Config.phoneData[roleId]?.wechat?.items[index];
         if(!item) return;
         

@@ -121,15 +121,15 @@ body {
 .action-sheet-bg { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 998; display: none; opacity: 0; transition: 0.3s; }
 .action-sheet-bg.show { display: block; opacity: 1; }
 
-/* 🌟 核心修复：用 transform 完美隐藏菜单，绝对不会再露馅了！ */
+/* 🌟 核心修复：彻底隐藏幽灵菜单 */
 .action-sheet { 
     position: absolute; bottom: 0; left: 0; right: 0; 
     background: #f4f5f7; border-radius: 20px 20px 0 0; 
-    z-index: 999; transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); 
+    z-index: 999; transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1); 
     padding: 20px 15px 30px 15px; display: flex; flex-direction: column; gap: 10px; 
-    transform: translateY(100%); /* 藏在屏幕正下方 100% 的位置 */
+    transform: translateY(100%); visibility: hidden; opacity: 0; 
 }
-.action-sheet.show { transform: translateY(0); } /* 弹出时回到原位 */
+.action-sheet.show { transform: translateY(0); visibility: visible; opacity: 1; }
 
 .action-btn { background: #fff; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: bold; color: #333; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; }
 .action-btn:active { background: #eee; }
@@ -150,3 +150,15 @@ body {
 
 .spin-anim { animation: spin-fast 1s cubic-bezier(0.2, 0.8, 0.2, 1) infinite; }
 @keyframes spin-fast { 100% { transform: rotate(360deg); } }
+
+/* 🌟 新增：读心术弹窗样式 */
+.thought-modal {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -40%) scale(0.9);
+    width: 85%; max-height: 70vh; background: rgba(255,255,255,0.95); backdrop-filter: blur(15px);
+    border-radius: 24px; padding: 25px; box-shadow: 0 10px 40px rgba(107,139,189,0.3);
+    z-index: 1000; opacity: 0; visibility: hidden; transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    display: flex; flex-direction: column;
+}
+.thought-modal.show { transform: translate(-50%, -50%) scale(1); opacity: 1; visibility: visible; }
+.thought-header { font-size: 16px; font-weight: bold; color: #6b8bbd; display: flex; align-items: center; gap: 8px; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;}
+.thought-content { font-size: 14px; color: #555; line-height: 1.6; overflow-y: auto; white-space: pre-wrap;}

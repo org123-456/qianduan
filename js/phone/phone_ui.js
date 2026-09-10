@@ -227,7 +227,13 @@ export const PhoneUI = {
             const name = isMe ? myName : charName;
             
             let content = item.content;
-            if (window.marked) content = window.marked.parse(content);
+            
+            // 🌟 核心修复：如果内容为空，显示红字提醒，方便你点击删除！
+            if (!content || content.trim() === '') {
+                content = '<span style="color:var(--danger-color); font-size:12px; font-style:italic;">[内容为空，请点击此处删除或重骰]</span>';
+            } else if (window.marked) {
+                content = window.marked.parse(content);
+            }
 
             const avatarHtml = isMe ? `<img src="${avatar}" class="story-avatar">` 
                                     : `<img src="${avatar}" class="story-avatar" onclick="window.PhoneUI.showThought(${index}, 'novel')">`;
@@ -245,7 +251,6 @@ export const PhoneUI = {
         });
         listEl.innerHTML = html;
         
-        // 🌟 核心修复：滚动条是在 app-window-content 上的，让它滚动到底部！
         setTimeout(() => { 
             const scrollContainer = document.getElementById('app-window-content');
             if(scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight; 

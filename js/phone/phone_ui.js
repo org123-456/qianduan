@@ -1,6 +1,5 @@
 export const PhoneUI = {
     renderAppContent(appId) {
-        // 这是给 Chat 用的，保持原样
         const roleId = window.Config.currentContactId;
         const data = window.Config.phoneData[roleId]?.[appId];
         const listEl = document.getElementById('app-content-list');
@@ -12,41 +11,31 @@ export const PhoneUI = {
         }
     },
 
-    // 🌟 核心升级：渲染真正的手机桌面！
-    renderDesktop() {
-        // 桌面应用配置 (7个App)
-        const desktopApps = [
-            { id: 'wallet', name: '钱包', icon: '<i class="ph-fill ph-wallet" style="color: #4a70a8;"></i>' },
-            { id: 'diary', name: '日记本', icon: '<i class="ph-fill ph-book-open-text" style="color: #e5989b;"></i>' },
-            { id: 'shop', name: '商店', icon: '<i class="ph-fill ph-storefront" style="color: #f4a261;"></i>' },
-            { id: 'task', name: '打工赚钱', icon: '<i class="ph-fill ph-check-square-offset" style="color: #2a9d8f;"></i>' },
-            { id: 'worldbook', name: '世界书', icon: '<i class="ph-fill ph-globe-hemisphere-west" style="color: #6b8bbd;"></i>' },
-            { id: 'skill', name: '技能架', icon: '<i class="ph-fill ph-magic-wand" style="color: #9d4edd;"></i>' },
-            { id: 'roulette', name: '话题转盘', icon: '<i class="ph-fill ph-aperture" style="color: #ffb703;"></i>' }
-        ];
-
-        const desktopEl = document.getElementById('desktop');
-        if (!desktopEl) return;
-
-        let html = '';
-        desktopApps.forEach(app => {
-            html += `
-                <div class="app-icon" onclick="window.PhoneUI.openApp('${app.id}', '${app.name}')">
-                    <div class="icon">${app.icon}</div>
-                    <div class="name">${app.name}</div>
-                </div>
-            `;
-        });
-        desktopEl.innerHTML = html;
+    // 🌟 新增：切换聊天底部的 + 号菜单
+    toggleChatMenu() {
+        const menu = document.getElementById('chat-plus-menu');
+        const btn = document.getElementById('btn-plus');
+        if (menu.classList.contains('show')) {
+            this.closeChatMenu();
+        } else {
+            menu.classList.add('show');
+            btn.style.transform = 'rotate(45deg)'; // 让加号旋转变成 x
+        }
     },
 
-    // 🌟 核心升级：打开 App 独立窗口
+    // 关闭聊天菜单
+    closeChatMenu() {
+        const menu = document.getElementById('chat-plus-menu');
+        const btn = document.getElementById('btn-plus');
+        if (menu) menu.classList.remove('show');
+        if (btn) btn.style.transform = 'rotate(0deg)';
+    },
+
     openApp(appId, appName) {
         document.getElementById('app-window-title').innerText = appName;
         document.getElementById('app-window').classList.add('open');
         const contentEl = document.getElementById('app-window-content');
         
-        // 为不同 App 注入不同的 UI 排版骨架
         if (appId === 'wallet') {
             contentEl.innerHTML = `
                 <div class="card" style="background: linear-gradient(135deg, #6b8bbd, #4a70a8); color: white; text-align: center; padding: 30px 20px;">
@@ -87,7 +76,6 @@ export const PhoneUI = {
         }
     },
 
-    // 关闭 App 窗口
     closeApp() {
         document.getElementById('app-window').classList.remove('open');
     }

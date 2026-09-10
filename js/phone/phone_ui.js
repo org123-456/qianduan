@@ -1,8 +1,11 @@
 export const PhoneUI = {
     renderAppContent(appId) {
-        const roleId = window.Config.currentContactId;
+        const roleId = window.Config?.currentContactId;
+        if(!roleId) return;
+        
         const data = window.Config.phoneData[roleId]?.[appId];
         const listEl = document.getElementById('app-content-list');
+        
         if (listEl && window.Apps && window.Apps[appId]) {
             listEl.innerHTML = window.Apps[appId].renderList(data);
             setTimeout(() => {
@@ -11,10 +14,12 @@ export const PhoneUI = {
         }
     },
 
-    // 🌟 新增：切换聊天底部的 + 号菜单
+    // 🌟 修复：切换聊天底部的 + 号菜单
     toggleChatMenu() {
         const menu = document.getElementById('chat-plus-menu');
         const btn = document.getElementById('btn-plus');
+        if (!menu || !btn) return; // 防崩溃检测
+
         if (menu.classList.contains('show')) {
             this.closeChatMenu();
         } else {
@@ -32,9 +37,14 @@ export const PhoneUI = {
     },
 
     openApp(appId, appName) {
-        document.getElementById('app-window-title').innerText = appName;
-        document.getElementById('app-window').classList.add('open');
+        const titleEl = document.getElementById('app-window-title');
+        const winEl = document.getElementById('app-window');
         const contentEl = document.getElementById('app-window-content');
+        
+        if(!titleEl || !winEl || !contentEl) return;
+
+        titleEl.innerText = appName;
+        winEl.classList.add('open');
         
         if (appId === 'wallet') {
             contentEl.innerHTML = `
@@ -77,6 +87,7 @@ export const PhoneUI = {
     },
 
     closeApp() {
-        document.getElementById('app-window').classList.remove('open');
+        const winEl = document.getElementById('app-window');
+        if(winEl) winEl.classList.remove('open');
     }
 };

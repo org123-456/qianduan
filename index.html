@@ -6,7 +6,7 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=2120">
+    <link rel="stylesheet" href="css/style.css?t=2200">
 </head>
 <body>
     <div id="app-container">
@@ -29,6 +29,11 @@
                 
                 <h3 style="margin: 10px 0 10px 5px; color: #6b8bbd; font-size: 14px;">我的生活</h3>
                 <div class="app-grid">
+                    <!-- 🌟 新增：线下故事 App -->
+                    <div class="app-icon" onclick="window.PhoneUI.openApp('novel', '线下故事')">
+                        <div class="icon"><i class="ph-fill ph-book-open" style="color: #555;"></i></div>
+                        <div class="name" style="font-weight: bold;">线下故事</div>
+                    </div>
                     <div class="app-icon" onclick="window.PhoneUI.openApp('diary', '日记本')">
                         <div class="icon"><i class="ph-fill ph-book-open-text" style="color: #e5989b;"></i></div>
                         <div class="name">日记本</div>
@@ -195,7 +200,6 @@
             <button class="action-btn cancel" onclick="window.PhoneEngine.closeMsgMenu()">取消</button>
         </div>
 
-        <!-- 🌟 新增：读心术专属弹窗 -->
         <div id="thought-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeThought()"></div>
         <div id="thought-modal" class="thought-modal">
             <div class="thought-header"><i class="ph-fill ph-cloud"></i> TA 的心声</div>
@@ -208,6 +212,8 @@
                 <div class="app-window-title" id="app-window-title">应用名称</div>
             </div>
             <div class="app-window-content" id="app-window-content"></div>
+            <!-- 🌟 新增：专门给小说模式留的底部输入区 -->
+            <div id="app-window-footer"></div>
         </div>
 
     </div>

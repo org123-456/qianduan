@@ -34,38 +34,69 @@ export const PhoneUI = {
         if (btn) btn.style.transform = 'rotate(0deg)';
     },
 
+    // 🌟 新增：线下故事专属的灵感菜单开关
+    toggleStoryMenu() {
+        const menu = document.getElementById('story-plus-menu');
+        const btn = document.getElementById('btn-story-plus');
+        if (!menu || !btn) return; 
+
+        if (menu.classList.contains('show')) {
+            this.closeStoryMenu();
+        } else {
+            menu.classList.add('show');
+            btn.style.transform = 'rotate(45deg)'; 
+        }
+    },
+
+    closeStoryMenu() {
+        const menu = document.getElementById('story-plus-menu');
+        const btn = document.getElementById('btn-story-plus');
+        if (menu) menu.classList.remove('show');
+        if (btn) btn.style.transform = 'rotate(0deg)';
+    },
+
     openApp(appId, appName) {
         window.Config.currentAppId = appId;
         
         const titleEl = document.getElementById('app-window-title');
         const winEl = document.getElementById('app-window');
         const contentEl = document.getElementById('app-window-content');
-        const footerEl = document.getElementById('app-window-footer');
         
-        if(!titleEl || !winEl || !contentEl || !footerEl) return;
+        if(!titleEl || !winEl || !contentEl) return;
 
         titleEl.innerText = appName;
         winEl.classList.add('open');
         
         contentEl.style.padding = '20px';
         contentEl.style.background = 'transparent';
-        footerEl.innerHTML = ''; 
         
         if (appId === 'novel') {
+            // 🌟 核心：注入原创的【手账风】UI 和专属菜单！
             contentEl.style.padding = '0';
-            contentEl.innerHTML = `<div id="novel-content-list" class="novel-bg"></div>`;
-            
-            footerEl.innerHTML = `
-                <div class="novel-input-bar">
-                    <div class="icon-btn"><i class="ph ph-plus"></i></div>
-                    <textarea id="novel-input" class="novel-textarea" placeholder="撰写你的故事...&#10;[ENTER 换行]"></textarea>
-                    <button class="novel-send-btn" onclick="window.PhoneEngine.sendNovelMessage()">SEND</button>
+            contentEl.innerHTML = `
+                <div id="novel-content-list" class="story-bg" onclick="window.PhoneUI.closeStoryMenu()"></div>
+                
+                <!-- 故事模式专属菜单 -->
+                <div id="story-plus-menu" class="story-menu">
+                    <div class="story-menu-item" onclick="window.PhoneUI.openApp('worldbook', '世界书'); window.PhoneUI.closeStoryMenu();">
+                        <div class="icon"><i class="ph-fill ph-globe-hemisphere-west"></i></div>
+                        <div class="text">世界书</div>
+                    </div>
+                    <div class="story-menu-item" onclick="alert('掷骰子功能开发中！'); window.PhoneUI.closeStoryMenu();">
+                        <div class="icon"><i class="ph-fill ph-dice-five"></i></div>
+                        <div class="text">掷骰子</div>
+                    </div>
+                </div>
+
+                <div class="story-input-bar">
+                    <div class="icon-btn" id="btn-story-plus" onclick="window.PhoneUI.toggleStoryMenu()"><i class="ph ph-plus-circle"></i></div>
+                    <textarea id="novel-input" class="story-textarea" placeholder="书写你们的故事..." onclick="window.PhoneUI.closeStoryMenu()"></textarea>
+                    <button class="story-send-btn" onclick="window.PhoneEngine.sendNovelMessage(); window.PhoneUI.closeStoryMenu();"><i class="ph-fill ph-paper-plane-right"></i></button>
                 </div>
             `;
             this.renderNovelContent();
 
         } else if (appId === 'worldbook') {
-            // 🌟 核心升级：渲染世界书 (规则控制中心)
             const minWords = localStorage.getItem('novel_min_words') || '150';
             const wbData = window.PhoneAPI.getWorldbookData();
             
@@ -153,6 +184,7 @@ export const PhoneUI = {
         window.Config.currentAppId = 'wechat';
     },
 
+    // 🌟 核心：渲染原创手账风卡片
     renderNovelContent() {
         const roleId = window.Config.currentContactId;
         const items = window.Config.phoneData[roleId]?.wechat?.items || [];
@@ -178,23 +210,17 @@ export const PhoneUI = {
             let content = item.content;
             if (window.marked) content = window.marked.parse(content);
 
-            const avatarHtml = isMe ? `<img src="${avatar}" class="novel-avatar">` 
-                                    : `<img src="${avatar}" class="novel-avatar" onclick="window.PhoneUI.showThought(${index}, 'novel')">`;
+            const avatarHtml = isMe ? `<img src="${avatar}" class="story-avatar">` 
+                                    : `<img src="${avatar}" class="story-avatar" onclick="window.PhoneUI.showThought(${index}, 'novel')">`;
 
             html += `
-                <div class="novel-card">
-                    <div class="novel-left">
+                <div class="story-card">
+                    <div class="story-header">
                         ${avatarHtml}
-                        <div class="novel-meta-line"></div>
-                        <div class="novel-meta-text">[FLR] ${index + 1}</div>
+                        <div class="story-name">${name}</div>
+                        <div class="story-time">${item.time || '12:00 PM'}</div>
                     </div>
-                    <div class="novel-right">
-                        <div class="novel-header">
-                            <span class="novel-name">${name}</span>
-                            <span class="novel-time">${item.time || '12:00 PM'}</span>
-                        </div>
-                        <div class="novel-content markdown-body" onclick="window.PhoneEngine.openMsgMenu(${index}, '${item.sender}')">${content}</div>
-                    </div>
+                    <div class="story-content markdown-body" onclick="window.PhoneEngine.openMsgMenu(${index}, '${item.sender}')">${content}</div>
                 </div>
             `;
         });

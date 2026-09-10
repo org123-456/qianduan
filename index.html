@@ -6,7 +6,7 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=2110">
+    <link rel="stylesheet" href="css/style.css?t=2120">
 </head>
 <body>
     <div id="app-container">
@@ -77,10 +77,8 @@
                     </div>
                 </div>
 
-                <!-- 🌟 核心修复：变成 <form> 表单，拦截回车键，彻底解决瞬移 Bug！ -->
                 <form class="chat-input-bar" onsubmit="event.preventDefault(); window.PhoneEngine.sendUserMsgOnly(); window.PhoneUI.closeChatMenu();">
                     <div class="icon-btn" onclick="window.PhoneUI.toggleChatMenu()" id="btn-plus"><i class="ph ph-plus-circle"></i></div>
-                    <!-- 加上 enterkeyhint="send"，让手机键盘显示“发送”而不是“下一个” -->
                     <input type="text" id="chat-input" enterkeyhint="send" placeholder="宝宝，说话..." onclick="window.PhoneUI.closeChatMenu()">
                     <div class="icon-btn" style="font-size: 22px;"><i class="ph ph-smiley"></i></div>
                     <div class="icon-btn send-btn" onclick="window.PhoneEngine.sendChatMessage(); window.PhoneUI.closeChatMenu();"><i class="ph-fill ph-paper-plane-right"></i></div>
@@ -197,6 +195,13 @@
             <button class="action-btn cancel" onclick="window.PhoneEngine.closeMsgMenu()">取消</button>
         </div>
 
+        <!-- 🌟 新增：读心术专属弹窗 -->
+        <div id="thought-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeThought()"></div>
+        <div id="thought-modal" class="thought-modal">
+            <div class="thought-header"><i class="ph-fill ph-cloud"></i> TA 的心声</div>
+            <div class="thought-content" id="thought-content"></div>
+        </div>
+
         <div id="app-window" class="app-window">
             <div class="app-window-header">
                 <div class="app-window-back" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div>
@@ -232,13 +237,6 @@
             if(window.PhoneUI && window.PhoneUI.closeChatMenu) {
                 window.PhoneUI.closeChatMenu();
             }
-        });
-
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(() => {
-                if(window.PhoneAPI) window.PhoneAPI.loadSettings();
-                if(window.PhoneUI) window.PhoneUI.renderAppContent('wechat');
-            }, 500);
         });
     </script>
     <script type="module" src="js/main.js"></script>

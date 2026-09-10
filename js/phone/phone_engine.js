@@ -23,7 +23,14 @@ export const PhoneEngine = {
         if (this.currentMsgIndex < 0) return;
         const roleId = Config.currentContactId;
         Config.phoneData[roleId].wechat.items.splice(this.currentMsgIndex, 1);
-        PhoneUI.renderAppContent('wechat');
+        
+        // 🌟 核心：根据当前打开的 App 刷新对应的 UI
+        if (Config.currentAppId === 'novel') {
+            PhoneUI.renderNovelContent();
+        } else {
+            PhoneUI.renderAppContent('wechat');
+        }
+        
         localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
         PhoneAPI.showToast("🗑️ 消息已删除");
     },
@@ -36,7 +43,13 @@ export const PhoneEngine = {
         const newText = prompt("✏️ 编辑消息：", oldText);
         if (newText !== null && newText.trim() !== "") {
             Config.phoneData[roleId].wechat.items[this.currentMsgIndex].content = newText.trim();
-            PhoneUI.renderAppContent('wechat');
+            
+            if (Config.currentAppId === 'novel') {
+                PhoneUI.renderNovelContent();
+            } else {
+                PhoneUI.renderAppContent('wechat');
+            }
+            
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
             PhoneAPI.showToast("✅ 修改成功");
         }
@@ -47,9 +60,17 @@ export const PhoneEngine = {
         if (this.currentMsgIndex < 0) return;
         const roleId = Config.currentContactId;
         Config.phoneData[roleId].wechat.items.splice(this.currentMsgIndex);
-        PhoneUI.renderAppContent('wechat');
+        
         localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-        this.sendChatMessage(true);
+        
+        // 🌟 核心：如果在小说界面重骰，就调用小说的生成逻辑！
+        if (Config.currentAppId === 'novel') {
+            PhoneUI.renderNovelContent();
+            this.sendNovelMessage(true);
+        } else {
+            PhoneUI.renderAppContent('wechat');
+            this.sendChatMessage(true);
+        }
     },
 
     async rollTopic() {
@@ -248,46 +269,53 @@ ${historyText}`;
         }
     },
 
-    // 🌟 新增：线下小说模式的发送逻辑
-    async sendNovelMessage() {
-        const inputEl = document.getElementById('novel-input');
-        if(!inputEl) return;
-        const text = inputEl.value.trim();
-        if (!text) return;
-
+    // 🌟 核心升级：线下小说模式发送逻辑
+    async sendNovelMessage(isRegen = false) {
         const roleId = Config.currentContactId;
         if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
-        if (!Config.phoneData[roleId].novel) Config.phoneData[roleId].novel = { items: [] };
-        const novelItems = Config.phoneData[roleId].novel.items;
+        if (!Config.phoneData[roleId].wechat) Config.phoneData[roleId].wechat = { items: [] };
+        
+        // 🚨 核心：直接向微信的数组里塞数据，实现完全互通！
+        const chatItems = Config.phoneData[roleId].wechat.items;
 
+        let hasNewUserMsg = false;
         const now = new Date();
         const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-        
-        // 存入我的消息
-        novelItems.push({ sender: 'me', content: text, time: timeStr });
-        inputEl.value = '';
 
+        if (!isRegen) {
+            const inputEl = document.getElementById('novel-input');
+            if(inputEl) {
+                const text = inputEl.value.trim();
+                if (text) {
+                    chatItems.push({ sender: 'me', content: text, time: timeStr });
+                    inputEl.value = '';
+                    hasNewUserMsg = true;
+                }
+            }
+        }
+
+        if (!isRegen && !hasNewUserMsg && chatItems.length === 0) return;
+
+        chatItems.push({ sender: 'typing', content: '...', time: timeStr });
         PhoneUI.renderNovelContent();
         localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-
-        // 假 loading
-        novelItems.push({ sender: 'typing', content: '...', time: timeStr });
-        PhoneUI.renderNovelContent();
 
         try {
             const myName = localStorage.getItem('my_name') || '我';
             const customSystemPrompt = localStorage.getItem('char_persona') || '';
             const banEmoji = localStorage.getItem('ban_emoji') === 'true';
             
-            // 🚨 核心：小说模式专属排版指令！禁止像微信那样连发！
-            let formatRule = "【线下沉浸模式】：当前是面对面的真实场景。请用写小说/语C的笔法，包含丰富的动作、神态、心理活动和环境描写。回复长度适中，像小说的段落一样优雅，禁止像微信聊天那样短促。\n";
+            // 🚨 核心：小说模式专属排版指令！
+            let formatRule = "【线下沉浸模式】：当前是面对面的真实场景。请用写小说/语C的笔法，包含丰富的动作、神态、心理活动和环境描写。回复长度适中，像小说的段落一样优雅，绝对禁止像微信聊天那样发短句！\n";
             if (banEmoji) formatRule += "【最高禁令】：绝对不允许使用任何 Emoji、颜文字、波浪号(~)，违者抹杀！\n";
 
             let messages = [
                 { role: "system", content: `${customSystemPrompt}\n\n当前正在和你互动的人是：【${myName}】。\n${formatRule}` }
             ];
 
-            const recentItems = novelItems.slice(-10);
+            const MAX_CONTEXT = 20;
+            const recentItems = chatItems.slice(-MAX_CONTEXT);
+            
             recentItems.forEach(item => {
                 if (item.sender !== 'typing') { 
                     messages.push({ role: item.sender === 'me' ? 'user' : 'assistant', content: item.content });
@@ -297,23 +325,25 @@ ${historyText}`;
             const rawReply = await PhoneAPI.chatWithAI(messages);
             
             const thinkMatch = rawReply.match(/<think>([\s\S]*?)<\/think>/i);
-            const innerThought = thinkMatch ? thinkMatch[1].trim() : "";
+            const innerThought = thinkMatch ? thinkMatch[1].trim() : "（TA的大脑一片空白...）";
             
             let finalReply = rawReply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
             if (!finalReply) finalReply = rawReply.trim();
 
-            novelItems.pop(); // 删掉 typing
+            chatItems.pop(); 
             
             // 小说模式不切分气泡，直接整段存入！
-            novelItems.push({ sender: 'other', content: finalReply, time: timeStr, innerThought: innerThought });
+            chatItems.push({ sender: 'other', content: finalReply, time: timeStr, innerThought: innerThought });
 
             PhoneUI.renderNovelContent();
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
 
         } catch (error) {
             PhoneAPI.showToast(error.message);
-            novelItems.pop(); 
+            chatItems.pop(); 
+            if (hasNewUserMsg) chatItems.pop(); 
             PhoneUI.renderNovelContent();
+            localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
         }
     }
 };

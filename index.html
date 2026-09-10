@@ -6,7 +6,7 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=2060">
+    <link rel="stylesheet" href="css/style.css?t=2099">
 </head>
 <body>
     <div id="app-container">
@@ -20,7 +20,7 @@
 
         <div class="page-container" id="scroll-box">
             
-            <!-- 🌟 0. Home 首页 (个人生活区) -->
+            <!-- 0. Home 首页 (个人生活区) -->
             <div id="page-home" class="page">
                 <div class="card" style="text-align: center; padding: 30px 15px;">
                     <h3 style="color: #6b8bbd;">Little love record</h3>
@@ -45,7 +45,7 @@
                 </div>
             </div>
 
-            <!-- 1. Memory 回忆页 (变回纯粹的相册) -->
+            <!-- 1. Memory 回忆页 -->
             <div id="page-memory" class="page">
                 <div style="padding: 0 5px; margin-bottom: 15px; color: #4a70a8; font-weight: bold; display: flex; justify-content: space-between;">
                     <span>我们的回忆</span>
@@ -57,7 +57,7 @@
                 </div>
             </div>
 
-            <!-- 🌟 2. Chat 聊天页 (加入 + 号菜单) -->
+            <!-- 2. Chat 聊天页 -->
             <div id="page-chat" class="page" style="position: relative; padding-bottom: 0;">
                 <div id="app-content-list" style="flex: 1; overflow-y: auto; padding-bottom: 140px;"></div>
                 
@@ -82,7 +82,6 @@
                 </div>
 
                 <div class="chat-input-bar">
-                    <!-- 点击 + 号呼出面板 -->
                     <div class="icon-btn" onclick="window.PhoneUI.toggleChatMenu()" id="btn-plus"><i class="ph ph-plus-circle"></i></div>
                     <input type="text" id="chat-input" placeholder="宝宝，说话..." onclick="window.PhoneUI.closeChatMenu()">
                     <div class="icon-btn" style="font-size: 22px;"><i class="ph ph-smiley"></i></div>
@@ -125,6 +124,13 @@
                         </div>
                     </div>
 
+                    <!-- 🌟 核心修复：把丢失的提示词输入框找回来了！！！ -->
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-size: 13px; color: #333; font-weight: bold;">🌟 终极系统提示词 (System Prompt)</label>
+                        <p style="font-size: 11px; color: #999; margin-top: 4px; margin-bottom: 6px;">请将小红书协议和角色圣经全部粘贴在这里。打字即自动保存，随时修改立刻生效！(右下角可拖动拉伸)</p>
+                        <textarea id="char-persona" rows="12" placeholder="<OVERRIDE_PROTOCOL>&#10;在这里粘贴你的神级提示词...&#10;你就是角色本人...&#10;绝对禁止OOC..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; resize: vertical; font-size: 12px; line-height: 1.5; background: #fdfdfd; font-family: monospace;"></textarea>
+                    </div>
+                    
                     <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 10px; border-radius: 8px;">
                         <label style="font-size: 13px; color: #333; font-weight: bold;"><i class="ph ph-prohibit"></i> 绝对禁止 AI 使用 Emoji</label>
                         <input type="checkbox" id="ban-emoji" onchange="window.PhoneAPI.autoSave()" style="width: 18px; height: 18px;">
@@ -155,6 +161,8 @@
                             <input type="text" id="api-model" placeholder="手动输入模型名" oninput="window.PhoneAPI.autoSave()" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 8px;">
                         </div>
                     </div>
+                    
+                    <button class="btn-refresh" onclick="window.PhoneAPI.saveSettings()" style="margin-top: 0;"><i class="ph ph-floppy-disk"></i> 保存 API</button>
                 </div>
 
                 <div class="card">
@@ -227,8 +235,16 @@
                     nav.classList.remove('active');
                 }
             });
-            // 切换页面时自动关闭聊天菜单
             if(window.PhoneUI) window.PhoneUI.closeChatMenu();
+        });
+
+        // 🚨 核心修复：把丢失的“开机启动代码”找回来了！
+        // 没有这段代码，系统开机就不会去读取缓存，就会白屏！
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                if(window.PhoneAPI) window.PhoneAPI.loadSettings();
+                if(window.PhoneUI) window.PhoneUI.renderAppContent('wechat');
+            }, 500);
         });
     </script>
     <script type="module" src="js/main.js"></script>

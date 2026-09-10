@@ -73,18 +73,12 @@ export const PhoneUI = {
         
         if (appId === 'novel') {
             contentEl.style.padding = '0';
-            // 🌟 核心修复：contentEl 里只放小说内容，不放输入框！
             contentEl.innerHTML = `
                 <div id="novel-content-list" class="story-bg" onclick="window.PhoneUI.closeStoryMenu()"></div>
             `;
             
-            // 🌟 核心修复：把菜单和输入框塞进 footerEl，让它死死钉在底部！
             footerEl.innerHTML = `
                 <div id="story-plus-menu" class="story-menu">
-                    <div class="story-menu-item" onclick="window.PhoneUI.openApp('worldbook', '世界书'); window.PhoneUI.closeStoryMenu();">
-                        <div class="icon"><i class="ph-fill ph-globe-hemisphere-west"></i></div>
-                        <div class="text">世界书</div>
-                    </div>
                     <div class="story-menu-item" onclick="alert('掷骰子功能开发中！'); window.PhoneUI.closeStoryMenu();">
                         <div class="icon"><i class="ph-fill ph-dice-five"></i></div>
                         <div class="text">掷骰子</div>
@@ -99,15 +93,19 @@ export const PhoneUI = {
             this.renderNovelContent();
 
         } else if (appId === 'worldbook') {
+            // 🌟 核心：渲染世界书列表，加入删除按钮和添加按钮
             const minWords = localStorage.getItem('novel_min_words') || '150';
             const wbData = window.PhoneAPI.getWorldbookData();
             
             let wbHtml = '';
             wbData.forEach(wb => {
+                const deleteBtn = wb.isCustom ? `<div class="wb-delete-btn" onclick="window.PhoneAPI.deleteWorldbook('${wb.id}')"><i class="ph ph-trash"></i></div>` : '';
+                
                 wbHtml += `
                     <div class="wb-card">
                         <div class="wb-header">
                             <span class="wb-title">${wb.title}</span>
+                            ${deleteBtn}
                         </div>
                         <div class="wb-content">${wb.content}</div>
                         <div class="wb-toggles">
@@ -116,14 +114,14 @@ export const PhoneUI = {
                                     <input type="checkbox" ${wb.online ? 'checked' : ''} onchange="window.PhoneAPI.toggleWorldbook('${wb.id}', 'online', this.checked)">
                                     <span class="slider"></span>
                                 </label>
-                                线上微信
+                                线上
                             </div>
                             <div class="wb-toggle-item">
                                 <label class="switch">
                                     <input type="checkbox" ${wb.offline ? 'checked' : ''} onchange="window.PhoneAPI.toggleWorldbook('${wb.id}', 'offline', this.checked)">
                                     <span class="slider"></span>
                                 </label>
-                                线下小说
+                                线下
                             </div>
                         </div>
                     </div>
@@ -141,6 +139,8 @@ export const PhoneUI = {
                 
                 <h3 style="font-size: 14px; color: var(--primary-color); margin-bottom: 10px; margin-left: 5px;"><i class="ph-fill ph-puzzle-piece"></i> 规则插件挂载</h3>
                 ${wbHtml}
+                
+                <button class="btn-refresh" onclick="window.PhoneUI.openWbModal()" style="margin-top: 10px; margin-bottom: 30px; background: #fff; color: var(--primary-color); border: 1px dashed var(--primary-color);"><i class="ph ph-plus"></i> 添加自定义规则</button>
             `;
             
         } else if (appId === 'wallet') {
@@ -244,5 +244,16 @@ export const PhoneUI = {
     closeThought() {
         document.getElementById('thought-bg').classList.remove('show');
         document.getElementById('thought-modal').classList.remove('show');
+    },
+
+    // 🌟 新增：控制添加规则弹窗
+    openWbModal() {
+        document.getElementById('wb-modal-bg').classList.add('show');
+        document.getElementById('wb-modal').classList.add('show');
+    },
+
+    closeWbModal() {
+        document.getElementById('wb-modal-bg').classList.remove('show');
+        document.getElementById('wb-modal').classList.remove('show');
     }
 };

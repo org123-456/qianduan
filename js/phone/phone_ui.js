@@ -38,13 +38,35 @@ export const PhoneUI = {
         const titleEl = document.getElementById('app-window-title');
         const winEl = document.getElementById('app-window');
         const contentEl = document.getElementById('app-window-content');
+        const footerEl = document.getElementById('app-window-footer');
         
-        if(!titleEl || !winEl || !contentEl) return;
+        if(!titleEl || !winEl || !contentEl || !footerEl) return;
 
         titleEl.innerText = appName;
         winEl.classList.add('open');
         
-        if (appId === 'wallet') {
+        // 重置样式
+        contentEl.style.padding = '20px';
+        contentEl.style.background = '#f4f5f7';
+        footerEl.innerHTML = ''; 
+        
+        if (appId === 'novel') {
+            // 🌟 核心：注入小说模式的 UI
+            contentEl.style.padding = '0';
+            contentEl.style.background = '#e8ecef';
+            contentEl.innerHTML = `<div id="novel-content-list" class="novel-bg"></div>`;
+            
+            // 注入底部的剧本输入框
+            footerEl.innerHTML = `
+                <div class="novel-input-bar">
+                    <div class="icon-btn"><i class="ph ph-plus"></i></div>
+                    <textarea id="novel-input" class="novel-textarea" placeholder="DRAFT YOUR RESPONSE...&#10;[ENTER 换行]"></textarea>
+                    <button class="novel-send-btn" onclick="window.PhoneEngine.sendNovelMessage()">SEND</button>
+                </div>
+            `;
+            this.renderNovelContent();
+
+        } else if (appId === 'wallet') {
             contentEl.innerHTML = `
                 <div class="card" style="background: linear-gradient(135deg, #6b8bbd, #4a70a8); color: white; text-align: center; padding: 30px 20px;">
                     <div style="font-size: 14px; opacity: 0.8;">当前余额 (信用点)</div>
@@ -56,10 +78,6 @@ export const PhoneUI = {
                         <div><b>便利店买香蕉</b><br><span style="font-size:12px; color:#999;">今天 08:30</span></div>
                         <div style="color: #ff4d4f; font-weight: bold;">-25.00</div>
                     </div>
-                    <div style="padding: 15px; display: flex; justify-content: space-between;">
-                        <div><b>完成委托尾款</b><br><span style="font-size:12px; color:#999;">昨天 18:00</span></div>
-                        <div style="color: #2a9d8f; font-weight: bold;">+5,000.00</div>
-                    </div>
                 </div>
             `;
         } else if (appId === 'roulette') {
@@ -70,9 +88,7 @@ export const PhoneUI = {
                     </div>
                     <h2 style="margin-top: 15px; color: #333; font-size: 18px;">AI 恋爱军师</h2>
                     <p style="color: #999; margin-top: 5px; font-size: 12px;">根据上下文，为你提供 3 种不同风格的回复</p>
-                    
                     <div id="roulette-result" style="margin-top: 20px; min-height: 80px; display: flex; flex-direction: column; gap: 10px;"></div>
-
                     <button id="roulette-btn" class="btn-refresh" onclick="window.PhoneEngine.rollTopic()" style="background: #ffb703; margin-top: 20px; width: 100%;"><i class="ph-fill ph-play"></i> 开始抽取</button>
                 </div>
             `;
@@ -92,13 +108,58 @@ export const PhoneUI = {
         if(winEl) winEl.classList.remove('open');
     },
 
-    // 🌟 新增：显示 TA 的心声
-    showThought(index) {
+    // 🌟 新增：渲染小说卡片
+    renderNovelContent() {
+        const roleId = window.Config.currentContactId;
+        if (!window.Config.phoneData[roleId].novel) window.Config.phoneData[roleId].novel = { items: [] };
+        const items = window.Config.phoneData[roleId].novel.items;
+        const listEl = document.getElementById('novel-content-list');
+        if (!listEl) return;
+
+        const myName = localStorage.getItem('my_name') || '我';
+        const charName = localStorage.getItem('char_name') || 'TA';
+        const avatarMe = localStorage.getItem('my_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa';
+        const avatarOther = localStorage.getItem('ta_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=You&backgroundColor=dbe9f6';
+
+        let html = '';
+        items.forEach((item, index) => {
+            const isMe = item.sender === 'me';
+            const avatar = isMe ? avatarMe : avatarOther;
+            const name = isMe ? myName : charName;
+            
+            let content = item.content;
+            if (window.marked) content = window.marked.parse(content);
+
+            // 如果是 AI 发的，点击头像可以看心声
+            const avatarHtml = isMe ? `<img src="${avatar}" class="novel-avatar">` 
+                                    : `<img src="${avatar}" class="novel-avatar" onclick="window.PhoneUI.showThought(${index}, 'novel')">`;
+
+            html += `
+                <div class="novel-card">
+                    <div class="novel-left">
+                        ${avatarHtml}
+                        <div class="novel-meta-line"></div>
+                        <div class="novel-meta-text">[FLR] ${index + 1}</div>
+                    </div>
+                    <div class="novel-right">
+                        <div class="novel-header">
+                            <span class="novel-name">${name}</span>
+                            <span class="novel-time">${item.time || '12:00 PM'}</span>
+                        </div>
+                        <div class="novel-content markdown-body">${content}</div>
+                    </div>
+                </div>
+            `;
+        });
+        listEl.innerHTML = html;
+        setTimeout(() => { listEl.scrollTop = listEl.scrollHeight; }, 100);
+    },
+
+    showThought(index, appType = 'wechat') {
         const roleId = window.Config?.currentContactId;
-        const item = window.Config.phoneData[roleId]?.wechat?.items[index];
+        const item = window.Config.phoneData[roleId]?.[appType]?.items[index];
         if(!item) return;
         
-        // 如果是老消息没有存心声，就给个默认提示
         const thought = item.innerThought || "（那时候TA的心思藏得很深，什么也没看出来...）";
         
         document.getElementById('thought-content').innerText = thought;

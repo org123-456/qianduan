@@ -120,28 +120,14 @@ body {
 
 .action-sheet-bg { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 998; display: none; opacity: 0; transition: 0.3s; }
 .action-sheet-bg.show { display: block; opacity: 1; }
-
-/* 🌟 核心修复：彻底隐藏幽灵菜单 */
-.action-sheet { 
-    position: absolute; bottom: 0; left: 0; right: 0; 
-    background: #f4f5f7; border-radius: 20px 20px 0 0; 
-    z-index: 999; transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1); 
-    padding: 20px 15px 30px 15px; display: flex; flex-direction: column; gap: 10px; 
-    transform: translateY(100%); visibility: hidden; opacity: 0; 
-}
+.action-sheet { position: absolute; bottom: 0; left: 0; right: 0; background: #f4f5f7; border-radius: 20px 20px 0 0; z-index: 999; transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1); padding: 20px 15px 30px 15px; display: flex; flex-direction: column; gap: 10px; transform: translateY(100%); visibility: hidden; opacity: 0; }
 .action-sheet.show { transform: translateY(0); visibility: visible; opacity: 1; }
-
 .action-btn { background: #fff; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: bold; color: #333; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; }
 .action-btn:active { background: #eee; }
 .action-btn.danger { color: #ff4d4f; }
 .action-btn.cancel { background: #fff; margin-top: 5px; color: #999;}
 
-.app-window {
-    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-    background: #f4f5f7; z-index: 50; 
-    transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-    display: flex; flex-direction: column;
-}
+.app-window { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #f4f5f7; z-index: 50; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); display: flex; flex-direction: column; }
 .app-window.open { transform: translateX(0); }
 .app-window-header { display: flex; align-items: center; padding: 45px 20px 15px 20px; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
 .app-window-back { font-size: 24px; color: #6b8bbd; cursor: pointer; margin-right: 15px; display: flex; align-items: center; padding: 5px; }
@@ -151,14 +137,27 @@ body {
 .spin-anim { animation: spin-fast 1s cubic-bezier(0.2, 0.8, 0.2, 1) infinite; }
 @keyframes spin-fast { 100% { transform: rotate(360deg); } }
 
-/* 🌟 新增：读心术弹窗样式 */
-.thought-modal {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -40%) scale(0.9);
-    width: 85%; max-height: 70vh; background: rgba(255,255,255,0.95); backdrop-filter: blur(15px);
-    border-radius: 24px; padding: 25px; box-shadow: 0 10px 40px rgba(107,139,189,0.3);
-    z-index: 1000; opacity: 0; visibility: hidden; transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-    display: flex; flex-direction: column;
-}
+.thought-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -40%) scale(0.9); width: 85%; max-height: 70vh; background: rgba(255,255,255,0.95); backdrop-filter: blur(15px); border-radius: 24px; padding: 25px; box-shadow: 0 10px 40px rgba(107,139,189,0.3); z-index: 1000; opacity: 0; visibility: hidden; transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1); display: flex; flex-direction: column; }
 .thought-modal.show { transform: translate(-50%, -50%) scale(1); opacity: 1; visibility: visible; }
 .thought-header { font-size: 16px; font-weight: bold; color: #6b8bbd; display: flex; align-items: center; gap: 8px; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;}
 .thought-content { font-size: 14px; color: #555; line-height: 1.6; overflow-y: auto; white-space: pre-wrap;}
+
+/* ================= 🌟 核心升级：线下故事(小说模式) 绝美排版 ================= */
+.novel-bg { background-color: #e8ecef; padding: 15px; min-height: 100%; padding-bottom: 30px; }
+.novel-card { display: flex; background: #fff; border-radius: 16px; padding: 20px 15px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+.novel-left { display: flex; flex-direction: column; align-items: center; width: 36px; margin-right: 15px; flex-shrink: 0; }
+.novel-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid #eee; cursor: pointer; }
+.novel-meta-line { width: 1px; height: 40px; background: #eee; margin: 12px 0; }
+.novel-meta-text { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 9px; color: #bbb; letter-spacing: 2px; font-family: monospace; }
+.novel-right { flex: 1; min-width: 0; }
+.novel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.novel-name { font-weight: 900; font-size: 15px; color: #111; letter-spacing: 1px; }
+.novel-time { font-size: 10px; color: #aaa; font-family: monospace; }
+.novel-content { font-size: 14px; line-height: 2; color: #333; text-align: justify; }
+.novel-content p { margin-bottom: 12px; text-indent: 2em; }
+
+.novel-input-bar { display: flex; align-items: flex-end; background: #fff; padding: 15px; border-top: 1px solid #eee; gap: 10px; box-shadow: 0 -5px 20px rgba(0,0,0,0.03); }
+.novel-input-bar .icon-btn { font-size: 24px; color: #ccc; padding-bottom: 8px; cursor: pointer; }
+.novel-textarea { flex: 1; border: none; background: transparent; outline: none; font-size: 13px; resize: none; min-height: 40px; max-height: 120px; line-height: 1.5; padding: 10px 0; font-family: inherit; }
+.novel-send-btn { background: #111; color: #fff; border: none; padding: 12px 20px; border-radius: 4px; font-weight: bold; font-size: 12px; letter-spacing: 2px; cursor: pointer; transition: 0.2s; }
+.novel-send-btn:active { opacity: 0.8; }

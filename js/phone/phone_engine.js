@@ -52,7 +52,7 @@ export const PhoneEngine = {
         this.sendChatMessage(true);
     },
 
-    // 🌟 新增：AI 军师转盘逻辑
+    // 🌟 核心升级：AI 军师三选一逻辑
     async rollTopic() {
         const resultEl = document.getElementById('roulette-result');
         const btnEl = document.getElementById('roulette-btn');
@@ -60,7 +60,6 @@ export const PhoneEngine = {
 
         if(!resultEl || !btnEl) return;
 
-        // 开启 UI 动画
         btnEl.disabled = true;
         btnEl.innerHTML = '<i class="ph ph-spinner spin-anim"></i> 正在生成...';
         iconEl.classList.add('spin-anim'); 
@@ -70,16 +69,21 @@ export const PhoneEngine = {
             const roleId = Config.currentContactId;
             const chatItems = Config.phoneData[roleId]?.wechat?.items || [];
             
-            // 提取最近 10 条聊天记录
             const recentItems = chatItems.slice(-10); 
             let historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
             if(!historyText) historyText = "(暂无聊天记录，你们才刚认识)";
 
-            const prompt = `你是一个高情商的恋爱/语C辅助军师。请根据以下我和TA的近期聊天记录，为我提供【一句】我现在可以发给TA的话，用来开启新话题、调情、或者延续对话。
-要求：
-1. 必须符合当前的聊天语境，不要突兀。
-2. 语言简练、自然，像真人发微信，不要太长。
-3. 绝对只输出这句话本身，不要任何解释，不要引号！
+            // 逼迫 AI 给出 3 个选项，并用 ||| 隔开
+            const prompt = `你是一个高情商的语C辅助军师。请根据以下我和TA的近期聊天记录，为我提供【3个不同风格】的回复建议，让我可以直接发给TA。
+风格要求：
+1. 顺着对方的话往下接（自然/撒娇/暧昧）。
+2. 故意调侃、反击或傲娇。
+3. 开启一个相关的新话题。
+
+【绝对强制格式】：
+请直接输出这3句话，用分隔符 "|||" 隔开。绝对不要输出任何序号、标签、解释或多余的废话！不要输出<think>！
+示例格式：
+好呀，我在家等你，快点来接我|||你买的饮料最好是我爱喝的，不然扣你工资|||旁白没把账单弄乱吧？
 
 近期聊天记录：
 ${historyText}`;
@@ -87,31 +91,51 @@ ${historyText}`;
             const messages = [{ role: "user", content: prompt }];
             const reply = await PhoneAPI.chatWithAI(messages);
 
-            // 剥离 <think>，清理引号
-            const finalTopic = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim().replace(/^["']|["']$/g, '');
+            // 清理多余的代码块标记和 <think>
+            let finalTopic = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+            finalTopic = finalTopic.replace(/```.*?/g, '').replace(/```/g, '').trim();
 
-            // 显示结果和发送按钮
-            resultEl.innerHTML = `
-                <div style="font-size: 15px; color: #333; font-weight: bold; margin-bottom: 15px; padding: 15px; background: #fff5e6; border: 1px solid #ffe0b2; border-radius: 12px; text-align: left;">${finalTopic}</div>
-                <button class="btn-refresh" onclick="window.PhoneEngine.useTopic('${finalTopic.replace(/'/g, "\\'")}')" style="background: #4a70a8; margin-top: 0;"><i class="ph-fill ph-paper-plane-right"></i> 发送到聊天框</button>
-            `;
+            // 切割出 3 个选项 (加入防呆机制，如果 AI 没用 ||| 隔开，就按换行切)
+            let options = finalTopic.split('|||').map(s => s.trim()).filter(s => s.length > 0);
+            if (options.length === 1) {
+                options = finalTopic.split('\n').map(s => s.replace(/^\d+[\.、]\s*/, '').trim()).filter(s => s.length > 0);
+            }
+            options = options.slice(0, 3); // 确保最多只有 3 个
+
+            // 渲染 3 张精美的卡片
+            let html = '';
+            const styles = [
+                { title: '🌸 顺势回复', color: '#e5989b', bg: '#fff0f1', border: '#ffccd5' },
+                { title: '✨ 调侃反击', color: '#4a70a8', bg: '#e8f0fa', border: '#b0c4de' },
+                { title: '🎈 开启新话题', color: '#f4a261', bg: '#fff5e6', border: '#ffe0b2' }
+            ];
+
+            options.forEach((opt, idx) => {
+                const style = styles[idx] || styles[0];
+                html += `
+                    <div onclick="window.PhoneEngine.useTopic('${opt.replace(/'/g, "\\'")}')" style="padding: 12px; background: ${style.bg}; border: 1px solid ${style.border}; border-radius: 12px; text-align: left; cursor: pointer; transition: 0.2s;">
+                        <div style="font-size: 11px; color: ${style.color}; font-weight: bold; margin-bottom: 4px;">${style.title}</div>
+                        <div style="font-size: 14px; color: #333;">${opt}</div>
+                    </div>
+                `;
+            });
+
+            resultEl.innerHTML = html;
 
         } catch (error) {
             resultEl.innerHTML = `<span style="color:#ff4d4f; font-size: 14px;">生成失败：${error.message}</span>`;
         } finally {
-            // 恢复 UI
             btnEl.disabled = false;
-            btnEl.innerHTML = '<i class="ph-fill ph-arrows-clockwise"></i> 换一个话题';
+            btnEl.innerHTML = '<i class="ph-fill ph-arrows-clockwise"></i> 换一批';
             iconEl.classList.remove('spin-anim');
         }
     },
 
-    // 🌟 新增：将转盘话题填入输入框
     useTopic(topic) {
-        window.PhoneUI.closeApp(); // 关闭转盘窗口
+        window.PhoneUI.closeApp(); 
         const inputEl = document.getElementById('chat-input');
         if(inputEl) {
-            inputEl.value = topic; // 填入输入框，用户可以修改后再发
+            inputEl.value = topic; 
             inputEl.focus();
         }
     },

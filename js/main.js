@@ -14,9 +14,31 @@ window.Apps = {
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('✅ 核心引擎已挂载，路径加载成功！');
+    
+    // 🌟 核心：开机时读取主题设置
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    if (savedTheme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        const themeIcon = document.getElementById('theme-icon');
+        if (themeIcon) {
+            themeIcon.classList.remove('ph-moon');
+            themeIcon.classList.add('ph-sun');
+        }
+    }
+
     setTimeout(() => {
         if(window.PhoneAPI) window.PhoneAPI.loadSettings();
         if(window.PhoneUI) window.PhoneUI.renderAppContent('wechat');
         console.log('✅ 聊天记录和设置已成功加载！');
     }, 300);
+});
+
+// 监听回车键发送消息
+document.addEventListener('keydown', (e) => {
+    const chatInput = document.getElementById('chat-input');
+    if (e.key === 'Enter' && document.activeElement === chatInput) {
+        e.preventDefault();
+        if(window.PhoneEngine) window.PhoneEngine.sendUserMsgOnly();
+        if(window.PhoneUI) window.PhoneUI.closeChatMenu();
+    }
 });

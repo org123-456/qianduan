@@ -179,7 +179,6 @@ ${historyText}`;
         localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
     },
 
-    // 🌟 线上微信模式
     async sendChatMessage(isRegen = false) {
         const roleId = Config.currentContactId;
         if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
@@ -218,7 +217,6 @@ ${historyText}`;
 
             formatRule += "【微信连发强制要求】：你每次回复**必须**输出 4 到 5 句话，并且**每一句话都必须用换行符（回车）隔开**！系统会根据换行符将你的回复切分成多个连续的微信气泡。绝对不要只回一句话，也绝对不要把所有话挤在同一行！\n";
 
-            // 🌟 核心：读取世界书插件 (线上)
             const wbData = PhoneAPI.getWorldbookData();
             const activeOnlineWb = wbData.filter(w => w.online).map(w => w.content).join('\n');
             if (activeOnlineWb) {
@@ -275,7 +273,6 @@ ${historyText}`;
         }
     },
 
-    // 🌟 线下小说模式
     async sendNovelMessage(isRegen = false) {
         const roleId = Config.currentContactId;
         if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
@@ -310,7 +307,6 @@ ${historyText}`;
             const customSystemPrompt = localStorage.getItem('char_persona') || '';
             const banEmoji = localStorage.getItem('ban_emoji') === 'true';
             
-            // 🌟 核心：读取用户自定义的小说字数底线
             const minWords = localStorage.getItem('novel_min_words') || '150';
 
             let formatRule = "【线下沉浸模式】：当前是面对面的真实场景。请用写小说/语C的笔法进行演绎。\n";
@@ -318,7 +314,6 @@ ${historyText}`;
             
             if (banEmoji) formatRule += "【最高禁令】：绝对不允许使用任何 Emoji、颜文字、波浪号(~)，违者抹杀！\n";
 
-            // 🌟 核心：读取世界书插件 (线下)
             const wbData = PhoneAPI.getWorldbookData();
             const activeOfflineWb = wbData.filter(w => w.offline).map(w => w.content).join('\n');
             if (activeOfflineWb) {

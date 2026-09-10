@@ -22,8 +22,6 @@ export const PhoneAPI = {
         
         localStorage.setItem('my_name', getVal('my-name'));
         localStorage.setItem('char_name', getVal('char-name'));
-        
-        // 🌟 核心修复：确保大框框里的提示词被保存！
         localStorage.setItem('char_persona', getVal('char-persona'));
         
         localStorage.setItem('ban_emoji', document.getElementById('ban-emoji')?.checked || false);
@@ -76,8 +74,6 @@ export const PhoneAPI = {
             const savedCharName = localStorage.getItem('char_name') || '';
             setVal('my-name', savedMyName);
             setVal('char-name', savedCharName);
-            
-            // 🌟 核心修复：开机时把提示词填回大框框里！
             setVal('char-persona', localStorage.getItem('char_persona') || '');
             
             setVal('my-avatar', localStorage.getItem('my_avatar') || '');
@@ -104,6 +100,37 @@ export const PhoneAPI = {
             window.PhoneUI.renderAppContent('wechat');
             this.showToast("🗑️ 聊天记录已清空！");
         }
+    },
+
+    // 🌟 新增：读取和保存世界书数据
+    getWorldbookData() {
+        let wb = localStorage.getItem('worldbook_entries');
+        if (!wb) {
+            // 默认内置的几个神级插件
+            const defaultWb = [
+                { id: 'wb1', title: '防抢话机制', content: '绝对禁止替用户做出决定、动作或说话，只描写你自己的反应。', online: true, offline: true },
+                { id: 'wb2', title: '合理制造冲突', content: '不要总是顺从用户，根据人设适度制造戏剧冲突、拒绝或傲娇反驳。', online: true, offline: true },
+                { id: 'wb3', title: '文青病 (环境渲染)', content: '在描写中加入大量对光影、气味、微风等环境细节的刻画，营造电影感。', online: false, offline: true },
+                { id: 'wb4', title: '动作微表情', content: '说话时必须配合细腻的微表情（如挑眉、垂眸、手指的小动作）。', online: false, offline: true }
+            ];
+            localStorage.setItem('worldbook_entries', JSON.stringify(defaultWb));
+            return defaultWb;
+        }
+        return JSON.parse(wb);
+    },
+
+    toggleWorldbook(id, type, isChecked) {
+        let wb = this.getWorldbookData();
+        let item = wb.find(w => w.id === id);
+        if (item) {
+            item[type] = isChecked;
+            localStorage.setItem('worldbook_entries', JSON.stringify(wb));
+        }
+    },
+
+    saveNovelWords() {
+        const val = document.getElementById('novel-min-words')?.value || '150';
+        localStorage.setItem('novel_min_words', val);
     },
 
     async chatWithAI(messages) {

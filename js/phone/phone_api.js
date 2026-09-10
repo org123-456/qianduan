@@ -13,7 +13,6 @@ export const PhoneAPI = {
         }
     },
 
-    // 真正的保存逻辑
     _doSave() {
         const getVal = (id) => document.getElementById(id)?.value.trim() || '';
         
@@ -23,9 +22,9 @@ export const PhoneAPI = {
         
         localStorage.setItem('my_name', getVal('my-name'));
         localStorage.setItem('char_name', getVal('char-name'));
+        localStorage.setItem('char_persona', getVal('char-persona'));
         
         localStorage.setItem('ban_emoji', document.getElementById('ban-emoji')?.checked || false);
-        localStorage.setItem('reply_length', getVal('reply-length') || 'short');
 
         localStorage.setItem('my_avatar', getVal('my-avatar'));
         localStorage.setItem('ta_avatar', getVal('ta-avatar'));
@@ -38,7 +37,6 @@ export const PhoneAPI = {
         }
     },
 
-    // 打字时自动触发，不弹窗
     autoSave() {
         try {
             this._doSave();
@@ -47,7 +45,6 @@ export const PhoneAPI = {
         }
     },
 
-    // 点击按钮手动触发，弹窗提示
     saveSettings() {
         try {
             this._doSave();
@@ -77,15 +74,13 @@ export const PhoneAPI = {
             const savedCharName = localStorage.getItem('char_name') || '';
             setVal('my-name', savedMyName);
             setVal('char-name', savedCharName);
+            setVal('char-persona', localStorage.getItem('char_persona') || '');
             
             setVal('my-avatar', localStorage.getItem('my_avatar') || '');
             setVal('ta-avatar', localStorage.getItem('ta_avatar') || '');
 
             const banEmojiEl = document.getElementById('ban-emoji');
             if(banEmojiEl) banEmojiEl.checked = localStorage.getItem('ban_emoji') === 'true';
-            
-            const savedLength = localStorage.getItem('reply_length');
-            if(savedLength) setVal('reply-length', savedLength);
 
             if (savedCharName && savedMyName) {
                 const titleEl = document.getElementById('top-title');
@@ -111,6 +106,10 @@ export const PhoneAPI = {
         let url = localStorage.getItem('ai_api_url');
         let key = localStorage.getItem('ai_api_key');
         let model = localStorage.getItem('ai_api_model');
+
+        if (!url) url = document.getElementById('api-url')?.value.trim();
+        if (!key) key = document.getElementById('api-key')?.value.trim();
+        if (!model) model = document.getElementById('api-model')?.value.trim();
 
         if (!url || !key || !model) {
             throw new Error("请先去 Mine 页面配置 API 接口和模型！");

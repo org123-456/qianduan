@@ -17,7 +17,7 @@ export const WechatApp = {
         const avatarOther = localStorage.getItem('ta_avatar') || defaultTa;
 
         let html = '<div class="chat-container">';
-        let prevSender = null; // 记录上一条消息是谁发的
+        let prevSender = null; 
 
         data.items.forEach((item, index) => {
             if (item.sender === 'typing') {
@@ -40,8 +40,6 @@ export const WechatApp = {
             }
 
             const isMe = item.sender === 'me';
-            
-            // 🌟 核心：判断是否是同一个人连续发消息
             const isConsecutive = (item.sender === prevSender);
 
             let finalContent = item.content;
@@ -49,10 +47,21 @@ export const WechatApp = {
                 finalContent = window.marked.parse(item.content);
             }
 
+            // 🌟 核心：给对方的头像加上 onclick 事件，点击触发读心术！
+            let avatarHtml = '';
+            if (isConsecutive) {
+                avatarHtml = '<div class="chat-avatar-placeholder"></div>';
+            } else {
+                if (isMe) {
+                    avatarHtml = `<img class="chat-avatar" src="${avatarMe}" />`;
+                } else {
+                    avatarHtml = `<img class="chat-avatar" src="${avatarOther}" onclick="window.PhoneUI.showThought(${index})" style="cursor: pointer;" />`;
+                }
+            }
+
             html += `
                 <div class="chat-msg ${isMe ? 'right' : 'left'} ${isConsecutive ? 'consecutive' : ''}">
-                    <!-- 如果是连发，就不显示头像，用一个透明的占位符代替，保证气泡对齐 -->
-                    ${isConsecutive ? '<div class="chat-avatar-placeholder"></div>' : `<img class="chat-avatar" src="${isMe ? avatarMe : avatarOther}" />`}
+                    ${avatarHtml}
                     <div class="chat-content-box">
                         <div class="chat-bubble markdown-body" onclick="window.PhoneEngine.openMsgMenu(${index}, '${item.sender}')">${finalContent}</div>
                         <div class="chat-time">${item.time} ${isMe ? '· 已读' : ''}</div>
@@ -60,7 +69,6 @@ export const WechatApp = {
                 </div>
             `;
             
-            // 更新上一条消息的发送人
             prevSender = item.sender;
         });
         html += '</div>';

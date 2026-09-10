@@ -49,10 +49,9 @@ export const PhoneEngine = {
         Config.phoneData[roleId].wechat.items.splice(this.currentMsgIndex);
         PhoneUI.renderAppContent('wechat');
         localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-        this.sendChatMessage(true); // 触发重骰
+        this.sendChatMessage(true);
     },
 
-    // 🌟 军师转盘：现在也会读取前端的提示词，给出更贴合人设的建议
     async rollTopic() {
         const resultEl = document.getElementById('roulette-result');
         const btnEl = document.getElementById('roulette-btn');
@@ -73,7 +72,6 @@ export const PhoneEngine = {
             let historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
             if(!historyText) historyText = "(暂无聊天记录，你们才刚认识)";
 
-            // 读取前端填写的提示词，让军师知道我们在玩什么设定
             const customSystemPrompt = localStorage.getItem('char_persona') || '';
 
             const prompt = `你是一个高情商的语C辅助军师。以下是我们当前正在进行的角色扮演设定：
@@ -142,7 +140,6 @@ ${historyText}`;
         }
     },
 
-    // 🌟 纯发送模式：回车键触发，只发消息不触发 AI
     sendUserMsgOnly() {
         const inputEl = document.getElementById('chat-input');
         if(!inputEl) return;
@@ -163,7 +160,6 @@ ${historyText}`;
         localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
     },
 
-    // 🌟 召唤 AI 模式：纸飞机按钮触发
     async sendChatMessage(isRegen = false) {
         const roleId = Config.currentContactId;
         if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
@@ -186,7 +182,6 @@ ${historyText}`;
             }
         }
 
-        // 如果既不是重骰，输入框也没字，且聊天记录为空，就不发请求
         if (!isRegen && !hasNewUserMsg && chatItems.length === 0) return;
 
         chatItems.push({ sender: 'typing' });
@@ -195,8 +190,6 @@ ${historyText}`;
 
         try {
             const myName = localStorage.getItem('my_name') || '我';
-            
-            // 🚨 核心：直接读取 Mine 页面的大框框内容！代码里再无硬编码！
             const customSystemPrompt = localStorage.getItem('char_persona') || '你是一个友好的AI助手。';
             const banEmoji = localStorage.getItem('ban_emoji') === 'true';
             
@@ -226,6 +219,10 @@ ${historyText}`;
 
             const rawReply = await PhoneAPI.chatWithAI(messages);
 
+            // 🌟 核心：提取 AI 的内心戏！
+            const thinkMatch = rawReply.match(/<think>([\s\S]*?)<\/think>/i);
+            const innerThought = thinkMatch ? thinkMatch[1].trim() : "（TA的大脑一片空白...）";
+
             let finalReply = rawReply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
             if (!finalReply) finalReply = rawReply.trim();
 
@@ -237,7 +234,8 @@ ${historyText}`;
             const replyParts = finalReply.split('\n').map(s => s.trim()).filter(s => s.length > 0);
             
             replyParts.forEach(part => {
-                chatItems.push({ sender: 'other', content: part, time: replyTimeStr });
+                // 将提取到的 innerThought 塞进消息对象里！
+                chatItems.push({ sender: 'other', content: part, time: replyTimeStr, innerThought: innerThought });
             });
 
             PhoneUI.renderAppContent('wechat'); 

@@ -6,7 +6,7 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=2050">
+    <link rel="stylesheet" href="css/style.css?t=2060">
 </head>
 <body>
     <div id="app-container">
@@ -20,34 +20,77 @@
 
         <div class="page-container" id="scroll-box">
             
+            <!-- 🌟 0. Home 首页 (个人生活区) -->
             <div id="page-home" class="page">
                 <div class="card" style="text-align: center; padding: 30px 15px;">
                     <h3 style="color: #6b8bbd;">Little love record</h3>
                     <h1 style="font-size: 48px; color: #4a70a8; margin: 10px 0;">44</h1>
                     <p style="color: #999;">days together for</p>
                 </div>
+                
+                <h3 style="margin: 10px 0 10px 5px; color: #6b8bbd; font-size: 14px;">我的生活</h3>
+                <div class="app-grid">
+                    <div class="app-icon" onclick="window.PhoneUI.openApp('diary', '日记本')">
+                        <div class="icon"><i class="ph-fill ph-book-open-text" style="color: #e5989b;"></i></div>
+                        <div class="name">日记本</div>
+                    </div>
+                    <div class="app-icon" onclick="window.PhoneUI.openApp('shop', '商店')">
+                        <div class="icon"><i class="ph-fill ph-storefront" style="color: #f4a261;"></i></div>
+                        <div class="name">商店</div>
+                    </div>
+                    <div class="app-icon" onclick="window.PhoneUI.openApp('task', '打工赚钱')">
+                        <div class="icon"><i class="ph-fill ph-check-square-offset" style="color: #2a9d8f;"></i></div>
+                        <div class="name">打工赚钱</div>
+                    </div>
+                </div>
             </div>
 
+            <!-- 1. Memory 回忆页 (变回纯粹的相册) -->
             <div id="page-memory" class="page">
                 <div style="padding: 0 5px; margin-bottom: 15px; color: #4a70a8; font-weight: bold; display: flex; justify-content: space-between;">
-                    <span>应用中心</span>
-                    <span style="font-size: 12px; color: #999; font-weight: normal;">我们的专属生态</span>
+                    <span>我们的回忆</span>
+                    <span style="font-size: 12px; color: #999; font-weight: normal;">把日子慢慢装满</span>
                 </div>
-                <!-- 桌面图标存放区 -->
-                <div id="desktop" class="memory-grid"></div>
+                <div class="card" style="text-align: center; padding: 50px 20px; color: #999;">
+                    <i class="ph-fill ph-images" style="font-size: 48px; color: #dbe9f6; margin-bottom: 10px;"></i>
+                    <p>相册功能开发中...</p>
+                </div>
             </div>
 
+            <!-- 🌟 2. Chat 聊天页 (加入 + 号菜单) -->
             <div id="page-chat" class="page" style="position: relative; padding-bottom: 0;">
                 <div id="app-content-list" style="flex: 1; overflow-y: auto; padding-bottom: 140px;"></div>
                 
+                <!-- 隐藏的 + 号工具面板 -->
+                <div id="chat-plus-menu" class="chat-plus-menu">
+                    <div class="app-icon" onclick="window.PhoneUI.openApp('worldbook', '世界书'); window.PhoneUI.toggleChatMenu();">
+                        <div class="icon"><i class="ph-fill ph-globe-hemisphere-west" style="color: #6b8bbd;"></i></div>
+                        <div class="name">世界书</div>
+                    </div>
+                    <div class="app-icon" onclick="window.PhoneUI.openApp('skill', '技能架'); window.PhoneUI.toggleChatMenu();">
+                        <div class="icon"><i class="ph-fill ph-magic-wand" style="color: #9d4edd;"></i></div>
+                        <div class="name">技能架</div>
+                    </div>
+                    <div class="app-icon" onclick="window.PhoneUI.openApp('roulette', '话题转盘'); window.PhoneUI.toggleChatMenu();">
+                        <div class="icon"><i class="ph-fill ph-aperture" style="color: #ffb703;"></i></div>
+                        <div class="name">转盘</div>
+                    </div>
+                    <div class="app-icon" onclick="window.PhoneUI.openApp('wallet', '钱包'); window.PhoneUI.toggleChatMenu();">
+                        <div class="icon"><i class="ph-fill ph-wallet" style="color: #4a70a8;"></i></div>
+                        <div class="name">钱包</div>
+                    </div>
+                </div>
+
                 <div class="chat-input-bar">
-                    <div class="icon-btn"><i class="ph ph-plus-circle"></i></div>
-                    <input type="text" id="chat-input" placeholder="宝宝，说话...">
+                    <!-- 点击 + 号呼出面板 -->
+                    <div class="icon-btn" onclick="window.PhoneUI.toggleChatMenu()" id="btn-plus"><i class="ph ph-plus-circle"></i></div>
+                    <input type="text" id="chat-input" placeholder="宝宝，说话..." onclick="window.PhoneUI.closeChatMenu()">
                     <div class="icon-btn" style="font-size: 22px;"><i class="ph ph-smiley"></i></div>
-                    <div class="icon-btn send-btn" onclick="window.PhoneEngine.sendChatMessage()"><i class="ph-fill ph-paper-plane-right"></i></div>
+                    <div class="icon-btn send-btn" onclick="window.PhoneEngine.sendChatMessage(); window.PhoneUI.closeChatMenu();"><i class="ph-fill ph-paper-plane-right"></i></div>
                 </div>
             </div>
 
+            <!-- 3. Together 音乐/共同页 -->
             <div id="page-together" class="page">
                 <div class="card" style="text-align: center;">
                     <h3 style="color: #6b8bbd;">Together</h3>
@@ -55,6 +98,7 @@
                 </div>
             </div>
 
+            <!-- 4. Mine 我的页 -->
             <div id="page-mine" class="page">
                 <div class="card">
                     <h3 style="color: #6b8bbd; margin-bottom: 15px;"><i class="ph ph-note-pencil"></i> 专属角色设定</h3>
@@ -81,12 +125,6 @@
                         </div>
                     </div>
 
-                    <div style="margin-bottom: 15px;">
-                        <label style="font-size: 13px; color: #333; font-weight: bold;">🌟 终极系统提示词 (System Prompt)</label>
-                        <p style="font-size: 11px; color: #999; margin-top: 4px; margin-bottom: 6px;">请将小红书协议和角色圣经全部粘贴在这里。打字即自动保存，随时修改立刻生效！(右下角可拖动拉伸)</p>
-                        <textarea id="char-persona" rows="12" placeholder="<OVERRIDE_PROTOCOL>&#10;在这里粘贴你的神级提示词...&#10;你就是角色本人...&#10;绝对禁止OOC..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; resize: vertical; font-size: 12px; line-height: 1.5; background: #fdfdfd; font-family: monospace;"></textarea>
-                    </div>
-                    
                     <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 10px; border-radius: 8px;">
                         <label style="font-size: 13px; color: #333; font-weight: bold;"><i class="ph ph-prohibit"></i> 绝对禁止 AI 使用 Emoji</label>
                         <input type="checkbox" id="ban-emoji" onchange="window.PhoneAPI.autoSave()" style="width: 18px; height: 18px;">
@@ -117,8 +155,6 @@
                             <input type="text" id="api-model" placeholder="手动输入模型名" oninput="window.PhoneAPI.autoSave()" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 8px;">
                         </div>
                     </div>
-                    
-                    <button class="btn-refresh" onclick="window.PhoneAPI.saveSettings()" style="margin-top: 0;"><i class="ph ph-floppy-disk"></i> 保存 API</button>
                 </div>
 
                 <div class="card">
@@ -158,15 +194,13 @@
             <button class="action-btn cancel" onclick="window.PhoneEngine.closeMsgMenu()">取消</button>
         </div>
 
-        <!-- 🌟 新增：所有其他 App 的独立显示窗口 -->
+        <!-- App 独立显示窗口 -->
         <div id="app-window" class="app-window">
             <div class="app-window-header">
                 <div class="app-window-back" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div>
                 <div class="app-window-title" id="app-window-title">应用名称</div>
             </div>
-            <div class="app-window-content" id="app-window-content">
-                <!-- 这里的内容会根据你点击的图标动态生成 -->
-            </div>
+            <div class="app-window-content" id="app-window-content"></div>
         </div>
 
     </div>
@@ -178,7 +212,6 @@
 
         function switchTab(index) {
             scrollBox.scrollTo({ left: pages[index].offsetLeft, behavior: 'smooth' });
-            if(index === 1 && window.PhoneUI) window.PhoneUI.renderDesktop();
             if(index === 2 && window.PhoneUI) {
                 window.Config.currentAppId = 'wechat'; 
                 window.PhoneUI.renderAppContent('wechat');
@@ -194,6 +227,8 @@
                     nav.classList.remove('active');
                 }
             });
+            // 切换页面时自动关闭聊天菜单
+            if(window.PhoneUI) window.PhoneUI.closeChatMenu();
         });
     </script>
     <script type="module" src="js/main.js"></script>

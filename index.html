@@ -6,7 +6,7 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=2099">
+    <link rel="stylesheet" href="css/style.css?t=2100">
 </head>
 <body>
     <div id="app-container">
@@ -45,7 +45,7 @@
                 </div>
             </div>
 
-            <!-- 1. Memory 回忆页 -->
+            <!-- 1. Memory 回忆页 (占位符) -->
             <div id="page-memory" class="page">
                 <div style="padding: 0 5px; margin-bottom: 15px; color: #4a70a8; font-weight: bold; display: flex; justify-content: space-between;">
                     <span>我们的回忆</span>
@@ -124,7 +124,6 @@
                         </div>
                     </div>
 
-                    <!-- 🌟 核心修复：把丢失的提示词输入框找回来了！！！ -->
                     <div style="margin-bottom: 15px;">
                         <label style="font-size: 13px; color: #333; font-weight: bold;">🌟 终极系统提示词 (System Prompt)</label>
                         <p style="font-size: 11px; color: #999; margin-top: 4px; margin-bottom: 6px;">请将小红书协议和角色圣经全部粘贴在这里。打字即自动保存，随时修改立刻生效！(右下角可拖动拉伸)</p>
@@ -235,16 +234,9 @@
                     nav.classList.remove('active');
                 }
             });
-            if(window.PhoneUI) window.PhoneUI.closeChatMenu();
-        });
-
-        // 🚨 核心修复：把丢失的“开机启动代码”找回来了！
-        // 没有这段代码，系统开机就不会去读取缓存，就会白屏！
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(() => {
-                if(window.PhoneAPI) window.PhoneAPI.loadSettings();
-                if(window.PhoneUI) window.PhoneUI.renderAppContent('wechat');
-            }, 500);
+            if(window.PhoneUI && window.PhoneUI.closeChatMenu) {
+                window.PhoneUI.closeChatMenu();
+            }
         });
     </script>
     <script type="module" src="js/main.js"></script>

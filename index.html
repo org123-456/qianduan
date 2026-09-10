@@ -6,7 +6,7 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=2040">
+    <link rel="stylesheet" href="css/style.css?t=2050">
 </head>
 <body>
     <div id="app-container">
@@ -29,10 +29,11 @@
             </div>
 
             <div id="page-memory" class="page">
-                <div style="padding: 0 5px; margin-bottom: 10px; color: #4a70a8; font-weight: bold; display: flex; justify-content: space-between;">
-                    <span>我们的回忆</span>
-                    <span style="font-size: 12px; color: #999; font-weight: normal;">把日子慢慢装满</span>
+                <div style="padding: 0 5px; margin-bottom: 15px; color: #4a70a8; font-weight: bold; display: flex; justify-content: space-between;">
+                    <span>应用中心</span>
+                    <span style="font-size: 12px; color: #999; font-weight: normal;">我们的专属生态</span>
                 </div>
+                <!-- 桌面图标存放区 -->
                 <div id="desktop" class="memory-grid"></div>
             </div>
 
@@ -91,7 +92,6 @@
                         <input type="checkbox" id="ban-emoji" onchange="window.PhoneAPI.autoSave()" style="width: 18px; height: 18px;">
                     </div>
                     
-                    <!-- 🌟 核心修复：把让你充满安全感的保存按钮加回来了！ -->
                     <button class="btn-refresh" onclick="window.PhoneAPI.saveSettings()" style="margin-top: 5px;"><i class="ph ph-floppy-disk"></i> 保存设定</button>
                 </div>
 
@@ -118,7 +118,6 @@
                         </div>
                     </div>
                     
-                    <!-- 这里的保存按钮也保留着 -->
                     <button class="btn-refresh" onclick="window.PhoneAPI.saveSettings()" style="margin-top: 0;"><i class="ph ph-floppy-disk"></i> 保存 API</button>
                 </div>
 
@@ -157,6 +156,17 @@
             <button class="action-btn" id="btn-regen" onclick="window.PhoneEngine.regenMsg()"><i class="ph ph-arrows-clockwise"></i> 重新生成 (删除此条并重骰)</button>
             <button class="action-btn danger" onclick="window.PhoneEngine.deleteMsg()"><i class="ph ph-trash"></i> 删除此消息</button>
             <button class="action-btn cancel" onclick="window.PhoneEngine.closeMsgMenu()">取消</button>
+        </div>
+
+        <!-- 🌟 新增：所有其他 App 的独立显示窗口 -->
+        <div id="app-window" class="app-window">
+            <div class="app-window-header">
+                <div class="app-window-back" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div>
+                <div class="app-window-title" id="app-window-title">应用名称</div>
+            </div>
+            <div class="app-window-content" id="app-window-content">
+                <!-- 这里的内容会根据你点击的图标动态生成 -->
+            </div>
         </div>
 
     </div>

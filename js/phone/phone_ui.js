@@ -63,16 +63,17 @@ export const PhoneUI = {
                 </div>
             `;
         } else if (appId === 'roulette') {
-            // 🌟 核心：更新转盘 UI，加入结果显示区
+            // 🌟 核心：缩小转盘，留出空间放 3 个选项卡片
             contentEl.innerHTML = `
-                <div style="text-align: center; margin-top: 20px;">
-                    <div style="width: 160px; height: 160px; border-radius: 50%; border: 8px solid #ffb703; margin: 0 auto; display: flex; align-items: center; justify-content: center; background: #fff; box-shadow: 0 10px 30px rgba(255,183,3,0.2);">
-                        <i id="roulette-icon" class="ph-fill ph-aperture" style="font-size: 70px; color: #ffb703;"></i>
+                <div style="text-align: center; margin-top: 10px;">
+                    <div style="width: 120px; height: 120px; border-radius: 50%; border: 6px solid #ffb703; margin: 0 auto; display: flex; align-items: center; justify-content: center; background: #fff; box-shadow: 0 10px 30px rgba(255,183,3,0.2);">
+                        <i id="roulette-icon" class="ph-fill ph-aperture" style="font-size: 60px; color: #ffb703;"></i>
                     </div>
-                    <h2 style="margin-top: 25px; color: #333;">不知道聊什么？</h2>
-                    <p style="color: #999; margin-top: 10px; font-size: 13px;">AI 军师将根据你们最近的聊天记录<br>为你量身定制一个绝佳话题！</p>
+                    <h2 style="margin-top: 15px; color: #333; font-size: 18px;">AI 恋爱军师</h2>
+                    <p style="color: #999; margin-top: 5px; font-size: 12px;">根据上下文，为你提供 3 种不同风格的回复</p>
                     
-                    <div id="roulette-result" style="margin-top: 25px; min-height: 80px;"></div>
+                    <!-- 这里是用来放 3 个选项的容器 -->
+                    <div id="roulette-result" style="margin-top: 20px; min-height: 80px; display: flex; flex-direction: column; gap: 10px;"></div>
 
                     <button id="roulette-btn" class="btn-refresh" onclick="window.PhoneEngine.rollTopic()" style="background: #ffb703; margin-top: 20px; width: 100%;"><i class="ph-fill ph-play"></i> 开始抽取</button>
                 </div>

@@ -102,16 +102,15 @@ export const PhoneAPI = {
         }
     },
 
-    // 🌟 新增：读取和保存世界书数据
+    // 🌟 核心升级：读取世界书数据，包含硬核防八股！
     getWorldbookData() {
         let wb = localStorage.getItem('worldbook_entries');
         if (!wb) {
-            // 默认内置的几个神级插件
             const defaultWb = [
-                { id: 'wb1', title: '防抢话机制', content: '绝对禁止替用户做出决定、动作或说话，只描写你自己的反应。', online: true, offline: true },
-                { id: 'wb2', title: '合理制造冲突', content: '不要总是顺从用户，根据人设适度制造戏剧冲突、拒绝或傲娇反驳。', online: true, offline: true },
-                { id: 'wb3', title: '文青病 (环境渲染)', content: '在描写中加入大量对光影、气味、微风等环境细节的刻画，营造电影感。', online: false, offline: true },
-                { id: 'wb4', title: '动作微表情', content: '说话时必须配合细腻的微表情（如挑眉、垂眸、手指的小动作）。', online: false, offline: true }
+                { id: 'wb1', title: '防八股/去AI味', content: '绝对禁止使用华丽空洞的辞藻堆砌。禁止使用"眼底闪过一丝"、"嘴角勾起一抹"、"空气中弥漫着"等AI惯用套路句式。描写必须具体、写实、接地气。', online: true, offline: true, isCustom: false },
+                { id: 'wb2', title: '防抢话机制', content: '绝对禁止替用户做出决定、动作或说话，只描写你自己的反应。', online: true, offline: true, isCustom: false },
+                { id: 'wb3', title: '合理制造冲突', content: '不要总是顺从用户，根据人设适度制造戏剧冲突、拒绝或傲娇反驳。', online: true, offline: true, isCustom: false },
+                { id: 'wb4', title: '动作微表情', content: '说话时必须配合细腻的微表情（如挑眉、垂眸、手指的小动作）。', online: false, offline: true, isCustom: false }
             ];
             localStorage.setItem('worldbook_entries', JSON.stringify(defaultWb));
             return defaultWb;
@@ -126,6 +125,48 @@ export const PhoneAPI = {
             item[type] = isChecked;
             localStorage.setItem('worldbook_entries', JSON.stringify(wb));
         }
+    },
+
+    // 🌟 核心升级：添加自定义世界书规则
+    addWorldbook() {
+        const titleEl = document.getElementById('wb-new-title');
+        const contentEl = document.getElementById('wb-new-content');
+        const title = titleEl.value.trim();
+        const content = contentEl.value.trim();
+        
+        if(!title || !content) {
+            alert('标题和内容不能为空哦！');
+            return;
+        }
+        
+        let wb = this.getWorldbookData();
+        wb.push({
+            id: 'wb_' + Date.now(),
+            title: title,
+            content: content,
+            online: true,
+            offline: true,
+            isCustom: true // 标记为用户自定义，允许删除
+        });
+        
+        localStorage.setItem('worldbook_entries', JSON.stringify(wb));
+        
+        // 清空输入框并关闭弹窗，刷新列表
+        titleEl.value = '';
+        contentEl.value = '';
+        window.PhoneUI.closeWbModal();
+        window.PhoneUI.openApp('worldbook', '世界书');
+        this.showToast("✅ 规则添加成功！");
+    },
+
+    // 🌟 核心升级：删除自定义世界书规则
+    deleteWorldbook(id) {
+        if(!confirm('确定要删除这条自定义规则吗？')) return;
+        let wb = this.getWorldbookData();
+        wb = wb.filter(w => w.id !== id);
+        localStorage.setItem('worldbook_entries', JSON.stringify(wb));
+        window.PhoneUI.openApp('worldbook', '世界书');
+        this.showToast("🗑️ 规则已删除");
     },
 
     saveNovelWords() {

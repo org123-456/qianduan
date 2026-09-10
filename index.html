@@ -6,7 +6,7 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=2035">
+    <link rel="stylesheet" href="css/style.css?t=2040">
 </head>
 <body>
     <div id="app-container">
@@ -90,6 +90,9 @@
                         <label style="font-size: 13px; color: #333; font-weight: bold;"><i class="ph ph-prohibit"></i> 绝对禁止 AI 使用 Emoji</label>
                         <input type="checkbox" id="ban-emoji" onchange="window.PhoneAPI.autoSave()" style="width: 18px; height: 18px;">
                     </div>
+                    
+                    <!-- 🌟 核心修复：把让你充满安全感的保存按钮加回来了！ -->
+                    <button class="btn-refresh" onclick="window.PhoneAPI.saveSettings()" style="margin-top: 5px;"><i class="ph ph-floppy-disk"></i> 保存设定</button>
                 </div>
 
                 <div class="card">
@@ -114,6 +117,9 @@
                             <input type="text" id="api-model" placeholder="手动输入模型名" oninput="window.PhoneAPI.autoSave()" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 8px;">
                         </div>
                     </div>
+                    
+                    <!-- 这里的保存按钮也保留着 -->
+                    <button class="btn-refresh" onclick="window.PhoneAPI.saveSettings()" style="margin-top: 0;"><i class="ph ph-floppy-disk"></i> 保存 API</button>
                 </div>
 
                 <div class="card">

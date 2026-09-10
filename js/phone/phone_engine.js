@@ -214,8 +214,10 @@ ${historyText}`;
             
             let formatRule = "";
             if (banEmoji) formatRule += "【最高禁令】：绝对不允许使用任何 Emoji、颜文字、波浪号(~)，违者抹杀！\n";
-
             formatRule += "【微信连发强制要求】：你每次回复**必须**输出 4 到 5 句话，并且**每一句话都必须用换行符（回车）隔开**！系统会根据换行符将你的回复切分成多个连续的微信气泡。绝对不要只回一句话，也绝对不要把所有话挤在同一行！\n";
+            
+            // 🌟 核心：加入读心术专属指令！
+            formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白（第一人称，符合人设，纯粹是角色的心理活动，不要写你的分析过程）。例如：<inner>这傻瓜，大冷天穿这么少...</inner>\n";
 
             const wbData = PhoneAPI.getWorldbookData();
             const activeOnlineWb = wbData.filter(w => w.online).map(w => w.content).join('\n');
@@ -244,10 +246,14 @@ ${historyText}`;
 
             const rawReply = await PhoneAPI.chatWithAI(messages);
 
-            const thinkMatch = rawReply.match(/<think>([\s\S]*?)<\/think>/i);
-            const innerThought = thinkMatch ? thinkMatch[1].trim() : "（TA的大脑一片空白...）";
+            // 🌟 核心：只提取 <inner> 标签里的内容作为心声！
+            const innerMatch = rawReply.match(/<inner>([\s\S]*?)<\/inner>/i);
+            const innerThought = innerMatch ? innerMatch[1].trim() : "（TA的心思藏得很深，什么也没看出来...）";
 
-            let finalReply = rawReply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+            // 把 <think> 和 <inner> 都删掉，剩下的就是正式回复
+            let finalReply = rawReply.replace(/<think>[\s\S]*?<\/think>/gi, '')
+                                     .replace(/<inner>[\s\S]*?<\/inner>/gi, '')
+                                     .trim();
             if (!finalReply) finalReply = rawReply.trim();
 
             chatItems.pop(); 
@@ -312,6 +318,9 @@ ${historyText}`;
             let formatRule = "【线下沉浸模式】：当前是面对面的真实场景。请用写小说/语C的笔法进行演绎。\n";
             formatRule += `【字数与细节强制要求】：每次回复**必须不少于 ${minWords} 字**（不包含思维链的字数）！请尽情展开环境渲染、细腻的动作刻画和深度的心理描写，让场景充满画面感。绝对禁止像微信聊天那样只发短对话，必须像长篇小说的一段一样丰满！\n`;
             
+            // 🌟 核心：小说模式也加入读心术指令！
+            formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白（第一人称，符合人设，纯粹是角色的心理活动，不要写你的分析过程）。\n";
+
             if (banEmoji) formatRule += "【最高禁令】：绝对不允许使用任何 Emoji、颜文字、波浪号(~)，违者抹杀！\n";
 
             const wbData = PhoneAPI.getWorldbookData();
@@ -335,10 +344,13 @@ ${historyText}`;
 
             const rawReply = await PhoneAPI.chatWithAI(messages);
             
-            const thinkMatch = rawReply.match(/<think>([\s\S]*?)<\/think>/i);
-            const innerThought = thinkMatch ? thinkMatch[1].trim() : "（TA的大脑一片空白...）";
+            // 🌟 核心：提取 <inner> 标签作为心声
+            const innerMatch = rawReply.match(/<inner>([\s\S]*?)<\/inner>/i);
+            const innerThought = innerMatch ? innerMatch[1].trim() : "（TA的心思藏得很深，什么也没看出来...）";
             
-            let finalReply = rawReply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+            let finalReply = rawReply.replace(/<think>[\s\S]*?<\/think>/gi, '')
+                                     .replace(/<inner>[\s\S]*?<\/inner>/gi, '')
+                                     .trim();
             if (!finalReply) finalReply = rawReply.trim();
 
             chatItems.pop(); 

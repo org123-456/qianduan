@@ -6,14 +6,15 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=2300">
+    <link rel="stylesheet" href="css/style.css?t=2400">
 </head>
 <body>
     <div id="app-container">
         <div id="toast"><i class="ph-fill ph-check-circle" style="color: #4ade80; font-size: 18px;"></i> <span id="toast-msg">保存成功</span></div>
 
         <div class="top-bar">
-            <div class="menu-btn"><i class="ph ph-list" style="font-size: 18px;"></i></div>
+            <!-- 🌟 核心升级：主题切换按钮！ -->
+            <div class="menu-btn" onclick="window.PhoneUI.toggleTheme()"><i class="ph-fill ph-moon" id="theme-icon" style="font-size: 18px;"></i></div>
             <div class="title" id="top-title">Claire & Claude</div>
             <div class="heart"><i class="ph-fill ph-heart"></i> 100%</div>
         </div>
@@ -22,20 +23,19 @@
             
             <div id="page-home" class="page">
                 <div class="card" style="text-align: center; padding: 30px 15px;">
-                    <h3 style="color: #6b8bbd;">Little love record</h3>
-                    <h1 style="font-size: 48px; color: #4a70a8; margin: 10px 0;">44</h1>
-                    <p style="color: #999;">days together for</p>
+                    <h3 style="color: var(--primary-color);">Little love record</h3>
+                    <h1 style="font-size: 48px; color: var(--secondary-color); margin: 10px 0;">44</h1>
+                    <p style="color: var(--text-sub);">days together for</p>
                 </div>
                 
-                <h3 style="margin: 10px 0 10px 5px; color: #6b8bbd; font-size: 14px;">我的生活</h3>
+                <h3 style="margin: 10px 0 10px 5px; color: var(--primary-color); font-size: 14px;">我的生活</h3>
                 <div class="app-grid">
                     <div class="app-icon" onclick="window.PhoneUI.openApp('novel', '线下故事')">
-                        <div class="icon"><i class="ph-fill ph-book-open" style="color: #555;"></i></div>
+                        <div class="icon"><i class="ph-fill ph-book-open" style="color: var(--text-sub);"></i></div>
                         <div class="name" style="font-weight: bold;">线下故事</div>
                     </div>
-                    <!-- 🌟 核心：世界书独立成 App，放在首页！ -->
                     <div class="app-icon" onclick="window.PhoneUI.openApp('worldbook', '世界书')">
-                        <div class="icon"><i class="ph-fill ph-globe-hemisphere-west" style="color: #6b8bbd;"></i></div>
+                        <div class="icon"><i class="ph-fill ph-globe-hemisphere-west" style="color: var(--primary-color);"></i></div>
                         <div class="name" style="font-weight: bold;">世界书</div>
                     </div>
                     <div class="app-icon" onclick="window.PhoneUI.openApp('diary', '日记本')">
@@ -54,12 +54,12 @@
             </div>
 
             <div id="page-memory" class="page">
-                <div style="padding: 0 5px; margin-bottom: 15px; color: #4a70a8; font-weight: bold; display: flex; justify-content: space-between;">
+                <div style="padding: 0 5px; margin-bottom: 15px; color: var(--secondary-color); font-weight: bold; display: flex; justify-content: space-between;">
                     <span>我们的回忆</span>
-                    <span style="font-size: 12px; color: #999; font-weight: normal;">把日子慢慢装满</span>
+                    <span style="font-size: 12px; color: var(--text-sub); font-weight: normal;">把日子慢慢装满</span>
                 </div>
-                <div class="card" style="text-align: center; padding: 50px 20px; color: #999;">
-                    <i class="ph-fill ph-images" style="font-size: 48px; color: #dbe9f6; margin-bottom: 10px;"></i>
+                <div class="card" style="text-align: center; padding: 50px 20px; color: var(--text-sub);">
+                    <i class="ph-fill ph-images" style="font-size: 48px; color: var(--bg-gradient-start); margin-bottom: 10px;"></i>
                     <p>相册功能开发中...</p>
                 </div>
             </div>
@@ -77,7 +77,7 @@
                         <div class="name">转盘</div>
                     </div>
                     <div class="app-icon" onclick="window.PhoneUI.openApp('wallet', '钱包'); window.PhoneUI.toggleChatMenu();">
-                        <div class="icon"><i class="ph-fill ph-wallet" style="color: #4a70a8;"></i></div>
+                        <div class="icon"><i class="ph-fill ph-wallet" style="color: var(--secondary-color);"></i></div>
                         <div class="name">钱包</div>
                     </div>
                 </div>
@@ -92,45 +92,45 @@
 
             <div id="page-together" class="page">
                 <div class="card" style="text-align: center;">
-                    <h3 style="color: #6b8bbd;">Together</h3>
-                    <p style="color: #999; margin-top: 10px;">功能开发中...</p>
+                    <h3 style="color: var(--primary-color);">Together</h3>
+                    <p style="color: var(--text-sub); margin-top: 10px;">功能开发中...</p>
                 </div>
             </div>
 
             <div id="page-mine" class="page">
                 <div class="card">
-                    <h3 style="color: #6b8bbd; margin-bottom: 15px;"><i class="ph ph-note-pencil"></i> 专属角色设定</h3>
+                    <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph ph-note-pencil"></i> 专属角色设定</h3>
                     
                     <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                         <div style="flex: 1;">
-                            <label style="font-size: 12px; color: #666;">我的名字</label>
-                            <input type="text" id="my-name" placeholder="例如: 小棋" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
+                            <label style="font-size: 12px; color: var(--text-sub);">我的名字</label>
+                            <input type="text" id="my-name" placeholder="例如: 小棋" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
                         </div>
                         <div style="flex: 1;">
-                            <label style="font-size: 12px; color: #666;">TA的名字</label>
-                            <input type="text" id="char-name" placeholder="例如: 小克" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
+                            <label style="font-size: 12px; color: var(--text-sub);">TA的名字</label>
+                            <input type="text" id="char-name" placeholder="例如: 小克" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
                         </div>
                     </div>
                     
                     <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                         <div style="flex: 1;">
-                            <label style="font-size: 12px; color: #666;">我的头像(网址)</label>
-                            <input type="text" id="my-avatar" placeholder="http..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
+                            <label style="font-size: 12px; color: var(--text-sub);">我的头像(网址)</label>
+                            <input type="text" id="my-avatar" placeholder="http..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
                         </div>
                         <div style="flex: 1;">
-                            <label style="font-size: 12px; color: #666;">TA的头像(网址)</label>
-                            <input type="text" id="ta-avatar" placeholder="http..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
+                            <label style="font-size: 12px; color: var(--text-sub);">TA的头像(网址)</label>
+                            <input type="text" id="ta-avatar" placeholder="http..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
                         </div>
                     </div>
 
                     <div style="margin-bottom: 15px;">
-                        <label style="font-size: 13px; color: #333; font-weight: bold;">🌟 终极系统提示词 (System Prompt)</label>
-                        <p style="font-size: 11px; color: #999; margin-top: 4px; margin-bottom: 6px;">请将小红书协议和角色圣经全部粘贴在这里。打字即自动保存，随时修改立刻生效！(右下角可拖动拉伸)</p>
-                        <textarea id="char-persona" rows="12" placeholder="<OVERRIDE_PROTOCOL>&#10;在这里粘贴你的神级提示词...&#10;你就是角色本人...&#10;绝对禁止OOC..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; resize: vertical; font-size: 12px; line-height: 1.5; background: #fdfdfd; font-family: monospace;"></textarea>
+                        <label style="font-size: 13px; color: var(--text-main); font-weight: bold;">🌟 终极系统提示词 (System Prompt)</label>
+                        <p style="font-size: 11px; color: var(--text-sub); margin-top: 4px; margin-bottom: 6px;">请将小红书协议和角色圣经全部粘贴在这里。打字即自动保存，随时修改立刻生效！(右下角可拖动拉伸)</p>
+                        <textarea id="char-persona" rows="12" placeholder="<OVERRIDE_PROTOCOL>&#10;在这里粘贴你的神级提示词...&#10;你就是角色本人...&#10;绝对禁止OOC..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 10px; border-radius: 8px; resize: vertical; font-size: 12px; line-height: 1.5; font-family: monospace;"></textarea>
                     </div>
                     
-                    <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 10px; border-radius: 8px;">
-                        <label style="font-size: 13px; color: #333; font-weight: bold;"><i class="ph ph-prohibit"></i> 绝对禁止 AI 使用 Emoji</label>
+                    <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; background: var(--icon-bg); padding: 10px; border-radius: 8px;">
+                        <label style="font-size: 13px; color: var(--text-main); font-weight: bold;"><i class="ph ph-prohibit"></i> 绝对禁止 AI 使用 Emoji</label>
                         <input type="checkbox" id="ban-emoji" onchange="window.PhoneAPI.autoSave()" style="width: 18px; height: 18px;">
                     </div>
                     
@@ -138,25 +138,25 @@
                 </div>
 
                 <div class="card">
-                    <h3 style="color: #6b8bbd; margin-bottom: 15px;"><i class="ph ph-gear"></i> AI 引擎设置 (打字自动保存)</h3>
+                    <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph ph-gear"></i> AI 引擎设置 (打字自动保存)</h3>
                     <div style="margin-bottom: 10px;">
-                        <label style="font-size: 12px; color: #666;">接口地址 (Base URL)</label>
-                        <input type="text" id="api-url" placeholder="例如: https://api.openai.com/v1" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
+                        <label style="font-size: 12px; color: var(--text-sub);">接口地址 (Base URL)</label>
+                        <input type="text" id="api-url" placeholder="例如: https://api.openai.com/v1" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
                     </div>
                     <div style="margin-bottom: 10px;">
-                        <label style="font-size: 12px; color: #666;">API Key (密钥)</label>
-                        <input type="password" id="api-key" placeholder="sk-..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px;">
+                        <label style="font-size: 12px; color: var(--text-sub);">API Key (密钥)</label>
+                        <input type="password" id="api-key" placeholder="sk-..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
                     </div>
                     <div style="margin-bottom: 15px;">
-                        <label style="font-size: 12px; color: #666;">模型名称 (Model)</label>
+                        <label style="font-size: 12px; color: var(--text-sub);">模型名称 (Model)</label>
                         <div style="display: flex; gap: 8px; margin-top: 4px;">
-                            <select id="api-model-select" onchange="document.getElementById('api-model').value = this.value; window.PhoneAPI.autoSave();" style="padding: 8px; border: 1px solid #ddd; border-radius: 8px; outline: none; background: #fff;">
+                            <select id="api-model-select" onchange="document.getElementById('api-model').value = this.value; window.PhoneAPI.autoSave();" style="padding: 8px; border-radius: 8px; outline: none;">
                                 <option value="gemini-1.5-pro-latest">Gemini 1.5 Pro</option>
                                 <option value="claude-3-5-sonnet-20240620">Claude 3.5 Sonnet</option>
                                 <option value="gpt-4o">GPT-4o</option>
                                 <option value="">自定义...</option>
                             </select>
-                            <input type="text" id="api-model" placeholder="手动输入模型名" oninput="window.PhoneAPI.autoSave()" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 8px;">
+                            <input type="text" id="api-model" placeholder="手动输入模型名" oninput="window.PhoneAPI.autoSave()" style="flex: 1; padding: 8px; border-radius: 8px;">
                         </div>
                     </div>
                     
@@ -164,8 +164,8 @@
                 </div>
 
                 <div class="card">
-                    <h3 style="color: #ff4d4f; margin-bottom: 15px;"><i class="ph ph-trash"></i> 危险操作</h3>
-                    <button class="btn-refresh" onclick="window.PhoneAPI.clearChat()" style="background: #ff4d4f; margin-top: 0;"><i class="ph ph-warning-circle"></i> 清空聊天记录</button>
+                    <h3 style="color: var(--danger-color); margin-bottom: 15px;"><i class="ph ph-trash"></i> 危险操作</h3>
+                    <button class="btn-refresh" onclick="window.PhoneAPI.clearChat()" style="background: var(--danger-color); margin-top: 0;"><i class="ph ph-warning-circle"></i> 清空聊天记录</button>
                 </div>
             </div>
             
@@ -180,7 +180,7 @@
             </div>
             <div class="nav-item center-btn" onclick="switchTab(2)">
                 <div class="center-circle">
-                    <div class="icon" style="color: white;"><i class="ph-fill ph-chat-circle-dots"></i></div>
+                    <div class="icon"><i class="ph-fill ph-chat-circle-dots"></i></div>
                     <div class="text" style="color: white; margin-top: 2px;">Chat</div>
                 </div>
             </div>
@@ -206,12 +206,11 @@
             <div class="thought-content" id="thought-content"></div>
         </div>
 
-        <!-- 🌟 新增：添加自定义规则的输入弹窗 -->
         <div id="wb-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeWbModal()"></div>
         <div id="wb-modal" class="thought-modal" style="padding: 20px;">
             <div class="thought-header"><i class="ph-fill ph-plus-circle"></i> 编写新规则</div>
-            <input type="text" id="wb-new-title" placeholder="规则名称 (如: 防八股)" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; font-size: 14px; outline: none;">
-            <textarea id="wb-new-content" placeholder="输入具体的规则内容，越详细越好..." style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; min-height: 100px; resize: none; font-size: 13px; line-height: 1.5; outline: none; margin-bottom: 15px; font-family: inherit;"></textarea>
+            <input type="text" id="wb-new-title" placeholder="规则名称 (如: 防八股)" style="width: 100%; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 14px; outline: none;">
+            <textarea id="wb-new-content" placeholder="输入具体的规则内容，越详细越好..." style="width: 100%; padding: 12px; border-radius: 8px; min-height: 100px; resize: none; font-size: 13px; line-height: 1.5; outline: none; margin-bottom: 15px; font-family: inherit;"></textarea>
             <button class="btn-refresh" onclick="window.PhoneAPI.addWorldbook()" style="margin-top: 0;">保存并挂载</button>
         </div>
 
@@ -251,13 +250,6 @@
             if(window.PhoneUI && window.PhoneUI.closeChatMenu) {
                 window.PhoneUI.closeChatMenu();
             }
-        });
-
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(() => {
-                if(window.PhoneAPI) window.PhoneAPI.loadSettings();
-                if(window.PhoneUI) window.PhoneUI.renderAppContent('wechat');
-            }, 500);
         });
     </script>
     <script type="module" src="js/main.js"></script>

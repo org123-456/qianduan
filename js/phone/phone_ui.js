@@ -14,21 +14,19 @@ export const PhoneUI = {
         }
     },
 
-    // 🌟 修复：切换聊天底部的 + 号菜单
     toggleChatMenu() {
         const menu = document.getElementById('chat-plus-menu');
         const btn = document.getElementById('btn-plus');
-        if (!menu || !btn) return; // 防崩溃检测
+        if (!menu || !btn) return; 
 
         if (menu.classList.contains('show')) {
             this.closeChatMenu();
         } else {
             menu.classList.add('show');
-            btn.style.transform = 'rotate(45deg)'; // 让加号旋转变成 x
+            btn.style.transform = 'rotate(45deg)'; 
         }
     },
 
-    // 关闭聊天菜单
     closeChatMenu() {
         const menu = document.getElementById('chat-plus-menu');
         const btn = document.getElementById('btn-plus');
@@ -65,14 +63,18 @@ export const PhoneUI = {
                 </div>
             `;
         } else if (appId === 'roulette') {
+            // 🌟 核心：更新转盘 UI，加入结果显示区
             contentEl.innerHTML = `
-                <div style="text-align: center; margin-top: 40px;">
-                    <div style="width: 200px; height: 200px; border-radius: 50%; border: 10px solid #ffb703; margin: 0 auto; display: flex; align-items: center; justify-content: center; background: #fff; box-shadow: 0 10px 30px rgba(255,183,3,0.2);">
-                        <i class="ph-fill ph-aperture" style="font-size: 80px; color: #ffb703;"></i>
+                <div style="text-align: center; margin-top: 20px;">
+                    <div style="width: 160px; height: 160px; border-radius: 50%; border: 8px solid #ffb703; margin: 0 auto; display: flex; align-items: center; justify-content: center; background: #fff; box-shadow: 0 10px 30px rgba(255,183,3,0.2);">
+                        <i id="roulette-icon" class="ph-fill ph-aperture" style="font-size: 70px; color: #ffb703;"></i>
                     </div>
-                    <h2 style="margin-top: 30px; color: #333;">不知道聊什么？</h2>
-                    <p style="color: #999; margin-top: 10px;">点击下方按钮，随机抽取一个话题发给 TA</p>
-                    <button class="btn-refresh" style="background: #ffb703; margin-top: 30px; width: 80%;"><i class="ph-fill ph-play"></i> 开始抽取</button>
+                    <h2 style="margin-top: 25px; color: #333;">不知道聊什么？</h2>
+                    <p style="color: #999; margin-top: 10px; font-size: 13px;">AI 军师将根据你们最近的聊天记录<br>为你量身定制一个绝佳话题！</p>
+                    
+                    <div id="roulette-result" style="margin-top: 25px; min-height: 80px;"></div>
+
+                    <button id="roulette-btn" class="btn-refresh" onclick="window.PhoneEngine.rollTopic()" style="background: #ffb703; margin-top: 20px; width: 100%;"><i class="ph-fill ph-play"></i> 开始抽取</button>
                 </div>
             `;
         } else {

@@ -75,13 +75,16 @@ export const PhoneEngine = {
 
         try {
             const myName = localStorage.getItem('my_name') || '我';
+            
+            // 🌟 核心：直接读取你在网页大框框里填写的提示词！
             const customSystemPrompt = localStorage.getItem('char_persona') || '你是一个友好的AI助手。';
+            
             const banEmoji = localStorage.getItem('ban_emoji') === 'true';
             
             let formatRule = "";
             if (banEmoji) formatRule += "【最高禁令】：绝对不允许使用任何 Emoji、颜文字、波浪号(~)，违者抹杀！\n";
 
-            // 🌟 核心：逼迫 AI 爆字数，强制连发气泡！
+            // 强制连发指令
             formatRule += "【微信连发强制要求】：你每次回复**必须**输出 4 到 5 句话，并且**每一句话都必须用换行符（回车）隔开**！系统会根据换行符将你的回复切分成多个连续的微信气泡。绝对不要只回一句话，也绝对不要把所有话挤在同一行！\n";
 
             let messages = [
@@ -113,7 +116,6 @@ export const PhoneEngine = {
             const replyTime = new Date();
             const replyTimeStr = `${replyTime.getHours().toString().padStart(2, '0')}:${replyTime.getMinutes().toString().padStart(2, '0')}`;
             
-            // 只要 AI 听话换了行，这里就会把它切成 4-5 个气泡！
             const replyParts = finalReply.split('\n').map(s => s.trim()).filter(s => s.length > 0);
             
             replyParts.forEach(part => {

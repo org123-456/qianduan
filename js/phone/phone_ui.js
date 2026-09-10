@@ -35,6 +35,9 @@ export const PhoneUI = {
     },
 
     openApp(appId, appName) {
+        // 记录当前打开的 App，方便重骰时判断
+        window.Config.currentAppId = appId;
+        
         const titleEl = document.getElementById('app-window-title');
         const winEl = document.getElementById('app-window');
         const contentEl = document.getElementById('app-window-content');
@@ -45,22 +48,18 @@ export const PhoneUI = {
         titleEl.innerText = appName;
         winEl.classList.add('open');
         
-        // 重置样式
         contentEl.style.padding = '20px';
-        contentEl.style.background = '#f4f5f7';
+        contentEl.style.background = 'transparent';
         footerEl.innerHTML = ''; 
         
         if (appId === 'novel') {
-            // 🌟 核心：注入小说模式的 UI
             contentEl.style.padding = '0';
-            contentEl.style.background = '#e8ecef';
             contentEl.innerHTML = `<div id="novel-content-list" class="novel-bg"></div>`;
             
-            // 注入底部的剧本输入框
             footerEl.innerHTML = `
                 <div class="novel-input-bar">
                     <div class="icon-btn"><i class="ph ph-plus"></i></div>
-                    <textarea id="novel-input" class="novel-textarea" placeholder="DRAFT YOUR RESPONSE...&#10;[ENTER 换行]"></textarea>
+                    <textarea id="novel-input" class="novel-textarea" placeholder="撰写你的故事...&#10;[ENTER 换行]"></textarea>
                     <button class="novel-send-btn" onclick="window.PhoneEngine.sendNovelMessage()">SEND</button>
                 </div>
             `;
@@ -68,7 +67,7 @@ export const PhoneUI = {
 
         } else if (appId === 'wallet') {
             contentEl.innerHTML = `
-                <div class="card" style="background: linear-gradient(135deg, #6b8bbd, #4a70a8); color: white; text-align: center; padding: 30px 20px;">
+                <div class="card" style="background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: white; text-align: center; padding: 30px 20px;">
                     <div style="font-size: 14px; opacity: 0.8;">当前余额 (信用点)</div>
                     <div style="font-size: 36px; font-weight: bold; margin-top: 10px;">8,500.00</div>
                 </div>
@@ -76,7 +75,7 @@ export const PhoneUI = {
                 <div class="card" style="padding: 0;">
                     <div style="padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between;">
                         <div><b>便利店买香蕉</b><br><span style="font-size:12px; color:#999;">今天 08:30</span></div>
-                        <div style="color: #ff4d4f; font-weight: bold;">-25.00</div>
+                        <div style="color: var(--danger-color); font-weight: bold;">-25.00</div>
                     </div>
                 </div>
             `;
@@ -95,7 +94,7 @@ export const PhoneUI = {
         } else {
             contentEl.innerHTML = `
                 <div style="text-align:center; margin-top:100px; color:#999;">
-                    <i class="ph-fill ph-hammer" style="font-size:64px; color: #dbe9f6; margin-bottom:15px;"></i>
+                    <i class="ph-fill ph-hammer" style="font-size:64px; color: var(--primary-color); margin-bottom:15px;"></i>
                     <h3>界面排版中...</h3>
                     <p style="font-size: 12px; margin-top: 10px;">功能骨架已搭建，即将注入灵魂</p>
                 </div>
@@ -106,13 +105,15 @@ export const PhoneUI = {
     closeApp() {
         const winEl = document.getElementById('app-window');
         if(winEl) winEl.classList.remove('open');
+        // 关闭 App 时，把当前状态切回微信
+        window.Config.currentAppId = 'wechat';
     },
 
-    // 🌟 新增：渲染小说卡片
+    // 🌟 核心升级：渲染小说内容 (数据源改为 wechat.items，实现完全互通！)
     renderNovelContent() {
         const roleId = window.Config.currentContactId;
-        if (!window.Config.phoneData[roleId].novel) window.Config.phoneData[roleId].novel = { items: [] };
-        const items = window.Config.phoneData[roleId].novel.items;
+        // 直接读取微信的聊天记录数组！
+        const items = window.Config.phoneData[roleId]?.wechat?.items || [];
         const listEl = document.getElementById('novel-content-list');
         if (!listEl) return;
 
@@ -123,6 +124,11 @@ export const PhoneUI = {
 
         let html = '';
         items.forEach((item, index) => {
+            if (item.sender === 'typing') {
+                html += `<div style="text-align:center; padding: 20px; color: var(--primary-color);"><i class="ph ph-spinner spin-anim" style="font-size: 24px;"></i></div>`;
+                return;
+            }
+
             const isMe = item.sender === 'me';
             const avatar = isMe ? avatarMe : avatarOther;
             const name = isMe ? myName : charName;
@@ -130,9 +136,8 @@ export const PhoneUI = {
             let content = item.content;
             if (window.marked) content = window.marked.parse(content);
 
-            // 如果是 AI 发的，点击头像可以看心声
             const avatarHtml = isMe ? `<img src="${avatar}" class="novel-avatar">` 
-                                    : `<img src="${avatar}" class="novel-avatar" onclick="window.PhoneUI.showThought(${index}, 'novel')">`;
+                                    : `<img src="${avatar}" class="novel-avatar" onclick="window.PhoneUI.showThought(${index})">`;
 
             html += `
                 <div class="novel-card">
@@ -146,7 +151,8 @@ export const PhoneUI = {
                             <span class="novel-name">${name}</span>
                             <span class="novel-time">${item.time || '12:00 PM'}</span>
                         </div>
-                        <div class="novel-content markdown-body">${content}</div>
+                        <!-- 🌟 点击文本也能呼出操作菜单！ -->
+                        <div class="novel-content markdown-body" onclick="window.PhoneEngine.openMsgMenu(${index}, '${item.sender}')">${content}</div>
                     </div>
                 </div>
             `;
@@ -155,9 +161,10 @@ export const PhoneUI = {
         setTimeout(() => { listEl.scrollTop = listEl.scrollHeight; }, 100);
     },
 
-    showThought(index, appType = 'wechat') {
+    showThought(index) {
         const roleId = window.Config?.currentContactId;
-        const item = window.Config.phoneData[roleId]?.[appType]?.items[index];
+        // 统一从 wechat.items 读取心声
+        const item = window.Config.phoneData[roleId]?.wechat?.items[index];
         if(!item) return;
         
         const thought = item.innerThought || "（那时候TA的心思藏得很深，什么也没看出来...）";

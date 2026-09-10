@@ -14,6 +14,26 @@ export const PhoneUI = {
         }
     },
 
+    // 🌟 核心升级：主题切换逻辑
+    toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        
+        const icon = document.getElementById('theme-icon');
+        if (icon) {
+            if (newTheme === 'dark') {
+                icon.classList.remove('ph-moon');
+                icon.classList.add('ph-sun');
+            } else {
+                icon.classList.remove('ph-sun');
+                icon.classList.add('ph-moon');
+            }
+        }
+    },
+
     toggleChatMenu() {
         const menu = document.getElementById('chat-plus-menu');
         const btn = document.getElementById('btn-plus');
@@ -93,7 +113,6 @@ export const PhoneUI = {
             this.renderNovelContent();
 
         } else if (appId === 'worldbook') {
-            // 🌟 核心：渲染世界书列表，加入删除按钮和添加按钮
             const minWords = localStorage.getItem('novel_min_words') || '150';
             const wbData = window.PhoneAPI.getWorldbookData();
             
@@ -132,15 +151,15 @@ export const PhoneUI = {
                 <div class="card" style="margin-bottom: 20px;">
                     <h3 style="font-size: 14px; color: var(--primary-color); margin-bottom: 10px;"><i class="ph-fill ph-text-aa"></i> 线下小说字数底线</h3>
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <input type="number" id="novel-min-words" value="${minWords}" oninput="window.PhoneAPI.saveNovelWords()" style="width: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 8px; text-align: center;">
-                        <span style="font-size: 12px; color: #999;">字 (打字自动保存)</span>
+                        <input type="number" id="novel-min-words" value="${minWords}" oninput="window.PhoneAPI.saveNovelWords()" style="width: 80px; padding: 8px; border: 1px solid var(--border-color); border-radius: 8px; text-align: center; background: var(--icon-bg); color: var(--text-main);">
+                        <span style="font-size: 12px; color: var(--text-sub);">字 (打字自动保存)</span>
                     </div>
                 </div>
                 
                 <h3 style="font-size: 14px; color: var(--primary-color); margin-bottom: 10px; margin-left: 5px;"><i class="ph-fill ph-puzzle-piece"></i> 规则插件挂载</h3>
                 ${wbHtml}
                 
-                <button class="btn-refresh" onclick="window.PhoneUI.openWbModal()" style="margin-top: 10px; margin-bottom: 30px; background: #fff; color: var(--primary-color); border: 1px dashed var(--primary-color);"><i class="ph ph-plus"></i> 添加自定义规则</button>
+                <button class="btn-refresh" onclick="window.PhoneUI.openWbModal()" style="margin-top: 10px; margin-bottom: 30px; background: transparent; color: var(--primary-color); border: 1px dashed var(--primary-color);"><i class="ph ph-plus"></i> 添加自定义规则</button>
             `;
             
         } else if (appId === 'wallet') {
@@ -149,10 +168,10 @@ export const PhoneUI = {
                     <div style="font-size: 14px; opacity: 0.8;">当前余额 (信用点)</div>
                     <div style="font-size: 36px; font-weight: bold; margin-top: 10px;">8,500.00</div>
                 </div>
-                <h3 style="margin: 20px 0 10px 5px; color: #555; font-size: 15px;">近期账单</h3>
+                <h3 style="margin: 20px 0 10px 5px; color: var(--text-main); font-size: 15px;">近期账单</h3>
                 <div class="card" style="padding: 0;">
-                    <div style="padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between;">
-                        <div><b>便利店买香蕉</b><br><span style="font-size:12px; color:#999;">今天 08:30</span></div>
+                    <div style="padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between;">
+                        <div style="color: var(--text-main);"><b>便利店买香蕉</b><br><span style="font-size:12px; color:var(--text-sub);">今天 08:30</span></div>
                         <div style="color: var(--danger-color); font-weight: bold;">-25.00</div>
                     </div>
                 </div>
@@ -160,18 +179,18 @@ export const PhoneUI = {
         } else if (appId === 'roulette') {
             contentEl.innerHTML = `
                 <div style="text-align: center; margin-top: 10px;">
-                    <div style="width: 120px; height: 120px; border-radius: 50%; border: 6px solid #ffb703; margin: 0 auto; display: flex; align-items: center; justify-content: center; background: #fff; box-shadow: 0 10px 30px rgba(255,183,3,0.2);">
+                    <div style="width: 120px; height: 120px; border-radius: 50%; border: 6px solid #ffb703; margin: 0 auto; display: flex; align-items: center; justify-content: center; background: var(--icon-bg); box-shadow: 0 10px 30px rgba(255,183,3,0.2);">
                         <i id="roulette-icon" class="ph-fill ph-aperture" style="font-size: 60px; color: #ffb703;"></i>
                     </div>
-                    <h2 style="margin-top: 15px; color: #333; font-size: 18px;">AI 恋爱军师</h2>
-                    <p style="color: #999; margin-top: 5px; font-size: 12px;">根据上下文，为你提供 3 种不同风格的回复</p>
+                    <h2 style="margin-top: 15px; color: var(--text-main); font-size: 18px;">AI 恋爱军师</h2>
+                    <p style="color: var(--text-sub); margin-top: 5px; font-size: 12px;">根据上下文，为你提供 3 种不同风格的回复</p>
                     <div id="roulette-result" style="margin-top: 20px; min-height: 80px; display: flex; flex-direction: column; gap: 10px;"></div>
                     <button id="roulette-btn" class="btn-refresh" onclick="window.PhoneEngine.rollTopic()" style="background: #ffb703; margin-top: 20px; width: 100%;"><i class="ph-fill ph-play"></i> 开始抽取</button>
                 </div>
             `;
         } else {
             contentEl.innerHTML = `
-                <div style="text-align:center; margin-top:100px; color:#999;">
+                <div style="text-align:center; margin-top:100px; color:var(--text-sub);">
                     <i class="ph-fill ph-hammer" style="font-size:64px; color: var(--primary-color); margin-bottom:15px;"></i>
                     <h3>界面排版中...</h3>
                     <p style="font-size: 12px; margin-top: 10px;">功能骨架已搭建，即将注入灵魂</p>
@@ -246,7 +265,6 @@ export const PhoneUI = {
         document.getElementById('thought-modal').classList.remove('show');
     },
 
-    // 🌟 新增：控制添加规则弹窗
     openWbModal() {
         document.getElementById('wb-modal-bg').classList.add('show');
         document.getElementById('wb-modal').classList.add('show');

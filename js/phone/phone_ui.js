@@ -14,7 +14,6 @@ export const PhoneUI = {
         }
     },
 
-    // 🌟 核心升级：主题切换逻辑
     toggleTheme() {
         const currentTheme = document.documentElement.getAttribute('data-theme');
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
@@ -245,7 +244,12 @@ export const PhoneUI = {
             `;
         });
         listEl.innerHTML = html;
-        setTimeout(() => { listEl.scrollTop = listEl.scrollHeight; }, 100);
+        
+        // 🌟 核心修复：滚动条是在 app-window-content 上的，让它滚动到底部！
+        setTimeout(() => { 
+            const scrollContainer = document.getElementById('app-window-content');
+            if(scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight; 
+        }, 100);
     },
 
     showThought(index) {

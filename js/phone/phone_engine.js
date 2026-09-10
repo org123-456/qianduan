@@ -219,7 +219,6 @@ ${historyText}`;
 
             const rawReply = await PhoneAPI.chatWithAI(messages);
 
-            // 🌟 核心：提取 AI 的内心戏！
             const thinkMatch = rawReply.match(/<think>([\s\S]*?)<\/think>/i);
             const innerThought = thinkMatch ? thinkMatch[1].trim() : "（TA的大脑一片空白...）";
 
@@ -234,7 +233,6 @@ ${historyText}`;
             const replyParts = finalReply.split('\n').map(s => s.trim()).filter(s => s.length > 0);
             
             replyParts.forEach(part => {
-                // 将提取到的 innerThought 塞进消息对象里！
                 chatItems.push({ sender: 'other', content: part, time: replyTimeStr, innerThought: innerThought });
             });
 
@@ -247,6 +245,75 @@ ${historyText}`;
             if (hasNewUserMsg) chatItems.pop(); 
             PhoneUI.renderAppContent('wechat');
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+        }
+    },
+
+    // 🌟 新增：线下小说模式的发送逻辑
+    async sendNovelMessage() {
+        const inputEl = document.getElementById('novel-input');
+        if(!inputEl) return;
+        const text = inputEl.value.trim();
+        if (!text) return;
+
+        const roleId = Config.currentContactId;
+        if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
+        if (!Config.phoneData[roleId].novel) Config.phoneData[roleId].novel = { items: [] };
+        const novelItems = Config.phoneData[roleId].novel.items;
+
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        
+        // 存入我的消息
+        novelItems.push({ sender: 'me', content: text, time: timeStr });
+        inputEl.value = '';
+
+        PhoneUI.renderNovelContent();
+        localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+
+        // 假 loading
+        novelItems.push({ sender: 'typing', content: '...', time: timeStr });
+        PhoneUI.renderNovelContent();
+
+        try {
+            const myName = localStorage.getItem('my_name') || '我';
+            const customSystemPrompt = localStorage.getItem('char_persona') || '';
+            const banEmoji = localStorage.getItem('ban_emoji') === 'true';
+            
+            // 🚨 核心：小说模式专属排版指令！禁止像微信那样连发！
+            let formatRule = "【线下沉浸模式】：当前是面对面的真实场景。请用写小说/语C的笔法，包含丰富的动作、神态、心理活动和环境描写。回复长度适中，像小说的段落一样优雅，禁止像微信聊天那样短促。\n";
+            if (banEmoji) formatRule += "【最高禁令】：绝对不允许使用任何 Emoji、颜文字、波浪号(~)，违者抹杀！\n";
+
+            let messages = [
+                { role: "system", content: `${customSystemPrompt}\n\n当前正在和你互动的人是：【${myName}】。\n${formatRule}` }
+            ];
+
+            const recentItems = novelItems.slice(-10);
+            recentItems.forEach(item => {
+                if (item.sender !== 'typing') { 
+                    messages.push({ role: item.sender === 'me' ? 'user' : 'assistant', content: item.content });
+                }
+            });
+
+            const rawReply = await PhoneAPI.chatWithAI(messages);
+            
+            const thinkMatch = rawReply.match(/<think>([\s\S]*?)<\/think>/i);
+            const innerThought = thinkMatch ? thinkMatch[1].trim() : "";
+            
+            let finalReply = rawReply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+            if (!finalReply) finalReply = rawReply.trim();
+
+            novelItems.pop(); // 删掉 typing
+            
+            // 小说模式不切分气泡，直接整段存入！
+            novelItems.push({ sender: 'other', content: finalReply, time: timeStr, innerThought: innerThought });
+
+            PhoneUI.renderNovelContent();
+            localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+
+        } catch (error) {
+            PhoneAPI.showToast(error.message);
+            novelItems.pop(); 
+            PhoneUI.renderNovelContent();
         }
     }
 };

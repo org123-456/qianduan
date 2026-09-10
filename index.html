@@ -6,7 +6,7 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=2200">
+    <link rel="stylesheet" href="css/style.css?t=2300">
 </head>
 <body>
     <div id="app-container">
@@ -29,10 +29,14 @@
                 
                 <h3 style="margin: 10px 0 10px 5px; color: #6b8bbd; font-size: 14px;">我的生活</h3>
                 <div class="app-grid">
-                    <!-- 🌟 新增：线下故事 App -->
                     <div class="app-icon" onclick="window.PhoneUI.openApp('novel', '线下故事')">
                         <div class="icon"><i class="ph-fill ph-book-open" style="color: #555;"></i></div>
                         <div class="name" style="font-weight: bold;">线下故事</div>
+                    </div>
+                    <!-- 🌟 核心：世界书独立成 App，放在首页！ -->
+                    <div class="app-icon" onclick="window.PhoneUI.openApp('worldbook', '世界书')">
+                        <div class="icon"><i class="ph-fill ph-globe-hemisphere-west" style="color: #6b8bbd;"></i></div>
+                        <div class="name" style="font-weight: bold;">世界书</div>
                     </div>
                     <div class="app-icon" onclick="window.PhoneUI.openApp('diary', '日记本')">
                         <div class="icon"><i class="ph-fill ph-book-open-text" style="color: #e5989b;"></i></div>
@@ -63,11 +67,7 @@
             <div id="page-chat" class="page" style="position: relative; padding-bottom: 0;">
                 <div id="app-content-list" style="flex: 1; overflow-y: auto; padding-bottom: 140px;"></div>
                 
-                <div id="chat-plus-menu" class="chat-plus-menu">
-                    <div class="app-icon" onclick="window.PhoneUI.openApp('worldbook', '世界书'); window.PhoneUI.toggleChatMenu();">
-                        <div class="icon"><i class="ph-fill ph-globe-hemisphere-west" style="color: #6b8bbd;"></i></div>
-                        <div class="name">世界书</div>
-                    </div>
+                <div id="chat-plus-menu" class="chat-plus-menu" style="grid-template-columns: repeat(3, 1fr);">
                     <div class="app-icon" onclick="window.PhoneUI.openApp('skill', '技能架'); window.PhoneUI.toggleChatMenu();">
                         <div class="icon"><i class="ph-fill ph-magic-wand" style="color: #9d4edd;"></i></div>
                         <div class="name">技能架</div>
@@ -206,13 +206,21 @@
             <div class="thought-content" id="thought-content"></div>
         </div>
 
+        <!-- 🌟 新增：添加自定义规则的输入弹窗 -->
+        <div id="wb-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeWbModal()"></div>
+        <div id="wb-modal" class="thought-modal" style="padding: 20px;">
+            <div class="thought-header"><i class="ph-fill ph-plus-circle"></i> 编写新规则</div>
+            <input type="text" id="wb-new-title" placeholder="规则名称 (如: 防八股)" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; font-size: 14px; outline: none;">
+            <textarea id="wb-new-content" placeholder="输入具体的规则内容，越详细越好..." style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; min-height: 100px; resize: none; font-size: 13px; line-height: 1.5; outline: none; margin-bottom: 15px; font-family: inherit;"></textarea>
+            <button class="btn-refresh" onclick="window.PhoneAPI.addWorldbook()" style="margin-top: 0;">保存并挂载</button>
+        </div>
+
         <div id="app-window" class="app-window">
             <div class="app-window-header">
                 <div class="app-window-back" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div>
                 <div class="app-window-title" id="app-window-title">应用名称</div>
             </div>
             <div class="app-window-content" id="app-window-content"></div>
-            <!-- 🌟 新增：专门给小说模式留的底部输入区 -->
             <div id="app-window-footer"></div>
         </div>
 
@@ -243,6 +251,13 @@
             if(window.PhoneUI && window.PhoneUI.closeChatMenu) {
                 window.PhoneUI.closeChatMenu();
             }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                if(window.PhoneAPI) window.PhoneAPI.loadSettings();
+                if(window.PhoneUI) window.PhoneUI.renderAppContent('wechat');
+            }, 500);
         });
     </script>
     <script type="module" src="js/main.js"></script>

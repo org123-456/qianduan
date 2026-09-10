@@ -6,7 +6,7 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=2030">
+    <link rel="stylesheet" href="css/style.css?t=2035">
 </head>
 <body>
     <div id="app-container">
@@ -80,7 +80,6 @@
                         </div>
                     </div>
 
-                    <!-- 🌟 核心升级：超级上帝控制台 -->
                     <div style="margin-bottom: 15px;">
                         <label style="font-size: 13px; color: #333; font-weight: bold;">🌟 终极系统提示词 (System Prompt)</label>
                         <p style="font-size: 11px; color: #999; margin-top: 4px; margin-bottom: 6px;">请将小红书协议和角色圣经全部粘贴在这里。打字即自动保存，随时修改立刻生效！(右下角可拖动拉伸)</p>
@@ -90,15 +89,6 @@
                     <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 10px; border-radius: 8px;">
                         <label style="font-size: 13px; color: #333; font-weight: bold;"><i class="ph ph-prohibit"></i> 绝对禁止 AI 使用 Emoji</label>
                         <input type="checkbox" id="ban-emoji" onchange="window.PhoneAPI.autoSave()" style="width: 18px; height: 18px;">
-                    </div>
-                    
-                    <div style="margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 10px; border-radius: 8px;">
-                        <label style="font-size: 13px; color: #333; font-weight: bold;"><i class="ph ph-text-align-left"></i> 回复长度风格</label>
-                        <select id="reply-length" onchange="window.PhoneAPI.autoSave()" style="padding: 6px; border-radius: 6px; border: 1px solid #ddd; outline: none;">
-                            <option value="short">极简 (真实微信聊天)</option>
-                            <option value="medium">中等 (带点动作描写)</option>
-                            <option value="long">长篇 (小作文/语C)</option>
-                        </select>
                     </div>
                 </div>
 

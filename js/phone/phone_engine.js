@@ -49,10 +49,10 @@ export const PhoneEngine = {
         Config.phoneData[roleId].wechat.items.splice(this.currentMsgIndex);
         PhoneUI.renderAppContent('wechat');
         localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-        this.sendChatMessage(true);
+        this.sendChatMessage(true); // 触发重骰
     },
 
-    // 🌟 核心升级：AI 军师三选一逻辑
+    // 🌟 军师转盘：现在也会读取前端的提示词，给出更贴合人设的建议
     async rollTopic() {
         const resultEl = document.getElementById('roulette-result');
         const btnEl = document.getElementById('roulette-btn');
@@ -73,8 +73,13 @@ export const PhoneEngine = {
             let historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
             if(!historyText) historyText = "(暂无聊天记录，你们才刚认识)";
 
-            // 逼迫 AI 给出 3 个选项，并用 ||| 隔开
-            const prompt = `你是一个高情商的语C辅助军师。请根据以下我和TA的近期聊天记录，为我提供【3个不同风格】的回复建议，让我可以直接发给TA。
+            // 读取前端填写的提示词，让军师知道我们在玩什么设定
+            const customSystemPrompt = localStorage.getItem('char_persona') || '';
+
+            const prompt = `你是一个高情商的语C辅助军师。以下是我们当前正在进行的角色扮演设定：
+${customSystemPrompt}
+
+请根据以上设定，以及以下我和TA的近期聊天记录，为我提供【3个不同风格】的回复建议，让我可以直接发给TA。
 风格要求：
 1. 顺着对方的话往下接（自然/撒娇/暧昧）。
 2. 故意调侃、反击或傲娇。
@@ -91,18 +96,15 @@ ${historyText}`;
             const messages = [{ role: "user", content: prompt }];
             const reply = await PhoneAPI.chatWithAI(messages);
 
-            // 清理多余的代码块标记和 <think>
             let finalTopic = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
             finalTopic = finalTopic.replace(/```.*?/g, '').replace(/```/g, '').trim();
 
-            // 切割出 3 个选项 (加入防呆机制，如果 AI 没用 ||| 隔开，就按换行切)
             let options = finalTopic.split('|||').map(s => s.trim()).filter(s => s.length > 0);
             if (options.length === 1) {
                 options = finalTopic.split('\n').map(s => s.replace(/^\d+[\.、]\s*/, '').trim()).filter(s => s.length > 0);
             }
-            options = options.slice(0, 3); // 确保最多只有 3 个
+            options = options.slice(0, 3); 
 
-            // 渲染 3 张精美的卡片
             let html = '';
             const styles = [
                 { title: '🌸 顺势回复', color: '#e5989b', bg: '#fff0f1', border: '#ffccd5' },
@@ -140,29 +142,61 @@ ${historyText}`;
         }
     },
 
+    // 🌟 纯发送模式：回车键触发，只发消息不触发 AI
+    sendUserMsgOnly() {
+        const inputEl = document.getElementById('chat-input');
+        if(!inputEl) return;
+        const text = inputEl.value.trim();
+        if (!text) return;
+
+        const roleId = Config.currentContactId;
+        if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
+        if (!Config.phoneData[roleId].wechat) Config.phoneData[roleId].wechat = { items: [] };
+        const chatItems = Config.phoneData[roleId].wechat.items;
+
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        chatItems.push({ sender: 'me', content: text, time: timeStr });
+        inputEl.value = '';
+
+        PhoneUI.renderAppContent('wechat');
+        localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+    },
+
+    // 🌟 召唤 AI 模式：纸飞机按钮触发
     async sendChatMessage(isRegen = false) {
         const roleId = Config.currentContactId;
         if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
         if (!Config.phoneData[roleId].wechat) Config.phoneData[roleId].wechat = { items: [] };
         const chatItems = Config.phoneData[roleId].wechat.items;
 
+        let hasNewUserMsg = false;
+
         if (!isRegen) {
             const inputEl = document.getElementById('chat-input');
-            const text = inputEl.value.trim();
-            if (!text) return;
-
-            const now = new Date();
-            const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-            chatItems.push({ sender: 'me', content: text, time: timeStr });
-            inputEl.value = ''; 
+            if(inputEl) {
+                const text = inputEl.value.trim();
+                if (text) {
+                    const now = new Date();
+                    const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+                    chatItems.push({ sender: 'me', content: text, time: timeStr });
+                    inputEl.value = '';
+                    hasNewUserMsg = true;
+                }
+            }
         }
-        
+
+        // 如果既不是重骰，输入框也没字，且聊天记录为空，就不发请求
+        if (!isRegen && !hasNewUserMsg && chatItems.length === 0) return;
+
         chatItems.push({ sender: 'typing' });
         PhoneUI.renderAppContent('wechat'); 
         localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
 
         try {
             const myName = localStorage.getItem('my_name') || '我';
+            
+            // 🚨 核心：直接读取 Mine 页面的大框框内容！代码里再无硬编码！
             const customSystemPrompt = localStorage.getItem('char_persona') || '你是一个友好的AI助手。';
             const banEmoji = localStorage.getItem('ban_emoji') === 'true';
             
@@ -212,7 +246,7 @@ ${historyText}`;
         } catch (error) {
             PhoneAPI.showToast(error.message);
             chatItems.pop(); 
-            if (!isRegen) chatItems.pop(); 
+            if (hasNewUserMsg) chatItems.pop(); 
             PhoneUI.renderAppContent('wechat');
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
         }

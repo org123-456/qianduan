@@ -98,6 +98,11 @@ export const PhoneUI = {
             
             footerEl.innerHTML = `
                 <div id="story-plus-menu" class="story-menu">
+                    <!-- 🌟 核心：加入存档室入口 -->
+                    <div class="story-menu-item" onclick="window.PhoneUI.openArchiveModal(); window.PhoneUI.closeStoryMenu();">
+                        <div class="icon"><i class="ph-fill ph-floppy-disk"></i></div>
+                        <div class="text">存档室</div>
+                    </div>
                     <div class="story-menu-item" onclick="alert('掷骰子功能开发中！'); window.PhoneUI.closeStoryMenu();">
                         <div class="icon"><i class="ph-fill ph-dice-five"></i></div>
                         <div class="text">掷骰子</div>
@@ -227,8 +232,6 @@ export const PhoneUI = {
             const name = isMe ? myName : charName;
             
             let content = item.content;
-            
-            // 🌟 核心修复：如果内容为空，显示红字提醒，方便你点击删除！
             if (!content || content.trim() === '') {
                 content = '<span style="color:var(--danger-color); font-size:12px; font-style:italic;">[内容为空，请点击此处删除或重骰]</span>';
             } else if (window.marked) {
@@ -250,7 +253,6 @@ export const PhoneUI = {
             `;
         });
         listEl.innerHTML = html;
-        
         setTimeout(() => { 
             const scrollContainer = document.getElementById('app-window-content');
             if(scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight; 
@@ -282,5 +284,45 @@ export const PhoneUI = {
     closeWbModal() {
         document.getElementById('wb-modal-bg').classList.remove('show');
         document.getElementById('wb-modal').classList.remove('show');
+    },
+
+    // 🌟 核心升级：渲染存档室列表
+    renderArchiveList() {
+        const archives = window.PhoneAPI.getArchives();
+        const listEl = document.getElementById('archive-list');
+        if (!listEl) return;
+        
+        if (archives.length === 0) {
+            listEl.innerHTML = '<div style="text-align:center; color:var(--text-sub); padding: 20px 0;">暂无存档</div>';
+            return;
+        }
+        
+        let html = '';
+        [...archives].reverse().forEach(arc => {
+            html += `
+                <div class="archive-item">
+                    <div class="archive-info">
+                        <div class="archive-name">${arc.name}</div>
+                        <div class="archive-meta">${arc.date} · 共 ${arc.count} 条记录</div>
+                    </div>
+                    <div class="archive-actions">
+                        <button class="archive-btn load" onclick="window.PhoneAPI.loadArchive('${arc.id}')">读取</button>
+                        <button class="archive-btn del" onclick="window.PhoneAPI.deleteArchive('${arc.id}')"><i class="ph ph-trash"></i></button>
+                    </div>
+                </div>
+            `;
+        });
+        listEl.innerHTML = html;
+    },
+
+    openArchiveModal() {
+        this.renderArchiveList();
+        document.getElementById('archive-modal-bg').classList.add('show');
+        document.getElementById('archive-modal').classList.add('show');
+    },
+
+    closeArchiveModal() {
+        document.getElementById('archive-modal-bg').classList.remove('show');
+        document.getElementById('archive-modal').classList.remove('show');
     }
 };

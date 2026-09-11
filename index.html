@@ -2,19 +2,17 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <!-- 🌟 核心升级：加入了 viewport-fit=cover 适配刘海屏，以及全屏 Meta 标签 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#dbe9f6">
-    <!-- 🌟 核心升级：链接刚才新建的 App 身份证 -->
     <link rel="manifest" href="manifest.json">
     
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=3000">
+    <link rel="stylesheet" href="css/style.css?t=3100">
 </head>
 <body>
     <div id="app-container">
@@ -230,6 +228,13 @@
                 if(window.PhoneUI) window.PhoneUI.renderAppContent('wechat');
             }, 500);
         });
+
+        // 🌟 核心：激活 Service Worker，让浏览器承认我们是真正的 App！
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(() => console.log('Service Worker 注册成功！PWA 护城河已建立！'))
+                .catch(err => console.error('Service Worker 注册失败:', err));
+        }
     </script>
     <script type="module" src="js/main.js"></script>
 </body>

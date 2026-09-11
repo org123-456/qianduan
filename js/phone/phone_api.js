@@ -120,7 +120,6 @@ export const PhoneAPI = {
         }
     },
 
-    // 🌟 核心修复：优化暗黑模式下，默认图标的颜色！
     applyUITheme() {
         const globalBg = localStorage.getItem('bg_global');
         const chatBg = localStorage.getItem('bg_chat');
@@ -137,7 +136,6 @@ export const PhoneAPI = {
             document.documentElement.style.removeProperty('--bg-image-chat');
         }
 
-        // 修复默认图标颜色，让它们在暗黑模式下也能清晰可见
         const icons = [
             { id: 'novel', default: '<i class="ph-fill ph-book-open" style="color: var(--text-sub);"></i>' },
             { id: 'worldbook', default: '<i class="ph-fill ph-globe-hemisphere-west" style="color: var(--primary-color);"></i>' },
@@ -164,254 +162,104 @@ export const PhoneAPI = {
         });
     },
 
-    getUIPresets() {
-        return JSON.parse(localStorage.getItem('ui_presets') || '[]');
-    },
-
+    getUIPresets() { return JSON.parse(localStorage.getItem('ui_presets') || '[]'); },
     saveUIPreset() {
         const name = prompt('给这套主题装修起个名字吧 (如: 赛博朋克风):');
         if (!name) return;
-        
         const getVal = (id) => document.getElementById(id)?.value.trim() || '';
-        
-        const preset = {
-            id: 'ui_' + Date.now(),
-            name: name,
-            bg_global: getVal('bg-global'),
-            bg_chat: getVal('bg-chat'),
-            icon_novel: getVal('ui-icon-novel'),
-            icon_worldbook: getVal('ui-icon-worldbook'),
-            icon_settings: getVal('ui-icon-settings'),
-            icon_diary: getVal('ui-icon-diary'),
-            icon_shop: getVal('ui-icon-shop'),
-            icon_task: getVal('ui-icon-task')
-        };
-        
-        let presets = this.getUIPresets();
-        presets = presets.filter(p => p.name !== name);
-        presets.push(preset);
-        
-        localStorage.setItem('ui_presets', JSON.stringify(presets));
-        this.refreshUIDropdowns();
-        document.getElementById('ui-preset-select').value = preset.id;
-        this.showToast('💾 UI 主题预设保存成功！');
+        const preset = { id: 'ui_' + Date.now(), name: name, bg_global: getVal('bg-global'), bg_chat: getVal('bg-chat'), icon_novel: getVal('ui-icon-novel'), icon_worldbook: getVal('ui-icon-worldbook'), icon_settings: getVal('ui-icon-settings'), icon_diary: getVal('ui-icon-diary'), icon_shop: getVal('ui-icon-shop'), icon_task: getVal('ui-icon-task') };
+        let presets = this.getUIPresets(); presets = presets.filter(p => p.name !== name); presets.push(preset);
+        localStorage.setItem('ui_presets', JSON.stringify(presets)); this.refreshUIDropdowns(); document.getElementById('ui-preset-select').value = preset.id; this.showToast('💾 UI 主题预设保存成功！');
     },
-
     loadUIPreset() {
-        const selectEl = document.getElementById('ui-preset-select');
-        const id = selectEl.value;
-        if (!id) return;
-        
-        const presets = this.getUIPresets();
-        const preset = presets.find(p => p.id === id);
+        const id = document.getElementById('ui-preset-select').value; if (!id) return;
+        const preset = this.getUIPresets().find(p => p.id === id);
         if (preset) {
             const setVal = (domId, val) => { const el = document.getElementById(domId); if(el) el.value = val || ''; };
-            setVal('bg-global', preset.bg_global);
-            setVal('bg-chat', preset.bg_chat);
-            setVal('ui-icon-novel', preset.icon_novel);
-            setVal('ui-icon-worldbook', preset.icon_worldbook);
-            setVal('ui-icon-settings', preset.icon_settings);
-            setVal('ui-icon-diary', preset.icon_diary);
-            setVal('ui-icon-shop', preset.icon_shop);
-            setVal('ui-icon-task', preset.icon_task);
-            
-            this.autoSave();
-            this.showToast('✨ 主题切换成功！');
+            setVal('bg-global', preset.bg_global); setVal('bg-chat', preset.bg_chat); setVal('ui-icon-novel', preset.icon_novel); setVal('ui-icon-worldbook', preset.icon_worldbook); setVal('ui-icon-settings', preset.icon_settings); setVal('ui-icon-diary', preset.icon_diary); setVal('ui-icon-shop', preset.icon_shop); setVal('ui-icon-task', preset.icon_task);
+            this.autoSave(); this.showToast('✨ 主题切换成功！');
         }
     },
-
     deleteUIPreset() {
-        const selectEl = document.getElementById('ui-preset-select');
-        const id = selectEl.value;
-        if (!id) return alert('请先在下拉菜单中选择要删除的主题！');
-        if (!confirm('确定要删除这套主题预设吗？')) return;
-        
-        let presets = this.getUIPresets();
-        presets = presets.filter(p => p.id !== id);
-        localStorage.setItem('ui_presets', JSON.stringify(presets));
-        this.refreshUIDropdowns();
-        this.showToast('🗑️ 主题预设已删除');
+        const id = document.getElementById('ui-preset-select').value; if (!id) return alert('请先选择要删除的主题！'); if (!confirm('确定要删除这套主题预设吗？')) return;
+        let presets = this.getUIPresets(); presets = presets.filter(p => p.id !== id); localStorage.setItem('ui_presets', JSON.stringify(presets)); this.refreshUIDropdowns(); this.showToast('🗑️ 主题预设已删除');
     },
-
     refreshUIDropdowns() {
-        const presets = this.getUIPresets();
-        const selectEl = document.getElementById('ui-preset-select');
-        if (!selectEl) return;
-        
+        const selectEl = document.getElementById('ui-preset-select'); if (!selectEl) return;
         let optionsHtml = '<option value="">-- 切换 UI 主题预设 --</option>';
-        presets.forEach(p => {
-            optionsHtml += `<option value="${p.id}">${p.name}</option>`;
-        });
+        this.getUIPresets().forEach(p => { optionsHtml += `<option value="${p.id}">${p.name}</option>`; });
         selectEl.innerHTML = optionsHtml;
     },
 
-    getPromptPresets() {
-        return JSON.parse(localStorage.getItem('prompt_presets') || '[]');
-    },
-
+    getPromptPresets() { return JSON.parse(localStorage.getItem('prompt_presets') || '[]'); },
     savePromptPreset() {
-        const name = prompt('给这套人设/提示词组合起个名字吧 (如: 不死途-日常):');
-        if (!name) return;
-        
+        const name = prompt('给这套人设/提示词组合起个名字吧 (如: 不死途-日常):'); if (!name) return;
         const getVal = (id) => document.getElementById(id)?.value.trim() || '';
-        
-        const preset = {
-            id: 'pr_' + Date.now(),
-            name: name,
-            system: getVal('system-prompt'),
-            persona: getVal('char-persona'),
-            novel: getVal('novel-style')
-        };
-        
-        let presets = this.getPromptPresets();
-        presets = presets.filter(p => p.name !== name);
-        presets.push(preset);
-        
-        localStorage.setItem('prompt_presets', JSON.stringify(presets));
-        this.refreshPromptDropdowns();
-        document.getElementById('prompt-preset-select').value = preset.id;
-        this.showToast('💾 提示词预设保存成功！');
+        const preset = { id: 'pr_' + Date.now(), name: name, system: getVal('system-prompt'), persona: getVal('char-persona'), novel: getVal('novel-style') };
+        let presets = this.getPromptPresets(); presets = presets.filter(p => p.name !== name); presets.push(preset);
+        localStorage.setItem('prompt_presets', JSON.stringify(presets)); this.refreshPromptDropdowns(); document.getElementById('prompt-preset-select').value = preset.id; this.showToast('💾 提示词预设保存成功！');
     },
-
     loadPromptPreset() {
-        const selectEl = document.getElementById('prompt-preset-select');
-        const id = selectEl.value;
-        if (!id) return;
-        
-        const presets = this.getPromptPresets();
-        const preset = presets.find(p => p.id === id);
+        const id = document.getElementById('prompt-preset-select').value; if (!id) return;
+        const preset = this.getPromptPresets().find(p => p.id === id);
         if (preset) {
             const setVal = (domId, val) => { const el = document.getElementById(domId); if(el) el.value = val; };
-            setVal('system-prompt', preset.system);
-            setVal('char-persona', preset.persona);
-            setVal('novel-style', preset.novel);
-            this.autoSave();
-            this.showToast('✨ 人设切换成功！');
+            setVal('system-prompt', preset.system); setVal('char-persona', preset.persona); setVal('novel-style', preset.novel);
+            this.autoSave(); this.showToast('✨ 人设切换成功！');
         }
     },
-
     deletePromptPreset() {
-        const selectEl = document.getElementById('prompt-preset-select');
-        const id = selectEl.value;
-        if (!id) return alert('请先在下拉菜单中选择要删除的预设！');
-        if (!confirm('确定要删除这套预设吗？')) return;
-        
-        let presets = this.getPromptPresets();
-        presets = presets.filter(p => p.id !== id);
-        localStorage.setItem('prompt_presets', JSON.stringify(presets));
-        this.refreshPromptDropdowns();
-        this.showToast('🗑️ 预设已删除');
+        const id = document.getElementById('prompt-preset-select').value; if (!id) return alert('请先选择预设！'); if (!confirm('确定要删除这套预设吗？')) return;
+        let presets = this.getPromptPresets(); presets = presets.filter(p => p.id !== id); localStorage.setItem('prompt_presets', JSON.stringify(presets)); this.refreshPromptDropdowns(); this.showToast('🗑️ 预设已删除');
     },
-
     refreshPromptDropdowns() {
-        const presets = this.getPromptPresets();
-        const selectEl = document.getElementById('prompt-preset-select');
-        if (!selectEl) return;
-        
+        const selectEl = document.getElementById('prompt-preset-select'); if (!selectEl) return;
         let optionsHtml = '<option value="">-- 切换人设/提示词预设 --</option>';
-        presets.forEach(p => {
-            optionsHtml += `<option value="${p.id}">${p.name}</option>`;
-        });
+        this.getPromptPresets().forEach(p => { optionsHtml += `<option value="${p.id}">${p.name}</option>`; });
         selectEl.innerHTML = optionsHtml;
     },
 
-    getPresets() {
-        return JSON.parse(localStorage.getItem('ai_api_presets') || '[]');
-    },
-
+    getPresets() { return JSON.parse(localStorage.getItem('ai_api_presets') || '[]'); },
     savePreset() {
-        const nameEl = document.getElementById('preset-name');
-        const urlEl = document.getElementById('preset-url');
-        const keyEl = document.getElementById('preset-key');
-        const modelEl = document.getElementById('preset-model');
-        
-        const name = nameEl.value.trim();
-        if (!name) return alert("请给预设起个名字！");
-        
-        const preset = {
-            id: 'p_' + Date.now(),
-            name: name,
-            url: urlEl.value.trim(),
-            key: keyEl.value.trim(),
-            model: modelEl.value.trim()
-        };
-        
-        let presets = this.getPresets();
-        presets.push(preset);
-        localStorage.setItem('ai_api_presets', JSON.stringify(presets));
-        
-        nameEl.value = ''; urlEl.value = ''; keyEl.value = ''; modelEl.value = '';
-        this.refreshPresetDropdowns();
-        this.showToast('💾 预设已存入库中！');
+        const nameEl = document.getElementById('preset-name'); const urlEl = document.getElementById('preset-url'); const keyEl = document.getElementById('preset-key'); const modelEl = document.getElementById('preset-model');
+        const name = nameEl.value.trim(); if (!name) return alert("请给预设起个名字！");
+        const preset = { id: 'p_' + Date.now(), name: name, url: urlEl.value.trim(), key: keyEl.value.trim(), model: modelEl.value.trim() };
+        let presets = this.getPresets(); presets.push(preset); localStorage.setItem('ai_api_presets', JSON.stringify(presets));
+        nameEl.value = ''; urlEl.value = ''; keyEl.value = ''; modelEl.value = ''; this.refreshPresetDropdowns(); this.showToast('💾 预设已存入库中！');
     },
-
     deletePreset() {
-        const selectEl = document.getElementById('preset-delete-select');
-        const id = selectEl.value;
-        if (!id) return alert('请先选择要删除的预设！');
-        if (!confirm('确定要删除这个预设吗？')) return;
-        
-        let presets = this.getPresets();
-        presets = presets.filter(p => p.id !== id);
-        localStorage.setItem('ai_api_presets', JSON.stringify(presets));
-        
-        if (localStorage.getItem('main_engine_id') === id) localStorage.removeItem('main_engine_id');
-        if (localStorage.getItem('sub_engine_id') === id) localStorage.removeItem('sub_engine_id');
-        
-        this.refreshPresetDropdowns();
-        this.showToast('🗑️ 预设已删除');
+        const id = document.getElementById('preset-delete-select').value; if (!id) return alert('请先选择预设！'); if (!confirm('确定要删除这个预设吗？')) return;
+        let presets = this.getPresets(); presets = presets.filter(p => p.id !== id); localStorage.setItem('ai_api_presets', JSON.stringify(presets));
+        if (localStorage.getItem('main_engine_id') === id) localStorage.removeItem('main_engine_id'); if (localStorage.getItem('sub_engine_id') === id) localStorage.removeItem('sub_engine_id');
+        this.refreshPresetDropdowns(); this.showToast('🗑️ 预设已删除');
     },
-
     refreshPresetDropdowns() {
         const presets = this.getPresets();
-        
-        const delSelect = document.getElementById('preset-delete-select');
-        const mainSelect = document.getElementById('main-engine-select');
-        const subSelect = document.getElementById('sub-engine-select');
-        
+        const delSelect = document.getElementById('preset-delete-select'); const mainSelect = document.getElementById('main-engine-select'); const subSelect = document.getElementById('sub-engine-select');
         if (!delSelect || !mainSelect || !subSelect) return;
-        
         let optionsHtml = '<option value="">-- 请选择 --</option>';
-        presets.forEach(p => {
-            optionsHtml += `<option value="${p.id}">${p.name} (${p.model})</option>`;
-        });
-        
-        delSelect.innerHTML = optionsHtml;
-        mainSelect.innerHTML = optionsHtml;
-        subSelect.innerHTML = '<option value="">-- 同主引擎 (自动降级) --</option>' + optionsHtml;
-        
-        mainSelect.value = localStorage.getItem('main_engine_id') || '';
-        subSelect.value = localStorage.getItem('sub_engine_id') || '';
+        presets.forEach(p => { optionsHtml += `<option value="${p.id}">${p.name} (${p.model})</option>`; });
+        delSelect.innerHTML = optionsHtml; mainSelect.innerHTML = optionsHtml; subSelect.innerHTML = '<option value="">-- 同主引擎 (自动降级) --</option>' + optionsHtml;
+        mainSelect.value = localStorage.getItem('main_engine_id') || ''; subSelect.value = localStorage.getItem('sub_engine_id') || '';
     },
-
     assignEngine(type, presetId) {
-        if (type === 'main') {
-            localStorage.setItem('main_engine_id', presetId);
-            this.showToast('✅ 主引擎分配成功！');
-        } else if (type === 'sub') {
-            localStorage.setItem('sub_engine_id', presetId);
-            this.showToast('✅ 副引擎分配成功！');
-        }
+        if (type === 'main') { localStorage.setItem('main_engine_id', presetId); this.showToast('✅ 主引擎分配成功！'); } 
+        else if (type === 'sub') { localStorage.setItem('sub_engine_id', presetId); this.showToast('✅ 副引擎分配成功！'); }
     },
-
     getEngineConfig(isSub) {
         let presetId = isSub ? localStorage.getItem('sub_engine_id') : localStorage.getItem('main_engine_id');
         if (isSub && !presetId) presetId = localStorage.getItem('main_engine_id');
-        if (!presetId) return null;
-        const presets = this.getPresets();
-        return presets.find(p => p.id === presetId);
+        if (!presetId) return null; return this.getPresets().find(p => p.id === presetId);
     },
 
     clearChat() {
         if(confirm("危险操作：确定要清空【线上微信】和【线下小说】的所有记录吗？清空后无法恢复！")) {
             const roleId = window.Config.currentContactId;
             if(window.Config.phoneData[roleId]) {
-                window.Config.phoneData[roleId].wechat = { items: [] };
-                window.Config.phoneData[roleId].novel = { items: [] };
+                window.Config.phoneData[roleId].wechat = { items: [] }; window.Config.phoneData[roleId].novel = { items: [] };
             }
             localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
-            window.PhoneUI.renderAppContent('wechat');
-            this.showToast("🗑️ 所有记录已清空！");
+            window.PhoneUI.renderAppContent('wechat'); this.showToast("🗑️ 所有记录已清空！");
         }
     },
 
@@ -424,245 +272,101 @@ export const PhoneAPI = {
                 { id: 'wb3', title: '合理制造冲突', content: '不要总是顺从用户，根据人设适度制造戏剧冲突、拒绝或傲娇反驳。', online: true, offline: true, isCustom: false },
                 { id: 'wb4', title: '动作微表情', content: '说话时必须配合细腻的微表情（如挑眉、垂眸、手指的小动作）。', online: false, offline: true, isCustom: false }
             ];
-            localStorage.setItem('worldbook_entries', JSON.stringify(defaultWb));
-            return defaultWb;
+            localStorage.setItem('worldbook_entries', JSON.stringify(defaultWb)); return defaultWb;
         }
         return JSON.parse(wb);
     },
-
     toggleWorldbook(id, type, isChecked) {
-        let wb = this.getWorldbookData();
-        let item = wb.find(w => w.id === id);
-        if (item) {
-            item[type] = isChecked;
-            localStorage.setItem('worldbook_entries', JSON.stringify(wb));
-        }
+        let wb = this.getWorldbookData(); let item = wb.find(w => w.id === id);
+        if (item) { item[type] = isChecked; localStorage.setItem('worldbook_entries', JSON.stringify(wb)); }
     },
-
     addWorldbook() {
-        const titleEl = document.getElementById('wb-new-title');
-        const contentEl = document.getElementById('wb-new-content');
-        const title = titleEl.value.trim();
-        const content = contentEl.value.trim();
-        
-        if(!title || !content) {
-            alert('标题和内容不能为空哦！');
-            return;
-        }
-        
-        let wb = this.getWorldbookData();
-        wb.push({
-            id: 'wb_' + Date.now(),
-            title: title,
-            content: content,
-            online: true,
-            offline: true,
-            isCustom: true 
-        });
-        
+        const title = document.getElementById('wb-new-title').value.trim(); const content = document.getElementById('wb-new-content').value.trim();
+        if(!title || !content) { alert('标题和内容不能为空哦！'); return; }
+        let wb = this.getWorldbookData(); wb.push({ id: 'wb_' + Date.now(), title: title, content: content, online: true, offline: true, isCustom: true });
         localStorage.setItem('worldbook_entries', JSON.stringify(wb));
-        
-        titleEl.value = '';
-        contentEl.value = '';
-        window.PhoneUI.closeWbModal();
-        window.PhoneUI.openApp('worldbook', '世界书');
-        this.showToast("✅ 规则添加成功！");
+        document.getElementById('wb-new-title').value = ''; document.getElementById('wb-new-content').value = '';
+        window.PhoneUI.closeWbModal(); window.PhoneUI.openApp('worldbook', '世界书'); this.showToast("✅ 规则添加成功！");
     },
-
     deleteWorldbook(id) {
         if(!confirm('确定要删除这条自定义规则吗？')) return;
-        let wb = this.getWorldbookData();
-        wb = wb.filter(w => w.id !== id);
-        localStorage.setItem('worldbook_entries', JSON.stringify(wb));
-        window.PhoneUI.openApp('worldbook', '世界书');
-        this.showToast("🗑️ 规则已删除");
+        let wb = this.getWorldbookData(); wb = wb.filter(w => w.id !== id); localStorage.setItem('worldbook_entries', JSON.stringify(wb));
+        window.PhoneUI.openApp('worldbook', '世界书'); this.showToast("🗑️ 规则已删除");
     },
-
-    saveNovelWords() {
-        const val = document.getElementById('novel-min-words')?.value || '150';
-        localStorage.setItem('novel_min_words', val);
-    },
-
-    getArchives() {
-        return JSON.parse(localStorage.getItem('story_archives') || '[]');
-    },
-
+    saveNovelWords() { localStorage.setItem('novel_min_words', document.getElementById('novel-min-words')?.value || '150'); },
+    getArchives() { return JSON.parse(localStorage.getItem('story_archives') || '[]'); },
     saveArchive() {
-        const nameInput = document.getElementById('archive-name');
-        const name = nameInput.value.trim();
-        if (!name) return alert('请先输入存档名称！');
-        
-        const roleId = window.Config.currentContactId;
-        const items = window.Config.phoneData[roleId]?.novel?.items || [];
+        const nameInput = document.getElementById('archive-name'); const name = nameInput.value.trim(); if (!name) return alert('请先输入存档名称！');
+        const roleId = window.Config.currentContactId; const items = window.Config.phoneData[roleId]?.novel?.items || [];
         if (items.length === 0) return alert('当前没有线下剧情可以存档哦！');
-
-        const archives = this.getArchives();
-        archives.push({
-            id: 'arc_' + Date.now(),
-            name: name,
-            date: new Date().toLocaleString(),
-            count: items.length,
-            data: JSON.parse(JSON.stringify(items)) 
-        });
-        localStorage.setItem('story_archives', JSON.stringify(archives));
-        
-        nameInput.value = '';
-        window.PhoneUI.renderArchiveList();
-        this.showToast('💾 线下剧情存档成功！');
+        const archives = this.getArchives(); archives.push({ id: 'arc_' + Date.now(), name: name, date: new Date().toLocaleString(), count: items.length, data: JSON.parse(JSON.stringify(items)) });
+        localStorage.setItem('story_archives', JSON.stringify(archives)); nameInput.value = ''; window.PhoneUI.renderArchiveList(); this.showToast('💾 线下剧情存档成功！');
     },
-
     loadArchive(id) {
-        if (!confirm('读取存档将覆盖当前的线下剧情，确定要读取吗？（线上微信记录不会受影响）')) return;
-        const archives = this.getArchives();
-        const arc = archives.find(a => a.id === id);
+        if (!confirm('读取存档将覆盖当前的线下剧情，确定要读取吗？')) return;
+        const archives = this.getArchives(); const arc = archives.find(a => a.id === id);
         if (arc) {
             const roleId = window.Config.currentContactId;
             if (!window.Config.phoneData[roleId]) window.Config.phoneData[roleId] = {};
             if (!window.Config.phoneData[roleId].novel) window.Config.phoneData[roleId].novel = {};
-            
             window.Config.phoneData[roleId].novel.items = JSON.parse(JSON.stringify(arc.data));
             localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
-            
-            window.PhoneUI.closeArchiveModal();
-            if (window.Config.currentAppId === 'novel') window.PhoneUI.renderNovelContent();
-            
-            this.showToast('✨ 线下剧情读取成功！');
+            window.PhoneUI.closeArchiveModal(); if (window.Config.currentAppId === 'novel') window.PhoneUI.renderNovelContent(); this.showToast('✨ 线下剧情读取成功！');
         }
     },
-
     deleteArchive(id) {
         if (!confirm('确定要删除这个存档吗？删除后无法恢复！')) return;
-        let archives = this.getArchives();
-        archives = archives.filter(a => a.id !== id);
-        localStorage.setItem('story_archives', JSON.stringify(archives));
-        window.PhoneUI.renderArchiveList();
-        this.showToast('🗑️ 存档已删除');
+        let archives = this.getArchives(); archives = archives.filter(a => a.id !== id); localStorage.setItem('story_archives', JSON.stringify(archives)); window.PhoneUI.renderArchiveList(); this.showToast('🗑️ 存档已删除');
     },
-
     startNewTimeline() {
-        if (!confirm('开启新剧情将清空当前的【线下故事】记录！（线上微信不会被清空）。确定要清空吗？')) return;
+        if (!confirm('开启新剧情将清空当前的【线下故事】记录！确定要清空吗？')) return;
         const roleId = window.Config.currentContactId;
-        if (window.Config.phoneData[roleId]?.novel) {
-            window.Config.phoneData[roleId].novel.items = [];
-            localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
-        }
-        window.PhoneUI.closeArchiveModal();
-        if (window.Config.currentAppId === 'novel') window.PhoneUI.renderNovelContent();
-        this.showToast('🚀 已开启全新线下时间线！');
+        if (window.Config.phoneData[roleId]?.novel) { window.Config.phoneData[roleId].novel.items = []; localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData)); }
+        window.PhoneUI.closeArchiveModal(); if (window.Config.currentAppId === 'novel') window.PhoneUI.renderNovelContent(); this.showToast('🚀 已开启全新线下时间线！');
     },
-
     async exportData() {
-        const data = {};
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            data[key] = localStorage.getItem(key);
-        }
-        const jsonStr = JSON.stringify(data, null, 2);
-        const dateStr = new Date().toISOString().replace(/[:\-\sT]/g, '').slice(0, 14);
-        const fileName = `ClaireClaude_Backup_${dateStr}.json`;
-
+        const data = {}; for (let i = 0; i < localStorage.length; i++) { const key = localStorage.key(i); data[key] = localStorage.getItem(key); }
+        const jsonStr = JSON.stringify(data, null, 2); const dateStr = new Date().toISOString().replace(/[:\-\sT]/g, '').slice(0, 14); const fileName = `ClaireClaude_Backup_${dateStr}.json`;
         try {
             const file = new File([jsonStr], fileName, { type: 'application/json' });
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                await navigator.share({
-                    files: [file],
-                    title: 'Claire & Claude 备份',
-                });
-                this.showToast("📦 备份已成功发送/保存！");
-                return;
-            }
-        } catch (err) {
-            console.log("分享被取消或不支持，尝试普通下载:", err);
-        }
-
+            if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Claire & Claude 备份', }); this.showToast("📦 备份已成功发送/保存！"); return; }
+        } catch (err) { console.log("分享被取消或不支持，尝试普通下载:", err); }
         try {
-            const blob = new Blob([jsonStr], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(() => {
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }, 200);
-            this.showToast("📦 尝试触发浏览器下载...");
-        } catch (e) {
-            alert("下载失败：您的浏览器拦截了文件保存，请更换浏览器重试。");
-        }
+            const blob = new Blob([jsonStr], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.style.display = 'none'; a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 200); this.showToast("📦 尝试触发浏览器下载...");
+        } catch (e) { alert("下载失败：您的浏览器拦截了文件保存，请更换浏览器重试。"); }
     },
-
     importData(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        const reader = new FileReader();
+        const file = event.target.files[0]; if (!file) return; const reader = new FileReader();
         reader.onload = (e) => {
             try {
                 const data = JSON.parse(e.target.result);
-                if (!confirm("⚠️ 警告：导入存档将覆盖当前手机里的【所有】聊天记录、设定和预设！确定要继续吗？")) {
-                    event.target.value = ''; 
-                    return;
-                }
-                
-                for (const key in data) {
-                    localStorage.setItem(key, data[key]);
-                }
-                
-                this.showToast("✨ 存档导入成功！正在重启系统...");
-                
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
-                
-            } catch (err) {
-                alert("导入失败：文件格式不正确，请确保上传的是备份的 .json 文件！");
-                console.error(err);
-            }
+                if (!confirm("⚠️ 警告：导入存档将覆盖当前手机里的【所有】聊天记录、设定和预设！确定要继续吗？")) { event.target.value = ''; return; }
+                for (const key in data) { localStorage.setItem(key, data[key]); }
+                this.showToast("✨ 存档导入成功！正在重启系统..."); setTimeout(() => { window.location.reload(); }, 1500);
+            } catch (err) { alert("导入失败：文件格式不正确！"); console.error(err); }
             event.target.value = ''; 
         };
         reader.readAsText(file);
     },
 
+    // 🌟 核心：日记本存取逻辑
+    getDiaries() {
+        return JSON.parse(localStorage.getItem('char_diaries') || '{}');
+    },
+    saveDiary(dateStr, content) {
+        const diaries = this.getDiaries();
+        diaries[dateStr] = content;
+        localStorage.setItem('char_diaries', JSON.stringify(diaries));
+    },
+
     async chatWithAI(messages, useSubEngine = false) {
         const config = this.getEngineConfig(useSubEngine);
-        
-        if (!config) {
-            throw new Error("请先去【系统设置】里分配主引擎配置！");
-        }
-
-        const url = config.url;
-        const key = config.key;
-        const model = config.model;
-
-        const endpoint = url.endsWith('/chat/completions') ? url : url.replace(/\/$/, '') + '/chat/completions';
-
+        if (!config) throw new Error("请先去【系统设置】里分配主引擎配置！");
+        const endpoint = config.url.endsWith('/chat/completions') ? config.url : config.url.replace(/\/$/, '') + '/chat/completions';
         try {
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${key}`
-                },
-                body: JSON.stringify({
-                    model: model,
-                    messages: messages,
-                    temperature: 0.7
-                })
-            });
-
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(`API 报错: ${response.status} ${errData.error?.message || ''}`);
-            }
-
-            const data = await response.json();
-            return data.choices[0].message.content;
-        } catch (error) {
-            console.error(error);
-            throw new Error(error.message || "网络错误或 API 配置不正确，请检查。");
-        }
+            const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.key}` }, body: JSON.stringify({ model: config.model, messages: messages, temperature: 0.7 }) });
+            if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(`API 报错: ${response.status} ${errData.error?.message || ''}`); }
+            const data = await response.json(); return data.choices[0].message.content;
+        } catch (error) { console.error(error); throw new Error(error.message || "网络错误或 API 配置不正确，请检查。"); }
     }
 };

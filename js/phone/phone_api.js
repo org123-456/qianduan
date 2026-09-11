@@ -24,7 +24,6 @@ export const PhoneAPI = {
         saveIfExist('my-avatar', 'my_avatar');
         saveIfExist('ta-avatar', 'ta_avatar');
         
-        // 🌟 保存壁纸与图标
         saveIfExist('bg-global', 'bg_global');
         saveIfExist('bg-chat', 'bg_chat');
         saveIfExist('ui-icon-novel', 'ui_icon_novel');
@@ -121,7 +120,7 @@ export const PhoneAPI = {
         }
     },
 
-    // 🌟 核心：应用壁纸和自定义图标
+    // 🌟 核心修复：如果没有上传自定义图片，图标的背景必须是透明的！
     applyUITheme() {
         const globalBg = localStorage.getItem('bg_global');
         const chatBg = localStorage.getItem('bg_chat');
@@ -154,17 +153,17 @@ export const PhoneAPI = {
                 if (customUrl) {
                     el.innerHTML = `<img src="${customUrl}" style="width:100%; height:100%; object-fit:cover; border-radius:18px;">`;
                     el.style.background = 'transparent';
+                    el.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)'; // 给自定义图片加点阴影
                 } else {
                     el.innerHTML = item.default;
-                    el.style.background = 'var(--icon-bg)';
+                    // 🌟 核心修复：恢复纯净的白色/深灰色背景，去掉那个丑丑的方块底色！
+                    el.style.background = 'var(--icon-bg)'; 
+                    el.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.05)';
                 }
             }
         });
     },
 
-    // ==========================================
-    // 🌟 UI 主题预设库系统
-    // ==========================================
     getUIPresets() {
         return JSON.parse(localStorage.getItem('ui_presets') || '[]');
     },
@@ -246,9 +245,6 @@ export const PhoneAPI = {
         selectEl.innerHTML = optionsHtml;
     },
 
-    // ==========================================
-    // 提示词预设库系统
-    // ==========================================
     getPromptPresets() {
         return JSON.parse(localStorage.getItem('prompt_presets') || '[]');
     },

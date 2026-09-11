@@ -14,9 +14,6 @@
     --input-bg: rgba(255, 255, 255, 0.95);
     --icon-bg: #ffffff;
     --story-bg: #fdfbf7;
-    /* 🌟 新增：壁纸变量 */
-    --bg-image-global: none;
-    --bg-image-chat: none;
 }
 
 [data-theme="dark"] {
@@ -39,7 +36,7 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; transition: background-color 0.3s, border-color 0.3s, color 0.3s; }
 
-/* 🌟 核心升级：支持全局自定义壁纸 */
+/* 🌟 核心修复：如果没有自定义壁纸，完美回退到渐变色！ */
 body { 
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
     background: var(--bg-image-global, linear-gradient(180deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%)); 
@@ -67,7 +64,6 @@ body {
     padding: 10px 15px 120px 15px; display: flex; flex-direction: column;
 }
 
-/* 🌟 核心升级：聊天页面专属壁纸 */
 #page-chat {
     background-image: var(--bg-image-chat);
     background-size: cover; background-position: center; background-attachment: fixed;
@@ -78,7 +74,7 @@ body {
 .app-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px 15px; padding: 10px 5px; }
 .app-icon { background: transparent; box-shadow: none; padding: 0; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: 0.2s; }
 .app-icon:active { transform: scale(0.9); }
-.app-icon .icon { width: 60px; height: 60px; background: var(--icon-bg); border-radius: 18px; display: flex; justify-content: center; align-items: center; font-size: 32px; margin-bottom: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); }
+.app-icon .icon { width: 60px; height: 60px; background: var(--icon-bg); border-radius: 18px; display: flex; justify-content: center; align-items: center; font-size: 32px; margin-bottom: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); overflow: hidden;}
 .app-icon .name { font-size: 12px; font-weight: 500; color: var(--text-main); text-align: center; }
 
 .bottom-nav { 

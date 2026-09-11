@@ -13,24 +13,36 @@ export const PhoneAPI = {
         }
     },
 
+    // 🌟 核心修复：因为设置项现在是动态生成的，必须判断元素是否存在再保存
     _doSave() {
-        const getVal = (id) => document.getElementById(id)?.value.trim() || '';
-        
-        localStorage.setItem('ai_api_url', getVal('api-url'));
-        localStorage.setItem('ai_api_key', getVal('api-key'));
-        localStorage.setItem('ai_api_model', getVal('api-model'));
-        
-        localStorage.setItem('my_name', getVal('my-name'));
-        localStorage.setItem('char_name', getVal('char-name'));
-        localStorage.setItem('char_persona', getVal('char-persona'));
-        
-        localStorage.setItem('ban_emoji', document.getElementById('ban-emoji')?.checked || false);
+        const saveIfExist = (id, key, isCheckbox = false) => {
+            const el = document.getElementById(id);
+            if (el) localStorage.setItem(key, isCheckbox ? el.checked : el.value.trim());
+        };
 
-        localStorage.setItem('my_avatar', getVal('my-avatar'));
-        localStorage.setItem('ta_avatar', getVal('ta-avatar'));
+        saveIfExist('my-name', 'my_name');
+        saveIfExist('char-name', 'char_name');
+        saveIfExist('my-avatar', 'my_avatar');
+        saveIfExist('ta-avatar', 'ta_avatar');
         
-        const charName = getVal('char-name');
-        const myName = getVal('my-name');
+        // 🌟 核心：分别保存三个拆分后的提示词框
+        saveIfExist('system-prompt', 'system_prompt');
+        saveIfExist('char-persona', 'char_persona');
+        saveIfExist('novel-style', 'novel_style');
+
+        saveIfExist('ban-emoji', 'ban_emoji', true);
+        saveIfExist('share-memory', 'share_memory', true);
+
+        saveIfExist('api-url-main', 'ai_api_url_main');
+        saveIfExist('api-key-main', 'ai_api_key_main');
+        saveIfExist('api-model-main', 'ai_api_model_main');
+        
+        saveIfExist('api-url-sub', 'ai_api_url_sub');
+        saveIfExist('api-key-sub', 'ai_api_key_sub');
+        saveIfExist('api-model-sub', 'ai_api_model_sub');
+
+        const charName = localStorage.getItem('char_name');
+        const myName = localStorage.getItem('my_name');
         if (charName && myName) {
             const titleEl = document.getElementById('top-title');
             if (titleEl) titleEl.innerText = `${myName} & ${charName}`;
@@ -38,50 +50,48 @@ export const PhoneAPI = {
     },
 
     autoSave() {
-        try {
-            this._doSave();
-        } catch (e) {
-            console.error("自动保存失败", e);
-        }
+        try { this._doSave(); } catch (e) { console.error("自动保存失败", e); }
     },
 
     saveSettings() {
         try {
             this._doSave();
             this.showToast("✅ 设置保存成功！");
-            window.PhoneUI.renderAppContent('wechat');
         } catch (error) {
             alert("保存失败，请检查代码");
         }
     },
 
+    // 🌟 核心：加载设置到动态生成的 DOM 中
     loadSettings() {
         try {
             const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
             
-            setVal('api-url', localStorage.getItem('ai_api_url') || '');
-            setVal('api-key', localStorage.getItem('ai_api_key') || '');
-            
-            const savedModel = localStorage.getItem('ai_api_model') || '';
-            setVal('api-model', savedModel);
-            const selectEl = document.getElementById('api-model-select');
-            if (selectEl) {
-                let optionExists = Array.from(selectEl.options).some(opt => opt.value === savedModel);
-                selectEl.value = optionExists ? savedModel : "";
-            }
-            
-            const savedMyName = localStorage.getItem('my_name') || '';
-            const savedCharName = localStorage.getItem('char_name') || '';
-            setVal('my-name', savedMyName);
-            setVal('char-name', savedCharName);
-            setVal('char-persona', localStorage.getItem('char_persona') || '');
-            
+            setVal('my-name', localStorage.getItem('my_name') || '');
+            setVal('char-name', localStorage.getItem('char_name') || '');
             setVal('my-avatar', localStorage.getItem('my_avatar') || '');
             setVal('ta-avatar', localStorage.getItem('ta_avatar') || '');
+
+            setVal('system-prompt', localStorage.getItem('system_prompt') || '');
+            setVal('char-persona', localStorage.getItem('char_persona') || '');
+            setVal('novel-style', localStorage.getItem('novel_style') || '');
 
             const banEmojiEl = document.getElementById('ban-emoji');
             if(banEmojiEl) banEmojiEl.checked = localStorage.getItem('ban_emoji') === 'true';
 
+            const shareMemoryEl = document.getElementById('share-memory');
+            if(shareMemoryEl) shareMemoryEl.checked = localStorage.getItem('share_memory') === 'true';
+
+            setVal('api-url-main', localStorage.getItem('ai_api_url_main') || '');
+            setVal('api-key-main', localStorage.getItem('ai_api_key_main') || '');
+            setVal('api-model-main', localStorage.getItem('ai_api_model_main') || '');
+            
+            setVal('api-url-sub', localStorage.getItem('ai_api_url_sub') || '');
+            setVal('api-key-sub', localStorage.getItem('ai_api_key_sub') || '');
+            setVal('api-model-sub', localStorage.getItem('ai_api_model_sub') || '');
+
+            const savedCharName = localStorage.getItem('char_name');
+            const savedMyName = localStorage.getItem('my_name');
             if (savedCharName && savedMyName) {
                 const titleEl = document.getElementById('top-title');
                 if (titleEl) titleEl.innerText = `${savedMyName} & ${savedCharName}`;
@@ -91,14 +101,179 @@ export const PhoneAPI = {
         }
     },
 
+    // ==========================================
+    // 🌟 提示词预设库系统 (Prompt Presets)
+    // ==========================================
+    getPromptPresets() {
+        return JSON.parse(localStorage.getItem('prompt_presets') || '[]');
+    },
+
+    savePromptPreset() {
+        const name = prompt('给这套人设/提示词组合起个名字吧 (如: 不死途-日常):');
+        if (!name) return;
+        
+        const getVal = (id) => document.getElementById(id)?.value.trim() || '';
+        
+        const preset = {
+            id: 'pr_' + Date.now(),
+            name: name,
+            system: getVal('system-prompt'),
+            persona: getVal('char-persona'),
+            novel: getVal('novel-style')
+        };
+        
+        let presets = this.getPromptPresets();
+        presets = presets.filter(p => p.name !== name);
+        presets.push(preset);
+        
+        localStorage.setItem('prompt_presets', JSON.stringify(presets));
+        this.refreshPromptDropdowns();
+        document.getElementById('prompt-preset-select').value = preset.id;
+        this.showToast('💾 提示词预设保存成功！');
+    },
+
+    loadPromptPreset() {
+        const selectEl = document.getElementById('prompt-preset-select');
+        const id = selectEl.value;
+        if (!id) return;
+        
+        const presets = this.getPromptPresets();
+        const preset = presets.find(p => p.id === id);
+        if (preset) {
+            const setVal = (domId, val) => { const el = document.getElementById(domId); if(el) el.value = val; };
+            setVal('system-prompt', preset.system);
+            setVal('char-persona', preset.persona);
+            setVal('novel-style', preset.novel);
+            this.autoSave();
+            this.showToast('✨ 人设切换成功！');
+        }
+    },
+
+    deletePromptPreset() {
+        const selectEl = document.getElementById('prompt-preset-select');
+        const id = selectEl.value;
+        if (!id) return alert('请先在下拉菜单中选择要删除的预设！');
+        if (!confirm('确定要删除这套预设吗？')) return;
+        
+        let presets = this.getPromptPresets();
+        presets = presets.filter(p => p.id !== id);
+        localStorage.setItem('prompt_presets', JSON.stringify(presets));
+        this.refreshPromptDropdowns();
+        this.showToast('🗑️ 预设已删除');
+    },
+
+    refreshPromptDropdowns() {
+        const presets = this.getPromptPresets();
+        const selectEl = document.getElementById('prompt-preset-select');
+        if (!selectEl) return;
+        
+        let optionsHtml = '<option value="">-- 切换人设/提示词预设 --</option>';
+        presets.forEach(p => {
+            optionsHtml += `<option value="${p.id}">${p.name}</option>`;
+        });
+        selectEl.innerHTML = optionsHtml;
+    },
+
+    // ==========================================
+    // API 预设库系统
+    // ==========================================
+    getPresets() {
+        return JSON.parse(localStorage.getItem('ai_api_presets') || '[]');
+    },
+
+    savePreset() {
+        const nameEl = document.getElementById('preset-name');
+        const urlEl = document.getElementById('preset-url');
+        const keyEl = document.getElementById('preset-key');
+        const modelEl = document.getElementById('preset-model');
+        
+        const name = nameEl.value.trim();
+        if (!name) return alert("请给预设起个名字！");
+        
+        const preset = {
+            id: 'p_' + Date.now(),
+            name: name,
+            url: urlEl.value.trim(),
+            key: keyEl.value.trim(),
+            model: modelEl.value.trim()
+        };
+        
+        let presets = this.getPresets();
+        presets.push(preset);
+        localStorage.setItem('ai_api_presets', JSON.stringify(presets));
+        
+        nameEl.value = ''; urlEl.value = ''; keyEl.value = ''; modelEl.value = '';
+        this.refreshPresetDropdowns();
+        this.showToast('💾 预设已存入库中！');
+    },
+
+    deletePreset() {
+        const selectEl = document.getElementById('preset-delete-select');
+        const id = selectEl.value;
+        if (!id) return alert('请先选择要删除的预设！');
+        if (!confirm('确定要删除这个预设吗？')) return;
+        
+        let presets = this.getPresets();
+        presets = presets.filter(p => p.id !== id);
+        localStorage.setItem('ai_api_presets', JSON.stringify(presets));
+        
+        if (localStorage.getItem('main_engine_id') === id) localStorage.removeItem('main_engine_id');
+        if (localStorage.getItem('sub_engine_id') === id) localStorage.removeItem('sub_engine_id');
+        
+        this.refreshPresetDropdowns();
+        this.showToast('🗑️ 预设已删除');
+    },
+
+    refreshPresetDropdowns() {
+        const presets = this.getPresets();
+        
+        const delSelect = document.getElementById('preset-delete-select');
+        const mainSelect = document.getElementById('main-engine-select');
+        const subSelect = document.getElementById('sub-engine-select');
+        
+        if (!delSelect || !mainSelect || !subSelect) return;
+        
+        let optionsHtml = '<option value="">-- 请选择 --</option>';
+        presets.forEach(p => {
+            optionsHtml += `<option value="${p.id}">${p.name} (${p.model})</option>`;
+        });
+        
+        delSelect.innerHTML = optionsHtml;
+        mainSelect.innerHTML = optionsHtml;
+        subSelect.innerHTML = '<option value="">-- 同主引擎 (自动降级) --</option>' + optionsHtml;
+        
+        mainSelect.value = localStorage.getItem('main_engine_id') || '';
+        subSelect.value = localStorage.getItem('sub_engine_id') || '';
+    },
+
+    assignEngine(type, presetId) {
+        if (type === 'main') {
+            localStorage.setItem('main_engine_id', presetId);
+            this.showToast('✅ 主引擎分配成功！');
+        } else if (type === 'sub') {
+            localStorage.setItem('sub_engine_id', presetId);
+            this.showToast('✅ 副引擎分配成功！');
+        }
+    },
+
+    getEngineConfig(isSub) {
+        let presetId = isSub ? localStorage.getItem('sub_engine_id') : localStorage.getItem('main_engine_id');
+        if (isSub && !presetId) presetId = localStorage.getItem('main_engine_id');
+        if (!presetId) return null;
+        const presets = this.getPresets();
+        return presets.find(p => p.id === presetId);
+    },
+
     clearChat() {
-        if(confirm("确定要清空所有聊天记录吗？清空后无法恢复！")) {
-            if(window.Config.phoneData['role_001']) {
-                window.Config.phoneData['role_001'].wechat = { items: [] };
+        if(confirm("危险操作：确定要清空【线上微信】和【线下小说】的所有记录吗？清空后无法恢复！")) {
+            const roleId = window.Config.currentContactId;
+            if(window.Config.phoneData[roleId]) {
+                window.Config.phoneData[roleId].wechat = { items: [] };
+                window.Config.phoneData[roleId].novel = { items: [] };
             }
             localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
             window.PhoneUI.renderAppContent('wechat');
-            this.showToast("🗑️ 聊天记录已清空！");
+            this.showToast("🗑️ 所有记录已清空！");
         }
     },
 
@@ -170,7 +345,6 @@ export const PhoneAPI = {
         localStorage.setItem('novel_min_words', val);
     },
 
-    // 🌟 核心升级：剧情存档室逻辑
     getArchives() {
         return JSON.parse(localStorage.getItem('story_archives') || '[]');
     },
@@ -181,8 +355,8 @@ export const PhoneAPI = {
         if (!name) return alert('请先输入存档名称！');
         
         const roleId = window.Config.currentContactId;
-        const items = window.Config.phoneData[roleId]?.wechat?.items || [];
-        if (items.length === 0) return alert('当前没有剧情可以存档哦！');
+        const items = window.Config.phoneData[roleId]?.novel?.items || [];
+        if (items.length === 0) return alert('当前没有线下剧情可以存档哦！');
 
         const archives = this.getArchives();
         archives.push({
@@ -190,33 +364,31 @@ export const PhoneAPI = {
             name: name,
             date: new Date().toLocaleString(),
             count: items.length,
-            data: JSON.parse(JSON.stringify(items)) // 深度拷贝当前聊天记录
+            data: JSON.parse(JSON.stringify(items)) 
         });
         localStorage.setItem('story_archives', JSON.stringify(archives));
         
         nameInput.value = '';
         window.PhoneUI.renderArchiveList();
-        this.showToast('💾 存档成功！');
+        this.showToast('💾 线下剧情存档成功！');
     },
 
     loadArchive(id) {
-        if (!confirm('读取存档将覆盖当前的剧情，确定要读取吗？（建议先保存当前进度）')) return;
+        if (!confirm('读取存档将覆盖当前的线下剧情，确定要读取吗？（线上微信记录不会受影响）')) return;
         const archives = this.getArchives();
         const arc = archives.find(a => a.id === id);
         if (arc) {
             const roleId = window.Config.currentContactId;
             if (!window.Config.phoneData[roleId]) window.Config.phoneData[roleId] = {};
-            if (!window.Config.phoneData[roleId].wechat) window.Config.phoneData[roleId].wechat = {};
+            if (!window.Config.phoneData[roleId].novel) window.Config.phoneData[roleId].novel = {};
             
-            // 覆盖当前聊天记录
-            window.Config.phoneData[roleId].wechat.items = JSON.parse(JSON.stringify(arc.data));
+            window.Config.phoneData[roleId].novel.items = JSON.parse(JSON.stringify(arc.data));
             localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
             
             window.PhoneUI.closeArchiveModal();
             if (window.Config.currentAppId === 'novel') window.PhoneUI.renderNovelContent();
-            else window.PhoneUI.renderAppContent('wechat');
             
-            this.showToast('✨ 存档读取成功！');
+            this.showToast('✨ 线下剧情读取成功！');
         }
     },
 
@@ -230,30 +402,27 @@ export const PhoneAPI = {
     },
 
     startNewTimeline() {
-        if (!confirm('开启新剧情将清空当前的聊天和故事记录！请确保你已经存档。确定要清空吗？')) return;
+        if (!confirm('开启新剧情将清空当前的【线下故事】记录！（线上微信不会被清空）。确定要清空吗？')) return;
         const roleId = window.Config.currentContactId;
-        if (window.Config.phoneData[roleId]?.wechat) {
-            window.Config.phoneData[roleId].wechat.items = [];
+        if (window.Config.phoneData[roleId]?.novel) {
+            window.Config.phoneData[roleId].novel.items = [];
             localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
         }
         window.PhoneUI.closeArchiveModal();
         if (window.Config.currentAppId === 'novel') window.PhoneUI.renderNovelContent();
-        else window.PhoneUI.renderAppContent('wechat');
-        this.showToast('🚀 已开启全新时间线！');
+        this.showToast('🚀 已开启全新线下时间线！');
     },
 
-    async chatWithAI(messages) {
-        let url = localStorage.getItem('ai_api_url');
-        let key = localStorage.getItem('ai_api_key');
-        let model = localStorage.getItem('ai_api_model');
-
-        if (!url) url = document.getElementById('api-url')?.value.trim();
-        if (!key) key = document.getElementById('api-key')?.value.trim();
-        if (!model) model = document.getElementById('api-model')?.value.trim();
-
-        if (!url || !key || !model) {
-            throw new Error("请先去 Mine 页面配置 API 接口和模型！");
+    async chatWithAI(messages, useSubEngine = false) {
+        const config = this.getEngineConfig(useSubEngine);
+        
+        if (!config) {
+            throw new Error("请先去【系统设置】里分配主引擎配置！");
         }
+
+        const url = config.url;
+        const key = config.key;
+        const model = config.model;
 
         const endpoint = url.endsWith('/chat/completions') ? url : url.replace(/\/$/, '') + '/chat/completions';
 

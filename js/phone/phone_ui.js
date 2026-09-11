@@ -116,7 +116,6 @@ export const PhoneUI = {
             this.renderNovelContent();
 
         } else if (appId === 'settings') {
-            // 🌟 核心升级：独立的系统设置 App
             contentEl.innerHTML = `
                 <div class="card">
                     <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph-fill ph-user-list"></i> 基础设定</h3>
@@ -203,13 +202,23 @@ export const PhoneUI = {
                     </select>
                 </div>
 
+                <!-- 🌟 核心升级：数据备份与恢复模块 -->
+                <div class="card">
+                    <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph-fill ph-floppy-disk-back"></i> 数据备份与恢复</h3>
+                    <p style="font-size: 11px; color: var(--text-sub); margin-bottom: 15px;">将所有聊天记录、小说存档、API预设和世界书打包下载。换手机或清理缓存前请务必备份！</p>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn-refresh" onclick="window.PhoneAPI.exportData()" style="flex: 1; margin-top: 0; background: var(--secondary-color);"><i class="ph ph-export"></i> 导出备份</button>
+                        <button class="btn-refresh" onclick="document.getElementById('import-file').click()" style="flex: 1; margin-top: 0; background: #2a9d8f;"><i class="ph ph-import"></i> 导入恢复</button>
+                        <input type="file" id="import-file" style="display:none" accept=".json" onchange="window.PhoneAPI.importData(event)">
+                    </div>
+                </div>
+
                 <div class="card">
                     <h3 style="color: var(--danger-color); margin-bottom: 15px;"><i class="ph-fill ph-trash"></i> 危险操作</h3>
                     <button class="btn-refresh" onclick="window.PhoneAPI.clearChat()" style="background: var(--danger-color); margin-top: 0;"><i class="ph ph-warning-circle"></i> 清空所有聊天与小说记录</button>
                 </div>
             `;
             
-            // 🌟 核心：在渲染完 HTML 后，立刻把数据填进去！
             setTimeout(() => {
                 window.PhoneAPI.loadSettings();
                 window.PhoneAPI.refreshPresetDropdowns();

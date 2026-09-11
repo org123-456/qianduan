@@ -236,7 +236,6 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
     background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color);
 }
 
-/* 🌟 新增：存档列表样式 */
 .archive-item { background: var(--icon-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
 .archive-info { display: flex; flex-direction: column; gap: 4px; }
 .archive-name { font-size: 14px; font-weight: bold; color: var(--text-main); }
@@ -245,3 +244,10 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 .archive-btn { padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; border: none; }
 .archive-btn.load { background: var(--primary-color); color: #fff; }
 .archive-btn.del { background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); }
+
+/* 🌟 新增：预设栏和引擎分割线样式 */
+.preset-bar { display: flex; gap: 8px; margin-bottom: 15px; align-items: center; }
+.preset-bar select { flex: 1; padding: 8px; border-radius: 8px; outline: none; }
+.preset-btn { padding: 8px 12px; border-radius: 8px; border: none; background: var(--primary-color); color: #fff; font-size: 12px; cursor: pointer; }
+.preset-btn.del { background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); }
+.engine-title { font-size: 13px; color: var(--text-main); font-weight: bold; margin: 15px 0 10px 0; display: flex; align-items: center; gap: 6px; border-bottom: 1px dashed var(--border-color); padding-bottom: 5px;}

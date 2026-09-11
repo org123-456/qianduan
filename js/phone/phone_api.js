@@ -102,7 +102,6 @@ export const PhoneAPI = {
         }
     },
 
-    // 🌟 核心升级：读取世界书数据，包含硬核防八股！
     getWorldbookData() {
         let wb = localStorage.getItem('worldbook_entries');
         if (!wb) {
@@ -127,7 +126,6 @@ export const PhoneAPI = {
         }
     },
 
-    // 🌟 核心升级：添加自定义世界书规则
     addWorldbook() {
         const titleEl = document.getElementById('wb-new-title');
         const contentEl = document.getElementById('wb-new-content');
@@ -146,12 +144,11 @@ export const PhoneAPI = {
             content: content,
             online: true,
             offline: true,
-            isCustom: true // 标记为用户自定义，允许删除
+            isCustom: true 
         });
         
         localStorage.setItem('worldbook_entries', JSON.stringify(wb));
         
-        // 清空输入框并关闭弹窗，刷新列表
         titleEl.value = '';
         contentEl.value = '';
         window.PhoneUI.closeWbModal();
@@ -159,7 +156,6 @@ export const PhoneAPI = {
         this.showToast("✅ 规则添加成功！");
     },
 
-    // 🌟 核心升级：删除自定义世界书规则
     deleteWorldbook(id) {
         if(!confirm('确定要删除这条自定义规则吗？')) return;
         let wb = this.getWorldbookData();
@@ -172,6 +168,78 @@ export const PhoneAPI = {
     saveNovelWords() {
         const val = document.getElementById('novel-min-words')?.value || '150';
         localStorage.setItem('novel_min_words', val);
+    },
+
+    // 🌟 核心升级：剧情存档室逻辑
+    getArchives() {
+        return JSON.parse(localStorage.getItem('story_archives') || '[]');
+    },
+
+    saveArchive() {
+        const nameInput = document.getElementById('archive-name');
+        const name = nameInput.value.trim();
+        if (!name) return alert('请先输入存档名称！');
+        
+        const roleId = window.Config.currentContactId;
+        const items = window.Config.phoneData[roleId]?.wechat?.items || [];
+        if (items.length === 0) return alert('当前没有剧情可以存档哦！');
+
+        const archives = this.getArchives();
+        archives.push({
+            id: 'arc_' + Date.now(),
+            name: name,
+            date: new Date().toLocaleString(),
+            count: items.length,
+            data: JSON.parse(JSON.stringify(items)) // 深度拷贝当前聊天记录
+        });
+        localStorage.setItem('story_archives', JSON.stringify(archives));
+        
+        nameInput.value = '';
+        window.PhoneUI.renderArchiveList();
+        this.showToast('💾 存档成功！');
+    },
+
+    loadArchive(id) {
+        if (!confirm('读取存档将覆盖当前的剧情，确定要读取吗？（建议先保存当前进度）')) return;
+        const archives = this.getArchives();
+        const arc = archives.find(a => a.id === id);
+        if (arc) {
+            const roleId = window.Config.currentContactId;
+            if (!window.Config.phoneData[roleId]) window.Config.phoneData[roleId] = {};
+            if (!window.Config.phoneData[roleId].wechat) window.Config.phoneData[roleId].wechat = {};
+            
+            // 覆盖当前聊天记录
+            window.Config.phoneData[roleId].wechat.items = JSON.parse(JSON.stringify(arc.data));
+            localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
+            
+            window.PhoneUI.closeArchiveModal();
+            if (window.Config.currentAppId === 'novel') window.PhoneUI.renderNovelContent();
+            else window.PhoneUI.renderAppContent('wechat');
+            
+            this.showToast('✨ 存档读取成功！');
+        }
+    },
+
+    deleteArchive(id) {
+        if (!confirm('确定要删除这个存档吗？删除后无法恢复！')) return;
+        let archives = this.getArchives();
+        archives = archives.filter(a => a.id !== id);
+        localStorage.setItem('story_archives', JSON.stringify(archives));
+        window.PhoneUI.renderArchiveList();
+        this.showToast('🗑️ 存档已删除');
+    },
+
+    startNewTimeline() {
+        if (!confirm('开启新剧情将清空当前的聊天和故事记录！请确保你已经存档。确定要清空吗？')) return;
+        const roleId = window.Config.currentContactId;
+        if (window.Config.phoneData[roleId]?.wechat) {
+            window.Config.phoneData[roleId].wechat.items = [];
+            localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
+        }
+        window.PhoneUI.closeArchiveModal();
+        if (window.Config.currentAppId === 'novel') window.PhoneUI.renderNovelContent();
+        else window.PhoneUI.renderAppContent('wechat');
+        this.showToast('🚀 已开启全新时间线！');
     },
 
     async chatWithAI(messages) {

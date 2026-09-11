@@ -1,6 +1,6 @@
 import { Config } from './phone/phone_config.js';
-import { PhoneAPI } from './phone_api.js';
-import { PhoneUI } from './phone_ui.js';
+import { PhoneAPI } from './phone/phone_api.js';
+import { PhoneUI } from './phone/phone_ui.js';
 import { PhoneEngine } from './phone/phone_engine.js';
 import { WechatApp } from './apps/wechat.js';
 
@@ -13,6 +13,8 @@ window.Apps = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('✅ 核心引擎已挂载，路径加载成功！');
+    
     const savedTheme = localStorage.getItem('theme') || 'light';
     if (savedTheme === 'dark') {
         document.documentElement.setAttribute('data-theme', 'dark');
@@ -25,12 +27,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setTimeout(() => {
         if(window.PhoneAPI) {
-            // 🌟 核心：开机时刷新预设下拉菜单
             window.PhoneAPI.refreshPresetDropdowns(); 
+            window.PhoneAPI.refreshPromptDropdowns();
             window.PhoneAPI.loadSettings();
         }
         if(window.PhoneUI) window.PhoneUI.renderAppContent('wechat');
-    }, 500);
+        console.log('✅ 聊天记录和设置已成功加载！');
+    }, 300);
 });
 
 document.addEventListener('keydown', (e) => {

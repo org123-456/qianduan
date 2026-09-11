@@ -70,7 +70,6 @@ export const PhoneEngine = {
         }
     },
 
-    // 🌟 转盘军师：注入【系统指令】+【角色人设】
     async rollTopic() {
         const resultEl = document.getElementById('roulette-result');
         const btnEl = document.getElementById('roulette-btn');
@@ -92,7 +91,6 @@ export const PhoneEngine = {
             let historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
             if(!historyText) historyText = "(暂无聊天记录，你们才刚认识)";
 
-            // 🚨 核心修复：军师也必须读取系统指令（防八股等），否则出的主意会 OOC！
             const systemPrompt = localStorage.getItem('system_prompt') || '';
             const charPersona = localStorage.getItem('char_persona') || '';
             
@@ -118,7 +116,7 @@ ${contextSetup}
 ${historyText}`;
 
             const messages = [{ role: "user", content: prompt }];
-            const reply = await PhoneAPI.chatWithAI(messages, true); // 调用副引擎
+            const reply = await PhoneAPI.chatWithAI(messages, true); 
 
             let finalTopic = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
             finalTopic = finalTopic.replace(/```.*?/g, '').replace(/```/g, '').trim();
@@ -189,7 +187,6 @@ ${historyText}`;
         localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
     },
 
-    // 🌟 线上微信：只注入【系统指令】+【角色人设】
     async sendChatMessage(isRegen = false) {
         const roleId = Config.currentContactId;
         if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
@@ -222,7 +219,6 @@ ${historyText}`;
             const myName = localStorage.getItem('my_name') || '我';
             const banEmoji = localStorage.getItem('ban_emoji') === 'true';
             
-            // 🚨 明确隔离：线上微信绝不读取 novel_style！
             const systemPrompt = localStorage.getItem('system_prompt') || '';
             const charPersona = localStorage.getItem('char_persona') || '';
             
@@ -306,7 +302,6 @@ ${historyText}`;
         }
     },
 
-    // 🌟 线下小说：注入【系统指令】+【角色人设】+【线下文风】
     async sendNovelMessage(isRegen = false) {
         const roleId = Config.currentContactId;
         if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
@@ -340,7 +335,6 @@ ${historyText}`;
             const myName = localStorage.getItem('my_name') || '我';
             const banEmoji = localStorage.getItem('ban_emoji') === 'true';
             
-            // 🚨 核心：线下小说模式必须读取 novel_style！
             const systemPrompt = localStorage.getItem('system_prompt') || '';
             const charPersona = localStorage.getItem('char_persona') || '';
             const novelStyle = localStorage.getItem('novel_style') || '';
@@ -416,6 +410,68 @@ ${historyText}`;
             if (hasNewUserMsg) chatItems.pop(); 
             PhoneUI.renderNovelContent();
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+        }
+    },
+
+    // 🌟 核心：生成傲娇日记！
+    async generateDiary(dateStr) {
+        const contentAreaEl = document.getElementById('diary-content-area');
+        if (!contentAreaEl) return;
+
+        contentAreaEl.innerHTML = `
+            <div class="diary-empty">
+                <i class="ph-fill ph-spinner spin-anim" style="font-size: 48px; color: var(--primary-color); margin-bottom: 15px;"></i>
+                <p>正在偷看他的内心世界...</p>
+            </div>
+        `;
+
+        try {
+            const roleId = Config.currentContactId;
+            const wechatItems = Config.phoneData[roleId]?.wechat?.items || [];
+            
+            // 提取最近 15 条聊天记录作为今天的素材
+            const recentItems = wechatItems.slice(-15);
+            let historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
+            if(!historyText) historyText = "(今天你们没怎么聊天)";
+
+            const systemPrompt = localStorage.getItem('system_prompt') || '';
+            const charPersona = localStorage.getItem('char_persona') || '';
+            
+            let contextSetup = "";
+            if (systemPrompt) contextSetup += `【系统核心指令】：\n${systemPrompt}\n\n`;
+            if (charPersona) contextSetup += `【角色设定】：\n${charPersona}\n\n`;
+
+            const prompt = `你现在完全进入角色。以下是你的底层设定：
+${contextSetup}
+
+请根据以下你和“我”在今天的聊天记录，用【第一人称（你的视角）】写一篇今天的深夜日记。
+要求：
+1. 字数在 150-300 字之间。
+2. 绝对符合你的人设（比如傲娇、毒舌、表面嫌弃实际在意等）。
+3. 必须是一篇真实的日记，不要提及“AI”、“用户”等词汇。
+4. 直接输出日记正文，不要输出标题、日期或多余的解释。
+
+今天的聊天记录：
+${historyText}`;
+
+            const messages = [{ role: "user", content: prompt }];
+            const reply = await PhoneAPI.chatWithAI(messages, false); // 用主引擎写日记，保证文笔！
+
+            let finalDiary = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+            finalDiary = finalDiary.replace(/```.*?/g, '').replace(/```/g, '').trim();
+
+            PhoneAPI.saveDiary(dateStr, finalDiary);
+            PhoneUI.renderMemoryPage();
+            PhoneAPI.showToast('✨ 日记生成成功！');
+
+        } catch (error) {
+            contentAreaEl.innerHTML = `
+                <div class="diary-empty">
+                    <i class="ph-fill ph-warning-circle" style="font-size: 48px; color: var(--danger-color); margin-bottom: 15px;"></i>
+                    <p style="color: var(--danger-color);">偷看失败：${error.message}</p>
+                    <button class="btn-refresh" onclick="window.PhoneUI.renderMemoryPage()" style="width: auto; padding: 10px 20px; margin-top: 15px;">返回重试</button>
+                </div>
+            `;
         }
     }
 };

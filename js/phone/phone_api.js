@@ -13,7 +13,6 @@ export const PhoneAPI = {
         }
     },
 
-    // 🌟 核心修复：因为设置项现在是动态生成的，必须判断元素是否存在再保存
     _doSave() {
         const saveIfExist = (id, key, isCheckbox = false) => {
             const el = document.getElementById(id);
@@ -25,7 +24,6 @@ export const PhoneAPI = {
         saveIfExist('my-avatar', 'my_avatar');
         saveIfExist('ta-avatar', 'ta_avatar');
         
-        // 🌟 核心：分别保存三个拆分后的提示词框
         saveIfExist('system-prompt', 'system_prompt');
         saveIfExist('char-persona', 'char_persona');
         saveIfExist('novel-style', 'novel_style');
@@ -62,7 +60,6 @@ export const PhoneAPI = {
         }
     },
 
-    // 🌟 核心：加载设置到动态生成的 DOM 中
     loadSettings() {
         try {
             const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
@@ -102,7 +99,7 @@ export const PhoneAPI = {
     },
 
     // ==========================================
-    // 🌟 提示词预设库系统 (Prompt Presets)
+    // 🌟 提示词预设库系统
     // ==========================================
     getPromptPresets() {
         return JSON.parse(localStorage.getItem('prompt_presets') || '[]');
@@ -175,7 +172,7 @@ export const PhoneAPI = {
     },
 
     // ==========================================
-    // API 预设库系统
+    // 🌟 API 引擎预设库系统
     // ==========================================
     getPresets() {
         return JSON.parse(localStorage.getItem('ai_api_presets') || '[]');

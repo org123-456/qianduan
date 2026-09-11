@@ -141,6 +141,56 @@ export const PhoneUI = {
                     </div>
                 </div>
 
+                <!-- 🌟 核心升级：UI 主题装修模块 -->
+                <div class="card">
+                    <h3 style="color: var(--primary-color); margin-bottom: 10px;"><i class="ph-fill ph-palette"></i> UI 主题装修 (预设库)</h3>
+                    <div class="preset-bar">
+                        <select id="ui-preset-select" onchange="window.PhoneAPI.loadUIPreset()"></select>
+                        <button class="preset-btn" onclick="window.PhoneAPI.saveUIPreset()">存为预设</button>
+                        <button class="preset-btn del" onclick="window.PhoneAPI.deleteUIPreset()">删除</button>
+                    </div>
+                    
+                    <div class="engine-title"><i class="ph-fill ph-image"></i> 全局与聊天壁纸</div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <div style="flex: 1;">
+                            <label style="font-size: 11px; color: var(--text-sub);">全局壁纸(网址)</label>
+                            <input type="text" id="bg-global" placeholder="留空为默认" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 11px; color: var(--text-sub);">聊天壁纸(网址)</label>
+                            <input type="text" id="bg-chat" placeholder="留空为透明" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
+                        </div>
+                    </div>
+
+                    <div class="engine-title"><i class="ph-fill ph-squares-four"></i> 主页 App 图标替换 (留空为默认)</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 5px;">
+                        <div>
+                            <label style="font-size: 11px; color: var(--text-sub);">线下故事</label>
+                            <input type="text" id="ui-icon-novel" placeholder="图片URL" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
+                        </div>
+                        <div>
+                            <label style="font-size: 11px; color: var(--text-sub);">世界书</label>
+                            <input type="text" id="ui-icon-worldbook" placeholder="图片URL" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
+                        </div>
+                        <div>
+                            <label style="font-size: 11px; color: var(--text-sub);">系统设置</label>
+                            <input type="text" id="ui-icon-settings" placeholder="图片URL" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
+                        </div>
+                        <div>
+                            <label style="font-size: 11px; color: var(--text-sub);">日记本</label>
+                            <input type="text" id="ui-icon-diary" placeholder="图片URL" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
+                        </div>
+                        <div>
+                            <label style="font-size: 11px; color: var(--text-sub);">商店</label>
+                            <input type="text" id="ui-icon-shop" placeholder="图片URL" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
+                        </div>
+                        <div>
+                            <label style="font-size: 11px; color: var(--text-sub);">打工赚钱</label>
+                            <input type="text" id="ui-icon-task" placeholder="图片URL" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card">
                     <h3 style="color: var(--primary-color); margin-bottom: 10px;"><i class="ph-fill ph-scroll"></i> 提示词与人设 (预设库)</h3>
                     <div class="preset-bar">
@@ -202,7 +252,6 @@ export const PhoneUI = {
                     </select>
                 </div>
 
-                <!-- 🌟 核心升级：数据备份与恢复模块 -->
                 <div class="card">
                     <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph-fill ph-floppy-disk-back"></i> 数据备份与恢复</h3>
                     <p style="font-size: 11px; color: var(--text-sub); margin-bottom: 15px;">将所有聊天记录、小说存档、API预设和世界书打包下载。换手机或清理缓存前请务必备份！</p>
@@ -223,6 +272,7 @@ export const PhoneUI = {
                 window.PhoneAPI.loadSettings();
                 window.PhoneAPI.refreshPresetDropdowns();
                 window.PhoneAPI.refreshPromptDropdowns();
+                window.PhoneAPI.refreshUIDropdowns(); // 刷新 UI 预设
             }, 50);
 
         } else if (appId === 'worldbook') {

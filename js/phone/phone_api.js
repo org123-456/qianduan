@@ -120,7 +120,7 @@ export const PhoneAPI = {
         }
     },
 
-    // 🌟 核心修复：如果没有上传自定义图片，图标的背景必须是透明的！
+    // 🌟 核心修复：优化暗黑模式下，默认图标的颜色！
     applyUITheme() {
         const globalBg = localStorage.getItem('bg_global');
         const chatBg = localStorage.getItem('bg_chat');
@@ -137,10 +137,11 @@ export const PhoneAPI = {
             document.documentElement.style.removeProperty('--bg-image-chat');
         }
 
+        // 修复默认图标颜色，让它们在暗黑模式下也能清晰可见
         const icons = [
-            { id: 'novel', default: '<i class="ph-fill ph-book-open" style="color: #555;"></i>' },
+            { id: 'novel', default: '<i class="ph-fill ph-book-open" style="color: var(--text-sub);"></i>' },
             { id: 'worldbook', default: '<i class="ph-fill ph-globe-hemisphere-west" style="color: var(--primary-color);"></i>' },
-            { id: 'settings', default: '<i class="ph-fill ph-gear" style="color: #6b8bbd;"></i>' },
+            { id: 'settings', default: '<i class="ph-fill ph-gear" style="color: var(--primary-color);"></i>' },
             { id: 'diary', default: '<i class="ph-fill ph-book-open-text" style="color: #e5989b;"></i>' },
             { id: 'shop', default: '<i class="ph-fill ph-storefront" style="color: #f4a261;"></i>' },
             { id: 'task', default: '<i class="ph-fill ph-check-square-offset" style="color: #2a9d8f;"></i>' }
@@ -153,10 +154,9 @@ export const PhoneAPI = {
                 if (customUrl) {
                     el.innerHTML = `<img src="${customUrl}" style="width:100%; height:100%; object-fit:cover; border-radius:18px;">`;
                     el.style.background = 'transparent';
-                    el.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)'; // 给自定义图片加点阴影
+                    el.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
                 } else {
                     el.innerHTML = item.default;
-                    // 🌟 核心修复：恢复纯净的白色/深灰色背景，去掉那个丑丑的方块底色！
                     el.style.background = 'var(--icon-bg)'; 
                     el.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.05)';
                 }

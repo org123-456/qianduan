@@ -6,7 +6,7 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=2500">
+    <link rel="stylesheet" href="css/style.css?t=2900">
 </head>
 <body>
     <div id="app-container">
@@ -36,6 +36,11 @@
                     <div class="app-icon" onclick="window.PhoneUI.openApp('worldbook', '世界书')">
                         <div class="icon"><i class="ph-fill ph-globe-hemisphere-west" style="color: var(--primary-color);"></i></div>
                         <div class="name" style="font-weight: bold;">世界书</div>
+                    </div>
+                    <!-- 🌟 核心：新增系统设置 App -->
+                    <div class="app-icon" onclick="window.PhoneUI.openApp('settings', '系统设置')">
+                        <div class="icon"><i class="ph-fill ph-gear" style="color: #6b8bbd;"></i></div>
+                        <div class="name" style="font-weight: bold;">系统设置</div>
                     </div>
                     <div class="app-icon" onclick="window.PhoneUI.openApp('diary', '日记本')">
                         <div class="icon"><i class="ph-fill ph-book-open-text" style="color: #e5989b;"></i></div>
@@ -96,70 +101,12 @@
                 </div>
             </div>
 
+            <!-- 🌟 核心：腾空 Mine 页面，留给未来的好感度/衣柜系统 -->
             <div id="page-mine" class="page">
-                <div class="card">
-                    <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph ph-note-pencil"></i> 专属角色设定</h3>
-                    
-                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                        <div style="flex: 1;">
-                            <label style="font-size: 12px; color: var(--text-sub);">我的名字</label>
-                            <input type="text" id="my-name" placeholder="例如: 小棋" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
-                        </div>
-                        <div style="flex: 1;">
-                            <label style="font-size: 12px; color: var(--text-sub);">TA的名字</label>
-                            <input type="text" id="char-name" placeholder="例如: 小克" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
-                        </div>
-                    </div>
-                    
-                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                        <div style="flex: 1;">
-                            <label style="font-size: 12px; color: var(--text-sub);">我的头像(网址)</label>
-                            <input type="text" id="my-avatar" placeholder="http..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
-                        </div>
-                        <div style="flex: 1;">
-                            <label style="font-size: 12px; color: var(--text-sub);">TA的头像(网址)</label>
-                            <input type="text" id="ta-avatar" placeholder="http..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
-                        </div>
-                    </div>
-
-                    <div style="margin-bottom: 15px;">
-                        <label style="font-size: 13px; color: var(--text-main); font-weight: bold;">🌟 终极系统提示词 (System Prompt)</label>
-                        <p style="font-size: 11px; color: var(--text-sub); margin-top: 4px; margin-bottom: 6px;">请将小红书协议和角色圣经全部粘贴在这里。打字即自动保存，随时修改立刻生效！(右下角可拖动拉伸)</p>
-                        <textarea id="char-persona" rows="12" placeholder="<OVERRIDE_PROTOCOL>&#10;在这里粘贴你的神级提示词...&#10;你就是角色本人...&#10;绝对禁止OOC..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 10px; border-radius: 8px; resize: vertical; font-size: 12px; line-height: 1.5; font-family: monospace;"></textarea>
-                    </div>
-                    
-                    <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; background: var(--icon-bg); padding: 10px; border-radius: 8px;">
-                        <label style="font-size: 13px; color: var(--text-main); font-weight: bold;"><i class="ph ph-prohibit"></i> 绝对禁止 AI 使用 Emoji</label>
-                        <input type="checkbox" id="ban-emoji" onchange="window.PhoneAPI.autoSave()" style="width: 18px; height: 18px;">
-                    </div>
-                    
-                    <button class="btn-refresh" onclick="window.PhoneAPI.saveSettings()" style="margin-top: 5px;"><i class="ph ph-floppy-disk"></i> 保存设定</button>
-                </div>
-
-                <div class="card">
-                    <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph ph-gear"></i> AI 引擎设置 (打字自动保存)</h3>
-                    <div style="margin-bottom: 10px;">
-                        <label style="font-size: 12px; color: var(--text-sub);">接口地址 (Base URL)</label>
-                        <input type="text" id="api-url" placeholder="例如: https://api.openai.com/v1" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
-                    </div>
-                    <div style="margin-bottom: 10px;">
-                        <label style="font-size: 12px; color: var(--text-sub);">API Key (密钥)</label>
-                        <input type="password" id="api-key" placeholder="sk-..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
-                    </div>
-                    <div style="margin-bottom: 15px;">
-                        <label style="font-size: 12px; color: var(--text-sub);">模型名称 (Model)</label>
-                        <div style="display: flex; gap: 8px; margin-top: 4px;">
-                            <select id="api-model-select" onchange="document.getElementById('api-model').value = this.value; window.PhoneAPI.autoSave();" style="padding: 8px; border-radius: 8px; outline: none;">
-                                <option value="gemini-1.5-pro-latest">Gemini 1.5 Pro</option>
-                                <option value="claude-3-5-sonnet-20240620">Claude 3.5 Sonnet</option>
-                                <option value="gpt-4o">GPT-4o</option>
-                                <option value="">自定义...</option>
-                            </select>
-                            <input type="text" id="api-model" placeholder="手动输入模型名" oninput="window.PhoneAPI.autoSave()" style="flex: 1; padding: 8px; border-radius: 8px;">
-                        </div>
-                    </div>
-                    
-                    <button class="btn-refresh" onclick="window.PhoneAPI.saveSettings()" style="margin-top: 0;"><i class="ph ph-floppy-disk"></i> 保存 API</button>
+                <div class="card" style="text-align: center; padding: 50px 20px; color: var(--text-sub);">
+                    <i class="ph-fill ph-user-circle" style="font-size: 48px; color: var(--bg-gradient-start); margin-bottom: 10px;"></i>
+                    <h3 style="color: var(--primary-color); margin-bottom: 10px;">个人中心</h3>
+                    <p style="font-size: 13px;">好感度、成就徽章、角色衣柜等功能开发中...<br><br>（硬核设置已转移至首页的「系统设置」App）</p>
                 </div>
             </div>
             
@@ -208,7 +155,6 @@
             <button class="btn-refresh" onclick="window.PhoneAPI.addWorldbook()" style="margin-top: 0;">保存并挂载</button>
         </div>
 
-        <!-- 🌟 新增：剧情存档室弹窗 -->
         <div id="archive-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeArchiveModal()"></div>
         <div id="archive-modal" class="thought-modal" style="padding: 20px; max-height: 80vh;">
             <div class="thought-header"><i class="ph-fill ph-floppy-disk"></i> 剧情存档室 (平行宇宙)</div>
@@ -270,7 +216,10 @@
             }
 
             setTimeout(() => {
-                if(window.PhoneAPI) window.PhoneAPI.loadSettings();
+                if(window.PhoneAPI) {
+                    window.PhoneAPI.refreshPresetDropdowns(); 
+                    window.PhoneAPI.loadSettings();
+                }
                 if(window.PhoneUI) window.PhoneUI.renderAppContent('wechat');
             }, 500);
         });

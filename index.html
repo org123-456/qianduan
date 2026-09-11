@@ -2,11 +2,19 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- 🌟 核心升级：加入了 viewport-fit=cover 适配刘海屏，以及全屏 Meta 标签 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#dbe9f6">
+    <!-- 🌟 核心升级：链接刚才新建的 App 身份证 -->
+    <link rel="manifest" href="manifest.json">
+    
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=2900">
+    <link rel="stylesheet" href="css/style.css?t=3000">
 </head>
 <body>
     <div id="app-container">
@@ -37,7 +45,6 @@
                         <div class="icon"><i class="ph-fill ph-globe-hemisphere-west" style="color: var(--primary-color);"></i></div>
                         <div class="name" style="font-weight: bold;">世界书</div>
                     </div>
-                    <!-- 🌟 核心：新增系统设置 App -->
                     <div class="app-icon" onclick="window.PhoneUI.openApp('settings', '系统设置')">
                         <div class="icon"><i class="ph-fill ph-gear" style="color: #6b8bbd;"></i></div>
                         <div class="name" style="font-weight: bold;">系统设置</div>
@@ -101,7 +108,6 @@
                 </div>
             </div>
 
-            <!-- 🌟 核心：腾空 Mine 页面，留给未来的好感度/衣柜系统 -->
             <div id="page-mine" class="page">
                 <div class="card" style="text-align: center; padding: 50px 20px; color: var(--text-sub);">
                     <i class="ph-fill ph-user-circle" style="font-size: 48px; color: var(--bg-gradient-start); margin-bottom: 10px;"></i>
@@ -218,6 +224,7 @@
             setTimeout(() => {
                 if(window.PhoneAPI) {
                     window.PhoneAPI.refreshPresetDropdowns(); 
+                    window.PhoneAPI.refreshPromptDropdowns();
                     window.PhoneAPI.loadSettings();
                 }
                 if(window.PhoneUI) window.PhoneUI.renderAppContent('wechat');

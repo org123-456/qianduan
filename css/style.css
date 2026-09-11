@@ -1,4 +1,7 @@
 :root {
+    /* 🌟 核心修复：警告手机系统，禁止强行反转网页颜色！ */
+    color-scheme: light dark;
+    
     --primary-color: #6b8bbd;
     --secondary-color: #4a70a8;
     --bg-gradient-start: #dbe9f6;
@@ -259,7 +262,6 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 .preset-btn.del { background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); }
 .engine-title { font-size: 13px; color: var(--text-main); font-weight: bold; margin: 15px 0 10px 0; display: flex; align-items: center; gap: 6px; border-bottom: 1px dashed var(--border-color); padding-bottom: 5px;}
 
-/* 🌟 新增：日历档案馆样式 */
 .date-scroll-container {
     display: flex; gap: 12px; overflow-x: auto; padding: 10px 5px 20px 5px; margin-bottom: 10px;
     scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
@@ -278,15 +280,17 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 
 .diary-paper {
     background: var(--card-bg); backdrop-filter: blur(15px); border-radius: 24px; padding: 30px 25px;
-    min-height: 300px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-    position: relative; overflow: hidden;
+    min-height: 300px; max-height: 55vh; box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    position: relative; overflow-y: auto; overflow-x: hidden;
 }
-/* 给信纸加点淡淡的纹理感 */
 .diary-paper::before {
     content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
     background: repeating-linear-gradient(transparent, transparent 28px, rgba(0,0,0,0.03) 28px, rgba(0,0,0,0.03) 29px);
     pointer-events: none; z-index: 0;
 }
+.diary-paper::-webkit-scrollbar { width: 4px; }
+.diary-paper::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+
 .diary-content {
     position: relative; z-index: 1; font-size: 15px; color: var(--text-main); line-height: 29px; text-align: justify;
 }

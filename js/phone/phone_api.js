@@ -98,9 +98,6 @@ export const PhoneAPI = {
         }
     },
 
-    // ==========================================
-    // 🌟 提示词预设库系统
-    // ==========================================
     getPromptPresets() {
         return JSON.parse(localStorage.getItem('prompt_presets') || '[]');
     },
@@ -171,9 +168,6 @@ export const PhoneAPI = {
         selectEl.innerHTML = optionsHtml;
     },
 
-    // ==========================================
-    // 🌟 API 引擎预设库系统
-    // ==========================================
     getPresets() {
         return JSON.parse(localStorage.getItem('ai_api_presets') || '[]');
     },
@@ -408,6 +402,66 @@ export const PhoneAPI = {
         window.PhoneUI.closeArchiveModal();
         if (window.Config.currentAppId === 'novel') window.PhoneUI.renderNovelContent();
         this.showToast('🚀 已开启全新线下时间线！');
+    },
+
+    // ==========================================
+    // 🌟 终极数据备份与恢复系统
+    // ==========================================
+    exportData() {
+        const data = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            data[key] = localStorage.getItem(key);
+        }
+        const jsonStr = JSON.stringify(data, null, 2);
+        const blob = new Blob([jsonStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        const dateStr = new Date().toISOString().replace(/[:\-\sT]/g, '').slice(0, 14);
+        a.download = `ClaireClaude_Backup_${dateStr}.json`;
+        
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        this.showToast("📦 数据备份已下载！");
+    },
+
+    importData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (!confirm("⚠️ 警告：导入存档将覆盖当前手机里的【所有】聊天记录、设定和预设！确定要继续吗？")) {
+                    event.target.value = ''; 
+                    return;
+                }
+                
+                // 覆盖写入 localStorage
+                for (const key in data) {
+                    localStorage.setItem(key, data[key]);
+                }
+                
+                this.showToast("✨ 存档导入成功！正在重启系统...");
+                
+                // 延迟 1.5 秒后强制刷新网页，让所有数据重新加载
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+                
+            } catch (err) {
+                alert("导入失败：文件格式不正确，请确保上传的是备份的 .json 文件！");
+                console.error(err);
+            }
+            event.target.value = ''; 
+        };
+        reader.readAsText(file);
     },
 
     async chatWithAI(messages, useSubEngine = false) {

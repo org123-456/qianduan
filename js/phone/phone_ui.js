@@ -98,7 +98,6 @@ export const PhoneUI = {
             
             footerEl.innerHTML = `
                 <div id="story-plus-menu" class="story-menu">
-                    <!-- 🌟 核心：加入存档室入口 -->
                     <div class="story-menu-item" onclick="window.PhoneUI.openArchiveModal(); window.PhoneUI.closeStoryMenu();">
                         <div class="icon"><i class="ph-fill ph-floppy-disk"></i></div>
                         <div class="text">存档室</div>
@@ -115,6 +114,107 @@ export const PhoneUI = {
                 </div>
             `;
             this.renderNovelContent();
+
+        } else if (appId === 'settings') {
+            // 🌟 核心升级：独立的系统设置 App
+            contentEl.innerHTML = `
+                <div class="card">
+                    <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph-fill ph-user-list"></i> 基础设定</h3>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <div style="flex: 1;">
+                            <label style="font-size: 12px; color: var(--text-sub);">我的名字</label>
+                            <input type="text" id="my-name" placeholder="例如: 小棋" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 12px; color: var(--text-sub);">TA的名字</label>
+                            <input type="text" id="char-name" placeholder="例如: 小克" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                        <div style="flex: 1;">
+                            <label style="font-size: 12px; color: var(--text-sub);">我的头像(网址)</label>
+                            <input type="text" id="my-avatar" placeholder="http..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 12px; color: var(--text-sub);">TA的头像(网址)</label>
+                            <input type="text" id="ta-avatar" placeholder="http..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 style="color: var(--primary-color); margin-bottom: 10px;"><i class="ph-fill ph-scroll"></i> 提示词与人设 (预设库)</h3>
+                    <div class="preset-bar">
+                        <select id="prompt-preset-select" onchange="window.PhoneAPI.loadPromptPreset()"></select>
+                        <button class="preset-btn" onclick="window.PhoneAPI.savePromptPreset()">存为预设</button>
+                        <button class="preset-btn del" onclick="window.PhoneAPI.deletePromptPreset()">删除</button>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-size: 12px; color: var(--text-main); font-weight: bold;">1. 系统指令 (防八股/核心规则)</label>
+                        <textarea id="system-prompt" rows="4" placeholder="例如：你是一个高情商的语C助手，必须输出<think>..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 10px; border-radius: 8px; resize: vertical; font-size: 12px; line-height: 1.5; margin-top: 4px; font-family: monospace;"></textarea>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-size: 12px; color: var(--text-main); font-weight: bold;">2. 角色人设 (性格/背景/口吻)</label>
+                        <textarea id="char-persona" rows="6" placeholder="例如：你叫不死途，是一个傲娇的老狼侦探..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 10px; border-radius: 8px; resize: vertical; font-size: 12px; line-height: 1.5; margin-top: 4px; font-family: monospace;"></textarea>
+                    </div>
+                    <div style="margin-bottom: 5px;">
+                        <label style="font-size: 12px; color: var(--text-main); font-weight: bold;">3. 线下文风 (小说模式专属要求)</label>
+                        <textarea id="novel-style" rows="4" placeholder="例如：多用长句，注重环境光影渲染和微表情刻画..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 10px; border-radius: 8px; resize: vertical; font-size: 12px; line-height: 1.5; margin-top: 4px; font-family: monospace;"></textarea>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph-fill ph-toggle-left"></i> 功能开关</h3>
+                    <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; background: var(--icon-bg); padding: 10px; border-radius: 8px;">
+                        <label style="font-size: 13px; color: var(--text-main); font-weight: bold;"><i class="ph ph-prohibit"></i> 绝对禁止 AI 使用 Emoji</label>
+                        <input type="checkbox" id="ban-emoji" onchange="window.PhoneAPI.autoSave()" style="width: 18px; height: 18px;">
+                    </div>
+                    <div style="margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between; background: var(--icon-bg); padding: 10px; border-radius: 8px;">
+                        <label style="font-size: 13px; color: var(--text-main); font-weight: bold;"><i class="ph ph-arrows-merge"></i> 开启线上/线下记忆互通</label>
+                        <input type="checkbox" id="share-memory" onchange="window.PhoneAPI.autoSave()" style="width: 18px; height: 18px;">
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 style="color: var(--primary-color); margin-bottom: 10px;"><i class="ph-fill ph-database"></i> API 预设库</h3>
+                    <div style="font-size: 11px; color: var(--text-sub); margin-bottom: 15px;">把你的各个中转站和模型配置存进库里，方便随时给引擎分配。</div>
+                    
+                    <div style="margin-bottom: 10px;"><input type="text" id="preset-name" placeholder="起个名字 (如: 硅基-DeepSeek)" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
+                    <div style="margin-bottom: 10px;"><input type="text" id="preset-url" placeholder="接口地址 (Base URL)" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
+                    <div style="margin-bottom: 10px;"><input type="password" id="preset-key" placeholder="API Key (密钥)" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
+                    <div style="margin-bottom: 15px;"><input type="text" id="preset-model" placeholder="模型名称 (Model)" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
+                    
+                    <button class="btn-refresh" onclick="window.PhoneAPI.savePreset()" style="margin-top: 0; margin-bottom: 15px;"><i class="ph ph-plus"></i> 添加到预设库</button>
+
+                    <div style="display: flex; gap: 8px; align-items: center; border-top: 1px dashed var(--border-color); padding-top: 15px;">
+                        <select id="preset-delete-select" style="flex: 1; padding: 8px; border-radius: 8px;"></select>
+                        <button class="btn-refresh" onclick="window.PhoneAPI.deletePreset()" style="width: auto; margin-top: 0; background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); padding: 8px 12px;"><i class="ph ph-trash"></i> 删除</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph-fill ph-cpu"></i> 主副引擎分配</h3>
+                    <div class="engine-title"><i class="ph-fill ph-chat-circle-dots"></i> 主引擎 (聊天/小说专用)</div>
+                    <select id="main-engine-select" onchange="window.PhoneAPI.assignEngine('main', this.value)" style="width: 100%; padding: 8px; border-radius: 8px; margin-bottom: 15px;"></select>
+                    <div class="engine-title"><i class="ph-fill ph-lightning"></i> 副引擎 (转盘/工具专用)</div>
+                    <select id="sub-engine-select" onchange="window.PhoneAPI.assignEngine('sub', this.value)" style="width: 100%; padding: 8px; border-radius: 8px;">
+                        <option value="">-- 同主引擎 (自动降级) --</option>
+                    </select>
+                </div>
+
+                <div class="card">
+                    <h3 style="color: var(--danger-color); margin-bottom: 15px;"><i class="ph-fill ph-trash"></i> 危险操作</h3>
+                    <button class="btn-refresh" onclick="window.PhoneAPI.clearChat()" style="background: var(--danger-color); margin-top: 0;"><i class="ph ph-warning-circle"></i> 清空所有聊天与小说记录</button>
+                </div>
+            `;
+            
+            // 🌟 核心：在渲染完 HTML 后，立刻把数据填进去！
+            setTimeout(() => {
+                window.PhoneAPI.loadSettings();
+                window.PhoneAPI.refreshPresetDropdowns();
+                window.PhoneAPI.refreshPromptDropdowns();
+            }, 50);
 
         } else if (appId === 'worldbook') {
             const minWords = localStorage.getItem('novel_min_words') || '150';
@@ -211,7 +311,7 @@ export const PhoneUI = {
 
     renderNovelContent() {
         const roleId = window.Config.currentContactId;
-        const items = window.Config.phoneData[roleId]?.wechat?.items || [];
+        const items = window.Config.phoneData[roleId]?.novel?.items || [];
         const listEl = document.getElementById('novel-content-list');
         if (!listEl) return;
 
@@ -253,6 +353,7 @@ export const PhoneUI = {
             `;
         });
         listEl.innerHTML = html;
+        
         setTimeout(() => { 
             const scrollContainer = document.getElementById('app-window-content');
             if(scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight; 
@@ -261,7 +362,8 @@ export const PhoneUI = {
 
     showThought(index) {
         const roleId = window.Config?.currentContactId;
-        const item = window.Config.phoneData[roleId]?.wechat?.items[index];
+        const targetApp = window.Config.currentAppId === 'novel' ? 'novel' : 'wechat';
+        const item = window.Config.phoneData[roleId]?.[targetApp]?.items[index];
         if(!item) return;
         
         const thought = item.innerThought || "（那时候TA的心思藏得很深，什么也没看出来...）";
@@ -286,7 +388,6 @@ export const PhoneUI = {
         document.getElementById('wb-modal').classList.remove('show');
     },
 
-    // 🌟 核心升级：渲染存档室列表
     renderArchiveList() {
         const archives = window.PhoneAPI.getArchives();
         const listEl = document.getElementById('archive-list');

@@ -6,14 +6,13 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=2400">
+    <link rel="stylesheet" href="css/style.css?t=2500">
 </head>
 <body>
     <div id="app-container">
         <div id="toast"><i class="ph-fill ph-check-circle" style="color: #4ade80; font-size: 18px;"></i> <span id="toast-msg">保存成功</span></div>
 
         <div class="top-bar">
-            <!-- 🌟 核心升级：主题切换按钮！ -->
             <div class="menu-btn" onclick="window.PhoneUI.toggleTheme()"><i class="ph-fill ph-moon" id="theme-icon" style="font-size: 18px;"></i></div>
             <div class="title" id="top-title">Claire & Claude</div>
             <div class="heart"><i class="ph-fill ph-heart"></i> 100%</div>
@@ -31,7 +30,7 @@
                 <h3 style="margin: 10px 0 10px 5px; color: var(--primary-color); font-size: 14px;">我的生活</h3>
                 <div class="app-grid">
                     <div class="app-icon" onclick="window.PhoneUI.openApp('novel', '线下故事')">
-                        <div class="icon"><i class="ph-fill ph-book-open" style="color: var(--text-sub);"></i></div>
+                        <div class="icon"><i class="ph-fill ph-book-open" style="color: #555;"></i></div>
                         <div class="name" style="font-weight: bold;">线下故事</div>
                     </div>
                     <div class="app-icon" onclick="window.PhoneUI.openApp('worldbook', '世界书')">
@@ -162,11 +161,6 @@
                     
                     <button class="btn-refresh" onclick="window.PhoneAPI.saveSettings()" style="margin-top: 0;"><i class="ph ph-floppy-disk"></i> 保存 API</button>
                 </div>
-
-                <div class="card">
-                    <h3 style="color: var(--danger-color); margin-bottom: 15px;"><i class="ph ph-trash"></i> 危险操作</h3>
-                    <button class="btn-refresh" onclick="window.PhoneAPI.clearChat()" style="background: var(--danger-color); margin-top: 0;"><i class="ph ph-warning-circle"></i> 清空聊天记录</button>
-                </div>
             </div>
             
         </div>
@@ -214,6 +208,18 @@
             <button class="btn-refresh" onclick="window.PhoneAPI.addWorldbook()" style="margin-top: 0;">保存并挂载</button>
         </div>
 
+        <!-- 🌟 新增：剧情存档室弹窗 -->
+        <div id="archive-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeArchiveModal()"></div>
+        <div id="archive-modal" class="thought-modal" style="padding: 20px; max-height: 80vh;">
+            <div class="thought-header"><i class="ph-fill ph-floppy-disk"></i> 剧情存档室 (平行宇宙)</div>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <input type="text" id="archive-name" placeholder="给当前剧情起个名字..." style="flex: 1; padding: 10px; border-radius: 8px; outline: none;">
+                <button class="btn-refresh" onclick="window.PhoneAPI.saveArchive()" style="margin-top: 0; width: auto; padding: 0 15px;">存档</button>
+            </div>
+            <button class="btn-refresh" onclick="window.PhoneAPI.startNewTimeline()" style="margin-top: 0; margin-bottom: 15px; background: transparent; color: var(--danger-color); border: 1px dashed var(--danger-color);"><i class="ph ph-magic-wand"></i> 开启全新时间线 (清空当前)</button>
+            <div id="archive-list" style="overflow-y: auto; max-height: 40vh; display: flex; flex-direction: column; gap: 10px;"></div>
+        </div>
+
         <div id="app-window" class="app-window">
             <div class="app-window-header">
                 <div class="app-window-back" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div>
@@ -250,6 +256,23 @@
             if(window.PhoneUI && window.PhoneUI.closeChatMenu) {
                 window.PhoneUI.closeChatMenu();
             }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            if (savedTheme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                const themeIcon = document.getElementById('theme-icon');
+                if (themeIcon) {
+                    themeIcon.classList.remove('ph-moon');
+                    themeIcon.classList.add('ph-sun');
+                }
+            }
+
+            setTimeout(() => {
+                if(window.PhoneAPI) window.PhoneAPI.loadSettings();
+                if(window.PhoneUI) window.PhoneUI.renderAppContent('wechat');
+            }, 500);
         });
     </script>
     <script type="module" src="js/main.js"></script>

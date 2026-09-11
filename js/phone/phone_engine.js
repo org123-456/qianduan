@@ -413,7 +413,6 @@ ${historyText}`;
         }
     },
 
-    // 🌟 核心：生成傲娇日记！
     async generateDiary(dateStr) {
         const contentAreaEl = document.getElementById('diary-content-area');
         if (!contentAreaEl) return;
@@ -429,7 +428,6 @@ ${historyText}`;
             const roleId = Config.currentContactId;
             const wechatItems = Config.phoneData[roleId]?.wechat?.items || [];
             
-            // 提取最近 15 条聊天记录作为今天的素材
             const recentItems = wechatItems.slice(-15);
             let historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
             if(!historyText) historyText = "(今天你们没怎么聊天)";
@@ -455,7 +453,8 @@ ${contextSetup}
 ${historyText}`;
 
             const messages = [{ role: "user", content: prompt }];
-            const reply = await PhoneAPI.chatWithAI(messages, false); // 用主引擎写日记，保证文笔！
+            // 🌟 核心修复：把 false 改成了 true，强制调用便宜的副引擎写日记！
+            const reply = await PhoneAPI.chatWithAI(messages, true); 
 
             let finalDiary = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
             finalDiary = finalDiary.replace(/```.*?/g, '').replace(/```/g, '').trim();

@@ -405,29 +405,51 @@ export const PhoneAPI = {
     },
 
     // ==========================================
-    // 🌟 终极数据备份与恢复系统
+    // 🌟 终极修复：使用系统原生分享绕过浏览器拦截！
     // ==========================================
-    exportData() {
+    async exportData() {
         const data = {};
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             data[key] = localStorage.getItem(key);
         }
         const jsonStr = JSON.stringify(data, null, 2);
-        const blob = new Blob([jsonStr], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        
-        const a = document.createElement('a');
-        a.href = url;
         const dateStr = new Date().toISOString().replace(/[:\-\sT]/g, '').slice(0, 14);
-        a.download = `ClaireClaude_Backup_${dateStr}.json`;
-        
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        this.showToast("📦 数据备份已下载！");
+        const fileName = `ClaireClaude_Backup_${dateStr}.json`;
+
+        try {
+            // 尝试使用手机原生分享 API (直接呼出微信/保存到文件)
+            const file = new File([jsonStr], fileName, { type: 'application/json' });
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: 'Claire & Claude 备份',
+                });
+                this.showToast("📦 备份已成功发送/保存！");
+                return;
+            }
+        } catch (err) {
+            console.log("分享被取消或不支持，尝试普通下载:", err);
+        }
+
+        // 降级方案：如果不支持分享，再尝试强行下载
+        try {
+            const blob = new Blob([jsonStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 200);
+            this.showToast("📦 尝试触发浏览器下载...");
+        } catch (e) {
+            alert("下载失败：您的浏览器拦截了文件保存，请更换浏览器重试。");
+        }
     },
 
     importData(event) {
@@ -443,14 +465,12 @@ export const PhoneAPI = {
                     return;
                 }
                 
-                // 覆盖写入 localStorage
                 for (const key in data) {
                     localStorage.setItem(key, data[key]);
                 }
                 
                 this.showToast("✨ 存档导入成功！正在重启系统...");
                 
-                // 延迟 1.5 秒后强制刷新网页，让所有数据重新加载
                 setTimeout(() => {
                     window.location.reload();
                 }, 1500);

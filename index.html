@@ -12,7 +12,7 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=3100">
+    <link rel="stylesheet" href="css/style.css?t=3200">
 </head>
 <body>
     <div id="app-container">
@@ -35,28 +35,29 @@
                 
                 <h3 style="margin: 10px 0 10px 5px; color: var(--primary-color); font-size: 14px;">我的生活</h3>
                 <div class="app-grid">
+                    <!-- 🌟 核心：给每个图标加上了独立的 ID -->
                     <div class="app-icon" onclick="window.PhoneUI.openApp('novel', '线下故事')">
-                        <div class="icon"><i class="ph-fill ph-book-open" style="color: #555;"></i></div>
+                        <div class="icon" id="home-icon-novel"><i class="ph-fill ph-book-open" style="color: #555;"></i></div>
                         <div class="name" style="font-weight: bold;">线下故事</div>
                     </div>
                     <div class="app-icon" onclick="window.PhoneUI.openApp('worldbook', '世界书')">
-                        <div class="icon"><i class="ph-fill ph-globe-hemisphere-west" style="color: var(--primary-color);"></i></div>
+                        <div class="icon" id="home-icon-worldbook"><i class="ph-fill ph-globe-hemisphere-west" style="color: var(--primary-color);"></i></div>
                         <div class="name" style="font-weight: bold;">世界书</div>
                     </div>
                     <div class="app-icon" onclick="window.PhoneUI.openApp('settings', '系统设置')">
-                        <div class="icon"><i class="ph-fill ph-gear" style="color: #6b8bbd;"></i></div>
+                        <div class="icon" id="home-icon-settings"><i class="ph-fill ph-gear" style="color: #6b8bbd;"></i></div>
                         <div class="name" style="font-weight: bold;">系统设置</div>
                     </div>
                     <div class="app-icon" onclick="window.PhoneUI.openApp('diary', '日记本')">
-                        <div class="icon"><i class="ph-fill ph-book-open-text" style="color: #e5989b;"></i></div>
+                        <div class="icon" id="home-icon-diary"><i class="ph-fill ph-book-open-text" style="color: #e5989b;"></i></div>
                         <div class="name">日记本</div>
                     </div>
                     <div class="app-icon" onclick="window.PhoneUI.openApp('shop', '商店')">
-                        <div class="icon"><i class="ph-fill ph-storefront" style="color: #f4a261;"></i></div>
+                        <div class="icon" id="home-icon-shop"><i class="ph-fill ph-storefront" style="color: #f4a261;"></i></div>
                         <div class="name">商店</div>
                     </div>
                     <div class="app-icon" onclick="window.PhoneUI.openApp('task', '打工赚钱')">
-                        <div class="icon"><i class="ph-fill ph-check-square-offset" style="color: #2a9d8f;"></i></div>
+                        <div class="icon" id="home-icon-task"><i class="ph-fill ph-check-square-offset" style="color: #2a9d8f;"></i></div>
                         <div class="name">打工赚钱</div>
                     </div>
                 </div>
@@ -223,16 +224,16 @@
                 if(window.PhoneAPI) {
                     window.PhoneAPI.refreshPresetDropdowns(); 
                     window.PhoneAPI.refreshPromptDropdowns();
+                    window.PhoneAPI.refreshUIDropdowns(); // 刷新 UI 预设
                     window.PhoneAPI.loadSettings();
                 }
                 if(window.PhoneUI) window.PhoneUI.renderAppContent('wechat');
             }, 500);
         });
 
-        // 🌟 核心：激活 Service Worker，让浏览器承认我们是真正的 App！
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js')
-                .then(() => console.log('Service Worker 注册成功！PWA 护城河已建立！'))
+                .then(() => console.log('Service Worker 注册成功！'))
                 .catch(err => console.error('Service Worker 注册失败:', err));
         }
     </script>

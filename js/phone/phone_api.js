@@ -24,6 +24,18 @@ export const PhoneAPI = {
         saveIfExist('my-avatar', 'my_avatar');
         saveIfExist('ta-avatar', 'ta_avatar');
         
+        // 🌟 保存壁纸与图标
+        saveIfExist('bg-global', 'bg_global');
+        saveIfExist('bg-chat', 'bg_chat');
+        saveIfExist('ui-icon-novel', 'ui_icon_novel');
+        saveIfExist('ui-icon-worldbook', 'ui_icon_worldbook');
+        saveIfExist('ui-icon-settings', 'ui_icon_settings');
+        saveIfExist('ui-icon-diary', 'ui_icon_diary');
+        saveIfExist('ui-icon-shop', 'ui_icon_shop');
+        saveIfExist('ui-icon-task', 'ui_icon_task');
+        
+        this.applyUITheme(); 
+        
         saveIfExist('system-prompt', 'system_prompt');
         saveIfExist('char-persona', 'char_persona');
         saveIfExist('novel-style', 'novel_style');
@@ -68,6 +80,17 @@ export const PhoneAPI = {
             setVal('char-name', localStorage.getItem('char_name') || '');
             setVal('my-avatar', localStorage.getItem('my_avatar') || '');
             setVal('ta-avatar', localStorage.getItem('ta_avatar') || '');
+            
+            setVal('bg-global', localStorage.getItem('bg_global') || '');
+            setVal('bg-chat', localStorage.getItem('bg_chat') || '');
+            setVal('ui-icon-novel', localStorage.getItem('ui_icon_novel') || '');
+            setVal('ui-icon-worldbook', localStorage.getItem('ui_icon_worldbook') || '');
+            setVal('ui-icon-settings', localStorage.getItem('ui_icon_settings') || '');
+            setVal('ui-icon-diary', localStorage.getItem('ui_icon_diary') || '');
+            setVal('ui-icon-shop', localStorage.getItem('ui_icon_shop') || '');
+            setVal('ui-icon-task', localStorage.getItem('ui_icon_task') || '');
+            
+            this.applyUITheme(); 
 
             setVal('system-prompt', localStorage.getItem('system_prompt') || '');
             setVal('char-persona', localStorage.getItem('char_persona') || '');
@@ -98,6 +121,134 @@ export const PhoneAPI = {
         }
     },
 
+    // 🌟 核心：应用壁纸和自定义图标
+    applyUITheme() {
+        const globalBg = localStorage.getItem('bg_global');
+        const chatBg = localStorage.getItem('bg_chat');
+        
+        if (globalBg) {
+            document.documentElement.style.setProperty('--bg-image-global', `url('${globalBg}')`);
+        } else {
+            document.documentElement.style.removeProperty('--bg-image-global');
+        }
+        
+        if (chatBg) {
+            document.documentElement.style.setProperty('--bg-image-chat', `url('${chatBg}')`);
+        } else {
+            document.documentElement.style.removeProperty('--bg-image-chat');
+        }
+
+        const icons = [
+            { id: 'novel', default: '<i class="ph-fill ph-book-open" style="color: #555;"></i>' },
+            { id: 'worldbook', default: '<i class="ph-fill ph-globe-hemisphere-west" style="color: var(--primary-color);"></i>' },
+            { id: 'settings', default: '<i class="ph-fill ph-gear" style="color: #6b8bbd;"></i>' },
+            { id: 'diary', default: '<i class="ph-fill ph-book-open-text" style="color: #e5989b;"></i>' },
+            { id: 'shop', default: '<i class="ph-fill ph-storefront" style="color: #f4a261;"></i>' },
+            { id: 'task', default: '<i class="ph-fill ph-check-square-offset" style="color: #2a9d8f;"></i>' }
+        ];
+
+        icons.forEach(item => {
+            const el = document.getElementById(`home-icon-${item.id}`);
+            if (el) {
+                const customUrl = localStorage.getItem(`ui_icon_${item.id}`);
+                if (customUrl) {
+                    el.innerHTML = `<img src="${customUrl}" style="width:100%; height:100%; object-fit:cover; border-radius:18px;">`;
+                    el.style.background = 'transparent';
+                } else {
+                    el.innerHTML = item.default;
+                    el.style.background = 'var(--icon-bg)';
+                }
+            }
+        });
+    },
+
+    // ==========================================
+    // 🌟 UI 主题预设库系统
+    // ==========================================
+    getUIPresets() {
+        return JSON.parse(localStorage.getItem('ui_presets') || '[]');
+    },
+
+    saveUIPreset() {
+        const name = prompt('给这套主题装修起个名字吧 (如: 赛博朋克风):');
+        if (!name) return;
+        
+        const getVal = (id) => document.getElementById(id)?.value.trim() || '';
+        
+        const preset = {
+            id: 'ui_' + Date.now(),
+            name: name,
+            bg_global: getVal('bg-global'),
+            bg_chat: getVal('bg-chat'),
+            icon_novel: getVal('ui-icon-novel'),
+            icon_worldbook: getVal('ui-icon-worldbook'),
+            icon_settings: getVal('ui-icon-settings'),
+            icon_diary: getVal('ui-icon-diary'),
+            icon_shop: getVal('ui-icon-shop'),
+            icon_task: getVal('ui-icon-task')
+        };
+        
+        let presets = this.getUIPresets();
+        presets = presets.filter(p => p.name !== name);
+        presets.push(preset);
+        
+        localStorage.setItem('ui_presets', JSON.stringify(presets));
+        this.refreshUIDropdowns();
+        document.getElementById('ui-preset-select').value = preset.id;
+        this.showToast('💾 UI 主题预设保存成功！');
+    },
+
+    loadUIPreset() {
+        const selectEl = document.getElementById('ui-preset-select');
+        const id = selectEl.value;
+        if (!id) return;
+        
+        const presets = this.getUIPresets();
+        const preset = presets.find(p => p.id === id);
+        if (preset) {
+            const setVal = (domId, val) => { const el = document.getElementById(domId); if(el) el.value = val || ''; };
+            setVal('bg-global', preset.bg_global);
+            setVal('bg-chat', preset.bg_chat);
+            setVal('ui-icon-novel', preset.icon_novel);
+            setVal('ui-icon-worldbook', preset.icon_worldbook);
+            setVal('ui-icon-settings', preset.icon_settings);
+            setVal('ui-icon-diary', preset.icon_diary);
+            setVal('ui-icon-shop', preset.icon_shop);
+            setVal('ui-icon-task', preset.icon_task);
+            
+            this.autoSave();
+            this.showToast('✨ 主题切换成功！');
+        }
+    },
+
+    deleteUIPreset() {
+        const selectEl = document.getElementById('ui-preset-select');
+        const id = selectEl.value;
+        if (!id) return alert('请先在下拉菜单中选择要删除的主题！');
+        if (!confirm('确定要删除这套主题预设吗？')) return;
+        
+        let presets = this.getUIPresets();
+        presets = presets.filter(p => p.id !== id);
+        localStorage.setItem('ui_presets', JSON.stringify(presets));
+        this.refreshUIDropdowns();
+        this.showToast('🗑️ 主题预设已删除');
+    },
+
+    refreshUIDropdowns() {
+        const presets = this.getUIPresets();
+        const selectEl = document.getElementById('ui-preset-select');
+        if (!selectEl) return;
+        
+        let optionsHtml = '<option value="">-- 切换 UI 主题预设 --</option>';
+        presets.forEach(p => {
+            optionsHtml += `<option value="${p.id}">${p.name}</option>`;
+        });
+        selectEl.innerHTML = optionsHtml;
+    },
+
+    // ==========================================
+    // 提示词预设库系统
+    // ==========================================
     getPromptPresets() {
         return JSON.parse(localStorage.getItem('prompt_presets') || '[]');
     },
@@ -404,9 +555,6 @@ export const PhoneAPI = {
         this.showToast('🚀 已开启全新线下时间线！');
     },
 
-    // ==========================================
-    // 🌟 终极修复：使用系统原生分享绕过浏览器拦截！
-    // ==========================================
     async exportData() {
         const data = {};
         for (let i = 0; i < localStorage.length; i++) {
@@ -418,7 +566,6 @@ export const PhoneAPI = {
         const fileName = `ClaireClaude_Backup_${dateStr}.json`;
 
         try {
-            // 尝试使用手机原生分享 API (直接呼出微信/保存到文件)
             const file = new File([jsonStr], fileName, { type: 'application/json' });
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 await navigator.share({
@@ -432,7 +579,6 @@ export const PhoneAPI = {
             console.log("分享被取消或不支持，尝试普通下载:", err);
         }
 
-        // 降级方案：如果不支持分享，再尝试强行下载
         try {
             const blob = new Blob([jsonStr], { type: "application/json" });
             const url = URL.createObjectURL(blob);

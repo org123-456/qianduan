@@ -29,7 +29,7 @@ export const PhoneAPI = {
         saveIfExist('ui-icon-novel', 'ui_icon_novel');
         saveIfExist('ui-icon-worldbook', 'ui_icon_worldbook');
         saveIfExist('ui-icon-settings', 'ui_icon_settings');
-        saveIfExist('ui-icon-diary', 'ui_icon_diary');
+        saveIfExist('ui-icon-gallery', 'ui_icon_gallery'); // 🌟 新增相册图标
         saveIfExist('ui-icon-shop', 'ui_icon_shop');
         saveIfExist('ui-icon-task', 'ui_icon_task');
         
@@ -85,7 +85,7 @@ export const PhoneAPI = {
             setVal('ui-icon-novel', localStorage.getItem('ui_icon_novel') || '');
             setVal('ui-icon-worldbook', localStorage.getItem('ui_icon_worldbook') || '');
             setVal('ui-icon-settings', localStorage.getItem('ui_icon_settings') || '');
-            setVal('ui-icon-diary', localStorage.getItem('ui_icon_diary') || '');
+            setVal('ui-icon-gallery', localStorage.getItem('ui_icon_gallery') || ''); // 🌟 新增相册图标
             setVal('ui-icon-shop', localStorage.getItem('ui_icon_shop') || '');
             setVal('ui-icon-task', localStorage.getItem('ui_icon_task') || '');
             
@@ -140,7 +140,7 @@ export const PhoneAPI = {
             { id: 'novel', default: '<i class="ph-fill ph-book-open" style="color: var(--text-sub);"></i>' },
             { id: 'worldbook', default: '<i class="ph-fill ph-globe-hemisphere-west" style="color: var(--primary-color);"></i>' },
             { id: 'settings', default: '<i class="ph-fill ph-gear" style="color: var(--primary-color);"></i>' },
-            { id: 'diary', default: '<i class="ph-fill ph-book-open-text" style="color: #e5989b;"></i>' },
+            { id: 'gallery', default: '<i class="ph-fill ph-images" style="color: #e5989b;"></i>' }, // 🌟 新增相册图标
             { id: 'shop', default: '<i class="ph-fill ph-storefront" style="color: #f4a261;"></i>' },
             { id: 'task', default: '<i class="ph-fill ph-check-square-offset" style="color: #2a9d8f;"></i>' }
         ];
@@ -167,7 +167,7 @@ export const PhoneAPI = {
         const name = prompt('给这套主题装修起个名字吧 (如: 赛博朋克风):');
         if (!name) return;
         const getVal = (id) => document.getElementById(id)?.value.trim() || '';
-        const preset = { id: 'ui_' + Date.now(), name: name, bg_global: getVal('bg-global'), bg_chat: getVal('bg-chat'), icon_novel: getVal('ui-icon-novel'), icon_worldbook: getVal('ui-icon-worldbook'), icon_settings: getVal('ui-icon-settings'), icon_diary: getVal('ui-icon-diary'), icon_shop: getVal('ui-icon-shop'), icon_task: getVal('ui-icon-task') };
+        const preset = { id: 'ui_' + Date.now(), name: name, bg_global: getVal('bg-global'), bg_chat: getVal('bg-chat'), icon_novel: getVal('ui-icon-novel'), icon_worldbook: getVal('ui-icon-worldbook'), icon_settings: getVal('ui-icon-settings'), icon_gallery: getVal('ui-icon-gallery'), icon_shop: getVal('ui-icon-shop'), icon_task: getVal('ui-icon-task') };
         let presets = this.getUIPresets(); presets = presets.filter(p => p.name !== name); presets.push(preset);
         localStorage.setItem('ui_presets', JSON.stringify(presets)); this.refreshUIDropdowns(); document.getElementById('ui-preset-select').value = preset.id; this.showToast('💾 UI 主题预设保存成功！');
     },
@@ -176,7 +176,7 @@ export const PhoneAPI = {
         const preset = this.getUIPresets().find(p => p.id === id);
         if (preset) {
             const setVal = (domId, val) => { const el = document.getElementById(domId); if(el) el.value = val || ''; };
-            setVal('bg-global', preset.bg_global); setVal('bg-chat', preset.bg_chat); setVal('ui-icon-novel', preset.icon_novel); setVal('ui-icon-worldbook', preset.icon_worldbook); setVal('ui-icon-settings', preset.icon_settings); setVal('ui-icon-diary', preset.icon_diary); setVal('ui-icon-shop', preset.icon_shop); setVal('ui-icon-task', preset.icon_task);
+            setVal('bg-global', preset.bg_global); setVal('bg-chat', preset.bg_chat); setVal('ui-icon-novel', preset.icon_novel); setVal('ui-icon-worldbook', preset.icon_worldbook); setVal('ui-icon-settings', preset.icon_settings); setVal('ui-icon-gallery', preset.icon_gallery); setVal('ui-icon-shop', preset.icon_shop); setVal('ui-icon-task', preset.icon_task);
             this.autoSave(); this.showToast('✨ 主题切换成功！');
         }
     },
@@ -349,7 +349,6 @@ export const PhoneAPI = {
         reader.readAsText(file);
     },
 
-    // 🌟 核心：日记本存取逻辑
     getDiaries() {
         return JSON.parse(localStorage.getItem('char_diaries') || '{}');
     },

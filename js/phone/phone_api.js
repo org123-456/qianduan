@@ -186,9 +186,20 @@ export const PhoneAPI = {
         presets.forEach(p => { optionsHtml += `<option value="${p.id}">${p.name} (${p.model})</option>`; });
         delSelect.innerHTML = optionsHtml; mainSelect.innerHTML = optionsHtml; subSelect.innerHTML = '<option value="">-- 同主引擎 (自动降级) --</option>' + optionsHtml;
         mainSelect.value = localStorage.getItem('main_engine_id') || ''; subSelect.value = localStorage.getItem('sub_engine_id') || '';
+        
+        // 更新控制舱里的下拉菜单
+        const quickSelect = document.getElementById('quick-main-engine');
+        if (quickSelect) {
+            quickSelect.innerHTML = optionsHtml;
+            quickSelect.value = localStorage.getItem('main_engine_id') || '';
+        }
     },
     assignEngine(type, presetId) {
-        if (type === 'main') { localStorage.setItem('main_engine_id', presetId); this.showToast('✅ 主引擎分配成功！'); } 
+        if (type === 'main') { 
+            localStorage.setItem('main_engine_id', presetId); 
+            this.showToast('✅ 主引擎切换成功！'); 
+            this.refreshPresetDropdowns();
+        } 
         else if (type === 'sub') { localStorage.setItem('sub_engine_id', presetId); this.showToast('✅ 副引擎分配成功！'); }
     },
     getEngineConfig(isSub) {
@@ -353,8 +364,6 @@ export const PhoneAPI = {
         window.PhoneUI.renderMemoryVault();
         this.showToast('🗑️ 记忆已消除');
     },
-
-    // 🌟 新增：手动编辑记忆库内容
     async editMemoryVault(id) {
         let vault = this.getMemoryVault();
         let item = vault.find(m => m.id === id);
@@ -368,7 +377,6 @@ export const PhoneAPI = {
             }
         }
     },
-
     toggleCoreMemory(id) {
         let vault = this.getMemoryVault();
         let item = vault.find(m => m.id === id);
@@ -394,14 +402,43 @@ export const PhoneAPI = {
         }
     },
 
+    // 🌟 核心升级：控制悬浮球状态，并记录 Token 消耗！
     async chatWithAI(messages, useSubEngine = false) {
         const config = this.getEngineConfig(useSubEngine);
         if (!config) throw new Error("请先去【系统设置】里分配引擎配置！");
+        
+        // 让悬浮球疯狂旋转发光
+        const fab = document.getElementById('api-fab');
+        const statusText = document.getElementById('api-status-text');
+        if (fab) { fab.classList.add('loading'); fab.classList.remove('error'); }
+        if (statusText) { statusText.innerText = '正在思考中...'; statusText.style.color = 'var(--primary-color)'; }
+
         const endpoint = config.url.endsWith('/chat/completions') ? config.url : config.url.replace(/\/$/, '') + '/chat/completions';
         try {
             const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.key}` }, body: JSON.stringify({ model: config.model, messages: messages, temperature: 0.7 }) });
-            if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(`API 报错: ${response.status} ${errData.error?.message || ''}`); }
-            const data = await response.json(); return data.choices[0].message.content;
-        } catch (error) { console.error(error); throw new Error(error.message || "网络错误或 API 配置不正确，请检查。"); }
+            if (!response.ok) { 
+                const errData = await response.json().catch(() => ({})); 
+                throw new Error(`API 报错: ${response.status} ${errData.error?.message || ''}`); 
+            }
+            const data = await response.json(); 
+            
+            // 记录 Token 消耗
+            if (data.usage) {
+                const tokenText = document.getElementById('api-token-text');
+                if (tokenText) tokenText.innerText = `提示词: ${data.usage.prompt_tokens} | 回复: ${data.usage.completion_tokens} | 总计: ${data.usage.total_tokens}`;
+            }
+
+            // 恢复悬浮球状态
+            if (fab) fab.classList.remove('loading');
+            if (statusText) { statusText.innerText = '请求成功'; statusText.style.color = '#4ade80'; }
+
+            return data.choices[0].message.content;
+        } catch (error) { 
+            console.error(error); 
+            // 悬浮球变红警告
+            if (fab) { fab.classList.remove('loading'); fab.classList.add('error'); }
+            if (statusText) { statusText.innerText = '请求失败'; statusText.style.color = 'var(--danger-color)'; }
+            throw new Error(error.message || "网络错误或 API 配置不正确，请检查。"); 
+        }
     }
 };

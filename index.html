@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -7,12 +7,17 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#dbe9f6">
+    
+    <!-- 🌟 核心护盾：严厉警告手机浏览器，禁止强行反转网页颜色！ -->
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
+    
     <link rel="manifest" href="manifest.json">
     
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=3400">
+    <link rel="stylesheet" href="css/style.css?t=3500">
 </head>
 <body>
     <div id="app-container">
@@ -47,7 +52,6 @@
                         <div class="icon" id="home-icon-settings"><i class="ph-fill ph-gear" style="color: var(--primary-color);"></i></div>
                         <div class="name" style="font-weight: bold;">系统设置</div>
                     </div>
-                    <!-- 🌟 核心修复：补齐相册图标，治愈强迫症 -->
                     <div class="app-icon" onclick="alert('相册功能开发中！')">
                         <div class="icon" id="home-icon-gallery"><i class="ph-fill ph-images" style="color: #e5989b;"></i></div>
                         <div class="name">相册</div>

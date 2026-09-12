@@ -14,7 +14,7 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=3900">
+    <link rel="stylesheet" href="css/style.css?t=4000">
 </head>
 <body>
     <div id="app-container">
@@ -88,11 +88,15 @@
             <div id="page-chat" class="page" style="position: relative; padding-bottom: 0;">
                 <div id="app-content-list" style="flex: 1; overflow-y: auto; padding-bottom: 140px;"></div>
                 
-                <div id="chat-plus-menu" class="chat-plus-menu" style="grid-template-columns: repeat(4, 1fr);">
-                    <!-- 🌟 核心：加入提取记忆按钮 -->
+                <div id="chat-plus-menu" class="chat-plus-menu" style="grid-template-columns: repeat(3, 1fr);">
+                    <!-- 🌟 核心升级：加入记忆洗地按钮 -->
                     <div class="app-icon" onclick="window.PhoneEngine.extractMemory('wechat'); window.PhoneUI.closeChatMenu();">
                         <div class="icon"><i class="ph-fill ph-brain" style="color: #a78bfa;"></i></div>
                         <div class="name">提取记忆</div>
+                    </div>
+                    <div class="app-icon" onclick="window.PhoneEngine.washMemory('wechat'); window.PhoneUI.closeChatMenu();">
+                        <div class="icon"><i class="ph-fill ph-broom" style="color: #f4a261;"></i></div>
+                        <div class="name">记忆洗地</div>
                     </div>
                     <div class="app-icon" onclick="window.PhoneUI.openApp('skill', '技能架'); window.PhoneUI.toggleChatMenu();">
                         <div class="icon"><i class="ph-fill ph-magic-wand" style="color: #9d4edd;"></i></div>

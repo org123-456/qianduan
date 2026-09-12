@@ -71,6 +71,7 @@ export const PhoneUI = {
             contentEl.innerHTML = `<div id="novel-content-list" class="story-bg" onclick="window.PhoneUI.closeStoryMenu()"></div>`;
             footerEl.innerHTML = `
                 <div id="story-plus-menu" class="story-menu">
+                    <div class="story-menu-item" onclick="window.PhoneEngine.extractMemory('novel'); window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-brain"></i></div><div class="text">提取记忆</div></div>
                     <div class="story-menu-item" onclick="window.PhoneUI.openArchiveModal(); window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-floppy-disk"></i></div><div class="text">存档室</div></div>
                     <div class="story-menu-item" onclick="alert('掷骰子功能开发中！'); window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-dice-five"></i></div><div class="text">掷骰子</div></div>
                 </div>
@@ -106,31 +107,31 @@ export const PhoneUI = {
             this.renderDiaryPage();
 
         } else if (appId === 'memory_vault') {
-            const combinedItems = window.PhoneAPI.getCombinedMemory();
-            const myName = localStorage.getItem('my_name') || '我';
-            const charName = localStorage.getItem('char_name') || 'TA';
+            // 🌟 核心：记忆库现在只渲染 AI 提取的简写档案！
+            const vaultItems = window.PhoneAPI.getMemoryVault();
             
             let html = '<div class="timeline-container">';
-            if (combinedItems.length === 0) {
-                html += '<div style="text-align:center; color:var(--text-sub); padding: 50px 0;">空空如也，快去创造回忆吧！</div>';
+            if (vaultItems.length === 0) {
+                html += '<div style="text-align:center; color:var(--text-sub); padding: 50px 0;">空空如也，快去聊天界面点击【+】号提取记忆吧！</div>';
             } else {
-                const renderItems = combinedItems.slice(-50);
-                renderItems.forEach(item => {
-                    if (item.sender === 'typing') return;
-                    const isWechat = item.source === 'wechat';
+                [...vaultItems].reverse().forEach(item => {
+                    const isWechat = item.source === '线上微信';
                     const iconClass = isWechat ? 'wechat' : 'novel';
                     const iconHtml = isWechat ? '<i class="ph-fill ph-chat-circle-dots"></i>' : '<i class="ph-fill ph-book-open"></i>';
-                    const sourceName = isWechat ? '线上微信' : '线下故事';
-                    const senderName = item.sender === 'me' ? myName : charName;
+                    
                     let content = item.content;
                     if (window.marked) content = window.marked.parse(content);
 
                     html += `
                         <div class="timeline-item">
                             <div class="timeline-icon ${iconClass}">${iconHtml}</div>
-                            <div class="timeline-content">
-                                <div class="timeline-header"><span style="font-weight:bold; color:var(--primary-color);">${senderName}</span><span>${item.time || ''} · ${sourceName}</span></div>
+                            <div class="timeline-content" style="position:relative;">
+                                <div class="timeline-header">
+                                    <span style="font-weight:bold; color:var(--primary-color);">${item.date} ${item.time}</span>
+                                    <span>${item.source}</span>
+                                </div>
                                 <div class="timeline-text markdown-body">${content}</div>
+                                <div onclick="window.PhoneAPI.deleteFromMemoryVault('${item.id}')" style="position:absolute; right:10px; top:10px; color:var(--danger-color); cursor:pointer; padding:5px;"><i class="ph ph-trash"></i></div>
                             </div>
                         </div>
                     `;
@@ -161,10 +162,6 @@ export const PhoneUI = {
             contentEl.innerHTML = html;
 
         } else if (appId === 'settings') {
-            // 🌟 核心：在设置里加上“日记起始日期”
-            const today = new Date();
-            const defaultDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-            
             contentEl.innerHTML = `
                 <div class="card">
                     <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph-fill ph-user-list"></i> 基础设定</h3>
@@ -202,7 +199,7 @@ export const PhoneUI = {
                     <div class="engine-title"><i class="ph-fill ph-text-aa"></i> 日记本专属设置</div>
                     <div style="margin-bottom: 10px;">
                         <label style="font-size: 11px; color: var(--text-sub); font-weight: bold; color: var(--danger-color);">日记起始日期 (决定第一页是哪天！)</label>
-                        <input type="date" id="diary-start-date" value="${defaultDate}" onchange="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
+                        <input type="date" id="diary-start-date" onchange="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
                     </div>
                     <div style="margin-bottom: 10px;">
                         <label style="font-size: 11px; color: var(--text-sub);">封面标题 (英文比较好看)</label>
@@ -427,7 +424,6 @@ export const PhoneUI = {
     openArchiveModal() { this.renderArchiveList(); document.getElementById('archive-modal-bg').classList.add('show'); document.getElementById('archive-modal').classList.add('show'); },
     closeArchiveModal() { document.getElementById('archive-modal-bg').classList.remove('show'); document.getElementById('archive-modal').classList.remove('show'); },
 
-    // 🌟 核心：无限翻页算法！
     renderDiaryPage() {
         const contentAreaEl = document.getElementById('diary-content-area');
         if (!contentAreaEl) return;
@@ -449,7 +445,6 @@ export const PhoneUI = {
             return;
         }
 
-        // 获取起始日期
         const startDateStr = localStorage.getItem('diary_start_date');
         let startDate;
         if (startDateStr) {
@@ -459,7 +454,6 @@ export const PhoneUI = {
             startDate = new Date();
         }
 
-        // 计算当前页的日期
         const targetDate = new Date(startDate);
         targetDate.setDate(startDate.getDate() + currentIndex);
 
@@ -503,7 +497,6 @@ export const PhoneUI = {
     turnDiaryPage(direction) {
         let newIndex = window.Config.diaryPageIndex + direction;
         if (newIndex < -1) newIndex = -1;
-        // 🌟 解除 7 天限制！可以无限往后翻！
         window.Config.diaryPageIndex = newIndex;
         this.renderDiaryPage();
     },

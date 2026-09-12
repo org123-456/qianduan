@@ -274,7 +274,7 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 .mc-desc { font-size: 12px; opacity: 0.85; line-height: 1.4; }
 .mc-arrow { font-size: 20px; opacity: 0.5; }
 
-/* 🌟 修复：藤蔓时间轴与编辑按钮排版 */
+/* 🌟 核心修复：重绘藤蔓时间轴，确保操作按钮显示正常 */
 .vault-tabs { display: flex; background: var(--input-bg); border-radius: 16px; padding: 5px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);}
 .vault-tab { flex: 1; text-align: center; padding: 10px; font-size: 13px; font-weight: bold; color: var(--text-sub); border-radius: 12px; cursor: pointer; transition: 0.3s; }
 .vault-tab.active { background: #fff; color: var(--primary-color); box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
@@ -310,17 +310,16 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 }
 
 .vine-header { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 12px; color: var(--text-sub); border-bottom: 1px dashed var(--border-color); padding-bottom: 8px;}
-/* 🌟 核心修复：加入备用字体 Kaiti，防止被墙导致变成黑体 */
 .vine-text { font-family: 'Long Cang', 'Kaiti', 'STKaiti', cursive; font-size: 20px; color: var(--text-main); line-height: 1.8; letter-spacing: 1px;}
 
-/* 🌟 核心修复：把操作栏放到卡片内部，防止被遮挡，并加入编辑按钮 */
+/* 🌟 将操作按钮放在卡片内部，使用 flex 排列 */
 .vine-actions { 
     display: flex; justify-content: flex-end; gap: 15px; 
     margin-top: 15px; padding-top: 10px; border-top: 1px dashed var(--border-color);
 }
 .vine-btn { font-size: 22px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center;}
 .vine-btn:active { transform: scale(0.8); }
-.vine-btn.star { color: #f4a261; }
+.vine-btn.core-btn { color: #f4a261; } /* 🌟 核心：改名叫 core-btn，避开星海的 star 类名！ */
 .vine-btn.edit { color: var(--primary-color); }
 .vine-btn.del { color: var(--danger-color); }
 

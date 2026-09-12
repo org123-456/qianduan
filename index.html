@@ -14,7 +14,7 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=3800">
+    <link rel="stylesheet" href="css/style.css?t=3900">
 </head>
 <body>
     <div id="app-container">
@@ -88,7 +88,12 @@
             <div id="page-chat" class="page" style="position: relative; padding-bottom: 0;">
                 <div id="app-content-list" style="flex: 1; overflow-y: auto; padding-bottom: 140px;"></div>
                 
-                <div id="chat-plus-menu" class="chat-plus-menu" style="grid-template-columns: repeat(3, 1fr);">
+                <div id="chat-plus-menu" class="chat-plus-menu" style="grid-template-columns: repeat(4, 1fr);">
+                    <!-- 🌟 核心：加入提取记忆按钮 -->
+                    <div class="app-icon" onclick="window.PhoneEngine.extractMemory('wechat'); window.PhoneUI.closeChatMenu();">
+                        <div class="icon"><i class="ph-fill ph-brain" style="color: #a78bfa;"></i></div>
+                        <div class="name">提取记忆</div>
+                    </div>
                     <div class="app-icon" onclick="window.PhoneUI.openApp('skill', '技能架'); window.PhoneUI.toggleChatMenu();">
                         <div class="icon"><i class="ph-fill ph-magic-wand" style="color: #9d4edd;"></i></div>
                         <div class="name">技能架</div>
@@ -118,7 +123,6 @@
                 </div>
             </div>
 
-            <!-- 🌟 核心升级：Mine 页面加入收藏夹入口 -->
             <div id="page-mine" class="page">
                 <div class="card" style="text-align: center; padding: 40px 20px; color: var(--text-main);">
                     <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa" id="mine-avatar-display" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 15px; border: 3px solid var(--primary-color); object-fit: cover;">
@@ -159,7 +163,6 @@
             </div>
         </div>
 
-        <!-- 🌟 核心升级：消息操作菜单加入摘录和提炼按钮 -->
         <div id="action-bg" class="action-sheet-bg" onclick="window.PhoneEngine.closeMsgMenu()"></div>
         <div id="action-sheet" class="action-sheet">
             <button class="action-btn" onclick="window.PhoneEngine.favoriteMsg()"><i class="ph-fill ph-star" style="color: #f4a261;"></i> 手动摘录 (存入星海)</button>
@@ -227,7 +230,6 @@
             if(index === 1 && window.PhoneUI) {
                 window.PhoneUI.initStarrySea();
             }
-            // 刷新 Mine 页面的头像和名字
             if(index === 4) {
                 const avatar = localStorage.getItem('my_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa';
                 const name = localStorage.getItem('my_name') || '我';

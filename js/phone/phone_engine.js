@@ -5,14 +5,13 @@ import { PhoneUI } from './phone_ui.js';
 export const PhoneEngine = {
     currentMsgIndex: -1,
 
-    // 🌟 核心救场：一键清理所有卡死的“……”
+    // 🌟 核心：一键清理卡死的“...”
     cleanStuckTyping() {
         let changed = false;
         for (let roleId in Config.phoneData) {
             ['wechat', 'novel'].forEach(app => {
                 if (Config.phoneData[roleId][app]) {
                     const items = Config.phoneData[roleId][app].items;
-                    // 如果最后一条是 typing，直接干掉它！
                     if (items.length > 0 && items[items.length - 1].sender === 'typing') {
                         items.pop();
                         changed = true;
@@ -37,6 +36,34 @@ export const PhoneEngine = {
     closeMsgMenu() {
         document.getElementById('action-bg').classList.remove('show');
         document.getElementById('action-sheet').classList.remove('show');
+    },
+
+    // 🌟 核心：发送图片！
+    async sendImageMsg() {
+        this.closeMsgMenu();
+        const url = await PhoneUI.showCustomPrompt("🖼️ 请输入你要发送的图片网址 (URL)：", "");
+        if (url && url.trim() !== "") {
+            const roleId = Config.currentContactId;
+            if (!Config.phoneData[roleId].wechat) Config.phoneData[roleId].wechat = { items: [] };
+
+            const now = new Date();
+            const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+            const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+
+            // 存为 Markdown 格式，前端会自动渲染出图片！
+            Config.phoneData[roleId].wechat.items.push({ 
+                sender: 'me', 
+                content: `![图片](${url.trim()})`, 
+                time: timeStr, 
+                date: dateStr 
+            });
+
+            localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+            PhoneUI.renderAppContent('wechat');
+
+            // 触发 AI 回复
+            this.sendChatMessage(false);
+        }
     },
 
     async favoriteMsg() {
@@ -373,16 +400,32 @@ ${historyText}`;
             const MAX_CONTEXT = 20;
             const recentItems = chatItems.slice(-MAX_CONTEXT);
 
+            // 🌟 核心升级：解析图片，转换为 Vision API 格式！
             recentItems.forEach((item) => {
                 if (item.sender !== 'typing') { 
                     let text = item.content;
-                    if (item.sender === 'other' && item.innerThought && !item.innerThought.includes('TA的心思藏得很深') && !item.innerThought.includes('连发消息')) {
-                        text = `<inner>${item.innerThought}</inner>\n${text}`;
+                    
+                    // 检测是否包含图片 Markdown
+                    const imgMatch = text.match(/^!\[.*?\]\((.*?)\)$/);
+                    
+                    if (item.sender === 'me' && imgMatch) {
+                        // 如果是图片，转换为 OpenAI 视觉格式喂给模型
+                        messages.push({
+                            role: 'user',
+                            content: [
+                                { type: "image_url", image_url: { url: imgMatch[1] } }
+                            ]
+                        });
+                    } else {
+                        // 如果是普通文字
+                        if (item.sender === 'other' && item.innerThought && !item.innerThought.includes('TA的心思藏得很深') && !item.innerThought.includes('连发消息')) {
+                            text = `<inner>${item.innerThought}</inner>\n${text}`;
+                        }
+                        messages.push({
+                            role: item.sender === 'me' ? 'user' : 'assistant',
+                            content: text
+                        });
                     }
-                    messages.push({
-                        role: item.sender === 'me' ? 'user' : 'assistant',
-                        content: text
-                    });
                 }
             });
 

@@ -18,14 +18,15 @@ export const PhoneEngine = {
         document.getElementById('action-sheet').classList.remove('show');
     },
 
-    favoriteMsg() {
+    // 🌟 核心救场：全部换成自定义弹窗，不再触发手机系统的 Bug！
+    async favoriteMsg() {
         this.closeMsgMenu();
         if (this.currentMsgIndex < 0) return;
         const roleId = Config.currentContactId;
         const targetApp = Config.currentAppId === 'novel' ? 'novel' : 'wechat';
         const msg = Config.phoneData[roleId][targetApp].items[this.currentMsgIndex];
         
-        const selectedText = window.prompt("⭐ 请精简你要收藏的句子（太长会撑爆星星）：", msg.content);
+        const selectedText = await PhoneUI.showCustomPrompt("⭐ 请精简你要收藏的句子（太长会撑爆星星）：", msg.content);
         if (selectedText && selectedText.trim() !== "") {
             PhoneAPI.saveFavorite(selectedText.trim(), targetApp === 'wechat' ? '线上微信' : '线下故事', msg.sender);
         }
@@ -40,7 +41,6 @@ export const PhoneEngine = {
         
         PhoneAPI.showToast("✨ AI 正在提炼金句，请稍候...");
         try {
-            // 🌟 修复：改名 aiPrompt，防止和 window.prompt 冲突
             const aiPrompt = `请将下面这段角色扮演的回复，提炼成一句【简短、唯美、或傲娇的语录/内心独白】（要求在20字以内）。\n【绝对要求】：去除所有动作描写、环境描写和敏感(NSFW)内容，只保留最核心的情感或金句。直接输出这唯一的一句话，不要任何多余解释！\n\n原文：\n${msg.content}`;
             
             const messages = [{ role: "user", content: aiPrompt }];
@@ -49,7 +49,7 @@ export const PhoneEngine = {
             let finalQuote = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
             finalQuote = finalQuote.replace(/```.*?/g, '').replace(/```/g, '').replace(/^["']|["']$/g, '').trim();
             
-            const confirmText = window.prompt("✨ AI 提炼结果如下，确认无误后点击确定保存：", finalQuote);
+            const confirmText = await PhoneUI.showCustomPrompt("✨ AI 提炼结果如下，确认无误后点击确定保存：", finalQuote);
             if (confirmText && confirmText.trim() !== "") {
                 PhoneAPI.saveFavorite(confirmText.trim(), targetApp === 'wechat' ? '线上微信' : '线下故事', msg.sender);
             }
@@ -80,7 +80,7 @@ export const PhoneEngine = {
             let summary = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
             summary = summary.replace(/```.*?/g, '').replace(/```/g, '').trim();
             
-            const confirmText = window.prompt("✨ AI 提取的记忆档案如下，你可以手动删减去敏，确认无误后点击确定保存：", summary);
+            const confirmText = await PhoneUI.showCustomPrompt("✨ AI 提取的记忆档案如下，你可以手动删减去敏，确认无误后点击确定保存：", summary);
             if (confirmText && confirmText.trim() !== "") {
                 PhoneAPI.saveToMemoryVault(confirmText.trim(), sourceApp === 'wechat' ? '线上微信' : '线下故事');
             }
@@ -114,7 +114,7 @@ export const PhoneEngine = {
             let summary = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
             summary = summary.replace(/```.*?/g, '').replace(/```/g, '').trim();
             
-            const confirmText = window.prompt("✨ 洗地总结如下，你可以手动修改去敏，确认后将存入记忆库并清空界面：", summary);
+            const confirmText = await PhoneUI.showCustomPrompt("✨ 洗地总结如下，你可以手动修改去敏，确认后将存入记忆库并清空界面：", summary);
             if (confirmText && confirmText.trim() !== "") {
                 PhoneAPI.saveToMemoryVault(confirmText.trim(), sourceApp === 'wechat' ? '线上微信' : '线下故事');
                 
@@ -131,6 +131,25 @@ export const PhoneEngine = {
         }
     },
 
+    async editMsg() {
+        this.closeMsgMenu();
+        if (this.currentMsgIndex < 0) return;
+        const roleId = Config.currentContactId;
+        const targetApp = Config.currentAppId === 'novel' ? 'novel' : 'wechat';
+        
+        const oldText = Config.phoneData[roleId][targetApp].items[this.currentMsgIndex].content;
+        const newText = await PhoneUI.showCustomPrompt("✏️ 编辑消息：", oldText);
+        if (newText !== null && newText.trim() !== "") {
+            Config.phoneData[roleId][targetApp].items[this.currentMsgIndex].content = newText.trim();
+            
+            if (targetApp === 'novel') PhoneUI.renderNovelContent();
+            else PhoneUI.renderAppContent('wechat');
+            
+            localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+            PhoneAPI.showToast("✅ 修改成功");
+        }
+    },
+
     deleteMsg() {
         this.closeMsgMenu();
         if (this.currentMsgIndex < 0) return;
@@ -144,25 +163,6 @@ export const PhoneEngine = {
         
         localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
         PhoneAPI.showToast("🗑️ 消息已删除");
-    },
-
-    editMsg() {
-        this.closeMsgMenu();
-        if (this.currentMsgIndex < 0) return;
-        const roleId = Config.currentContactId;
-        const targetApp = Config.currentAppId === 'novel' ? 'novel' : 'wechat';
-        
-        const oldText = Config.phoneData[roleId][targetApp].items[this.currentMsgIndex].content;
-        const newText = window.prompt("✏️ 编辑消息：", oldText);
-        if (newText !== null && newText.trim() !== "") {
-            Config.phoneData[roleId][targetApp].items[this.currentMsgIndex].content = newText.trim();
-            
-            if (targetApp === 'novel') PhoneUI.renderNovelContent();
-            else PhoneUI.renderAppContent('wechat');
-            
-            localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-            PhoneAPI.showToast("✅ 修改成功");
-        }
     },
 
     regenMsg() {

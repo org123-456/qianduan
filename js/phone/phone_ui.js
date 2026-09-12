@@ -60,7 +60,6 @@ export const PhoneUI = {
         winEl.classList.add('open');
         contentEl.style.padding = '20px'; contentEl.style.background = 'transparent'; footerEl.innerHTML = ''; 
         
-        // 🌟 核心：如果是日记本，给整个窗口加上全屏模式类名！
         if (appId === 'diary') {
             winEl.classList.add('fullscreen-mode');
         } else {
@@ -84,7 +83,6 @@ export const PhoneUI = {
             this.renderNovelContent();
 
         } else if (appId === 'diary') {
-            // 🌟 核心：读取自定义的扉页标题
             const diaryTitle = localStorage.getItem('diary_title') || 'His Diary';
             
             contentEl.innerHTML = `
@@ -163,6 +161,10 @@ export const PhoneUI = {
             contentEl.innerHTML = html;
 
         } else if (appId === 'settings') {
+            // 🌟 核心：在设置里加上“日记起始日期”
+            const today = new Date();
+            const defaultDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+            
             contentEl.innerHTML = `
                 <div class="card">
                     <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph-fill ph-user-list"></i> 基础设定</h3>
@@ -197,8 +199,11 @@ export const PhoneUI = {
                         <input type="text" id="bg-diary-page" placeholder="推荐使用牛皮纸或水彩底图" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
                     </div>
                     
-                    <!-- 🌟 新增：扉页文字自定义 -->
-                    <div class="engine-title"><i class="ph-fill ph-text-aa"></i> 日记本扉页文字</div>
+                    <div class="engine-title"><i class="ph-fill ph-text-aa"></i> 日记本专属设置</div>
+                    <div style="margin-bottom: 10px;">
+                        <label style="font-size: 11px; color: var(--text-sub); font-weight: bold; color: var(--danger-color);">日记起始日期 (决定第一页是哪天！)</label>
+                        <input type="date" id="diary-start-date" value="${defaultDate}" onchange="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
+                    </div>
                     <div style="margin-bottom: 10px;">
                         <label style="font-size: 11px; color: var(--text-sub);">封面标题 (英文比较好看)</label>
                         <input type="text" id="diary-title" placeholder="His Diary" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
@@ -327,7 +332,7 @@ export const PhoneUI = {
         const winEl = document.getElementById('app-window');
         if(winEl) {
             winEl.classList.remove('open');
-            winEl.classList.remove('fullscreen-mode'); // 退出时移除全屏
+            winEl.classList.remove('fullscreen-mode'); 
         }
         window.Config.currentAppId = 'wechat';
     },
@@ -422,21 +427,14 @@ export const PhoneUI = {
     openArchiveModal() { this.renderArchiveList(); document.getElementById('archive-modal-bg').classList.add('show'); document.getElementById('archive-modal').classList.add('show'); },
     closeArchiveModal() { document.getElementById('archive-modal-bg').classList.remove('show'); document.getElementById('archive-modal').classList.remove('show'); },
 
-    // 🌟 核心：渲染带手写体扉页的日记本
+    // 🌟 核心：无限翻页算法！
     renderDiaryPage() {
         const contentAreaEl = document.getElementById('diary-content-area');
         if (!contentAreaEl) return;
 
-        const today = new Date();
-        const dates = [];
-        for (let i = 6; i >= 0; i--) {
-            const d = new Date(today); d.setDate(today.getDate() - i); dates.push(d);
-        }
-
         const currentIndex = window.Config.diaryPageIndex;
 
         if (currentIndex === -1) {
-            // 🌟 渲染自定义扉页，使用龙藏体
             const quote = localStorage.getItem('diary_quote') || '“时间会磨平一切痕迹，\n除了我为你写下的字。”';
             const formattedQuote = quote.replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
             
@@ -451,11 +449,28 @@ export const PhoneUI = {
             return;
         }
 
-        const targetDate = dates[currentIndex];
-        const dateStr = targetDate.toISOString().split('T')[0];
+        // 获取起始日期
+        const startDateStr = localStorage.getItem('diary_start_date');
+        let startDate;
+        if (startDateStr) {
+            const parts = startDateStr.split('-');
+            startDate = new Date(parts[0], parts[1]-1, parts[2]);
+        } else {
+            startDate = new Date();
+        }
+
+        // 计算当前页的日期
+        const targetDate = new Date(startDate);
+        targetDate.setDate(startDate.getDate() + currentIndex);
+
+        const y = targetDate.getFullYear();
+        const m = String(targetDate.getMonth() + 1).padStart(2, '0');
+        const d = String(targetDate.getDate()).padStart(2, '0');
+        const dateStr = `${y}-${m}-${d}`;
+
         const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
         const weekStr = '星期' + weekDays[targetDate.getDay()];
-        const displayDate = `${targetDate.getFullYear()}年${targetDate.getMonth() + 1}月${targetDate.getDate()}日`;
+        const displayDate = `${y}年${m}月${d}日`;
 
         const diaries = window.PhoneAPI.getDiaries();
         const content = diaries[dateStr];
@@ -474,17 +489,12 @@ export const PhoneUI = {
             let parsedContent = window.marked ? window.marked.parse(content) : content;
             html += `<div class="notebook-content">${parsedContent}</div>`;
         } else {
-            const isToday = currentIndex === 6;
-            if (isToday) {
-                html += `
-                    <div class="notebook-empty">
-                        <p style="margin-bottom: 20px;">今天还没有记录呢...</p>
-                        <button class="btn-refresh" onclick="window.PhoneEngine.generateDiary('${dateStr}')" style="width: auto; padding: 10px 20px; background: rgba(0,0,0,0.6); border-radius: 8px; font-family: sans-serif; font-size: 14px;"><i class="ph-fill ph-magic-wand"></i> 偷偷写日记</button>
-                    </div>
-                `;
-            } else {
-                html += `<div class="notebook-empty"><p>这一天，什么也没留下。</p></div>`;
-            }
+            html += `
+                <div class="notebook-empty">
+                    <p style="margin-bottom: 20px;">这一页还是空白的...</p>
+                    <button class="btn-refresh" onclick="window.PhoneEngine.generateDiary('${dateStr}')" style="width: auto; padding: 10px 20px; background: rgba(0,0,0,0.6); border-radius: 8px; font-family: sans-serif; font-size: 14px;"><i class="ph-fill ph-magic-wand"></i> 偷偷写日记</button>
+                </div>
+            `;
         }
 
         contentAreaEl.innerHTML = html;
@@ -493,7 +503,7 @@ export const PhoneUI = {
     turnDiaryPage(direction) {
         let newIndex = window.Config.diaryPageIndex + direction;
         if (newIndex < -1) newIndex = -1;
-        if (newIndex > 6) newIndex = 6;
+        // 🌟 解除 7 天限制！可以无限往后翻！
         window.Config.diaryPageIndex = newIndex;
         this.renderDiaryPage();
     },

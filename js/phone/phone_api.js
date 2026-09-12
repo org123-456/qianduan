@@ -322,7 +322,6 @@ export const PhoneAPI = {
 
     getMemoryVault() { return JSON.parse(localStorage.getItem('memory_vault_entries') || '[]'); },
     
-    // 🌟 核心升级：支持接收数组，批量存入拆解后的多条记忆！
     saveToMemoryVault(summaries, source, isCore = false) {
         const vault = this.getMemoryVault();
         const now = new Date();
@@ -354,6 +353,22 @@ export const PhoneAPI = {
         window.PhoneUI.renderMemoryVault();
         this.showToast('🗑️ 记忆已消除');
     },
+
+    // 🌟 新增：手动编辑记忆库内容
+    async editMemoryVault(id) {
+        let vault = this.getMemoryVault();
+        let item = vault.find(m => m.id === id);
+        if (item) {
+            const newText = await window.PhoneUI.showCustomPrompt("✏️ 修改记忆档案：", item.content);
+            if (newText !== null && newText.trim() !== "") {
+                item.content = newText.trim();
+                localStorage.setItem('memory_vault_entries', JSON.stringify(vault));
+                window.PhoneUI.renderMemoryVault();
+                this.showToast('✅ 记忆已修改');
+            }
+        }
+    },
+
     toggleCoreMemory(id) {
         let vault = this.getMemoryVault();
         let item = vault.find(m => m.id === id);

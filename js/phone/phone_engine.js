@@ -5,15 +5,6 @@ import { PhoneUI } from './phone_ui.js';
 export const PhoneEngine = {
     currentMsgIndex: -1,
 
-    getRealIndex(targetApp, index) {
-        const roleId = Config.currentContactId;
-        const items = Config.phoneData[roleId]?.[targetApp]?.items || [];
-        if (items.length > 50 && index < 50) {
-            return items.length - 50 + index;
-        }
-        return index;
-    },
-
     cleanStuckTyping() {
         let changed = false;
         for (let roleId in Config.phoneData) {
@@ -37,8 +28,8 @@ export const PhoneEngine = {
         }
     },
 
-    openMsgMenu(index, sender) {
-        this.currentMsgIndex = index;
+    openMsgMenu(realIndex, sender) {
+        this.currentMsgIndex = realIndex; // 🌟 接收绝对真实索引！
         document.getElementById('action-bg').classList.add('show');
         document.getElementById('action-sheet').classList.add('show');
         const btnRegen = document.getElementById('btn-regen');
@@ -110,69 +101,16 @@ export const PhoneEngine = {
         input.click();
     },
 
-    sendFileMsg() {
-        this.closeMsgMenu();
-        const input = document.createElement('input');
-        input.type = 'file';
-        
-        input.onchange = async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            if (file.type.startsWith('image/')) {
-                PhoneAPI.showToast("图片请使用【发图片】功能哦！");
-                return;
-            }
-
-            PhoneAPI.showToast(`📁 正在发送文件: ${file.name}...`);
-
-            const roleId = Config.currentContactId;
-            if (!Config.phoneData[roleId].wechat) Config.phoneData[roleId].wechat = { items: [] };
-            const chatItems = Config.phoneData[roleId].wechat.items;
-            const now = new Date();
-            const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-            const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-
-            const isText = file.type.startsWith('text/') || file.name.endsWith('.md') || file.name.endsWith('.json') || file.name.endsWith('.csv');
-            
-            if (isText && file.size < 100 * 1024) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const content = event.target.result;
-                    chatItems.push({
-                        sender: 'me',
-                        content: `📁 [发送了文件: ${file.name}]\n\n文件内容如下：\n\`\`\`\n${content}\n\`\`\``,
-                        time: timeStr,
-                        date: dateStr
-                    });
-                    localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-                    PhoneUI.renderAppContent('wechat');
-                };
-                reader.readAsText(file);
-            } else {
-                const sizeMB = (file.size / 1024 / 1024).toFixed(2);
-                chatItems.push({
-                    sender: 'me',
-                    content: `📁 [发送了文件: ${file.name}] (大小: ${sizeMB}MB)\n\n【系统提示】：用户向你发送了一份文件。由于跨次元限制，你无法直接读取文件内容，请你根据文件名脑补文件内容，并作出符合人设的反应。`,
-                    time: timeStr,
-                    date: dateStr
-                });
-                localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-                PhoneUI.renderAppContent('wechat');
-            }
-        };
-        input.click();
-    },
-
     async favoriteMsg() {
         this.closeMsgMenu();
         if (this.currentMsgIndex < 0) return;
         const roleId = Config.currentContactId;
         const targetApp = Config.currentAppId === 'novel' ? 'novel' : 'wechat';
         
-        const realIndex = this.getRealIndex(targetApp, this.currentMsgIndex);
-        const msg = Config.phoneData[roleId][targetApp].items[realIndex];
-        
+        // 🌟 直接拿真实索引，绝对不偏移！
+        const msg = Config.phoneData[roleId][targetApp].items[this.currentMsgIndex];
+        if (!msg) return;
+
         const selectedText = await PhoneUI.showCustomPrompt("⭐ 请精简你要收藏的句子（太长会撑爆星星）：", msg.content);
         if (selectedText && selectedText.trim() !== "") {
             PhoneAPI.saveFavorite(selectedText.trim(), targetApp === 'wechat' ? '线上微信' : '线下故事', msg.sender);
@@ -185,8 +123,8 @@ export const PhoneEngine = {
         const roleId = Config.currentContactId;
         const targetApp = Config.currentAppId === 'novel' ? 'novel' : 'wechat';
         
-        const realIndex = this.getRealIndex(targetApp, this.currentMsgIndex);
-        const msg = Config.phoneData[roleId][targetApp].items[realIndex];
+        const msg = Config.phoneData[roleId][targetApp].items[this.currentMsgIndex];
+        if (!msg) return;
         
         PhoneAPI.showToast("✨ AI 正在提炼金句，请稍候...");
         try {
@@ -308,12 +246,11 @@ ${historyText}`;
         const roleId = Config.currentContactId;
         const targetApp = Config.currentAppId === 'novel' ? 'novel' : 'wechat';
         
-        const realIndex = this.getRealIndex(targetApp, this.currentMsgIndex);
-        const oldText = Config.phoneData[roleId][targetApp].items[realIndex].content;
+        const oldText = Config.phoneData[roleId][targetApp].items[this.currentMsgIndex].content;
         
         const newText = await PhoneUI.showCustomPrompt("✏️ 编辑消息：", oldText);
         if (newText !== null && newText.trim() !== "") {
-            Config.phoneData[roleId][targetApp].items[realIndex].content = newText.trim();
+            Config.phoneData[roleId][targetApp].items[this.currentMsgIndex].content = newText.trim();
             
             if (targetApp === 'novel') PhoneUI.renderNovelContent();
             else PhoneUI.renderAppContent('wechat');
@@ -329,8 +266,7 @@ ${historyText}`;
         const roleId = Config.currentContactId;
         const targetApp = Config.currentAppId === 'novel' ? 'novel' : 'wechat';
         
-        const realIndex = this.getRealIndex(targetApp, this.currentMsgIndex);
-        Config.phoneData[roleId][targetApp].items.splice(realIndex, 1);
+        Config.phoneData[roleId][targetApp].items.splice(this.currentMsgIndex, 1);
         
         if (targetApp === 'novel') PhoneUI.renderNovelContent();
         else PhoneUI.renderAppContent('wechat');
@@ -345,8 +281,7 @@ ${historyText}`;
         const roleId = Config.currentContactId;
         const targetApp = Config.currentAppId === 'novel' ? 'novel' : 'wechat';
         
-        const realIndex = this.getRealIndex(targetApp, this.currentMsgIndex);
-        Config.phoneData[roleId][targetApp].items.splice(realIndex);
+        Config.phoneData[roleId][targetApp].items.splice(this.currentMsgIndex);
         localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
         
         if (targetApp === 'novel') {
@@ -465,10 +400,12 @@ ${historyText}`;
             let formatRule = "";
             if (banEmoji) formatRule += "【最高禁令】：绝对不允许使用任何 Emoji、颜文字、波浪号(~)，违者抹杀！\n";
             
-            // 🌟 核心修改：去掉数字限制，允许自由连发！
-            formatRule += "【微信连发机制】：请像真实人类用微信一样，把你的回复自然地切分成多个短句。**不限制气泡数量，请务必把你想说的话完整说完！** 系统会根据你输出的换行符（回车）来切分微信气泡。绝对不要把所有话挤在同一行！\n";
+            // 🌟 核心通用指令：杜绝拖延，当场互动！
+            formatRule += "【即时互动原则】：无论用户向你发送问题、日常还是问卷测试，绝对禁止说'回头再答'、'等我写完'这类推迟动作的敷衍回答！你必须在当前消息中当场做出正面、具体、充满角色个性的回应！\n";
+            formatRule += "【微信连发机制】：不限制气泡数量，把你想说的话完整说完！请用换行符切分气泡，不要把所有话挤在同一行。\n";
             
-            formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。**【绝对警告】：严禁重复你之前的心声！必须根据当前的最新对话，产生全新的心理活动！**\n";
+            // 🌟 核心指令：要求心声必须反映“最当下”的情感震荡！
+            formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻最隐秘的真实心声。心声必须与你当前说出的这句话紧密呼应，展现你内心的傲娇、动摇、吃醋或真实的渴望！\n";
 
             const wbData = PhoneAPI.getWorldbookData();
             const activeOnlineWb = wbData.filter(w => w.online).map(w => w.content).join('\n');
@@ -521,7 +458,6 @@ ${historyText}`;
             recentItems.forEach((item) => {
                 if (item.sender !== 'typing') { 
                     let text = item.content;
-                    
                     const imgMatch = text.match(/^!\[.*?\]\((.*?)\)$/);
                     
                     if (item.sender === 'me' && imgMatch) {
@@ -533,6 +469,7 @@ ${historyText}`;
                             ]
                         });
                     } else {
+                        // 🌟 核心：历史对话干干净净发给 AI，不留旧心声诱导它抄作业！
                         messages.push({
                             role: item.sender === 'me' ? 'user' : 'assistant',
                             content: text
@@ -642,7 +579,7 @@ ${historyText}`;
 
             let formatRule = "【线下沉浸模式】：当前是面对面的真实场景。请用写小说/语C的笔法进行演绎。\n";
             formatRule += `【字数与细节强制要求】：每次回复**必须不少于 ${minWords} 字**（不包含思维链的字数）！请尽情展开环境渲染、细腻的动作刻画和深度的心理描写，让场景充满画面感。绝对禁止像微信聊天那样只发短对话，必须像长篇小说的一段一样丰满！\n`;
-            formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。**【警告】：绝对禁止重复之前的心声！必须产生全新的心理活动！**\n";
+            formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。\n";
 
             if (banEmoji) formatRule += "【最高禁令】：绝对不允许使用任何 Emoji、颜文字、波浪号(~)，违者抹杀！\n";
 

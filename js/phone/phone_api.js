@@ -320,23 +320,32 @@ export const PhoneAPI = {
         window.PhoneUI.renderAppContent('favorites'); this.showToast('🗑️ 已删除');
     },
 
-    getMemoryVault() {
-        return JSON.parse(localStorage.getItem('memory_vault_entries') || '[]');
-    },
-    saveToMemoryVault(summary, source, isCore = false) {
+    getMemoryVault() { return JSON.parse(localStorage.getItem('memory_vault_entries') || '[]'); },
+    
+    // 🌟 核心升级：支持接收数组，批量存入拆解后的多条记忆！
+    saveToMemoryVault(summaries, source, isCore = false) {
         const vault = this.getMemoryVault();
         const now = new Date();
-        vault.push({
-            id: 'mem_' + Date.now(),
-            content: summary,
-            source: source,
-            date: `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`,
-            time: `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`,
-            isCore: isCore
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+        let summaryArray = Array.isArray(summaries) ? summaries : [summaries];
+
+        summaryArray.forEach((summary, index) => {
+            vault.push({
+                id: 'mem_' + Date.now() + '_' + index,
+                content: summary,
+                source: source,
+                date: dateStr,
+                time: timeStr,
+                isCore: isCore
+            });
         });
+
         localStorage.setItem('memory_vault_entries', JSON.stringify(vault));
-        this.showToast('🧠 记忆已成功压缩并存入档案库！');
+        this.showToast(`🧠 成功存入 ${summaryArray.length} 条记忆档案！`);
     },
+    
     deleteFromMemoryVault(id) {
         if(!confirm('确定要删除这段记忆档案吗？')) return;
         let vault = this.getMemoryVault();
@@ -345,7 +354,6 @@ export const PhoneAPI = {
         window.PhoneUI.renderMemoryVault();
         this.showToast('🗑️ 记忆已消除');
     },
-    // 🌟 新增：切换核心记忆状态
     toggleCoreMemory(id) {
         let vault = this.getMemoryVault();
         let item = vault.find(m => m.id === id);
@@ -353,11 +361,7 @@ export const PhoneAPI = {
             item.isCore = !item.isCore;
             localStorage.setItem('memory_vault_entries', JSON.stringify(vault));
             window.PhoneUI.renderMemoryVault();
-            if (item.isCore) {
-                this.showToast('📌 已设为核心记忆，他永远不会忘记！');
-            } else {
-                this.showToast('取消核心记忆');
-            }
+            if (item.isCore) { this.showToast('📌 已设为核心记忆，他永远不会忘记！'); } else { this.showToast('取消核心记忆'); }
         }
     },
 

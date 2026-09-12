@@ -320,11 +320,10 @@ export const PhoneAPI = {
         window.PhoneUI.renderAppContent('favorites'); this.showToast('🗑️ 已删除');
     },
 
-    // 🌟 新增：全局记忆库的存取 API
     getMemoryVault() {
         return JSON.parse(localStorage.getItem('memory_vault_entries') || '[]');
     },
-    saveToMemoryVault(summary, source) {
+    saveToMemoryVault(summary, source, isCore = false) {
         const vault = this.getMemoryVault();
         const now = new Date();
         vault.push({
@@ -332,7 +331,8 @@ export const PhoneAPI = {
             content: summary,
             source: source,
             date: `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`,
-            time: `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
+            time: `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`,
+            isCore: isCore
         });
         localStorage.setItem('memory_vault_entries', JSON.stringify(vault));
         this.showToast('🧠 记忆已成功压缩并存入档案库！');
@@ -342,8 +342,23 @@ export const PhoneAPI = {
         let vault = this.getMemoryVault();
         vault = vault.filter(m => m.id !== id);
         localStorage.setItem('memory_vault_entries', JSON.stringify(vault));
-        window.PhoneUI.openApp('memory_vault', '全局记忆库');
+        window.PhoneUI.renderMemoryVault();
         this.showToast('🗑️ 记忆已消除');
+    },
+    // 🌟 新增：切换核心记忆状态
+    toggleCoreMemory(id) {
+        let vault = this.getMemoryVault();
+        let item = vault.find(m => m.id === id);
+        if (item) {
+            item.isCore = !item.isCore;
+            localStorage.setItem('memory_vault_entries', JSON.stringify(vault));
+            window.PhoneUI.renderMemoryVault();
+            if (item.isCore) {
+                this.showToast('📌 已设为核心记忆，他永远不会忘记！');
+            } else {
+                this.showToast('取消核心记忆');
+            }
+        }
     },
 
     async forceUpdate() {

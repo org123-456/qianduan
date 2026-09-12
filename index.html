@@ -14,7 +14,7 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=4000">
+    <link rel="stylesheet" href="css/style.css?t=4100">
 </head>
 <body>
     <div id="app-container">
@@ -89,7 +89,6 @@
                 <div id="app-content-list" style="flex: 1; overflow-y: auto; padding-bottom: 140px;"></div>
                 
                 <div id="chat-plus-menu" class="chat-plus-menu" style="grid-template-columns: repeat(3, 1fr);">
-                    <!-- 🌟 核心升级：加入记忆洗地按钮 -->
                     <div class="app-icon" onclick="window.PhoneEngine.extractMemory('wechat'); window.PhoneUI.closeChatMenu();">
                         <div class="icon"><i class="ph-fill ph-brain" style="color: #a78bfa;"></i></div>
                         <div class="name">提取记忆</div>
@@ -207,6 +206,17 @@
             <i class="ph-fill ph-shooting-star blindbox-icon"></i>
             <div class="blindbox-text" id="blindbox-text">“回忆碎片加载中...”</div>
             <div class="blindbox-meta" id="blindbox-meta">2023-10-24 · 线上微信</div>
+        </div>
+
+        <!-- 🌟 核心救场：自定义输入弹窗 (替代被阉割的系统 prompt) -->
+        <div id="custom-prompt-bg" class="action-sheet-bg"></div>
+        <div id="custom-prompt-modal" class="thought-modal" style="padding: 20px; z-index: 1005;">
+            <div class="thought-header" id="custom-prompt-title" style="font-size: 14px; line-height: 1.4;">请输入</div>
+            <textarea id="custom-prompt-input" style="width: 100%; height: 120px; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 14px; resize: none; outline: none; margin-bottom: 15px; font-family: inherit;"></textarea>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-refresh" id="custom-prompt-cancel" style="flex: 1; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0;">取消</button>
+                <button class="btn-refresh" id="custom-prompt-confirm" style="flex: 1; background: var(--primary-color); margin-top: 0;">确定保存</button>
+            </div>
         </div>
 
         <div id="app-window" class="app-window">

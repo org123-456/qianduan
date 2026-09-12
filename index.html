@@ -14,14 +14,39 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <!-- 🌟 强制拉取最新 CSS -->
-    <link rel="stylesheet" href="css/style.css?t=7000">
+    <link rel="stylesheet" href="css/style.css?t=8000">
 </head>
 <body>
+    <!-- 🌟 核心：赛博悬浮球 -->
+    <div id="api-fab" class="api-fab" onclick="window.PhoneUI.openApiModal()">
+        <i class="ph-fill ph-cpu"></i>
+    </div>
+
+    <!-- 🌟 核心：API 控制舱 -->
+    <div id="api-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeApiModal()"></div>
+    <div id="api-modal" class="api-modal">
+        <div class="thought-header"><i class="ph-fill ph-cpu"></i> 系统控制舱</div>
+        
+        <div style="margin-bottom: 15px;">
+            <label style="font-size: 12px; color: var(--text-sub);">秒切主引擎 (聊天/小说)</label>
+            <select id="quick-main-engine" onchange="window.PhoneAPI.assignEngine('main', this.value)" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 5px;"></select>
+        </div>
+        
+        <div class="card" style="padding: 15px; margin-bottom: 15px; background: var(--icon-bg);">
+            <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 5px;">上一次 API 状态：</div>
+            <div id="api-status-text" style="font-size: 14px; font-weight: bold; color: var(--text-main);">待命</div>
+            <div style="font-size: 12px; color: var(--text-sub); margin-top: 10px; margin-bottom: 5px;">消耗 Token：</div>
+            <div id="api-token-text" style="font-size: 14px; font-family: monospace; color: var(--primary-color);">0</div>
+        </div>
+
+        <button class="btn-refresh" onclick="window.PhoneEngine.clearStuckTyping(); window.PhoneUI.closeApiModal();" style="background: var(--danger-color); margin-top: 0;">
+            <i class="ph-fill ph-warning"></i> 一键解除“...”卡死
+        </button>
+    </div>
+
     <div id="app-container">
         <div id="toast"><i class="ph-fill ph-check-circle" style="color: #4ade80; font-size: 18px;"></i> <span id="toast-msg">保存成功</span></div>
 
-        <!-- 🌟 顶部导航栏 -->
         <div class="top-bar">
             <div class="menu-btn" onclick="window.PhoneUI.toggleTheme()"><i class="ph-fill ph-moon" id="theme-icon" style="font-size: 18px;"></i></div>
             <div class="title" id="top-title">Claire & Claude</div>
@@ -239,13 +264,12 @@
         function switchTab(index) {
             scrollBox.scrollTo({ left: pages[index].offsetLeft, behavior: 'smooth' });
             
-            // 🌟 核心：切换页面时，控制顶部导航栏的显示/隐藏！
             const appContainer = document.getElementById('app-container');
             if(index === 1) {
-                appContainer.classList.add('hide-top-bar'); // Memory 页隐藏
+                appContainer.classList.add('hide-top-bar'); 
                 if(window.PhoneUI) window.PhoneUI.initStarrySea();
             } else {
-                appContainer.classList.remove('hide-top-bar'); // 其他页显示
+                appContainer.classList.remove('hide-top-bar'); 
             }
 
             if(index === 2 && window.PhoneUI) {
@@ -291,6 +315,8 @@
                     window.PhoneAPI.refreshPromptDropdowns();
                     window.PhoneAPI.refreshUIDropdowns();
                     window.PhoneAPI.loadSettings();
+                    // 🌟 核心：一进网页就自动清理卡死的“...”！
+                    if(window.PhoneEngine) window.PhoneEngine.cleanStuckTyping();
                 }
                 if(window.PhoneUI) window.PhoneUI.renderAppContent('wechat');
             }, 500);

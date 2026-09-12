@@ -46,7 +46,6 @@ export const PhoneUI = {
         if (menu) menu.classList.remove('show'); if (btn) btn.style.transform = 'rotate(0deg)';
     },
 
-    // 🌟 核心：自定义输入弹窗
     showCustomPrompt(title, defaultValue = '') {
         return new Promise((resolve) => {
             const bg = document.getElementById('custom-prompt-bg');
@@ -81,7 +80,6 @@ export const PhoneUI = {
         });
     },
 
-    // 🌟 核心：打开控制舱
     openApiModal() {
         document.getElementById('api-modal-bg').classList.add('show');
         document.getElementById('api-modal').classList.add('show');
@@ -536,9 +534,12 @@ export const PhoneUI = {
         setTimeout(() => { const scrollContainer = document.getElementById('app-window-content'); if(scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight; }, 100);
     },
 
+    // 🌟 核心急救：修复心声读取逻辑，配合真实索引！
     showThought(index) {
         const roleId = window.Config?.currentContactId;
         const targetApp = window.Config.currentAppId === 'novel' ? 'novel' : 'wechat';
+        
+        // 这里的 index 已经是 realIndex 了，直接取！
         const item = window.Config.phoneData[roleId]?.[targetApp]?.items[index];
         if(!item) return;
         
@@ -557,6 +558,7 @@ export const PhoneUI = {
         document.getElementById('thought-bg').classList.add('show');
         document.getElementById('thought-modal').classList.add('show');
     },
+
     closeThought() { document.getElementById('thought-bg').classList.remove('show'); document.getElementById('thought-modal').classList.remove('show'); },
     openWbModal() { document.getElementById('wb-modal-bg').classList.add('show'); document.getElementById('wb-modal').classList.add('show'); },
     closeWbModal() { document.getElementById('wb-modal-bg').classList.remove('show'); document.getElementById('wb-modal').classList.remove('show'); },

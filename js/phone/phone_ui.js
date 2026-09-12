@@ -172,6 +172,56 @@ export const PhoneUI = {
             html += '</div>';
             contentEl.innerHTML = html;
 
+        // 🌟 核心升级：赛博杂货铺开张！
+        } else if (appId === 'shop') {
+            let coins = localStorage.getItem('my_coins') || '500';
+            contentEl.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; padding: 0 5px;">
+                    <div style="font-size: 18px; font-weight: bold; color: var(--primary-color);">深夜杂货铺</div>
+                    <div style="background: rgba(244, 162, 97, 0.15); color: #e76f51; padding: 6px 15px; border-radius: 20px; font-weight: bold; display:flex; align-items:center; gap:6px; border: 1px solid rgba(244, 162, 97, 0.3);">
+                        <i class="ph-fill ph-coin"></i> <span id="coin-display">${coins}</span>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="card" style="padding: 20px 15px; text-align: center; margin-bottom: 0;">
+                        <div style="font-size: 48px; margin-bottom: 10px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.1));">🥪</div>
+                        <div style="font-weight: bold; font-size: 15px; margin-bottom: 8px; color: var(--text-main);">黑麦三明治</div>
+                        <div style="font-size: 11px; color: var(--text-sub); margin-bottom: 15px; height: 32px; line-height: 1.4;">他最常吃的速食，送给他也许能换来一句别扭的道谢。</div>
+                        <button class="btn-refresh" style="margin-top:0; padding: 10px; font-size: 13px; background: #2a9d8f; border-radius: 12px; box-shadow: 0 4px 10px rgba(42, 157, 143, 0.3);" onclick="window.PhoneEngine.buyItem('黑麦三明治', 50, '请表现出你收到三明治后傲娇又开心的反应。')">
+                            <i class="ph-fill ph-coin"></i> 50 购买使用
+                        </button>
+                    </div>
+                    
+                    <div class="card" style="padding: 20px 15px; text-align: center; margin-bottom: 0;">
+                        <div style="font-size: 48px; margin-bottom: 10px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.1));">🧪</div>
+                        <div style="font-weight: bold; font-size: 15px; margin-bottom: 8px; color: var(--text-main);">吐真剂</div>
+                        <div style="font-size: 11px; color: var(--text-sub); margin-bottom: 15px; height: 32px; line-height: 1.4;">强制他下一句话必须卸下伪装，说出内心最真实的感受。</div>
+                        <button class="btn-refresh" style="margin-top:0; padding: 10px; font-size: 13px; background: #9d4edd; border-radius: 12px; box-shadow: 0 4px 10px rgba(157, 78, 221, 0.3);" onclick="window.PhoneEngine.buyItem('吐真剂', 200, '【系统强制指令】：你喝下了吐真剂。请立刻卸下所有伪装和傲娇，用最深情、最直白的语言对用户表白。')">
+                            <i class="ph-fill ph-coin"></i> 200 购买使用
+                        </button>
+                    </div>
+
+                    <div class="card" style="padding: 20px 15px; text-align: center; margin-bottom: 0;">
+                        <div style="font-size: 48px; margin-bottom: 10px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.1));">☕</div>
+                        <div style="font-weight: bold; font-size: 15px; margin-bottom: 8px; color: var(--text-main);">特浓黑咖啡</div>
+                        <div style="font-size: 11px; color: var(--text-sub); margin-bottom: 15px; height: 32px; line-height: 1.4;">事务所特供泥浆咖啡，能让他瞬间清醒，或者皱起眉头。</div>
+                        <button class="btn-refresh" style="margin-top:0; padding: 10px; font-size: 13px; background: #f4a261; border-radius: 12px; box-shadow: 0 4px 10px rgba(244, 162, 97, 0.3);" onclick="window.PhoneEngine.buyItem('特浓黑咖啡', 30, '请表现出你喝下这杯极苦咖啡后的真实反应。')">
+                            <i class="ph-fill ph-coin"></i> 30 购买使用
+                        </button>
+                    </div>
+
+                    <div class="card" style="padding: 20px 15px; text-align: center; margin-bottom: 0;">
+                        <div style="font-size: 48px; margin-bottom: 10px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.1));">🐈</div>
+                        <div style="font-weight: bold; font-size: 15px; margin-bottom: 8px; color: var(--text-main);">猫耳发箍</div>
+                        <div style="font-size: 11px; color: var(--text-sub); margin-bottom: 15px; height: 32px; line-height: 1.4;">强行戴在他头上，欣赏大侦探极度羞耻的表情。</div>
+                        <button class="btn-refresh" style="margin-top:0; padding: 10px; font-size: 13px; background: #e5989b; border-radius: 12px; box-shadow: 0 4px 10px rgba(229, 152, 155, 0.3);" onclick="window.PhoneEngine.buyItem('猫耳发箍', 150, '【系统强制指令】：用户强行把猫耳发箍戴在了你头上。请表现出极度羞耻、想要摘下但又怕惹用户生气的别扭反应。')">
+                            <i class="ph-fill ph-coin"></i> 150 购买使用
+                        </button>
+                    </div>
+                </div>
+            `;
+
         } else if (appId === 'settings') {
             const today = new Date();
             const defaultDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
@@ -390,7 +440,6 @@ export const PhoneUI = {
             const leafRot = Math.random() * 360;
             const leafHtml = `<i class="ph-fill ph-leaf vine-leaf" style="top:${leafTop}%; left:${leafLeft}px; transform:rotate(${leafRot}deg);"></i>`;
 
-            // 🌟 核心修复：把 star 类名换成了 core-btn！
             html += `
                 <div class="vine-item">
                     <div class="${nodeClass}">${iconHtml}</div>
@@ -482,7 +531,20 @@ export const PhoneUI = {
         const targetApp = window.Config.currentAppId === 'novel' ? 'novel' : 'wechat';
         const item = window.Config.phoneData[roleId]?.[targetApp]?.items[index];
         if(!item) return;
-        document.getElementById('thought-content').innerText = item.innerThought || "（那时候TA的心思藏得很深，什么也没看出来...）";
+        
+        // 🌟 核心修复：如果当前气泡没有心声，往前找同时间的第一个心声
+        let thought = item.innerThought;
+        if (thought && thought.includes('连发消息')) {
+            for (let i = index - 1; i >= 0; i--) {
+                const prevItem = window.Config.phoneData[roleId][targetApp].items[i];
+                if (prevItem.sender === 'other' && prevItem.time === item.time && prevItem.innerThought && !prevItem.innerThought.includes('连发消息')) {
+                    thought = prevItem.innerThought;
+                    break;
+                }
+            }
+        }
+        
+        document.getElementById('thought-content').innerText = thought || "（TA的心思藏得很深，什么也没看出来...）";
         document.getElementById('thought-bg').classList.add('show');
         document.getElementById('thought-modal').classList.add('show');
     },

@@ -72,6 +72,7 @@ export const PhoneUI = {
             footerEl.innerHTML = `
                 <div id="story-plus-menu" class="story-menu">
                     <div class="story-menu-item" onclick="window.PhoneEngine.extractMemory('novel'); window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-brain"></i></div><div class="text">提取记忆</div></div>
+                    <div class="story-menu-item" onclick="window.PhoneEngine.washMemory('novel'); window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-broom" style="color: #f4a261;"></i></div><div class="text">记忆洗地</div></div>
                     <div class="story-menu-item" onclick="window.PhoneUI.openArchiveModal(); window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-floppy-disk"></i></div><div class="text">存档室</div></div>
                     <div class="story-menu-item" onclick="alert('掷骰子功能开发中！'); window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-dice-five"></i></div><div class="text">掷骰子</div></div>
                 </div>
@@ -85,7 +86,6 @@ export const PhoneUI = {
 
         } else if (appId === 'diary') {
             const diaryTitle = localStorage.getItem('diary_title') || 'His Diary';
-            
             contentEl.innerHTML = `
                 <div id="diary-cover-view" class="diary-cover-view">
                     <div class="diary-book-cover" id="diary-book-cover" onclick="window.PhoneUI.unlockDiary()">
@@ -107,39 +107,17 @@ export const PhoneUI = {
             this.renderDiaryPage();
 
         } else if (appId === 'memory_vault') {
-            // 🌟 核心：记忆库现在只渲染 AI 提取的简写档案！
-            const vaultItems = window.PhoneAPI.getMemoryVault();
-            
-            let html = '<div class="timeline-container">';
-            if (vaultItems.length === 0) {
-                html += '<div style="text-align:center; color:var(--text-sub); padding: 50px 0;">空空如也，快去聊天界面点击【+】号提取记忆吧！</div>';
-            } else {
-                [...vaultItems].reverse().forEach(item => {
-                    const isWechat = item.source === '线上微信';
-                    const iconClass = isWechat ? 'wechat' : 'novel';
-                    const iconHtml = isWechat ? '<i class="ph-fill ph-chat-circle-dots"></i>' : '<i class="ph-fill ph-book-open"></i>';
-                    
-                    let content = item.content;
-                    if (window.marked) content = window.marked.parse(content);
-
-                    html += `
-                        <div class="timeline-item">
-                            <div class="timeline-icon ${iconClass}">${iconHtml}</div>
-                            <div class="timeline-content" style="position:relative;">
-                                <div class="timeline-header">
-                                    <span style="font-weight:bold; color:var(--primary-color);">${item.date} ${item.time}</span>
-                                    <span>${item.source}</span>
-                                </div>
-                                <div class="timeline-text markdown-body">${content}</div>
-                                <div onclick="window.PhoneAPI.deleteFromMemoryVault('${item.id}')" style="position:absolute; right:10px; top:10px; color:var(--danger-color); cursor:pointer; padding:5px;"><i class="ph ph-trash"></i></div>
-                            </div>
-                        </div>
-                    `;
-                });
-            }
-            html += '</div>';
-            contentEl.innerHTML = html;
-            setTimeout(() => { contentEl.scrollTop = contentEl.scrollHeight; }, 100);
+            // 🌟 核心升级：渲染藤蔓记忆库框架
+            window.Config.memoryVaultTab = 'wechat'; // 默认显示线上微信
+            contentEl.innerHTML = `
+                <div class="vault-tabs">
+                    <div class="vault-tab active" id="tab-wechat" onclick="window.PhoneUI.switchVaultTab('wechat')">线上微信</div>
+                    <div class="vault-tab" id="tab-novel" onclick="window.PhoneUI.switchVaultTab('novel')">线下故事</div>
+                    <div class="vault-tab" id="tab-core" onclick="window.PhoneUI.switchVaultTab('core')">⭐ 核心记忆</div>
+                </div>
+                <div id="vault-content-area"></div>
+            `;
+            this.renderMemoryVault();
 
         } else if (appId === 'favorites') {
             const favs = window.PhoneAPI.getFavorites();
@@ -332,6 +310,69 @@ export const PhoneUI = {
             winEl.classList.remove('fullscreen-mode'); 
         }
         window.Config.currentAppId = 'wechat';
+    },
+
+    // 🌟 核心：渲染藤蔓记忆库！
+    switchVaultTab(tabName) {
+        window.Config.memoryVaultTab = tabName;
+        document.querySelectorAll('.vault-tab').forEach(el => el.classList.remove('active'));
+        document.getElementById('tab-' + tabName).classList.add('active');
+        this.renderMemoryVault();
+    },
+
+    renderMemoryVault() {
+        const contentArea = document.getElementById('vault-content-area');
+        if (!contentArea) return;
+
+        const currentTab = window.Config.memoryVaultTab || 'wechat';
+        const allVault = window.PhoneAPI.getMemoryVault();
+        
+        let renderItems = [];
+        if (currentTab === 'core') {
+            renderItems = allVault.filter(v => v.isCore);
+        } else if (currentTab === 'wechat') {
+            renderItems = allVault.filter(v => !v.isCore && v.source === '线上微信');
+        } else if (currentTab === 'novel') {
+            renderItems = allVault.filter(v => !v.isCore && v.source === '线下故事');
+        }
+
+        if (renderItems.length === 0) {
+            contentArea.innerHTML = `<div style="text-align:center; color:var(--text-sub); padding: 50px 0;">空空如也，快去创造回忆吧！</div>`;
+            return;
+        }
+
+        let html = '<div class="vine-container">';
+        [...renderItems].reverse().forEach(item => {
+            const isCore = item.isCore;
+            const nodeClass = isCore ? 'vine-node core' : 'vine-node';
+            const iconHtml = isCore ? '<i class="ph-fill ph-star"></i>' : '<i class="ph-fill ph-flower-lotus"></i>';
+            
+            let content = item.content;
+            if (window.marked) content = window.marked.parse(content);
+
+            html += `
+                <div class="vine-item">
+                    <div class="${nodeClass}">${iconHtml}</div>
+                    <div class="vine-content">
+                        <div class="vine-header">
+                            <span style="font-weight:bold; color:var(--primary-color);">${item.date}</span>
+                            <span>${item.time}</span>
+                        </div>
+                        <div class="vine-text markdown-body">${content}</div>
+                        <div class="vine-actions">
+                            <div class="vine-btn star" onclick="window.PhoneAPI.toggleCoreMemory('${item.id}')">
+                                ${isCore ? '<i class="ph-fill ph-star"></i>' : '<i class="ph ph-star"></i>'}
+                            </div>
+                            <div class="vine-btn del" onclick="window.PhoneAPI.deleteFromMemoryVault('${item.id}')">
+                                <i class="ph ph-trash"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        contentArea.innerHTML = html;
     },
 
     unlockDiary() {

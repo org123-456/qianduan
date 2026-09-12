@@ -19,8 +19,11 @@ export const PhoneAPI = {
         saveIfExist('my-avatar', 'my_avatar'); saveIfExist('ta-avatar', 'ta_avatar');
         
         saveIfExist('bg-global', 'bg_global'); saveIfExist('bg-chat', 'bg_chat');
-        saveIfExist('bg-diary-cover', 'bg_diary_cover'); 
-        saveIfExist('bg-diary-page', 'bg_diary_page'); // 🌟 新增：日记内页底图
+        saveIfExist('bg-diary-cover', 'bg_diary_cover'); saveIfExist('bg-diary-page', 'bg_diary_page'); 
+        
+        // 🌟 新增：保存扉页文字
+        saveIfExist('diary-title', 'diary_title'); 
+        saveIfExist('diary-quote', 'diary_quote'); 
         
         saveIfExist('ui-icon-novel', 'ui_icon_novel'); saveIfExist('ui-icon-worldbook', 'ui_icon_worldbook');
         saveIfExist('ui-icon-settings', 'ui_icon_settings'); saveIfExist('ui-icon-gallery', 'ui_icon_gallery');
@@ -46,10 +49,12 @@ export const PhoneAPI = {
             setVal('my-name', localStorage.getItem('my_name') || ''); setVal('char-name', localStorage.getItem('char_name') || '');
             setVal('my-avatar', localStorage.getItem('my_avatar') || ''); setVal('ta-avatar', localStorage.getItem('ta_avatar') || '');
             
-            setVal('bg-global', localStorage.getItem('bg_global') || ''); 
-            setVal('bg-chat', localStorage.getItem('bg_chat') || '');
-            setVal('bg-diary-cover', localStorage.getItem('bg_diary_cover') || ''); 
-            setVal('bg-diary-page', localStorage.getItem('bg_diary_page') || ''); // 🌟 新增：日记内页底图
+            setVal('bg-global', localStorage.getItem('bg_global') || ''); setVal('bg-chat', localStorage.getItem('bg_chat') || '');
+            setVal('bg-diary-cover', localStorage.getItem('bg_diary_cover') || ''); setVal('bg-diary-page', localStorage.getItem('bg_diary_page') || ''); 
+            
+            // 🌟 新增：加载扉页文字
+            setVal('diary-title', localStorage.getItem('diary_title') || 'His Diary'); 
+            setVal('diary-quote', localStorage.getItem('diary_quote') || '“时间会磨平一切痕迹，\n除了我为你写下的字。”'); 
             
             setVal('ui-icon-novel', localStorage.getItem('ui_icon_novel') || ''); setVal('ui-icon-worldbook', localStorage.getItem('ui_icon_worldbook') || '');
             setVal('ui-icon-settings', localStorage.getItem('ui_icon_settings') || ''); setVal('ui-icon-gallery', localStorage.getItem('ui_icon_gallery') || '');
@@ -70,10 +75,8 @@ export const PhoneAPI = {
     },
 
     applyUITheme() {
-        const globalBg = localStorage.getItem('bg_global'); 
-        const chatBg = localStorage.getItem('bg_chat');
-        const diaryCover = localStorage.getItem('bg_diary_cover'); 
-        const diaryPage = localStorage.getItem('bg_diary_page'); 
+        const globalBg = localStorage.getItem('bg_global'); const chatBg = localStorage.getItem('bg_chat');
+        const diaryCover = localStorage.getItem('bg_diary_cover'); const diaryPage = localStorage.getItem('bg_diary_page'); 
         
         if (globalBg) { document.documentElement.style.setProperty('--bg-image-global', `url('${globalBg}')`); } else { document.documentElement.style.removeProperty('--bg-image-global'); }
         if (chatBg) { document.documentElement.style.setProperty('--bg-image-chat', `url('${chatBg}')`); } else { document.documentElement.style.removeProperty('--bg-image-chat'); }

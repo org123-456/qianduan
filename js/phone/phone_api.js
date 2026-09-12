@@ -187,7 +187,7 @@ export const PhoneAPI = {
         delSelect.innerHTML = optionsHtml; mainSelect.innerHTML = optionsHtml; subSelect.innerHTML = '<option value="">-- 同主引擎 (自动降级) --</option>' + optionsHtml;
         mainSelect.value = localStorage.getItem('main_engine_id') || ''; subSelect.value = localStorage.getItem('sub_engine_id') || '';
         
-        // 更新控制舱里的下拉菜单
+        // 🌟 更新控制舱里的下拉菜单
         const quickSelect = document.getElementById('quick-main-engine');
         if (quickSelect) {
             quickSelect.innerHTML = optionsHtml;
@@ -402,12 +402,11 @@ export const PhoneAPI = {
         }
     },
 
-    // 🌟 核心升级：控制悬浮球状态，并记录 Token 消耗！
+    // 🌟 核心：Token 监控与悬浮球动画
     async chatWithAI(messages, useSubEngine = false) {
         const config = this.getEngineConfig(useSubEngine);
         if (!config) throw new Error("请先去【系统设置】里分配引擎配置！");
         
-        // 让悬浮球疯狂旋转发光
         const fab = document.getElementById('api-fab');
         const statusText = document.getElementById('api-status-text');
         if (fab) { fab.classList.add('loading'); fab.classList.remove('error'); }
@@ -422,20 +421,17 @@ export const PhoneAPI = {
             }
             const data = await response.json(); 
             
-            // 记录 Token 消耗
             if (data.usage) {
                 const tokenText = document.getElementById('api-token-text');
                 if (tokenText) tokenText.innerText = `提示词: ${data.usage.prompt_tokens} | 回复: ${data.usage.completion_tokens} | 总计: ${data.usage.total_tokens}`;
             }
 
-            // 恢复悬浮球状态
             if (fab) fab.classList.remove('loading');
             if (statusText) { statusText.innerText = '请求成功'; statusText.style.color = '#4ade80'; }
 
             return data.choices[0].message.content;
         } catch (error) { 
             console.error(error); 
-            // 悬浮球变红警告
             if (fab) { fab.classList.remove('loading'); fab.classList.add('error'); }
             if (statusText) { statusText.innerText = '请求失败'; statusText.style.color = 'var(--danger-color)'; }
             throw new Error(error.message || "网络错误或 API 配置不正确，请检查。"); 

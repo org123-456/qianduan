@@ -57,7 +57,6 @@ export const PhoneEngine = {
         }
     },
 
-    // 🌟 核心升级：原子化记忆拆解！
     async extractMemory(sourceApp) {
         PhoneAPI.showToast("🧠 正在提取并拆解记忆，请稍候...");
         try {
@@ -80,9 +79,6 @@ export const PhoneEngine = {
 3. 去敏：去除NSFW敏感描写，保留核心剧情。
 4. 强制格式：每条记忆必须用 "|||" 隔开！绝对不要输出序号、换行或其他废话！
 
-示例：
-女主假扮客服推销服务，不死途花钱买断了她的后半生|||不死途承诺如果女主失忆，他会重新追求她直到再次相爱|||不死途右臂诅咒发作，躲在冰柜里压制剧痛
-
 聊天记录：
 ${historyText}`;
             
@@ -90,13 +86,11 @@ ${historyText}`;
             const reply = await PhoneAPI.chatWithAI(messages, true); 
             
             let rawText = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```.*?/g, '').replace(/```/g, '').trim();
-            // 把 AI 返回的 ||| 替换成两个换行符，方便用户在编辑框里分段查看
             let summaryList = rawText.split('|||').map(s => s.trim()).filter(s => s.length > 0);
             let editText = summaryList.join('\n\n');
             
             const confirmText = await PhoneUI.showCustomPrompt("✨ AI 提取了多条记忆碎片，请分段修改（每段将存为独立档案）：", editText);
             if (confirmText && confirmText.trim() !== "") {
-                // 用户修改完后，按换行符重新切分成数组
                 let finalItems = confirmText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
                 PhoneAPI.saveToMemoryVault(finalItems, sourceApp === 'wechat' ? '线上微信' : '线下故事');
             }
@@ -210,97 +204,45 @@ ${historyText}`;
         }
     },
 
-    async rollTopic() {
-        const resultEl = document.getElementById('roulette-result');
-        const btnEl = document.getElementById('roulette-btn');
-        const iconEl = document.getElementById('roulette-icon');
-
-        if(!resultEl || !btnEl) return;
-
-        btnEl.disabled = true;
-        btnEl.innerHTML = '<i class="ph ph-spinner spin-anim"></i> 正在生成...';
-        iconEl.classList.add('spin-anim'); 
-        resultEl.innerHTML = '<span style="color:#999; font-size: 14px;">正在分析你们的聊天记录...<br>寻找最合适的话题...</span>';
-
-        try {
-            const roleId = Config.currentContactId;
-            const targetApp = Config.currentAppId === 'novel' ? 'novel' : 'wechat';
-            const chatItems = Config.phoneData[roleId]?.[targetApp]?.items || [];
-            
-            const recentItems = chatItems.slice(-10); 
-            let historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
-            if(!historyText) historyText = "(暂无聊天记录，你们才刚认识)";
-
-            const systemPrompt = localStorage.getItem('system_prompt') || '';
-            const charPersona = localStorage.getItem('char_persona') || '';
-            
-            let contextSetup = "";
-            if (systemPrompt) contextSetup += `【系统核心指令】：\n${systemPrompt}\n\n`;
-            if (charPersona) contextSetup += `【角色设定】：\n${charPersona}\n\n`;
-
-            const aiPrompt = `你是一个高情商的语C辅助军师。以下是我们当前正在进行的角色扮演底层设定：
-${contextSetup}
-
-请根据以上设定，以及以下我和TA的近期聊天记录，为我提供【3个不同风格】的回复建议，让我可以直接发给TA。
-风格要求：
-1. 顺着对方的话往下接（自然/撒娇/暧昧）。
-2. 故意调侃、反击或傲娇。
-3. 开启一个相关的新话题。
-
-【绝对强制格式】：
-请直接输出这3句话，用分隔符 "|||" 隔开。绝对不要输出任何序号、标签、解释或多余的废话！不要输出<think>！
-示例格式：
-好呀，我在家等你，快点来接我|||你买的饮料最好是我爱喝的，不然扣你工资|||旁白没把账单弄乱吧？
-
-近期聊天记录：
-${historyText}`;
-
-            const messages = [{ role: "user", content: aiPrompt }];
-            const reply = await PhoneAPI.chatWithAI(messages, true); 
-
-            let finalTopic = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-            finalTopic = finalTopic.replace(/```.*?/g, '').replace(/```/g, '').trim();
-
-            let options = finalTopic.split('|||').map(s => s.trim()).filter(s => s.length > 0);
-            if (options.length === 1) {
-                options = finalTopic.split('\n').map(s => s.replace(/^\d+[\.、]\s*/, '').trim()).filter(s => s.length > 0);
-            }
-            options = options.slice(0, 3); 
-
-            let html = '';
-            const styles = [
-                { title: '🌸 顺势回复', color: '#e5989b', bg: '#fff0f1', border: '#ffccd5' },
-                { title: '✨ 调侃反击', color: '#4a70a8', bg: '#e8f0fa', border: '#b0c4de' },
-                { title: '🎈 开启新话题', color: '#f4a261', bg: '#fff5e6', border: '#ffe0b2' }
-            ];
-
-            options.forEach((opt, idx) => {
-                const style = styles[idx] || styles[0];
-                html += `
-                    <div onclick="window.PhoneEngine.useTopic('${opt.replace(/'/g, "\\'")}')" style="padding: 12px; background: ${style.bg}; border: 1px solid ${style.border}; border-radius: 12px; text-align: left; cursor: pointer; transition: 0.2s;">
-                        <div style="font-size: 11px; color: ${style.color}; font-weight: bold; margin-bottom: 4px;">${style.title}</div>
-                        <div style="font-size: 14px; color: #333;">${opt}</div>
-                    </div>
-                `;
-            });
-
-            resultEl.innerHTML = html;
-
-        } catch (error) {
-            resultEl.innerHTML = `<span style="color:#ff4d4f; font-size: 14px;">生成失败：${error.message}</span>`;
-        } finally {
-            btnEl.disabled = false;
-            btnEl.innerHTML = '<i class="ph-fill ph-arrows-clockwise"></i> 换一批';
-            iconEl.classList.remove('spin-anim');
+    // 🌟 新增：商店购买道具并触发互动逻辑！
+    buyItem(itemName, price, effectPrompt) {
+        let coins = parseInt(localStorage.getItem('my_coins') || '500');
+        if (coins < price) {
+            PhoneAPI.showToast("余额不足，快去打工赚钱吧！");
+            return;
         }
-    },
-
-    useTopic(topic) {
-        window.PhoneUI.closeApp(); 
-        const inputEl = document.getElementById('chat-input') || document.getElementById('novel-input');
-        if(inputEl) {
-            inputEl.value = topic; 
-            inputEl.focus();
+        
+        if (confirm(`确定花费 ${price} 金币购买【${itemName}】并立即在微信里对他使用吗？`)) {
+            coins -= price;
+            localStorage.setItem('my_coins', coins);
+            const coinEl = document.getElementById('coin-display');
+            if(coinEl) coinEl.innerText = coins;
+            
+            PhoneAPI.showToast(`🎉 购买成功！已对他使用【${itemName}】`);
+            window.PhoneUI.closeApp(); 
+            
+            const roleId = Config.currentContactId;
+            if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
+            if (!Config.phoneData[roleId].wechat) Config.phoneData[roleId].wechat = { items: [] };
+            
+            const chatItems = Config.phoneData[roleId].wechat.items;
+            const now = new Date();
+            const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+            const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+            
+            // 把道具效果作为系统动作发进聊天里
+            chatItems.push({ 
+                sender: 'me', 
+                content: `【系统动作】：我购买并对你使用了道具 [${itemName}]。${effectPrompt}`, 
+                time: timeStr, 
+                date: dateStr 
+            });
+            
+            localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+            PhoneUI.renderAppContent('wechat');
+            
+            // 强制触发 AI 回复
+            this.sendChatMessage(false);
         }
     },
 
@@ -372,7 +314,9 @@ ${historyText}`;
             let formatRule = "";
             if (banEmoji) formatRule += "【最高禁令】：绝对不允许使用任何 Emoji、颜文字、波浪号(~)，违者抹杀！\n";
             formatRule += "【微信连发强制要求】：你每次回复**必须**输出 4 到 5 句话，并且**每一句话都必须用换行符（回车）隔开**！系统会根据换行符将你的回复切分成多个连续的微信气泡。绝对不要只回一句话，也绝对不要把所有话挤在同一行！\n";
-            formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。**【警告】：标签之外必须有正式的回复内容，绝对不能只输出标签导致正文空白！**\n";
+            
+            // 🌟 核心修复：严厉警告 AI 必须产生新的心声！
+            formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。**【警告】：绝对禁止重复之前的心声！必须根据当前的对话产生全新的心理活动！**\n";
 
             const wbData = PhoneAPI.getWorldbookData();
             const activeOnlineWb = wbData.filter(w => w.online).map(w => w.content).join('\n');
@@ -413,11 +357,16 @@ ${historyText}`;
             const MAX_CONTEXT = 20;
             const recentItems = chatItems.slice(-MAX_CONTEXT);
 
-            recentItems.forEach((item, index) => {
+            // 🌟 核心修复：把 AI 之前的心声还原给它看，打破复读机幻觉！
+            recentItems.forEach((item) => {
                 if (item.sender !== 'typing') { 
+                    let text = item.content;
+                    if (item.sender === 'other' && item.innerThought && !item.innerThought.includes('TA的心思藏得很深') && !item.innerThought.includes('连发消息')) {
+                        text = `<inner>${item.innerThought}</inner>\n${text}`;
+                    }
                     messages.push({
                         role: item.sender === 'me' ? 'user' : 'assistant',
-                        content: item.content
+                        content: text
                     });
                 }
             });
@@ -443,8 +392,10 @@ ${historyText}`;
             
             const replyParts = finalReply.split('\n').map(s => s.trim()).filter(s => s.length > 0);
             
-            replyParts.forEach(part => {
-                chatItems.push({ sender: 'other', content: part, time: timeStr, date: dateStr, innerThought: innerThought });
+            // 🌟 核心修复：连发气泡时，只给第一句话绑定心声！
+            replyParts.forEach((part, idx) => {
+                let thought = (idx === 0) ? innerThought : "（连发消息，心声已在上一条显示）";
+                chatItems.push({ sender: 'other', content: part, time: timeStr, date: dateStr, innerThought: thought });
             });
 
             PhoneUI.renderAppContent('wechat'); 
@@ -506,7 +457,7 @@ ${historyText}`;
 
             let formatRule = "【线下沉浸模式】：当前是面对面的真实场景。请用写小说/语C的笔法进行演绎。\n";
             formatRule += `【字数与细节强制要求】：每次回复**必须不少于 ${minWords} 字**（不包含思维链的字数）！请尽情展开环境渲染、细腻的动作刻画和深度的心理描写，让场景充满画面感。绝对禁止像微信聊天那样只发短对话，必须像长篇小说的一段一样丰满！\n`;
-            formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。**【警告】：标签之外必须有正式的剧情描写，绝对不能只输出标签导致正文空白！**\n";
+            formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。**【警告】：绝对禁止重复之前的心声！必须产生全新的心理活动！**\n";
 
             if (banEmoji) formatRule += "【最高禁令】：绝对不允许使用任何 Emoji、颜文字、波浪号(~)，违者抹杀！\n";
 
@@ -549,9 +500,14 @@ ${historyText}`;
             const MAX_CONTEXT = 20;
             const recentItems = chatItems.slice(-MAX_CONTEXT);
             
+            // 🌟 核心修复：线下也把心声还原给 AI 看！
             recentItems.forEach(item => {
                 if (item.sender !== 'typing') { 
-                    messages.push({ role: item.sender === 'me' ? 'user' : 'assistant', content: item.content });
+                    let text = item.content;
+                    if (item.sender === 'other' && item.innerThought && !item.innerThought.includes('TA的心思藏得很深')) {
+                        text = `<inner>${item.innerThought}</inner>\n${text}`;
+                    }
+                    messages.push({ role: item.sender === 'me' ? 'user' : 'assistant', content: text });
                 }
             });
 

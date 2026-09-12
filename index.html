@@ -14,7 +14,7 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=3600">
+    <link rel="stylesheet" href="css/style.css?t=3700">
 </head>
 <body>
     <div id="app-container">
@@ -64,39 +64,29 @@
                 </div>
             </div>
 
-            <!-- 🌟 核心升级：Memory 页面变身“时光档案馆” -->
-            <div id="page-memory" class="page">
-                <div style="padding: 10px 5px 20px 5px;">
-                    <h2 style="color: var(--primary-color); margin-bottom: 5px; font-size: 22px;">时光档案馆</h2>
-                    <p style="font-size: 12px; color: var(--text-sub);">记录你们在不同次元的交织轨迹</p>
+            <!-- 🌟 核心升级：Memory 变身星海档案馆 -->
+            <div id="page-memory" class="page" style="padding: 0;">
+                <div class="starry-sea-bg" id="starry-sea-bg">
+                    <!-- 星星由 JS 动态生成 -->
+                </div>
+                
+                <div class="floating-bubbles" id="floating-bubbles">
+                    <div class="glass-bubble bubble-diary" onclick="window.PhoneUI.openApp('diary', '他的日记')">
+                        <i class="ph-fill ph-book-bookmark icon"></i>
+                        <span class="text">日记</span>
+                    </div>
+                    <div class="glass-bubble bubble-vault" onclick="window.PhoneUI.openApp('memory_vault', '全局记忆库')">
+                        <i class="ph-fill ph-database icon"></i>
+                        <span class="text">记忆库</span>
+                    </div>
+                    <div class="glass-bubble bubble-gallery" onclick="alert('相册功能开发中！')">
+                        <i class="ph-fill ph-polaroid-camera icon"></i>
+                        <span class="text">相册</span>
+                    </div>
                 </div>
 
-                <div class="memory-card diary-card" onclick="window.PhoneUI.openApp('diary', '他的日记')">
-                    <div class="mc-icon"><i class="ph-fill ph-book-bookmark"></i></div>
-                    <div class="mc-info">
-                        <div class="mc-title">他的日记</div>
-                        <div class="mc-desc">偷看他在深夜写下的傲娇碎碎念</div>
-                    </div>
-                    <i class="ph ph-caret-right mc-arrow"></i>
-                </div>
-
-                <div class="memory-card vault-card" onclick="window.PhoneUI.openApp('memory_vault', '全局记忆库')">
-                    <div class="mc-icon"><i class="ph-fill ph-database"></i></div>
-                    <div class="mc-info">
-                        <div class="mc-title">全局记忆库</div>
-                        <div class="mc-desc">线上微信与线下故事的完整时间线</div>
-                    </div>
-                    <i class="ph ph-caret-right mc-arrow"></i>
-                </div>
-
-                <div class="memory-card gallery-card" onclick="alert('相册功能开发中！')">
-                    <div class="mc-icon"><i class="ph-fill ph-polaroid-camera"></i></div>
-                    <div class="mc-info">
-                        <div class="mc-title">时光相册</div>
-                        <div class="mc-desc">定格每一个心动瞬间</div>
-                    </div>
-                    <i class="ph ph-caret-right mc-arrow"></i>
-                </div>
+                <!-- 记忆碎片由 JS 动态生成并挂载在这里 -->
+                <div id="memory-fragments-container"></div>
             </div>
 
             <div id="page-chat" class="page" style="position: relative; padding-bottom: 0;">
@@ -196,6 +186,14 @@
             <div id="archive-list" style="overflow-y: auto; max-height: 40vh; display: flex; flex-direction: column; gap: 10px;"></div>
         </div>
 
+        <!-- 🌟 盲盒弹窗 -->
+        <div id="blindbox-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeBlindBox()"></div>
+        <div id="blindbox-modal" class="blindbox-modal">
+            <i class="ph-fill ph-shooting-star blindbox-icon"></i>
+            <div class="blindbox-text" id="blindbox-text">“回忆碎片加载中...”</div>
+            <div class="blindbox-meta" id="blindbox-meta">2023-10-24 · 线上微信</div>
+        </div>
+
         <div id="app-window" class="app-window">
             <div class="app-window-header">
                 <div class="app-window-back" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div>
@@ -217,6 +215,10 @@
             if(index === 2 && window.PhoneUI) {
                 window.Config.currentAppId = 'wechat'; 
                 window.PhoneUI.renderAppContent('wechat');
+            }
+            // 🌟 核心：滑到 Memory 页时，触发星海动画！
+            if(index === 1 && window.PhoneUI) {
+                window.PhoneUI.initStarrySea();
             }
         }
 

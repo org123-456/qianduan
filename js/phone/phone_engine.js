@@ -25,7 +25,7 @@ export const PhoneEngine = {
         const targetApp = Config.currentAppId === 'novel' ? 'novel' : 'wechat';
         const msg = Config.phoneData[roleId][targetApp].items[this.currentMsgIndex];
         
-        const selectedText = prompt("⭐ 请精简你要收藏的句子（太长会撑爆星星）：", msg.content);
+        const selectedText = window.prompt("⭐ 请精简你要收藏的句子（太长会撑爆星星）：", msg.content);
         if (selectedText && selectedText.trim() !== "") {
             PhoneAPI.saveFavorite(selectedText.trim(), targetApp === 'wechat' ? '线上微信' : '线下故事', msg.sender);
         }
@@ -40,15 +40,16 @@ export const PhoneEngine = {
         
         PhoneAPI.showToast("✨ AI 正在提炼金句，请稍候...");
         try {
-            const prompt = `请将下面这段角色扮演的回复，提炼成一句【简短、唯美、或傲娇的语录/内心独白】（要求在20字以内）。\n【绝对要求】：去除所有动作描写、环境描写和敏感(NSFW)内容，只保留最核心的情感或金句。直接输出这唯一的一句话，不要任何多余解释！\n\n原文：\n${msg.content}`;
+            // 🌟 修复：改名 aiPrompt，防止和 window.prompt 冲突
+            const aiPrompt = `请将下面这段角色扮演的回复，提炼成一句【简短、唯美、或傲娇的语录/内心独白】（要求在20字以内）。\n【绝对要求】：去除所有动作描写、环境描写和敏感(NSFW)内容，只保留最核心的情感或金句。直接输出这唯一的一句话，不要任何多余解释！\n\n原文：\n${msg.content}`;
             
-            const messages = [{ role: "user", content: prompt }];
+            const messages = [{ role: "user", content: aiPrompt }];
             const reply = await PhoneAPI.chatWithAI(messages, true); 
             
             let finalQuote = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
             finalQuote = finalQuote.replace(/```.*?/g, '').replace(/```/g, '').replace(/^["']|["']$/g, '').trim();
             
-            const confirmText = prompt("✨ AI 提炼结果如下，确认无误后点击确定保存：", finalQuote);
+            const confirmText = window.prompt("✨ AI 提炼结果如下，确认无误后点击确定保存：", finalQuote);
             if (confirmText && confirmText.trim() !== "") {
                 PhoneAPI.saveFavorite(confirmText.trim(), targetApp === 'wechat' ? '线上微信' : '线下故事', msg.sender);
             }
@@ -71,15 +72,15 @@ export const PhoneEngine = {
             
             let historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
             
-            const prompt = `你是一个记忆整理助手。请将以下角色扮演的聊天记录，总结提炼成一段【简短、客观的第三人称记忆档案】（100字左右）。\n要求：\n1. 概括发生了什么事，双方的情感变化或核心互动。\n2. 绝对不要照抄原话，要进行高度浓缩和去水，去除所有敏感(NSFW)细节。\n3. 直接输出总结内容，不要多余的废话。\n\n聊天记录：\n${historyText}`;
+            const aiPrompt = `你是一个记忆整理助手。请将以下角色扮演的聊天记录，总结提炼成一段【简短、客观的第三人称记忆档案】（100字左右）。\n要求：\n1. 概括发生了什么事，双方的情感变化或核心互动。\n2. 绝对不要照抄原话，要进行高度浓缩和去水，去除所有敏感(NSFW)细节。\n3. 直接输出总结内容，不要多余的废话。\n\n聊天记录：\n${historyText}`;
             
-            const messages = [{ role: "user", content: prompt }];
+            const messages = [{ role: "user", content: aiPrompt }];
             const reply = await PhoneAPI.chatWithAI(messages, true); 
             
             let summary = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
             summary = summary.replace(/```.*?/g, '').replace(/```/g, '').trim();
             
-            const confirmText = prompt("✨ AI 提取的记忆档案如下，你可以手动删减去敏，确认无误后点击确定保存：", summary);
+            const confirmText = window.prompt("✨ AI 提取的记忆档案如下，你可以手动删减去敏，确认无误后点击确定保存：", summary);
             if (confirmText && confirmText.trim() !== "") {
                 PhoneAPI.saveToMemoryVault(confirmText.trim(), sourceApp === 'wechat' ? '线上微信' : '线下故事');
             }
@@ -88,7 +89,6 @@ export const PhoneEngine = {
         }
     },
 
-    // 🌟 核心：手动记忆洗地（总结并清空）
     async washMemory(sourceApp) {
         this.closeMsgMenu();
         if (!confirm("⚠️ 确定要进行【记忆洗地】吗？\nAI将把当前所有聊天记录浓缩成一段长期记忆，随后【清空】当前聊天界面！\n(洗地后不可恢复，请确认)")) return;
@@ -106,20 +106,18 @@ export const PhoneEngine = {
             const recentItems = items.slice(-50).filter(i => i.sender !== 'typing');
             let historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
             
-            const prompt = `你是一个记忆整理助手。请将以下角色扮演的聊天记录，总结提炼成一段【简短、客观的第三人称记忆档案】（150字左右）。\n要求：\n1. 概括发生了什么事，双方的情感变化或核心互动。\n2. 绝对不要照抄原话，要进行高度浓缩和去水，去除所有敏感(NSFW)细节。\n3. 直接输出总结内容，不要多余的废话。\n\n聊天记录：\n${historyText}`;
+            const aiPrompt = `你是一个记忆整理助手。请将以下角色扮演的聊天记录，总结提炼成一段【简短、客观的第三人称记忆档案】（150字左右）。\n要求：\n1. 概括发生了什么事，双方的情感变化或核心互动。\n2. 绝对不要照抄原话，要进行高度浓缩和去水，去除所有敏感(NSFW)细节。\n3. 直接输出总结内容，不要多余的废话。\n\n聊天记录：\n${historyText}`;
             
-            const messages = [{ role: "user", content: prompt }];
+            const messages = [{ role: "user", content: aiPrompt }];
             const reply = await PhoneAPI.chatWithAI(messages, true); 
             
             let summary = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
             summary = summary.replace(/```.*?/g, '').replace(/```/g, '').trim();
             
-            // 防社死确认框
-            const confirmText = prompt("✨ 洗地总结如下，你可以手动修改去敏，确认后将存入记忆库并清空界面：", summary);
+            const confirmText = window.prompt("✨ 洗地总结如下，你可以手动修改去敏，确认后将存入记忆库并清空界面：", summary);
             if (confirmText && confirmText.trim() !== "") {
                 PhoneAPI.saveToMemoryVault(confirmText.trim(), sourceApp === 'wechat' ? '线上微信' : '线下故事');
                 
-                // 清空聊天记录
                 Config.phoneData[roleId][sourceApp].items = [];
                 localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
                 
@@ -155,7 +153,7 @@ export const PhoneEngine = {
         const targetApp = Config.currentAppId === 'novel' ? 'novel' : 'wechat';
         
         const oldText = Config.phoneData[roleId][targetApp].items[this.currentMsgIndex].content;
-        const newText = prompt("✏️ 编辑消息：", oldText);
+        const newText = window.prompt("✏️ 编辑消息：", oldText);
         if (newText !== null && newText.trim() !== "") {
             Config.phoneData[roleId][targetApp].items[this.currentMsgIndex].content = newText.trim();
             
@@ -213,7 +211,7 @@ export const PhoneEngine = {
             if (systemPrompt) contextSetup += `【系统核心指令】：\n${systemPrompt}\n\n`;
             if (charPersona) contextSetup += `【角色设定】：\n${charPersona}\n\n`;
 
-            const prompt = `你是一个高情商的语C辅助军师。以下是我们当前正在进行的角色扮演底层设定：
+            const aiPrompt = `你是一个高情商的语C辅助军师。以下是我们当前正在进行的角色扮演底层设定：
 ${contextSetup}
 
 请根据以上设定，以及以下我和TA的近期聊天记录，为我提供【3个不同风格】的回复建议，让我可以直接发给TA。
@@ -230,7 +228,7 @@ ${contextSetup}
 近期聊天记录：
 ${historyText}`;
 
-            const messages = [{ role: "user", content: prompt }];
+            const messages = [{ role: "user", content: aiPrompt }];
             const reply = await PhoneAPI.chatWithAI(messages, true); 
 
             let finalTopic = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
@@ -355,16 +353,13 @@ ${historyText}`;
                 formatRule += `\n【当前生效的世界书/规则插件】：\n${activeOnlineWb}\n`;
             }
 
-            // 🌟 核心升级：注入长期记忆和记忆召回！
             const vault = PhoneAPI.getMemoryVault();
             if (vault.length > 0) {
-                // 注入最近的5条长期记忆
                 const recentVault = vault.slice(-5).map(v => `[${v.date}] ${v.source}: ${v.content}`).join('\n');
                 formatRule += `\n【长期记忆档案】：以下是你脑海中深刻的长期记忆，请在对话中自然地保持连贯：\n${recentVault}\n`;
                 
-                // 关键词记忆召回
                 if (hasNewUserMsg) {
-                    const userText = chatItems[chatItems.length - 2].content; // 倒数第二个是刚发的用户消息
+                    const userText = chatItems[chatItems.length - 2].content; 
                     const recallTriggers = ['你还记得', '昨天', '上次', '之前', '那个事', '还记得', '那次'];
                     const needsRecall = recallTriggers.some(t => userText.includes(t));
                     
@@ -494,7 +489,6 @@ ${historyText}`;
                 formatRule += `\n【当前生效的世界书/规则插件】：\n${activeOfflineWb}\n`;
             }
 
-            // 🌟 核心升级：线下也注入长期记忆和记忆召回！
             const vault = PhoneAPI.getMemoryVault();
             if (vault.length > 0) {
                 const recentVault = vault.slice(-5).map(v => `[${v.date}] ${v.source}: ${v.content}`).join('\n');
@@ -564,75 +558,6 @@ ${historyText}`;
             if (hasNewUserMsg) chatItems.pop(); 
             PhoneUI.renderNovelContent();
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-        }
-    },
-
-    async generateDiary(dateStr) {
-        const contentAreaEl = document.getElementById('diary-content-area');
-        if (!contentAreaEl) return;
-
-        contentAreaEl.innerHTML = `
-            <div class="notebook-empty">
-                <i class="ph-fill ph-spinner spin-anim" style="font-size: 48px; color: rgba(0,0,0,0.5); margin-bottom: 15px;"></i>
-                <p>正在偷看他的内心世界...</p>
-            </div>
-        `;
-
-        try {
-            const roleId = Config.currentContactId;
-            
-            const wechatItems = (Config.phoneData[roleId]?.wechat?.items || []).map(i => ({ ...i, source: '线上微信' }));
-            const novelItems = (Config.phoneData[roleId]?.novel?.items || []).map(i => ({ ...i, source: '线下故事' }));
-            
-            let combinedItems = [...wechatItems, ...novelItems];
-            combinedItems.sort((a, b) => (a.time || "").localeCompare(b.time || ""));
-            
-            const recentItems = combinedItems.slice(-25);
-            let historyText = recentItems.map(item => `[${item.source}] ${item.time || ''} ${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
-            
-            if(!historyText) historyText = "(今天你们没怎么互动)";
-
-            const systemPrompt = localStorage.getItem('system_prompt') || '';
-            const charPersona = localStorage.getItem('char_persona') || '';
-            
-            let contextSetup = "";
-            if (systemPrompt) contextSetup += `【系统核心指令】：\n${systemPrompt}\n\n`;
-            if (charPersona) contextSetup += `【角色设定】：\n${charPersona}\n\n`;
-
-            const prompt = `你现在完全进入角色。以下是你的底层设定：
-${contextSetup}
-
-【重要时间设定】：今天是 ${dateStr}。
-
-请根据以下你和“我”在今天的【全局记忆库（包含线上微信和线下故事）】，用【第一人称（你的视角）】写一篇今天的深夜日记。
-要求：
-1. 字数在 150-300 字之间。
-2. 绝对符合你的人设（比如傲娇、毒舌、表面嫌弃实际在意等）。
-3. 必须是一篇真实的日记，不要提及“AI”、“用户”等词汇。
-4. 综合线上线下的事情来写，让日记显得连贯真实。
-5. 直接输出日记正文，不要输出标题、日期或多余的解释。
-
-今天的全局记忆库记录：
-${historyText}`;
-
-            const messages = [{ role: "user", content: prompt }];
-            const reply = await PhoneAPI.chatWithAI(messages, true); 
-
-            let finalDiary = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-            finalDiary = finalDiary.replace(/```.*?/g, '').replace(/```/g, '').trim();
-
-            PhoneAPI.saveDiary(dateStr, finalDiary);
-            PhoneUI.renderDiaryPage();
-            PhoneAPI.showToast('✨ 日记生成成功！');
-
-        } catch (error) {
-            contentAreaEl.innerHTML = `
-                <div class="notebook-empty">
-                    <i class="ph-fill ph-warning-circle" style="font-size: 48px; color: var(--danger-color); margin-bottom: 15px;"></i>
-                    <p style="color: var(--danger-color);">偷看失败：${error.message}</p>
-                    <button class="btn-refresh" onclick="window.PhoneUI.renderDiaryPage()" style="width: auto; padding: 10px 20px; margin-top: 15px;">返回重试</button>
-                </div>
-            `;
         }
     }
 };

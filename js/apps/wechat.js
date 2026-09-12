@@ -1,76 +1,74 @@
 export const WechatApp = {
-    id: 'wechat',
-    name: 'Chat',
-    icon: '<i class="ph-fill ph-chat-circle-dots"></i>',
-    hideInDesktop: true,
-    prompt: ``,
-    getCount: (data) => data?.items?.length || 0,
-    renderList: (data) => {
+    renderList(data) {
         if (!data || !data.items || data.items.length === 0) {
-            return '<div style="text-align:center;color:#999;margin-top:50px;">暂无聊天记录，快在底部打字和 TA 聊天吧！</div>';
+            return `<div style="text-align:center; padding:50px 0; color:var(--text-sub); font-size:13px;">暂无聊天记录，向TA打个招呼吧~</div>`;
         }
-        
-        const defaultMe = 'https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa';
-        const defaultTa = 'https://api.dicebear.com/7.x/notionists/svg?seed=You&backgroundColor=dbe9f6';
-        
-        const avatarMe = localStorage.getItem('my_avatar') || defaultMe;
-        const avatarOther = localStorage.getItem('ta_avatar') || defaultTa;
+
+        const roleId = window.Config.currentContactId;
+        const totalItems = window.Config.phoneData[roleId]?.wechat?.items || [];
+        const totalLen = totalItems.length;
+
+        // 如果总数超过 50，截取最后 50 条渲染
+        const renderItems = totalLen > 50 ? totalItems.slice(-50) : totalItems;
+        const offset = totalLen > 50 ? totalLen - 50 : 0;
+
+        const myAvatar = localStorage.getItem('my_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa';
+        const taAvatar = localStorage.getItem('ta_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=You&backgroundColor=dbe9f6';
 
         let html = '<div class="chat-container">';
-        let prevSender = null; 
+        
+        renderItems.forEach((item, idx) => {
+            // 🌟 核心修复：算出这条消息在真实总数据库里的真实下标！
+            const realIndex = offset + idx;
 
-        data.items.forEach((item, index) => {
             if (item.sender === 'typing') {
                 html += `
                     <div class="chat-msg left">
-                        <img class="chat-avatar" src="${avatarOther}" />
+                        <img src="${taAvatar}" class="chat-avatar">
                         <div class="chat-content-box">
                             <div class="chat-bubble">
                                 <div class="typing-indicator">
-                                    <div class="typing-dot"></div>
-                                    <div class="typing-dot"></div>
-                                    <div class="typing-dot"></div>
+                                    <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 `;
-                prevSender = 'typing';
                 return;
             }
 
             const isMe = item.sender === 'me';
-            const isConsecutive = (item.sender === prevSender);
+            const avatar = isMe ? myAvatar : taAvatar;
+            const sideClass = isMe ? 'right' : 'left';
 
-            let finalContent = item.content;
+            // 判断是否为同一人连发
+            const prevItem = idx > 0 ? renderItems[idx - 1] : null;
+            const isConsecutive = prevItem && prevItem.sender === item.sender && prevItem.sender !== 'typing';
+            const consecutiveClass = isConsecutive ? 'consecutive' : '';
+
+            let contentHtml = item.content;
             if (window.marked) {
-                finalContent = window.marked.parse(item.content);
+                contentHtml = window.marked.parse(item.content);
             }
 
-            // 🌟 核心：给对方的头像加上 onclick 事件，点击触发读心术！
-            let avatarHtml = '';
-            if (isConsecutive) {
-                avatarHtml = '<div class="chat-avatar-placeholder"></div>';
-            } else {
-                if (isMe) {
-                    avatarHtml = `<img class="chat-avatar" src="${avatarMe}" />`;
-                } else {
-                    avatarHtml = `<img class="chat-avatar" src="${avatarOther}" onclick="window.PhoneUI.showThought(${index})" style="cursor: pointer;" />`;
-                }
-            }
+            // 头像点击绑定真实索引！
+            const avatarHtml = isMe 
+                ? (isConsecutive ? '<div class="chat-avatar-placeholder"></div>' : `<img src="${avatar}" class="chat-avatar">`)
+                : (isConsecutive ? '<div class="chat-avatar-placeholder"></div>' : `<img src="${avatar}" class="chat-avatar" onclick="window.PhoneUI.showThought(${realIndex}, 'wechat')">`);
 
             html += `
-                <div class="chat-msg ${isMe ? 'right' : 'left'} ${isConsecutive ? 'consecutive' : ''}">
+                <div class="chat-msg ${sideClass} ${consecutiveClass}">
                     ${avatarHtml}
                     <div class="chat-content-box">
-                        <div class="chat-bubble markdown-body" onclick="window.PhoneEngine.openMsgMenu(${index}, '${item.sender}')">${finalContent}</div>
-                        <div class="chat-time">${item.time} ${isMe ? '· 已读' : ''}</div>
+                        <div class="chat-bubble markdown-body" onclick="window.PhoneEngine.openMsgMenu(${realIndex}, '${item.sender}')">
+                            ${contentHtml}
+                        </div>
+                        <div class="chat-time">${item.time || ''}</div>
                     </div>
                 </div>
             `;
-            
-            prevSender = item.sender;
         });
+
         html += '</div>';
         return html;
     }

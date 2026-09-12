@@ -5,9 +5,7 @@ export const PhoneAPI = {
         if (toast && toastMsg) {
             toastMsg.innerText = msg;
             toast.classList.add('show');
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000); 
+            setTimeout(() => { toast.classList.remove('show'); }, 3000); 
         } else {
             alert(msg); 
         }
@@ -19,122 +17,56 @@ export const PhoneAPI = {
             if (el) localStorage.setItem(key, isCheckbox ? el.checked : el.value.trim());
         };
 
-        saveIfExist('my-name', 'my_name');
-        saveIfExist('char-name', 'char_name');
-        saveIfExist('my-avatar', 'my_avatar');
-        saveIfExist('ta-avatar', 'ta_avatar');
+        saveIfExist('my-name', 'my_name'); saveIfExist('char-name', 'char_name');
+        saveIfExist('my-avatar', 'my_avatar'); saveIfExist('ta-avatar', 'ta_avatar');
         
-        saveIfExist('bg-global', 'bg_global');
-        saveIfExist('bg-chat', 'bg_chat');
-        saveIfExist('ui-icon-novel', 'ui_icon_novel');
-        saveIfExist('ui-icon-worldbook', 'ui_icon_worldbook');
-        saveIfExist('ui-icon-settings', 'ui_icon_settings');
-        saveIfExist('ui-icon-gallery', 'ui_icon_gallery');
-        saveIfExist('ui-icon-shop', 'ui_icon_shop');
-        saveIfExist('ui-icon-task', 'ui_icon_task');
+        saveIfExist('bg-global', 'bg_global'); saveIfExist('bg-chat', 'bg_chat');
+        saveIfExist('ui-icon-novel', 'ui_icon_novel'); saveIfExist('ui-icon-worldbook', 'ui_icon_worldbook');
+        saveIfExist('ui-icon-settings', 'ui_icon_settings'); saveIfExist('ui-icon-gallery', 'ui_icon_gallery');
+        saveIfExist('ui-icon-shop', 'ui_icon_shop'); saveIfExist('ui-icon-task', 'ui_icon_task');
         
         this.applyUITheme(); 
         
-        saveIfExist('system-prompt', 'system_prompt');
-        saveIfExist('char-persona', 'char_persona');
-        saveIfExist('novel-style', 'novel_style');
+        saveIfExist('system-prompt', 'system_prompt'); saveIfExist('char-persona', 'char_persona'); saveIfExist('novel-style', 'novel_style');
+        saveIfExist('ban-emoji', 'ban_emoji', true); saveIfExist('share-memory', 'share_memory', true);
+        saveIfExist('api-url-main', 'ai_api_url_main'); saveIfExist('api-key-main', 'ai_api_key_main'); saveIfExist('api-model-main', 'ai_api_model_main');
+        saveIfExist('api-url-sub', 'ai_api_url_sub'); saveIfExist('api-key-sub', 'ai_api_key_sub'); saveIfExist('api-model-sub', 'ai_api_model_sub');
 
-        saveIfExist('ban-emoji', 'ban_emoji', true);
-        saveIfExist('share-memory', 'share_memory', true);
-
-        saveIfExist('api-url-main', 'ai_api_url_main');
-        saveIfExist('api-key-main', 'ai_api_key_main');
-        saveIfExist('api-model-main', 'ai_api_model_main');
-        
-        saveIfExist('api-url-sub', 'ai_api_url_sub');
-        saveIfExist('api-key-sub', 'ai_api_key_sub');
-        saveIfExist('api-model-sub', 'ai_api_model_sub');
-
-        const charName = localStorage.getItem('char_name');
-        const myName = localStorage.getItem('my_name');
-        if (charName && myName) {
-            const titleEl = document.getElementById('top-title');
-            if (titleEl) titleEl.innerText = `${myName} & ${charName}`;
-        }
+        const charName = localStorage.getItem('char_name'); const myName = localStorage.getItem('my_name');
+        if (charName && myName) { const titleEl = document.getElementById('top-title'); if (titleEl) titleEl.innerText = `${myName} & ${charName}`; }
     },
 
-    autoSave() {
-        try { this._doSave(); } catch (e) { console.error("自动保存失败", e); }
-    },
-
-    saveSettings() {
-        try {
-            this._doSave();
-            this.showToast("✅ 设置保存成功！");
-        } catch (error) {
-            alert("保存失败，请检查代码");
-        }
-    },
+    autoSave() { try { this._doSave(); } catch (e) { console.error("自动保存失败", e); } },
+    saveSettings() { try { this._doSave(); this.showToast("✅ 设置保存成功！"); } catch (error) { alert("保存失败"); } },
 
     loadSettings() {
         try {
             const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
-            
-            setVal('my-name', localStorage.getItem('my_name') || '');
-            setVal('char-name', localStorage.getItem('char_name') || '');
-            setVal('my-avatar', localStorage.getItem('my_avatar') || '');
-            setVal('ta-avatar', localStorage.getItem('ta_avatar') || '');
-            
-            setVal('bg-global', localStorage.getItem('bg_global') || '');
-            setVal('bg-chat', localStorage.getItem('bg_chat') || '');
-            setVal('ui-icon-novel', localStorage.getItem('ui_icon_novel') || '');
-            setVal('ui-icon-worldbook', localStorage.getItem('ui_icon_worldbook') || '');
-            setVal('ui-icon-settings', localStorage.getItem('ui_icon_settings') || '');
-            setVal('ui-icon-gallery', localStorage.getItem('ui_icon_gallery') || '');
-            setVal('ui-icon-shop', localStorage.getItem('ui_icon_shop') || '');
-            setVal('ui-icon-task', localStorage.getItem('ui_icon_task') || '');
+            setVal('my-name', localStorage.getItem('my_name') || ''); setVal('char-name', localStorage.getItem('char_name') || '');
+            setVal('my-avatar', localStorage.getItem('my_avatar') || ''); setVal('ta-avatar', localStorage.getItem('ta_avatar') || '');
+            setVal('bg-global', localStorage.getItem('bg_global') || ''); setVal('bg-chat', localStorage.getItem('bg_chat') || '');
+            setVal('ui-icon-novel', localStorage.getItem('ui_icon_novel') || ''); setVal('ui-icon-worldbook', localStorage.getItem('ui_icon_worldbook') || '');
+            setVal('ui-icon-settings', localStorage.getItem('ui_icon_settings') || ''); setVal('ui-icon-gallery', localStorage.getItem('ui_icon_gallery') || '');
+            setVal('ui-icon-shop', localStorage.getItem('ui_icon_shop') || ''); setVal('ui-icon-task', localStorage.getItem('ui_icon_task') || '');
             
             this.applyUITheme(); 
 
-            setVal('system-prompt', localStorage.getItem('system_prompt') || '');
-            setVal('char-persona', localStorage.getItem('char_persona') || '');
-            setVal('novel-style', localStorage.getItem('novel_style') || '');
+            setVal('system-prompt', localStorage.getItem('system_prompt') || ''); setVal('char-persona', localStorage.getItem('char_persona') || ''); setVal('novel-style', localStorage.getItem('novel_style') || '');
+            const banEmojiEl = document.getElementById('ban-emoji'); if(banEmojiEl) banEmojiEl.checked = localStorage.getItem('ban_emoji') === 'true';
+            const shareMemoryEl = document.getElementById('share-memory'); if(shareMemoryEl) shareMemoryEl.checked = localStorage.getItem('share_memory') === 'true';
 
-            const banEmojiEl = document.getElementById('ban-emoji');
-            if(banEmojiEl) banEmojiEl.checked = localStorage.getItem('ban_emoji') === 'true';
+            setVal('api-url-main', localStorage.getItem('ai_api_url_main') || ''); setVal('api-key-main', localStorage.getItem('ai_api_key_main') || ''); setVal('api-model-main', localStorage.getItem('ai_api_model_main') || '');
+            setVal('api-url-sub', localStorage.getItem('ai_api_url_sub') || ''); setVal('api-key-sub', localStorage.getItem('ai_api_key_sub') || ''); setVal('api-model-sub', localStorage.getItem('ai_api_model_sub') || '');
 
-            const shareMemoryEl = document.getElementById('share-memory');
-            if(shareMemoryEl) shareMemoryEl.checked = localStorage.getItem('share_memory') === 'true';
-
-            setVal('api-url-main', localStorage.getItem('ai_api_url_main') || '');
-            setVal('api-key-main', localStorage.getItem('ai_api_key_main') || '');
-            setVal('api-model-main', localStorage.getItem('ai_api_model_main') || '');
-            
-            setVal('api-url-sub', localStorage.getItem('ai_api_url_sub') || '');
-            setVal('api-key-sub', localStorage.getItem('ai_api_key_sub') || '');
-            setVal('api-model-sub', localStorage.getItem('ai_api_model_sub') || '');
-
-            const savedCharName = localStorage.getItem('char_name');
-            const savedMyName = localStorage.getItem('my_name');
-            if (savedCharName && savedMyName) {
-                const titleEl = document.getElementById('top-title');
-                if (titleEl) titleEl.innerText = `${savedMyName} & ${savedCharName}`;
-            }
-        } catch (error) {
-            console.error("加载设置失败:", error);
-        }
+            const savedCharName = localStorage.getItem('char_name'); const savedMyName = localStorage.getItem('my_name');
+            if (savedCharName && savedMyName) { const titleEl = document.getElementById('top-title'); if (titleEl) titleEl.innerText = `${savedMyName} & ${savedCharName}`; }
+        } catch (error) { console.error("加载设置失败:", error); }
     },
 
     applyUITheme() {
-        const globalBg = localStorage.getItem('bg_global');
-        const chatBg = localStorage.getItem('bg_chat');
-        
-        if (globalBg) {
-            document.documentElement.style.setProperty('--bg-image-global', `url('${globalBg}')`);
-        } else {
-            document.documentElement.style.removeProperty('--bg-image-global');
-        }
-        
-        if (chatBg) {
-            document.documentElement.style.setProperty('--bg-image-chat', `url('${chatBg}')`);
-        } else {
-            document.documentElement.style.removeProperty('--bg-image-chat');
-        }
+        const globalBg = localStorage.getItem('bg_global'); const chatBg = localStorage.getItem('bg_chat');
+        if (globalBg) { document.documentElement.style.setProperty('--bg-image-global', `url('${globalBg}')`); } else { document.documentElement.style.removeProperty('--bg-image-global'); }
+        if (chatBg) { document.documentElement.style.setProperty('--bg-image-chat', `url('${chatBg}')`); } else { document.documentElement.style.removeProperty('--bg-image-chat'); }
 
         const icons = [
             { id: 'novel', default: '<i class="ph-fill ph-book-open" style="color: var(--text-sub);"></i>' },
@@ -151,12 +83,9 @@ export const PhoneAPI = {
                 const customUrl = localStorage.getItem(`ui_icon_${item.id}`);
                 if (customUrl) {
                     el.innerHTML = `<img src="${customUrl}" style="width:100%; height:100%; object-fit:cover; border-radius:18px;">`;
-                    el.style.background = 'transparent';
-                    el.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+                    el.style.background = 'transparent'; el.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
                 } else {
-                    el.innerHTML = item.default;
-                    el.style.background = 'var(--icon-bg)'; 
-                    el.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.05)';
+                    el.innerHTML = item.default; el.style.background = 'var(--icon-bg)'; el.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.05)';
                 }
             }
         });
@@ -164,8 +93,7 @@ export const PhoneAPI = {
 
     getUIPresets() { return JSON.parse(localStorage.getItem('ui_presets') || '[]'); },
     saveUIPreset() {
-        const name = prompt('给这套主题装修起个名字吧 (如: 赛博朋克风):');
-        if (!name) return;
+        const name = prompt('给这套主题装修起个名字吧 (如: 赛博朋克风):'); if (!name) return;
         const getVal = (id) => document.getElementById(id)?.value.trim() || '';
         const preset = { id: 'ui_' + Date.now(), name: name, bg_global: getVal('bg-global'), bg_chat: getVal('bg-chat'), icon_novel: getVal('ui-icon-novel'), icon_worldbook: getVal('ui-icon-worldbook'), icon_settings: getVal('ui-icon-settings'), icon_gallery: getVal('ui-icon-gallery'), icon_shop: getVal('ui-icon-shop'), icon_task: getVal('ui-icon-task') };
         let presets = this.getUIPresets(); presets = presets.filter(p => p.name !== name); presets.push(preset);
@@ -181,8 +109,8 @@ export const PhoneAPI = {
         }
     },
     deleteUIPreset() {
-        const id = document.getElementById('ui-preset-select').value; if (!id) return alert('请先选择要删除的主题！'); if (!confirm('确定要删除这套主题预设吗？')) return;
-        let presets = this.getUIPresets(); presets = presets.filter(p => p.id !== id); localStorage.setItem('ui_presets', JSON.stringify(presets)); this.refreshUIDropdowns(); this.showToast('🗑️ 主题预设已删除');
+        const id = document.getElementById('ui-preset-select').value; if (!id) return alert('请先选择主题！'); if (!confirm('确定删除吗？')) return;
+        let presets = this.getUIPresets(); presets = presets.filter(p => p.id !== id); localStorage.setItem('ui_presets', JSON.stringify(presets)); this.refreshUIDropdowns(); this.showToast('🗑️ 主题已删除');
     },
     refreshUIDropdowns() {
         const selectEl = document.getElementById('ui-preset-select'); if (!selectEl) return;
@@ -193,11 +121,11 @@ export const PhoneAPI = {
 
     getPromptPresets() { return JSON.parse(localStorage.getItem('prompt_presets') || '[]'); },
     savePromptPreset() {
-        const name = prompt('给这套人设/提示词组合起个名字吧 (如: 不死途-日常):'); if (!name) return;
+        const name = prompt('起个名字吧 (如: 不死途-日常):'); if (!name) return;
         const getVal = (id) => document.getElementById(id)?.value.trim() || '';
         const preset = { id: 'pr_' + Date.now(), name: name, system: getVal('system-prompt'), persona: getVal('char-persona'), novel: getVal('novel-style') };
         let presets = this.getPromptPresets(); presets = presets.filter(p => p.name !== name); presets.push(preset);
-        localStorage.setItem('prompt_presets', JSON.stringify(presets)); this.refreshPromptDropdowns(); document.getElementById('prompt-preset-select').value = preset.id; this.showToast('💾 提示词预设保存成功！');
+        localStorage.setItem('prompt_presets', JSON.stringify(presets)); this.refreshPromptDropdowns(); document.getElementById('prompt-preset-select').value = preset.id; this.showToast('💾 预设保存成功！');
     },
     loadPromptPreset() {
         const id = document.getElementById('prompt-preset-select').value; if (!id) return;
@@ -205,16 +133,16 @@ export const PhoneAPI = {
         if (preset) {
             const setVal = (domId, val) => { const el = document.getElementById(domId); if(el) el.value = val; };
             setVal('system-prompt', preset.system); setVal('char-persona', preset.persona); setVal('novel-style', preset.novel);
-            this.autoSave(); this.showToast('✨ 人设切换成功！');
+            this.autoSave(); this.showToast('✨ 切换成功！');
         }
     },
     deletePromptPreset() {
-        const id = document.getElementById('prompt-preset-select').value; if (!id) return alert('请先选择预设！'); if (!confirm('确定要删除这套预设吗？')) return;
+        const id = document.getElementById('prompt-preset-select').value; if (!id) return alert('请先选择预设！'); if (!confirm('确定删除吗？')) return;
         let presets = this.getPromptPresets(); presets = presets.filter(p => p.id !== id); localStorage.setItem('prompt_presets', JSON.stringify(presets)); this.refreshPromptDropdowns(); this.showToast('🗑️ 预设已删除');
     },
     refreshPromptDropdowns() {
         const selectEl = document.getElementById('prompt-preset-select'); if (!selectEl) return;
-        let optionsHtml = '<option value="">-- 切换人设/提示词预设 --</option>';
+        let optionsHtml = '<option value="">-- 切换人设预设 --</option>';
         this.getPromptPresets().forEach(p => { optionsHtml += `<option value="${p.id}">${p.name}</option>`; });
         selectEl.innerHTML = optionsHtml;
     },
@@ -228,7 +156,7 @@ export const PhoneAPI = {
         nameEl.value = ''; urlEl.value = ''; keyEl.value = ''; modelEl.value = ''; this.refreshPresetDropdowns(); this.showToast('💾 预设已存入库中！');
     },
     deletePreset() {
-        const id = document.getElementById('preset-delete-select').value; if (!id) return alert('请先选择预设！'); if (!confirm('确定要删除这个预设吗？')) return;
+        const id = document.getElementById('preset-delete-select').value; if (!id) return alert('请先选择预设！'); if (!confirm('确定删除吗？')) return;
         let presets = this.getPresets(); presets = presets.filter(p => p.id !== id); localStorage.setItem('ai_api_presets', JSON.stringify(presets));
         if (localStorage.getItem('main_engine_id') === id) localStorage.removeItem('main_engine_id'); if (localStorage.getItem('sub_engine_id') === id) localStorage.removeItem('sub_engine_id');
         this.refreshPresetDropdowns(); this.showToast('🗑️ 预设已删除');
@@ -357,16 +285,33 @@ export const PhoneAPI = {
         diaries[dateStr] = content;
         localStorage.setItem('char_diaries', JSON.stringify(diaries));
     },
-
-    // 🌟 核心：获取全局记忆库（合并微信和小说，并按时间排序）
     getCombinedMemory() {
         const roleId = window.Config.currentContactId;
         const wechatItems = (window.Config.phoneData[roleId]?.wechat?.items || []).map(i => ({ ...i, source: 'wechat' }));
         const novelItems = (window.Config.phoneData[roleId]?.novel?.items || []).map(i => ({ ...i, source: 'novel' }));
-        
         let combinedItems = [...wechatItems, ...novelItems];
         combinedItems.sort((a, b) => (a.time || "").localeCompare(b.time || ""));
         return combinedItems;
+    },
+
+    // 🌟 核心升级：一键强制杀缓存，获取最新代码！
+    async forceUpdate() {
+        if (confirm("确定要强制刷新并获取最新代码吗？（这不会清除你的聊天记录和设置）")) {
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (let reg of registrations) {
+                    await reg.unregister();
+                }
+            }
+            if ('caches' in window) {
+                const keys = await caches.keys();
+                for (let key of keys) {
+                    await caches.delete(key);
+                }
+            }
+            // 加上随机时间戳，强迫浏览器去服务器拿最新文件
+            window.location.href = window.location.pathname + '?t=' + new Date().getTime();
+        }
     },
 
     async chatWithAI(messages, useSubEngine = false) {

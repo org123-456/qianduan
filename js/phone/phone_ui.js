@@ -46,7 +46,6 @@ export const PhoneUI = {
         if (menu) menu.classList.remove('show'); if (btn) btn.style.transform = 'rotate(0deg)';
     },
 
-    // 🌟 核心救场：自定义输入弹窗逻辑
     showCustomPrompt(title, defaultValue = '') {
         return new Promise((resolve) => {
             const bg = document.getElementById('custom-prompt-bg');
@@ -174,6 +173,9 @@ export const PhoneUI = {
             contentEl.innerHTML = html;
 
         } else if (appId === 'settings') {
+            const today = new Date();
+            const defaultDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+            
             contentEl.innerHTML = `
                 <div class="card">
                     <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph-fill ph-user-list"></i> 基础设定</h3>
@@ -211,7 +213,7 @@ export const PhoneUI = {
                     <div class="engine-title"><i class="ph-fill ph-text-aa"></i> 日记本专属设置</div>
                     <div style="margin-bottom: 10px;">
                         <label style="font-size: 11px; color: var(--text-sub); font-weight: bold; color: var(--danger-color);">日记起始日期 (决定第一页是哪天！)</label>
-                        <input type="date" id="diary-start-date" onchange="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
+                        <input type="date" id="diary-start-date" value="${defaultDate}" onchange="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
                     </div>
                     <div style="margin-bottom: 10px;">
                         <label style="font-size: 11px; color: var(--text-sub);">封面标题 (英文比较好看)</label>
@@ -378,23 +380,33 @@ export const PhoneUI = {
         [...renderItems].reverse().forEach(item => {
             const isCore = item.isCore;
             const nodeClass = isCore ? 'vine-node core' : 'vine-node';
-            const iconHtml = isCore ? '<i class="ph-fill ph-star"></i>' : '<i class="ph-fill ph-flower-lotus"></i>';
+            const iconHtml = isCore ? '<i class="ph-fill ph-star"></i>' : '<i class="ph-fill ph-flower-tulip"></i>';
             
             let content = item.content;
             if (window.marked) content = window.marked.parse(content);
 
+            const leafTop = Math.random() * 80 + 10;
+            const leafLeft = -25 + Math.random() * 10;
+            const leafRot = Math.random() * 360;
+            const leafHtml = `<i class="ph-fill ph-leaf vine-leaf" style="top:${leafTop}%; left:${leafLeft}px; transform:rotate(${leafRot}deg);"></i>`;
+
+            // 🌟 核心：加入了编辑按钮！
             html += `
                 <div class="vine-item">
                     <div class="${nodeClass}">${iconHtml}</div>
+                    ${leafHtml}
                     <div class="vine-content">
                         <div class="vine-header">
                             <span style="font-weight:bold; color:var(--primary-color);">${item.date}</span>
                             <span>${item.time}</span>
                         </div>
-                        <div class="vine-text markdown-body">${content}</div>
+                        <div class="vine-text">${content}</div>
                         <div class="vine-actions">
                             <div class="vine-btn star" onclick="window.PhoneAPI.toggleCoreMemory('${item.id}')">
                                 ${isCore ? '<i class="ph-fill ph-star"></i>' : '<i class="ph ph-star"></i>'}
+                            </div>
+                            <div class="vine-btn edit" onclick="window.PhoneAPI.editMemoryVault('${item.id}')">
+                                <i class="ph ph-pencil-simple"></i>
                             </div>
                             <div class="vine-btn del" onclick="window.PhoneAPI.deleteFromMemoryVault('${item.id}')">
                                 <i class="ph ph-trash"></i>
@@ -511,7 +523,7 @@ export const PhoneUI = {
             contentAreaEl.innerHTML = `
                 <div class="notebook-empty">
                     <i class="ph-fill ph-feather" style="font-size: 48px; color: rgba(0,0,0,0.3); margin-bottom: 30px;"></i>
-                    <div style="font-family: 'Long Cang', cursive; font-size: 32px; color: rgba(0,0,0,0.6); text-shadow: 1px 1px 2px rgba(255,255,255,0.5); line-height: 1.8;">
+                    <div style="font-family: 'Long Cang', 'Kaiti', 'STKaiti', cursive; font-size: 32px; color: rgba(0,0,0,0.6); text-shadow: 1px 1px 2px rgba(255,255,255,0.5); line-height: 1.8;">
                         ${formattedQuote}
                     </div>
                 </div>

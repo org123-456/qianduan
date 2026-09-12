@@ -77,7 +77,6 @@ export const PhoneUI = {
             this.renderNovelContent();
 
         } else if (appId === 'diary') {
-            // 🌟 核心升级：渲染 3D 日记本封面和内部结构
             contentEl.style.padding = '0';
             contentEl.innerHTML = `
                 <div id="diary-cover-view" class="diary-cover-view" onclick="window.PhoneUI.unlockDiary()">
@@ -87,10 +86,15 @@ export const PhoneUI = {
                     </div>
                 </div>
                 <div id="diary-inside-view" class="diary-inside-view">
-                    <div class="date-scroll-container" id="diary-date-list"></div>
-                    <div class="diary-paper" id="diary-content-area"></div>
+                    <div class="notebook-page" id="diary-content-area"></div>
+                    <div class="page-turner">
+                        <div class="page-btn" onclick="window.PhoneUI.turnDiaryPage(-1)"><i class="ph ph-caret-left"></i></div>
+                        <div class="page-btn" onclick="window.PhoneUI.turnDiaryPage(1)"><i class="ph ph-caret-right"></i></div>
+                    </div>
                 </div>
             `;
+            // 初始状态：-1 代表扉页，0-6 代表过去7天的日记
+            window.Config.diaryPageIndex = -1; 
             this.renderDiaryPage();
 
         } else if (appId === 'memory_vault') {
@@ -174,10 +178,13 @@ export const PhoneUI = {
                         <div style="flex: 1;"><label style="font-size: 11px; color: var(--text-sub);">全局壁纸(网址)</label><input type="text" id="bg-global" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
                         <div style="flex: 1;"><label style="font-size: 11px; color: var(--text-sub);">聊天壁纸(网址)</label><input type="text" id="bg-chat" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
                     </div>
-                    <!-- 🌟 新增：日记封面输入框 -->
-                    <div style="margin-bottom: 15px;">
-                        <label style="font-size: 11px; color: var(--text-sub);">日记本封面(网址) - 推荐使用你上传到GitHub的图片</label>
+                    <div style="margin-bottom: 10px;">
+                        <label style="font-size: 11px; color: var(--text-sub);">日记本封面(网址)</label>
                         <input type="text" id="bg-diary-cover" placeholder="例如: ./cover.jpg" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-size: 11px; color: var(--text-sub);">日记内页底图(网址)</label>
+                        <input type="text" id="bg-diary-page" placeholder="推荐使用牛皮纸或水彩底图" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
                     </div>
 
                     <div class="engine-title"><i class="ph-fill ph-squares-four"></i> 主页 App 图标替换 (留空为默认)</div>
@@ -301,7 +308,6 @@ export const PhoneUI = {
         window.Config.currentAppId = 'wechat';
     },
 
-    // 🌟 核心：触发 3D 翻开日记本动画！
     unlockDiary() {
         const cover = document.getElementById('diary-book-cover');
         const coverView = document.getElementById('diary-cover-view');
@@ -392,50 +398,77 @@ export const PhoneUI = {
     openArchiveModal() { this.renderArchiveList(); document.getElementById('archive-modal-bg').classList.add('show'); document.getElementById('archive-modal').classList.add('show'); },
     closeArchiveModal() { document.getElementById('archive-modal-bg').classList.remove('show'); document.getElementById('archive-modal').classList.remove('show'); },
 
+    // 🌟 核心：渲染全屏翻页日记本
     renderDiaryPage() {
-        const dateListEl = document.getElementById('diary-date-list');
         const contentAreaEl = document.getElementById('diary-content-area');
-        if (!dateListEl || !contentAreaEl) return;
+        if (!contentAreaEl) return;
 
-        let dateHtml = '';
         const today = new Date();
         const dates = [];
         for (let i = 6; i >= 0; i--) {
             const d = new Date(today); d.setDate(today.getDate() - i); dates.push(d);
         }
 
-        const selectedDateStr = window.Config.currentDiaryDate || dates[dates.length - 1].toISOString().split('T')[0];
+        const currentIndex = window.Config.diaryPageIndex;
 
-        dates.forEach(d => {
-            const dStr = d.toISOString().split('T')[0];
-            const isActive = dStr === selectedDateStr ? 'active' : '';
-            dateHtml += `<div class="date-bubble ${isActive}" onclick="window.PhoneUI.selectDiaryDate('${dStr}')"><div class="month">${d.getMonth() + 1}月</div><div class="day">${d.getDate()}</div></div>`;
-        });
-        dateListEl.innerHTML = dateHtml;
+        if (currentIndex === -1) {
+            // 渲染扉页
+            contentAreaEl.innerHTML = `
+                <div class="notebook-empty" style="text-align: center;">
+                    <i class="ph-fill ph-feather" style="font-size: 48px; color: rgba(0,0,0,0.3); margin-bottom: 20px;"></i>
+                    <p style="font-size: 28px; margin-bottom: 10px;">“时间会磨平一切痕迹，”</p>
+                    <p style="font-size: 28px;">“除了我为你写下的字。”</p>
+                </div>
+            `;
+            return;
+        }
+
+        const targetDate = dates[currentIndex];
+        const dateStr = targetDate.toISOString().split('T')[0];
+        const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+        const weekStr = '星期' + weekDays[targetDate.getDay()];
+        const displayDate = `${targetDate.getFullYear()}年${targetDate.getMonth() + 1}月${targetDate.getDate()}日`;
 
         const diaries = window.PhoneAPI.getDiaries();
-        const content = diaries[selectedDateStr];
+        const content = diaries[dateStr];
+
+        let html = `
+            <div class="notebook-header">
+                <div class="notebook-date-wrap">
+                    <span class="notebook-date">${displayDate}</span>
+                    <span class="notebook-week">${weekStr}</span>
+                </div>
+                <div class="notebook-mood">☁️</div>
+            </div>
+        `;
 
         if (content) {
             let parsedContent = window.marked ? window.marked.parse(content) : content;
-            contentAreaEl.innerHTML = `<div class="diary-content markdown-body">${parsedContent}</div>`;
+            html += `<div class="notebook-content">${parsedContent}</div>`;
         } else {
-            const isToday = selectedDateStr === today.toISOString().split('T')[0];
+            const isToday = currentIndex === 6;
             if (isToday) {
-                contentAreaEl.innerHTML = `
-                    <div class="diary-empty">
-                        <i class="ph-fill ph-lock-key" style="font-size: 48px; color: var(--border-color); margin-bottom: 15px;"></i>
-                        <p style="margin-bottom: 20px;">他今天还没写日记...</p>
-                        <button class="btn-refresh" onclick="window.PhoneEngine.generateDiary('${selectedDateStr}')" style="width: auto; padding: 10px 20px; background: var(--primary-color);"><i class="ph-fill ph-magic-wand"></i> 偷偷生成今日日记</button>
+                html += `
+                    <div class="notebook-empty">
+                        <p style="margin-bottom: 20px;">今天还没有记录呢...</p>
+                        <button class="btn-refresh" onclick="window.PhoneEngine.generateDiary('${dateStr}')" style="width: auto; padding: 10px 20px; background: rgba(0,0,0,0.6); border-radius: 8px; font-family: sans-serif; font-size: 14px;"><i class="ph-fill ph-magic-wand"></i> 偷偷写日记</button>
                     </div>
                 `;
             } else {
-                contentAreaEl.innerHTML = `<div class="diary-empty"><i class="ph-fill ph-wind" style="font-size: 48px; color: var(--border-color); margin-bottom: 15px;"></i><p>这一天，他什么也没留下。</p></div>`;
+                html += `<div class="notebook-empty"><p>这一天，什么也没留下。</p></div>`;
             }
         }
+
+        contentAreaEl.innerHTML = html;
     },
 
-    selectDiaryDate(dateStr) { window.Config.currentDiaryDate = dateStr; this.renderDiaryPage(); },
+    turnDiaryPage(direction) {
+        let newIndex = window.Config.diaryPageIndex + direction;
+        if (newIndex < -1) newIndex = -1;
+        if (newIndex > 6) newIndex = 6;
+        window.Config.diaryPageIndex = newIndex;
+        this.renderDiaryPage();
+    },
 
     initStarrySea() {
         const bgEl = document.getElementById('starry-sea-bg');

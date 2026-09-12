@@ -390,7 +390,7 @@ export const PhoneUI = {
             const leafRot = Math.random() * 360;
             const leafHtml = `<i class="ph-fill ph-leaf vine-leaf" style="top:${leafTop}%; left:${leafLeft}px; transform:rotate(${leafRot}deg);"></i>`;
 
-            // 🌟 核心修复：把 star 类名换成了 core-btn，避免和星海冲突！
+            // 🌟 核心修复：把 star 类名换成了 core-btn！
             html += `
                 <div class="vine-item">
                     <div class="${nodeClass}">${iconHtml}</div>

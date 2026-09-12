@@ -14,13 +14,14 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <!-- 🌟 核心：强制拉取最新的藤蔓样式！ -->
-    <link rel="stylesheet" href="css/style.css?t=6000">
+    <!-- 🌟 强制拉取最新 CSS -->
+    <link rel="stylesheet" href="css/style.css?t=7000">
 </head>
 <body>
     <div id="app-container">
         <div id="toast"><i class="ph-fill ph-check-circle" style="color: #4ade80; font-size: 18px;"></i> <span id="toast-msg">保存成功</span></div>
 
+        <!-- 🌟 顶部导航栏 -->
         <div class="top-bar">
             <div class="menu-btn" onclick="window.PhoneUI.toggleTheme()"><i class="ph-fill ph-moon" id="theme-icon" style="font-size: 18px;"></i></div>
             <div class="title" id="top-title">Claire & Claude</div>
@@ -237,12 +238,19 @@
 
         function switchTab(index) {
             scrollBox.scrollTo({ left: pages[index].offsetLeft, behavior: 'smooth' });
+            
+            // 🌟 核心：切换页面时，控制顶部导航栏的显示/隐藏！
+            const appContainer = document.getElementById('app-container');
+            if(index === 1) {
+                appContainer.classList.add('hide-top-bar'); // Memory 页隐藏
+                if(window.PhoneUI) window.PhoneUI.initStarrySea();
+            } else {
+                appContainer.classList.remove('hide-top-bar'); // 其他页显示
+            }
+
             if(index === 2 && window.PhoneUI) {
                 window.Config.currentAppId = 'wechat'; 
                 window.PhoneUI.renderAppContent('wechat');
-            }
-            if(index === 1 && window.PhoneUI) {
-                window.PhoneUI.initStarrySea();
             }
             if(index === 4) {
                 const avatar = localStorage.getItem('my_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa';

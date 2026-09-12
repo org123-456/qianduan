@@ -14,16 +14,13 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <!-- 🌟 强制拉取最新 CSS -->
-    <link rel="stylesheet" href="css/style.css?t=9000">
+    <link rel="stylesheet" href="css/style.css?t=9100">
 </head>
 <body>
-    <!-- 🌟 赛博悬浮球 -->
     <div id="api-fab" class="api-fab" onclick="window.PhoneUI.openApiModal()">
         <i class="ph-fill ph-cpu"></i>
     </div>
 
-    <!-- 🌟 API 控制舱 -->
     <div id="api-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeApiModal()"></div>
     <div id="api-modal" class="api-modal">
         <div class="thought-header"><i class="ph-fill ph-cpu"></i> 系统控制舱</div>
@@ -113,7 +110,12 @@
             <div id="page-chat" class="page" style="position: relative; padding-bottom: 0;">
                 <div id="app-content-list" style="flex: 1; overflow-y: auto; padding-bottom: 140px;"></div>
                 
+                <!-- 🌟 核心：微信菜单加入发图片按钮 (3列2行) -->
                 <div id="chat-plus-menu" class="chat-plus-menu" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="app-icon" onclick="window.PhoneEngine.sendImageMsg();">
+                        <div class="icon"><i class="ph-fill ph-image" style="color: #4ade80;"></i></div>
+                        <div class="name">发图片</div>
+                    </div>
                     <div class="app-icon" onclick="window.PhoneEngine.extractMemory('wechat'); window.PhoneUI.closeChatMenu();">
                         <div class="icon"><i class="ph-fill ph-brain" style="color: #a78bfa;"></i></div>
                         <div class="name">提取记忆</div>
@@ -233,7 +235,6 @@
             <div class="blindbox-meta" id="blindbox-meta">2023-10-24 · 线上微信</div>
         </div>
 
-        <!-- 🌟 自定义输入弹窗 -->
         <div id="custom-prompt-bg" class="action-sheet-bg"></div>
         <div id="custom-prompt-modal" class="thought-modal" style="padding: 20px; z-index: 1005;">
             <div class="thought-header" id="custom-prompt-title" style="font-size: 14px; line-height: 1.4;">请输入</div>
@@ -314,10 +315,9 @@
                     window.PhoneAPI.refreshPromptDropdowns();
                     window.PhoneAPI.refreshUIDropdowns();
                     window.PhoneAPI.loadSettings();
+                    if(window.PhoneEngine) window.PhoneEngine.cleanStuckTyping();
                 }
                 if(window.PhoneUI) window.PhoneUI.renderAppContent('wechat');
-                // 🌟 核心：一进网页自动清理卡死！
-                if(window.PhoneEngine) window.PhoneEngine.cleanStuckTyping();
             }, 500);
         });
 

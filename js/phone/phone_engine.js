@@ -5,6 +5,27 @@ import { PhoneUI } from './phone_ui.js';
 export const PhoneEngine = {
     currentMsgIndex: -1,
 
+    // 🌟 核心救场：一键清理所有卡死的“……”
+    cleanStuckTyping() {
+        let changed = false;
+        for (let roleId in Config.phoneData) {
+            ['wechat', 'novel'].forEach(app => {
+                if (Config.phoneData[roleId][app]) {
+                    const items = Config.phoneData[roleId][app].items;
+                    // 如果最后一条是 typing，直接干掉它！
+                    if (items.length > 0 && items[items.length - 1].sender === 'typing') {
+                        items.pop();
+                        changed = true;
+                    }
+                }
+            });
+        }
+        if (changed) {
+            localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+            console.log("已自动清理卡死的 typing 状态");
+        }
+    },
+
     openMsgMenu(index, sender) {
         this.currentMsgIndex = index;
         document.getElementById('action-bg').classList.add('show');
@@ -204,7 +225,6 @@ ${historyText}`;
         }
     },
 
-    // 🌟 新增：商店购买道具并触发互动逻辑！
     buyItem(itemName, price, effectPrompt) {
         let coins = parseInt(localStorage.getItem('my_coins') || '500');
         if (coins < price) {
@@ -230,7 +250,6 @@ ${historyText}`;
             const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
             const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
             
-            // 把道具效果作为系统动作发进聊天里
             chatItems.push({ 
                 sender: 'me', 
                 content: `【系统动作】：我购买并对你使用了道具 [${itemName}]。${effectPrompt}`, 
@@ -241,7 +260,6 @@ ${historyText}`;
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
             PhoneUI.renderAppContent('wechat');
             
-            // 强制触发 AI 回复
             this.sendChatMessage(false);
         }
     },
@@ -314,8 +332,6 @@ ${historyText}`;
             let formatRule = "";
             if (banEmoji) formatRule += "【最高禁令】：绝对不允许使用任何 Emoji、颜文字、波浪号(~)，违者抹杀！\n";
             formatRule += "【微信连发强制要求】：你每次回复**必须**输出 4 到 5 句话，并且**每一句话都必须用换行符（回车）隔开**！系统会根据换行符将你的回复切分成多个连续的微信气泡。绝对不要只回一句话，也绝对不要把所有话挤在同一行！\n";
-            
-            // 🌟 核心修复：严厉警告 AI 必须产生新的心声！
             formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。**【警告】：绝对禁止重复之前的心声！必须根据当前的对话产生全新的心理活动！**\n";
 
             const wbData = PhoneAPI.getWorldbookData();
@@ -357,7 +373,6 @@ ${historyText}`;
             const MAX_CONTEXT = 20;
             const recentItems = chatItems.slice(-MAX_CONTEXT);
 
-            // 🌟 核心修复：把 AI 之前的心声还原给它看，打破复读机幻觉！
             recentItems.forEach((item) => {
                 if (item.sender !== 'typing') { 
                     let text = item.content;
@@ -392,7 +407,6 @@ ${historyText}`;
             
             const replyParts = finalReply.split('\n').map(s => s.trim()).filter(s => s.length > 0);
             
-            // 🌟 核心修复：连发气泡时，只给第一句话绑定心声！
             replyParts.forEach((part, idx) => {
                 let thought = (idx === 0) ? innerThought : "（连发消息，心声已在上一条显示）";
                 chatItems.push({ sender: 'other', content: part, time: timeStr, date: dateStr, innerThought: thought });
@@ -500,7 +514,6 @@ ${historyText}`;
             const MAX_CONTEXT = 20;
             const recentItems = chatItems.slice(-MAX_CONTEXT);
             
-            // 🌟 核心修复：线下也把心声还原给 AI 看！
             recentItems.forEach(item => {
                 if (item.sender !== 'typing') { 
                     let text = item.content;

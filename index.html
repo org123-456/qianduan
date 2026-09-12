@@ -14,7 +14,7 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=3700">
+    <link rel="stylesheet" href="css/style.css?t=3800">
 </head>
 <body>
     <div id="app-container">
@@ -64,11 +64,8 @@
                 </div>
             </div>
 
-            <!-- 🌟 核心升级：Memory 变身星海档案馆 -->
             <div id="page-memory" class="page" style="padding: 0;">
-                <div class="starry-sea-bg" id="starry-sea-bg">
-                    <!-- 星星由 JS 动态生成 -->
-                </div>
+                <div class="starry-sea-bg" id="starry-sea-bg"></div>
                 
                 <div class="floating-bubbles" id="floating-bubbles">
                     <div class="glass-bubble bubble-diary" onclick="window.PhoneUI.openApp('diary', '他的日记')">
@@ -85,7 +82,6 @@
                     </div>
                 </div>
 
-                <!-- 记忆碎片由 JS 动态生成并挂载在这里 -->
                 <div id="memory-fragments-container"></div>
             </div>
 
@@ -122,11 +118,21 @@
                 </div>
             </div>
 
+            <!-- 🌟 核心升级：Mine 页面加入收藏夹入口 -->
             <div id="page-mine" class="page">
-                <div class="card" style="text-align: center; padding: 50px 20px; color: var(--text-sub);">
-                    <i class="ph-fill ph-user-circle" style="font-size: 48px; color: var(--bg-gradient-start); margin-bottom: 10px;"></i>
-                    <h3 style="color: var(--primary-color); margin-bottom: 10px;">个人中心</h3>
-                    <p style="font-size: 13px;">好感度、成就徽章、角色衣柜等功能开发中...<br><br>（硬核设置已转移至首页的「系统设置」App）</p>
+                <div class="card" style="text-align: center; padding: 40px 20px; color: var(--text-main);">
+                    <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa" id="mine-avatar-display" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 15px; border: 3px solid var(--primary-color); object-fit: cover;">
+                    <h3 style="color: var(--primary-color); margin-bottom: 5px;" id="mine-name-display">我</h3>
+                    <p style="font-size: 12px; color: var(--text-sub);">你的专属空间</p>
+                </div>
+                
+                <div class="memory-card" style="background: linear-gradient(135deg, #f4a261, #e76f51);" onclick="window.PhoneUI.openApp('favorites', '星海收藏夹')">
+                    <div class="mc-icon"><i class="ph-fill ph-star"></i></div>
+                    <div class="mc-info">
+                        <div class="mc-title">星海收藏夹</div>
+                        <div class="mc-desc">管理你摘录的绝美金句</div>
+                    </div>
+                    <i class="ph ph-caret-right mc-arrow"></i>
                 </div>
             </div>
             
@@ -153,10 +159,13 @@
             </div>
         </div>
 
+        <!-- 🌟 核心升级：消息操作菜单加入摘录和提炼按钮 -->
         <div id="action-bg" class="action-sheet-bg" onclick="window.PhoneEngine.closeMsgMenu()"></div>
         <div id="action-sheet" class="action-sheet">
+            <button class="action-btn" onclick="window.PhoneEngine.favoriteMsg()"><i class="ph-fill ph-star" style="color: #f4a261;"></i> 手动摘录 (存入星海)</button>
+            <button class="action-btn" onclick="window.PhoneEngine.aiSummarizeMsg()"><i class="ph-fill ph-sparkle" style="color: #a78bfa;"></i> AI 提炼 (去敏并收藏)</button>
             <button class="action-btn" onclick="window.PhoneEngine.editMsg()"><i class="ph ph-pencil-simple"></i> 编辑此消息</button>
-            <button class="action-btn" id="btn-regen" onclick="window.PhoneEngine.regenMsg()"><i class="ph ph-arrows-clockwise"></i> 重新生成 (删除此条并重骰)</button>
+            <button class="action-btn" id="btn-regen" onclick="window.PhoneEngine.regenMsg()"><i class="ph ph-arrows-clockwise"></i> 重新生成 (删除并重骰)</button>
             <button class="action-btn danger" onclick="window.PhoneEngine.deleteMsg()"><i class="ph ph-trash"></i> 删除此消息</button>
             <button class="action-btn cancel" onclick="window.PhoneEngine.closeMsgMenu()">取消</button>
         </div>
@@ -186,7 +195,6 @@
             <div id="archive-list" style="overflow-y: auto; max-height: 40vh; display: flex; flex-direction: column; gap: 10px;"></div>
         </div>
 
-        <!-- 🌟 盲盒弹窗 -->
         <div id="blindbox-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeBlindBox()"></div>
         <div id="blindbox-modal" class="blindbox-modal">
             <i class="ph-fill ph-shooting-star blindbox-icon"></i>
@@ -216,9 +224,15 @@
                 window.Config.currentAppId = 'wechat'; 
                 window.PhoneUI.renderAppContent('wechat');
             }
-            // 🌟 核心：滑到 Memory 页时，触发星海动画！
             if(index === 1 && window.PhoneUI) {
                 window.PhoneUI.initStarrySea();
+            }
+            // 刷新 Mine 页面的头像和名字
+            if(index === 4) {
+                const avatar = localStorage.getItem('my_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa';
+                const name = localStorage.getItem('my_name') || '我';
+                document.getElementById('mine-avatar-display').src = avatar;
+                document.getElementById('mine-name-display').innerText = name;
             }
         }
 

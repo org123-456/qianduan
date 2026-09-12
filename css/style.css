@@ -1,3 +1,6 @@
+/* 🌟 核心：引入绝美的中文手写字体！ */
+@import url('https://fonts.googleapis.com/css2?family=Long+Cang&display=swap');
+
 :root {
     color-scheme: light dark;
     --primary-color: #6b8bbd;
@@ -17,8 +20,9 @@
     --story-bg: #fdfbf7;
     --bg-image-global: none;
     --bg-image-chat: none;
-    /* 🌟 新增：日记封面变量 */
     --bg-image-diary-cover: url('https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=1000&auto=format&fit=crop');
+    /* 🌟 新增：日记本内页底图（默认给一张复古纸张） */
+    --bg-image-diary-page: url('https://www.transparenttextures.com/patterns/cream-paper.png');
 }
 
 [data-theme="dark"] {
@@ -278,13 +282,6 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 .mc-desc { font-size: 12px; opacity: 0.85; line-height: 1.4; }
 .mc-arrow { font-size: 20px; opacity: 0.5; }
 
-.date-scroll-container { display: flex; gap: 12px; overflow-x: auto; padding: 10px 5px 20px 5px; margin-bottom: 10px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
-.date-scroll-container::-webkit-scrollbar { display: none; }
-.date-bubble { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 60px; height: 75px; background: var(--icon-bg); border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s; scroll-snap-align: center; }
-.date-bubble.active { background: var(--primary-color); color: #fff; transform: scale(1.05); box-shadow: 0 8px 20px rgba(107, 139, 189, 0.3); }
-.date-bubble .month { font-size: 11px; opacity: 0.8; margin-bottom: 4px; }
-.date-bubble .day { font-size: 20px; font-weight: bold; }
-
 .timeline-container { padding: 10px 5px; }
 .timeline-item { display: flex; gap: 15px; margin-bottom: 25px; position: relative; }
 .timeline-item::before { content: ""; position: absolute; left: 21px; top: 40px; bottom: -30px; width: 2px; background: var(--border-color); }
@@ -334,7 +331,7 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 .blindbox-meta { font-size: 12px; color: rgba(255,255,255,0.5); font-family: monospace; }
 
 /* =========================================
-   🌟 终极浪漫：3D 实体日记本翻开特效！
+   🌟 终极浪漫：全屏沉浸式实体日记本
    ========================================= */
 .diary-cover-view {
     position: absolute; top: 0; left: 0; right: 0; bottom: 0;
@@ -345,30 +342,71 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 .diary-cover-view.opened { opacity: 0; visibility: hidden; pointer-events: none; }
 
 .diary-book-cover {
-    width: 80%; height: 60%; max-height: 500px;
+    width: 80%; height: 65%; max-height: 550px;
     background-image: var(--bg-image-diary-cover);
     background-size: cover; background-position: center;
-    border-radius: 4px 16px 16px 4px; /* 模拟书脊在左边 */
+    border-radius: 4px 16px 16px 4px; 
     box-shadow: -5px 0 20px rgba(0,0,0,0.1), 10px 10px 30px rgba(0,0,0,0.2);
     display: flex; flex-direction: column; justify-content: center; align-items: center;
     color: white; text-shadow: 0 2px 10px rgba(0,0,0,0.5);
     transform-origin: left center; transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer; position: relative;
 }
-/* 书脊高光效果 */
 .diary-book-cover::before {
     content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 20px;
     background: linear-gradient(to right, rgba(255,255,255,0.2), rgba(0,0,0,0.1) 50%, rgba(255,255,255,0));
     border-radius: 4px 0 0 4px;
 }
 .diary-book-cover.opened { transform: rotateY(-110deg); opacity: 0; transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s 0.5s; }
-
-.diary-title { font-size: 28px; font-weight: bold; letter-spacing: 2px; margin-bottom: 10px; font-family: 'Georgia', serif; }
+.diary-title { font-size: 32px; font-weight: bold; letter-spacing: 2px; margin-bottom: 10px; font-family: 'Georgia', serif; }
 .diary-hint { font-size: 12px; opacity: 0.8; letter-spacing: 1px; animation: pulseGlow 2s infinite alternate; }
 
+/* 🌟 真正的日记内页 */
 .diary-inside-view {
     position: absolute; top: 0; left: 0; right: 0; bottom: 0;
     opacity: 0; transition: opacity 0.8s 0.5s; pointer-events: none;
-    display: flex; flex-direction: column; padding: 20px;
+    background-image: var(--bg-image-diary-page);
+    background-size: cover; background-position: center;
+    display: flex; flex-direction: column;
 }
 .diary-inside-view.opened { opacity: 1; pointer-events: auto; }
+
+.notebook-page {
+    flex: 1; display: flex; flex-direction: column; padding: 40px 25px 80px 25px;
+    position: relative; overflow-y: auto; overflow-x: hidden;
+}
+.notebook-page::-webkit-scrollbar { display: none; }
+
+.notebook-header {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    border-bottom: 2px solid rgba(0,0,0,0.4); padding-bottom: 10px; margin-bottom: 20px;
+    color: #333; /* 实体书的字必须是深色 */
+}
+.notebook-date-wrap { display: flex; flex-direction: column; gap: 5px; }
+.notebook-date { font-size: 24px; font-weight: bold; font-family: 'Georgia', serif; letter-spacing: 1px;}
+.notebook-week { font-size: 14px; font-family: 'Georgia', serif; opacity: 0.8;}
+.notebook-mood { font-size: 24px; }
+
+/* 🌟 核心：手写体 + 横线格！ */
+.notebook-content {
+    flex: 1; font-family: 'Long Cang', cursive; font-size: 24px; line-height: 2.2rem;
+    color: #2c3e50; text-align: justify;
+    background: repeating-linear-gradient(transparent, transparent calc(2.2rem - 1px), rgba(0,0,0,0.15) calc(2.2rem - 1px), rgba(0,0,0,0.15) 2.2rem);
+    padding-top: 5px;
+}
+.notebook-empty {
+    height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;
+    font-family: 'Long Cang', cursive; font-size: 26px; color: rgba(0,0,0,0.4);
+}
+
+/* 翻页按钮 */
+.page-turner {
+    position: absolute; bottom: 20px; left: 20px; right: 20px;
+    display: flex; justify-content: space-between; align-items: center;
+}
+.page-btn {
+    background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.1);
+    width: 44px; height: 44px; border-radius: 50%; display: flex; justify-content: center; align-items: center;
+    font-size: 20px; color: #333; cursor: pointer; transition: 0.2s; backdrop-filter: blur(5px);
+}
+.page-btn:active { transform: scale(0.9); background: rgba(0,0,0,0.1); }

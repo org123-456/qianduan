@@ -43,9 +43,28 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; transition: background-color 0.3s, border-color 0.3s, color 0.3s; }
 
-html, body { width: 100%; height: 100%; overflow: hidden; position: fixed; top: 0; left: 0; overscroll-behavior-x: none; overscroll-behavior-y: none; }
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-gradient-start); background-image: var(--bg-image-global, linear-gradient(180deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%)); background-size: cover; background-position: center; display: flex; justify-content: center; align-items: center; }
-[data-theme="dark"] body::before { content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.55); z-index: -1; pointer-events: none; }
+/* 🌟 物理级锁死：禁止网页被侧滑撕裂 */
+html, body { 
+    width: 100%; height: 100%; 
+    overflow: hidden; 
+    position: fixed; 
+    top: 0; left: 0;
+    overscroll-behavior-x: none; 
+    overscroll-behavior-y: none; 
+}
+
+body { 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+    background-color: var(--bg-gradient-start); 
+    background-image: var(--bg-image-global, linear-gradient(180deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%)); 
+    background-size: cover; background-position: center; 
+    display: flex; justify-content: center; align-items: center; 
+}
+
+[data-theme="dark"] body::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.55); z-index: -1; pointer-events: none;
+}
 
 #app-container { width: 100%; height: 100%; max-width: 400px; position: relative; display: flex; flex-direction: column; overflow: hidden; }
 
@@ -105,7 +124,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .chat-input-bar .icon-btn { color: var(--primary-color); font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s;}
 .chat-input-bar .send-btn { color: #fff; background: var(--primary-color); width: 30px; height: 30px; border-radius: 50%; font-size: 16px; margin-left: 5px;}
 
-.chat-plus-menu { position: absolute; bottom: 150px; left: 10px; right: 10px; background: var(--input-bg); backdrop-filter: blur(10px); border-radius: 20px; padding: 20px 15px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); transform: translateY(20px) scale(0.95); opacity: 0; pointer-events: none; transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1); z-index: 9; }
+.chat-plus-menu { position: absolute; bottom: 150px; left: 10px; right: 10px; background: var(--input-bg); backdrop-filter: blur(10px); border-radius: 20px; padding: 20px 15px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); transform: translateY(20px) scale(0.95); opacity: 0; pointer-events: none; transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1); z-index: 9; }
 .chat-plus-menu.show { transform: translateY(0) scale(1); opacity: 1; pointer-events: auto; }
 .chat-plus-menu .app-icon .icon { width: 50px; height: 50px; font-size: 24px; border-radius: 14px; }
 
@@ -134,6 +153,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .app-window-title { font-size: 17px; font-weight: bold; color: var(--text-main); }
 .app-window-content { flex: 1; overflow-y: auto; padding: 20px; position: relative; } 
 #app-window-footer { position: relative; flex-shrink: 0; background: transparent; }
+
 .app-window.fullscreen-mode .app-window-header { display: none; }
 .app-window.fullscreen-mode .app-window-content { padding: 0; }
 
@@ -212,6 +232,7 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 .mc-desc { font-size: 12px; opacity: 0.85; line-height: 1.4; }
 .mc-arrow { font-size: 20px; opacity: 0.5; }
 
+/* 🌟 藤蔓时间轴 */
 .vault-tabs { display: flex; background: var(--input-bg); border-radius: 16px; padding: 5px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);}
 .vault-tab { flex: 1; text-align: center; padding: 10px; font-size: 13px; font-weight: bold; color: var(--text-sub); border-radius: 12px; cursor: pointer; transition: 0.3s; }
 .vault-tab.active { background: #fff; color: var(--primary-color); box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
@@ -236,6 +257,7 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 .vine-btn.edit { color: var(--primary-color); }
 .vine-btn.del { color: var(--danger-color); }
 
+/* 🌟 星海盲盒 */
 #page-memory { background: transparent; }
 .starry-sea-bg { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%); z-index: -1; overflow: hidden; opacity: 0; transition: opacity 1.5s ease-in-out; }
 .starry-sea-bg.show { opacity: 1; }
@@ -265,6 +287,7 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 .blindbox-text { font-family: 'Long Cang', 'Kaiti', 'STKaiti', cursive; font-size: 24px; line-height: 1.6; margin-bottom: 20px; letter-spacing: 1px;}
 .blindbox-meta { font-size: 12px; color: rgba(255,255,255,0.5); font-family: monospace; }
 
+/* 🌟 3D 日记本 */
 .diary-cover-view { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; align-items: center; background: #000; z-index: 20; perspective: 1200px; transition: opacity 0.5s 0.8s, visibility 0.5s 0.8s; }
 .diary-cover-view.opened { opacity: 0; visibility: hidden; pointer-events: none; }
 .diary-book-cover { width: 100%; height: 100%; background-image: var(--bg-image-diary-cover); background-size: cover; background-position: center; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; text-shadow: 0 2px 10px rgba(0,0,0,0.5); transform-origin: left center; transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; position: relative; }
@@ -288,7 +311,7 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 .page-btn { pointer-events: auto; background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.1); width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; color: #333; cursor: pointer; transition: 0.2s; backdrop-filter: blur(5px); }
 .page-btn:active { transform: scale(0.9); background: rgba(0,0,0,0.1); }
 
-/* 🌟 核心：赛博悬浮中控球样式 */
+/* 🌟 赛博悬浮中控球 */
 .api-fab {
     position: fixed; right: 15px; top: 50%; transform: translateY(-50%);
     width: 44px; height: 44px; border-radius: 50%;
@@ -299,21 +322,12 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
     z-index: 100; transition: 0.3s;
 }
 .api-fab:active { transform: translateY(-50%) scale(0.9); }
-/* AI 思考时的疯狂旋转发光状态 */
-.api-fab.loading {
-    background: var(--primary-color); color: #fff;
-    box-shadow: 0 0 20px var(--primary-color);
-    animation: pulse-fab 1.5s infinite;
-}
+.api-fab.loading { background: var(--primary-color); color: #fff; box-shadow: 0 0 20px var(--primary-color); animation: pulse-fab 1.5s infinite; }
 .api-fab.loading i { animation: spin-fast 1s linear infinite; }
-/* 报错时的红色警告状态 */
-.api-fab.error {
-    background: var(--danger-color); color: #fff;
-    box-shadow: 0 0 20px var(--danger-color);
-}
+.api-fab.error { background: var(--danger-color); color: #fff; box-shadow: 0 0 20px var(--danger-color); }
 @keyframes pulse-fab { 0% { transform: translateY(-50%) scale(1); } 50% { transform: translateY(-50%) scale(1.1); } 100% { transform: translateY(-50%) scale(1); } }
 
-/* 控制舱样式 */
+/* 控制舱 */
 .api-modal {
     position: fixed; top: 50%; left: 50%; transform: translate(-50%, -40%) scale(0.9);
     width: 85%; background: var(--input-bg); backdrop-filter: blur(20px);

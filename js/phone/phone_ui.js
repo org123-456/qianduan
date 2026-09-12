@@ -3,11 +3,7 @@ export const PhoneUI = {
         const roleId = window.Config?.currentContactId;
         if(!roleId) return;
         
-        let data = window.Config.phoneData[roleId]?.[appId];
-        if (data && data.items && data.items.length > 50) {
-            data = { ...data, items: data.items.slice(-50) };
-        }
-
+        const data = window.Config.phoneData[roleId]?.[appId];
         const listEl = document.getElementById('app-content-list');
         if (listEl && window.Apps && window.Apps[appId]) {
             listEl.innerHTML = window.Apps[appId].renderList(data);
@@ -491,8 +487,11 @@ export const PhoneUI = {
 
     renderNovelContent() {
         const roleId = window.Config.currentContactId;
-        const allItems = window.Config.phoneData[roleId]?.novel?.items || [];
-        const items = allItems.slice(-50);
+        const totalItems = window.Config.phoneData[roleId]?.novel?.items || [];
+        const totalLen = totalItems.length;
+
+        const renderItems = totalLen > 50 ? totalItems.slice(-50) : totalItems;
+        const offset = totalLen > 50 ? totalLen - 50 : 0;
         
         const listEl = document.getElementById('novel-content-list');
         if (!listEl) return;
@@ -503,7 +502,9 @@ export const PhoneUI = {
         const avatarOther = localStorage.getItem('ta_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=You&backgroundColor=dbe9f6';
 
         let html = '';
-        items.forEach((item, index) => {
+        renderItems.forEach((item, index) => {
+            const realIndex = offset + index;
+
             if (item.sender === 'typing') {
                 html += `<div style="text-align:center; padding: 20px; color: var(--primary-color);"><i class="ph ph-spinner spin-anim" style="font-size: 24px;"></i></div>`;
                 return;
@@ -520,7 +521,6 @@ export const PhoneUI = {
                 content = window.marked.parse(content);
             }
 
-            const realIndex = allItems.length - items.length + index;
             const avatarHtml = isMe ? `<img src="${avatar}" class="story-avatar">` : `<img src="${avatar}" class="story-avatar" onclick="window.PhoneUI.showThought(${realIndex}, 'novel')">`;
 
             html += `
@@ -534,19 +534,19 @@ export const PhoneUI = {
         setTimeout(() => { const scrollContainer = document.getElementById('app-window-content'); if(scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight; }, 100);
     },
 
-    // 🌟 核心急救：修复心声读取逻辑，配合真实索引！
-    showThought(index) {
+    // 🌟 核心绝对坐标读取：传入的 realIndex 直接拿取，不再有时空错乱！
+    showThought(realIndex, targetApp) {
         const roleId = window.Config?.currentContactId;
-        const targetApp = window.Config.currentAppId === 'novel' ? 'novel' : 'wechat';
+        const app = targetApp || (window.Config.currentAppId === 'novel' ? 'novel' : 'wechat');
         
-        // 这里的 index 已经是 realIndex 了，直接取！
-        const item = window.Config.phoneData[roleId]?.[targetApp]?.items[index];
+        const item = window.Config.phoneData[roleId]?.[app]?.items?.[realIndex];
         if(!item) return;
         
         let thought = item.innerThought;
+        // 如果是连发消息，倒查上一条属于同一个批次的心声
         if (thought && thought.includes('连发消息')) {
-            for (let i = index - 1; i >= 0; i--) {
-                const prevItem = window.Config.phoneData[roleId][targetApp].items[i];
+            for (let i = realIndex - 1; i >= 0; i--) {
+                const prevItem = window.Config.phoneData[roleId][app].items[i];
                 if (prevItem.sender === 'other' && prevItem.time === item.time && prevItem.innerThought && !prevItem.innerThought.includes('连发消息')) {
                     thought = prevItem.innerThought;
                     break;

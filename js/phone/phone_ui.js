@@ -46,6 +46,41 @@ export const PhoneUI = {
         if (menu) menu.classList.remove('show'); if (btn) btn.style.transform = 'rotate(0deg)';
     },
 
+    // 🌟 核心救场：自定义输入弹窗逻辑
+    showCustomPrompt(title, defaultValue = '') {
+        return new Promise((resolve) => {
+            const bg = document.getElementById('custom-prompt-bg');
+            const modal = document.getElementById('custom-prompt-modal');
+            const titleEl = document.getElementById('custom-prompt-title');
+            const inputEl = document.getElementById('custom-prompt-input');
+            const btnConfirm = document.getElementById('custom-prompt-confirm');
+            const btnCancel = document.getElementById('custom-prompt-cancel');
+
+            titleEl.innerText = title;
+            inputEl.value = defaultValue;
+
+            bg.classList.add('show');
+            modal.classList.add('show');
+
+            const cleanup = () => {
+                bg.classList.remove('show');
+                modal.classList.remove('show');
+                btnConfirm.onclick = null;
+                btnCancel.onclick = null;
+            };
+
+            btnConfirm.onclick = () => {
+                cleanup();
+                resolve(inputEl.value);
+            };
+
+            btnCancel.onclick = () => {
+                cleanup();
+                resolve(null);
+            };
+        });
+    },
+
     openApp(appId, appName) {
         window.Config.currentAppId = appId;
         
@@ -107,8 +142,7 @@ export const PhoneUI = {
             this.renderDiaryPage();
 
         } else if (appId === 'memory_vault') {
-            // 🌟 核心升级：渲染藤蔓记忆库框架
-            window.Config.memoryVaultTab = 'wechat'; // 默认显示线上微信
+            window.Config.memoryVaultTab = 'wechat'; 
             contentEl.innerHTML = `
                 <div class="vault-tabs">
                     <div class="vault-tab active" id="tab-wechat" onclick="window.PhoneUI.switchVaultTab('wechat')">线上微信</div>
@@ -312,7 +346,6 @@ export const PhoneUI = {
         window.Config.currentAppId = 'wechat';
     },
 
-    // 🌟 核心：渲染藤蔓记忆库！
     switchVaultTab(tabName) {
         window.Config.memoryVaultTab = tabName;
         document.querySelectorAll('.vault-tab').forEach(el => el.classList.remove('active'));

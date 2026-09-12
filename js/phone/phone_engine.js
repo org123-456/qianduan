@@ -57,14 +57,12 @@ export const PhoneEngine = {
         }
     },
 
-    // 🌟 新增：手动提取并压缩记忆档案！
     async extractMemory(sourceApp) {
         PhoneAPI.showToast("🧠 正在提取并压缩记忆，请稍候...");
         try {
             const roleId = Config.currentContactId;
             const items = Config.phoneData[roleId]?.[sourceApp]?.items || [];
             
-            // 提取最近的 30 句话进行总结
             const recentItems = items.slice(-30).filter(i => i.sender !== 'typing');
             if (recentItems.length === 0) {
                 alert("没有足够的聊天记录来提取记忆！");
@@ -76,17 +74,62 @@ export const PhoneEngine = {
             const prompt = `你是一个记忆整理助手。请将以下角色扮演的聊天记录，总结提炼成一段【简短、客观的第三人称记忆档案】（100字左右）。\n要求：\n1. 概括发生了什么事，双方的情感变化或核心互动。\n2. 绝对不要照抄原话，要进行高度浓缩和去水，去除所有敏感(NSFW)细节。\n3. 直接输出总结内容，不要多余的废话。\n\n聊天记录：\n${historyText}`;
             
             const messages = [{ role: "user", content: prompt }];
-            const reply = await PhoneAPI.chatWithAI(messages, true); // 强制使用副引擎
+            const reply = await PhoneAPI.chatWithAI(messages, true); 
             
             let summary = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
             summary = summary.replace(/```.*?/g, '').replace(/```/g, '').trim();
             
-            const confirmText = prompt("✨ AI 提取的记忆档案如下，确认无误后点击确定保存：", summary);
+            const confirmText = prompt("✨ AI 提取的记忆档案如下，你可以手动删减去敏，确认无误后点击确定保存：", summary);
             if (confirmText && confirmText.trim() !== "") {
                 PhoneAPI.saveToMemoryVault(confirmText.trim(), sourceApp === 'wechat' ? '线上微信' : '线下故事');
             }
         } catch (e) {
             alert("记忆提取失败：" + e.message);
+        }
+    },
+
+    // 🌟 核心：手动记忆洗地（总结并清空）
+    async washMemory(sourceApp) {
+        this.closeMsgMenu();
+        if (!confirm("⚠️ 确定要进行【记忆洗地】吗？\nAI将把当前所有聊天记录浓缩成一段长期记忆，随后【清空】当前聊天界面！\n(洗地后不可恢复，请确认)")) return;
+
+        PhoneAPI.showToast("🧹 正在进行记忆洗地，请稍候...");
+        try {
+            const roleId = Config.currentContactId;
+            const items = Config.phoneData[roleId]?.[sourceApp]?.items || [];
+            
+            if (items.length === 0) {
+                alert("当前没有聊天记录可以洗地！");
+                return;
+            }
+            
+            const recentItems = items.slice(-50).filter(i => i.sender !== 'typing');
+            let historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
+            
+            const prompt = `你是一个记忆整理助手。请将以下角色扮演的聊天记录，总结提炼成一段【简短、客观的第三人称记忆档案】（150字左右）。\n要求：\n1. 概括发生了什么事，双方的情感变化或核心互动。\n2. 绝对不要照抄原话，要进行高度浓缩和去水，去除所有敏感(NSFW)细节。\n3. 直接输出总结内容，不要多余的废话。\n\n聊天记录：\n${historyText}`;
+            
+            const messages = [{ role: "user", content: prompt }];
+            const reply = await PhoneAPI.chatWithAI(messages, true); 
+            
+            let summary = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+            summary = summary.replace(/```.*?/g, '').replace(/```/g, '').trim();
+            
+            // 防社死确认框
+            const confirmText = prompt("✨ 洗地总结如下，你可以手动修改去敏，确认后将存入记忆库并清空界面：", summary);
+            if (confirmText && confirmText.trim() !== "") {
+                PhoneAPI.saveToMemoryVault(confirmText.trim(), sourceApp === 'wechat' ? '线上微信' : '线下故事');
+                
+                // 清空聊天记录
+                Config.phoneData[roleId][sourceApp].items = [];
+                localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+                
+                if (sourceApp === 'novel') PhoneUI.renderNovelContent();
+                else PhoneUI.renderAppContent('wechat');
+                
+                PhoneAPI.showToast("🧹 洗地完成！界面已清空，记忆已入库。");
+            }
+        } catch (e) {
+            alert("洗地失败：" + e.message);
         }
     },
 
@@ -250,7 +293,9 @@ ${historyText}`;
 
         const now = new Date();
         const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-        chatItems.push({ sender: 'me', content: text, time: timeStr });
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        
+        chatItems.push({ sender: 'me', content: text, time: timeStr, date: dateStr });
         inputEl.value = '';
 
         if (targetApp === 'novel') PhoneUI.renderNovelContent();
@@ -266,15 +311,16 @@ ${historyText}`;
         const chatItems = Config.phoneData[roleId].wechat.items;
 
         let hasNewUserMsg = false;
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 
         if (!isRegen) {
             const inputEl = document.getElementById('chat-input');
             if(inputEl) {
                 const text = inputEl.value.trim();
                 if (text) {
-                    const now = new Date();
-                    const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-                    chatItems.push({ sender: 'me', content: text, time: timeStr });
+                    chatItems.push({ sender: 'me', content: text, time: timeStr, date: dateStr });
                     inputEl.value = '';
                     hasNewUserMsg = true;
                 }
@@ -307,6 +353,26 @@ ${historyText}`;
             const activeOnlineWb = wbData.filter(w => w.online).map(w => w.content).join('\n');
             if (activeOnlineWb) {
                 formatRule += `\n【当前生效的世界书/规则插件】：\n${activeOnlineWb}\n`;
+            }
+
+            // 🌟 核心升级：注入长期记忆和记忆召回！
+            const vault = PhoneAPI.getMemoryVault();
+            if (vault.length > 0) {
+                // 注入最近的5条长期记忆
+                const recentVault = vault.slice(-5).map(v => `[${v.date}] ${v.source}: ${v.content}`).join('\n');
+                formatRule += `\n【长期记忆档案】：以下是你脑海中深刻的长期记忆，请在对话中自然地保持连贯：\n${recentVault}\n`;
+                
+                // 关键词记忆召回
+                if (hasNewUserMsg) {
+                    const userText = chatItems[chatItems.length - 2].content; // 倒数第二个是刚发的用户消息
+                    const recallTriggers = ['你还记得', '昨天', '上次', '之前', '那个事', '还记得', '那次'];
+                    const needsRecall = recallTriggers.some(t => userText.includes(t));
+                    
+                    if (needsRecall && vault.length > 5) {
+                        const extendedVault = vault.slice(-20).map(v => `[${v.date}] ${v.source}: ${v.content}`).join('\n');
+                        formatRule += `\n【系统提示(记忆检索触发)】：用户似乎在试图唤醒你的某段记忆。以下是你的扩展记忆库，请检索是否有相关内容，并以你的口吻作出回应：\n${extendedVault}\n`;
+                    }
+                }
             }
 
             const shareMemory = localStorage.getItem('share_memory') === 'true';
@@ -353,13 +419,10 @@ ${historyText}`;
 
             chatItems.pop(); 
             
-            const replyTime = new Date();
-            const replyTimeStr = `${replyTime.getHours().toString().padStart(2, '0')}:${replyTime.getMinutes().toString().padStart(2, '0')}`;
-            
             const replyParts = finalReply.split('\n').map(s => s.trim()).filter(s => s.length > 0);
             
             replyParts.forEach(part => {
-                chatItems.push({ sender: 'other', content: part, time: replyTimeStr, innerThought: innerThought });
+                chatItems.push({ sender: 'other', content: part, time: timeStr, date: dateStr, innerThought: innerThought });
             });
 
             PhoneUI.renderAppContent('wechat'); 
@@ -384,13 +447,14 @@ ${historyText}`;
         let hasNewUserMsg = false;
         const now = new Date();
         const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 
         if (!isRegen) {
             const inputEl = document.getElementById('novel-input');
             if(inputEl) {
                 const text = inputEl.value.trim();
                 if (text) {
-                    chatItems.push({ sender: 'me', content: text, time: timeStr });
+                    chatItems.push({ sender: 'me', content: text, time: timeStr, date: dateStr });
                     inputEl.value = '';
                     hasNewUserMsg = true;
                 }
@@ -428,6 +492,24 @@ ${historyText}`;
             const activeOfflineWb = wbData.filter(w => w.offline).map(w => w.content).join('\n');
             if (activeOfflineWb) {
                 formatRule += `\n【当前生效的世界书/规则插件】：\n${activeOfflineWb}\n`;
+            }
+
+            // 🌟 核心升级：线下也注入长期记忆和记忆召回！
+            const vault = PhoneAPI.getMemoryVault();
+            if (vault.length > 0) {
+                const recentVault = vault.slice(-5).map(v => `[${v.date}] ${v.source}: ${v.content}`).join('\n');
+                formatRule += `\n【长期记忆档案】：以下是你脑海中深刻的长期记忆，请在对话中自然地保持连贯：\n${recentVault}\n`;
+                
+                if (hasNewUserMsg) {
+                    const userText = chatItems[chatItems.length - 2].content; 
+                    const recallTriggers = ['你还记得', '昨天', '上次', '之前', '那个事', '还记得', '那次'];
+                    const needsRecall = recallTriggers.some(t => userText.includes(t));
+                    
+                    if (needsRecall && vault.length > 5) {
+                        const extendedVault = vault.slice(-20).map(v => `[${v.date}] ${v.source}: ${v.content}`).join('\n');
+                        formatRule += `\n【系统提示(记忆检索触发)】：用户似乎在试图唤醒你的某段记忆。以下是你的扩展记忆库，请检索是否有相关内容，并以你的口吻作出回应：\n${extendedVault}\n`;
+                    }
+                }
             }
 
             const shareMemory = localStorage.getItem('share_memory') === 'true';
@@ -471,7 +553,7 @@ ${historyText}`;
 
             chatItems.pop(); 
             
-            chatItems.push({ sender: 'other', content: finalReply, time: timeStr, innerThought: innerThought });
+            chatItems.push({ sender: 'other', content: finalReply, time: timeStr, date: dateStr, innerThought: innerThought });
 
             PhoneUI.renderNovelContent();
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));

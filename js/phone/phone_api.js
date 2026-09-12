@@ -21,9 +21,10 @@ export const PhoneAPI = {
         saveIfExist('bg-global', 'bg_global'); saveIfExist('bg-chat', 'bg_chat');
         saveIfExist('bg-diary-cover', 'bg_diary_cover'); saveIfExist('bg-diary-page', 'bg_diary_page'); 
         
-        // 🌟 新增：保存扉页文字
         saveIfExist('diary-title', 'diary_title'); 
         saveIfExist('diary-quote', 'diary_quote'); 
+        // 🌟 新增：保存日记起始日期
+        saveIfExist('diary-start-date', 'diary_start_date'); 
         
         saveIfExist('ui-icon-novel', 'ui_icon_novel'); saveIfExist('ui-icon-worldbook', 'ui_icon_worldbook');
         saveIfExist('ui-icon-settings', 'ui_icon_settings'); saveIfExist('ui-icon-gallery', 'ui_icon_gallery');
@@ -52,9 +53,13 @@ export const PhoneAPI = {
             setVal('bg-global', localStorage.getItem('bg_global') || ''); setVal('bg-chat', localStorage.getItem('bg_chat') || '');
             setVal('bg-diary-cover', localStorage.getItem('bg_diary_cover') || ''); setVal('bg-diary-page', localStorage.getItem('bg_diary_page') || ''); 
             
-            // 🌟 新增：加载扉页文字
             setVal('diary-title', localStorage.getItem('diary_title') || 'His Diary'); 
             setVal('diary-quote', localStorage.getItem('diary_quote') || '“时间会磨平一切痕迹，\n除了我为你写下的字。”'); 
+            
+            // 🌟 新增：加载日记起始日期（如果没有，默认给当天的格式化日期）
+            const today = new Date();
+            const defaultDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+            setVal('diary-start-date', localStorage.getItem('diary_start_date') || defaultDate); 
             
             setVal('ui-icon-novel', localStorage.getItem('ui_icon_novel') || ''); setVal('ui-icon-worldbook', localStorage.getItem('ui_icon_worldbook') || '');
             setVal('ui-icon-settings', localStorage.getItem('ui_icon_settings') || ''); setVal('ui-icon-gallery', localStorage.getItem('ui_icon_gallery') || '');

@@ -29,7 +29,7 @@ export const PhoneAPI = {
         saveIfExist('ui-icon-novel', 'ui_icon_novel');
         saveIfExist('ui-icon-worldbook', 'ui_icon_worldbook');
         saveIfExist('ui-icon-settings', 'ui_icon_settings');
-        saveIfExist('ui-icon-gallery', 'ui_icon_gallery'); // 🌟 新增相册图标
+        saveIfExist('ui-icon-gallery', 'ui_icon_gallery');
         saveIfExist('ui-icon-shop', 'ui_icon_shop');
         saveIfExist('ui-icon-task', 'ui_icon_task');
         
@@ -85,7 +85,7 @@ export const PhoneAPI = {
             setVal('ui-icon-novel', localStorage.getItem('ui_icon_novel') || '');
             setVal('ui-icon-worldbook', localStorage.getItem('ui_icon_worldbook') || '');
             setVal('ui-icon-settings', localStorage.getItem('ui_icon_settings') || '');
-            setVal('ui-icon-gallery', localStorage.getItem('ui_icon_gallery') || ''); // 🌟 新增相册图标
+            setVal('ui-icon-gallery', localStorage.getItem('ui_icon_gallery') || '');
             setVal('ui-icon-shop', localStorage.getItem('ui_icon_shop') || '');
             setVal('ui-icon-task', localStorage.getItem('ui_icon_task') || '');
             
@@ -140,7 +140,7 @@ export const PhoneAPI = {
             { id: 'novel', default: '<i class="ph-fill ph-book-open" style="color: var(--text-sub);"></i>' },
             { id: 'worldbook', default: '<i class="ph-fill ph-globe-hemisphere-west" style="color: var(--primary-color);"></i>' },
             { id: 'settings', default: '<i class="ph-fill ph-gear" style="color: var(--primary-color);"></i>' },
-            { id: 'gallery', default: '<i class="ph-fill ph-images" style="color: #e5989b;"></i>' }, // 🌟 新增相册图标
+            { id: 'gallery', default: '<i class="ph-fill ph-images" style="color: #e5989b;"></i>' },
             { id: 'shop', default: '<i class="ph-fill ph-storefront" style="color: #f4a261;"></i>' },
             { id: 'task', default: '<i class="ph-fill ph-check-square-offset" style="color: #2a9d8f;"></i>' }
         ];
@@ -356,6 +356,17 @@ export const PhoneAPI = {
         const diaries = this.getDiaries();
         diaries[dateStr] = content;
         localStorage.setItem('char_diaries', JSON.stringify(diaries));
+    },
+
+    // 🌟 核心：获取全局记忆库（合并微信和小说，并按时间排序）
+    getCombinedMemory() {
+        const roleId = window.Config.currentContactId;
+        const wechatItems = (window.Config.phoneData[roleId]?.wechat?.items || []).map(i => ({ ...i, source: 'wechat' }));
+        const novelItems = (window.Config.phoneData[roleId]?.novel?.items || []).map(i => ({ ...i, source: 'novel' }));
+        
+        let combinedItems = [...wechatItems, ...novelItems];
+        combinedItems.sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+        return combinedItems;
     },
 
     async chatWithAI(messages, useSubEngine = false) {

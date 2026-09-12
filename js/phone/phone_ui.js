@@ -4,69 +4,46 @@ export const PhoneUI = {
         if(!roleId) return;
         
         let data = window.Config.phoneData[roleId]?.[appId];
-        
-        // 🌟 核心修复：防卡顿引擎！屏幕上永远只画最近的 50 句话！
         if (data && data.items && data.items.length > 50) {
             data = { ...data, items: data.items.slice(-50) };
         }
 
         const listEl = document.getElementById('app-content-list');
-        
         if (listEl && window.Apps && window.Apps[appId]) {
             listEl.innerHTML = window.Apps[appId].renderList(data);
-            setTimeout(() => {
-                listEl.scrollTop = listEl.scrollHeight;
-            }, 100);
+            setTimeout(() => { listEl.scrollTop = listEl.scrollHeight; }, 100);
         }
     },
 
     toggleTheme() {
         const currentTheme = document.documentElement.getAttribute('data-theme');
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        
         document.documentElement.setAttribute('data-theme', newTheme);
         localStorage.setItem('theme', newTheme);
-        
         const icon = document.getElementById('theme-icon');
         if (icon) {
-            if (newTheme === 'dark') {
-                icon.classList.remove('ph-moon');
-                icon.classList.add('ph-sun');
-            } else {
-                icon.classList.remove('ph-sun');
-                icon.classList.add('ph-moon');
-            }
+            if (newTheme === 'dark') { icon.classList.remove('ph-moon'); icon.classList.add('ph-sun'); } 
+            else { icon.classList.remove('ph-sun'); icon.classList.add('ph-moon'); }
         }
     },
 
     toggleChatMenu() {
-        const menu = document.getElementById('chat-plus-menu');
-        const btn = document.getElementById('btn-plus');
+        const menu = document.getElementById('chat-plus-menu'); const btn = document.getElementById('btn-plus');
         if (!menu || !btn) return; 
-        if (menu.classList.contains('show')) { this.closeChatMenu(); } 
-        else { menu.classList.add('show'); btn.style.transform = 'rotate(45deg)'; }
+        if (menu.classList.contains('show')) { this.closeChatMenu(); } else { menu.classList.add('show'); btn.style.transform = 'rotate(45deg)'; }
     },
-
     closeChatMenu() {
-        const menu = document.getElementById('chat-plus-menu');
-        const btn = document.getElementById('btn-plus');
-        if (menu) menu.classList.remove('show');
-        if (btn) btn.style.transform = 'rotate(0deg)';
+        const menu = document.getElementById('chat-plus-menu'); const btn = document.getElementById('btn-plus');
+        if (menu) menu.classList.remove('show'); if (btn) btn.style.transform = 'rotate(0deg)';
     },
-
     toggleStoryMenu() {
-        const menu = document.getElementById('story-plus-menu');
-        const btn = document.getElementById('btn-story-plus');
+        const menu = document.getElementById('story-plus-menu'); const btn = document.getElementById('btn-story-plus');
         if (!menu || !btn) return; 
-        if (menu.classList.contains('show')) { this.closeStoryMenu(); } 
-        else { menu.classList.add('show'); btn.style.transform = 'rotate(45deg)'; }
+        if (menu.classList.contains('show')) { this.closeStoryMenu(); } else { menu.classList.add('show'); btn.style.transform = 'rotate(45deg)'; }
     },
-
     closeStoryMenu() {
-        const menu = document.getElementById('story-plus-menu');
-        const btn = document.getElementById('btn-story-plus');
-        if (menu) menu.classList.remove('show');
-        if (btn) btn.style.transform = 'rotate(0deg)';
+        const menu = document.getElementById('story-plus-menu'); const btn = document.getElementById('btn-story-plus');
+        if (menu) menu.classList.remove('show'); if (btn) btn.style.transform = 'rotate(0deg)';
     },
 
     openApp(appId, appName) {
@@ -81,24 +58,15 @@ export const PhoneUI = {
 
         titleEl.innerText = appName;
         winEl.classList.add('open');
-        
-        contentEl.style.padding = '20px';
-        contentEl.style.background = 'transparent';
-        footerEl.innerHTML = ''; 
+        contentEl.style.padding = '20px'; contentEl.style.background = 'transparent'; footerEl.innerHTML = ''; 
         
         if (appId === 'novel') {
             contentEl.style.padding = '0';
             contentEl.innerHTML = `<div id="novel-content-list" class="story-bg" onclick="window.PhoneUI.closeStoryMenu()"></div>`;
             footerEl.innerHTML = `
                 <div id="story-plus-menu" class="story-menu">
-                    <div class="story-menu-item" onclick="window.PhoneUI.openArchiveModal(); window.PhoneUI.closeStoryMenu();">
-                        <div class="icon"><i class="ph-fill ph-floppy-disk"></i></div>
-                        <div class="text">存档室</div>
-                    </div>
-                    <div class="story-menu-item" onclick="alert('掷骰子功能开发中！'); window.PhoneUI.closeStoryMenu();">
-                        <div class="icon"><i class="ph-fill ph-dice-five"></i></div>
-                        <div class="text">掷骰子</div>
-                    </div>
+                    <div class="story-menu-item" onclick="window.PhoneUI.openArchiveModal(); window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-floppy-disk"></i></div><div class="text">存档室</div></div>
+                    <div class="story-menu-item" onclick="alert('掷骰子功能开发中！'); window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-dice-five"></i></div><div class="text">掷骰子</div></div>
                 </div>
                 <div class="story-input-bar">
                     <div class="icon-btn" id="btn-story-plus" onclick="window.PhoneUI.toggleStoryMenu()"><i class="ph ph-plus-circle"></i></div>
@@ -109,9 +77,19 @@ export const PhoneUI = {
             this.renderNovelContent();
 
         } else if (appId === 'diary') {
+            // 🌟 核心升级：渲染 3D 日记本封面和内部结构
+            contentEl.style.padding = '0';
             contentEl.innerHTML = `
-                <div class="date-scroll-container" id="diary-date-list"></div>
-                <div class="diary-paper" id="diary-content-area"></div>
+                <div id="diary-cover-view" class="diary-cover-view" onclick="window.PhoneUI.unlockDiary()">
+                    <div class="diary-book-cover" id="diary-book-cover">
+                        <div class="diary-title">His Diary</div>
+                        <div class="diary-hint">点击翻开日记</div>
+                    </div>
+                </div>
+                <div id="diary-inside-view" class="diary-inside-view">
+                    <div class="date-scroll-container" id="diary-date-list"></div>
+                    <div class="diary-paper" id="diary-content-area"></div>
+                </div>
             `;
             this.renderDiaryPage();
 
@@ -124,7 +102,6 @@ export const PhoneUI = {
             if (combinedItems.length === 0) {
                 html += '<div style="text-align:center; color:var(--text-sub); padding: 50px 0;">空空如也，快去创造回忆吧！</div>';
             } else {
-                // 🌟 记忆库也加上防卡顿，只显示最近 50 条
                 const renderItems = combinedItems.slice(-50);
                 renderItems.forEach(item => {
                     if (item.sender === 'typing') return;
@@ -140,10 +117,7 @@ export const PhoneUI = {
                         <div class="timeline-item">
                             <div class="timeline-icon ${iconClass}">${iconHtml}</div>
                             <div class="timeline-content">
-                                <div class="timeline-header">
-                                    <span style="font-weight:bold; color:var(--primary-color);">${senderName}</span>
-                                    <span>${item.time || ''} · ${sourceName}</span>
-                                </div>
+                                <div class="timeline-header"><span style="font-weight:bold; color:var(--primary-color);">${senderName}</span><span>${item.time || ''} · ${sourceName}</span></div>
                                 <div class="timeline-text markdown-body">${content}</div>
                             </div>
                         </div>
@@ -153,6 +127,26 @@ export const PhoneUI = {
             html += '</div>';
             contentEl.innerHTML = html;
             setTimeout(() => { contentEl.scrollTop = contentEl.scrollHeight; }, 100);
+
+        } else if (appId === 'favorites') {
+            const favs = window.PhoneAPI.getFavorites();
+            let html = '<div style="padding: 10px 5px;">';
+            if (favs.length === 0) {
+                html += '<div style="text-align:center; color:var(--text-sub); padding: 50px 0;"><i class="ph-fill ph-star" style="font-size:48px; color:var(--border-color); margin-bottom:15px;"></i><br>空空如也<br>快去聊天记录长按消息收藏吧！</div>';
+            } else {
+                [...favs].reverse().forEach(fav => {
+                    let content = window.marked ? window.marked.parse(fav.content) : fav.content;
+                    html += `
+                        <div class="card" style="position:relative; padding-right: 40px;">
+                            <div style="font-size: 12px; color: var(--primary-color); margin-bottom: 5px; font-weight: bold;">${fav.time} · ${fav.source}</div>
+                            <div class="markdown-body" style="font-size: 14px;">${content}</div>
+                            <div onclick="window.PhoneAPI.deleteFavorite('${fav.id}')" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); color:var(--danger-color); font-size:20px; cursor:pointer; padding:5px;"><i class="ph ph-trash"></i></div>
+                        </div>
+                    `;
+                });
+            }
+            html += '</div>';
+            contentEl.innerHTML = html;
 
         } else if (appId === 'settings') {
             contentEl.innerHTML = `
@@ -175,11 +169,17 @@ export const PhoneUI = {
                         <button class="preset-btn" onclick="window.PhoneAPI.saveUIPreset()">存为预设</button>
                         <button class="preset-btn del" onclick="window.PhoneAPI.deleteUIPreset()">删除</button>
                     </div>
-                    <div class="engine-title"><i class="ph-fill ph-image"></i> 全局与聊天壁纸</div>
-                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <div class="engine-title"><i class="ph-fill ph-image"></i> 壁纸与封面</div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                         <div style="flex: 1;"><label style="font-size: 11px; color: var(--text-sub);">全局壁纸(网址)</label><input type="text" id="bg-global" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
                         <div style="flex: 1;"><label style="font-size: 11px; color: var(--text-sub);">聊天壁纸(网址)</label><input type="text" id="bg-chat" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
                     </div>
+                    <!-- 🌟 新增：日记封面输入框 -->
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-size: 11px; color: var(--text-sub);">日记本封面(网址) - 推荐使用你上传到GitHub的图片</label>
+                        <input type="text" id="bg-diary-cover" placeholder="例如: ./cover.jpg" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
+                    </div>
+
                     <div class="engine-title"><i class="ph-fill ph-squares-four"></i> 主页 App 图标替换 (留空为默认)</div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 5px;">
                         <div><label style="font-size: 11px; color: var(--text-sub);">线下故事</label><input type="text" id="ui-icon-novel" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
@@ -247,7 +247,6 @@ export const PhoneUI = {
 
                 <div class="card">
                     <h3 style="color: var(--danger-color); margin-bottom: 15px;"><i class="ph-fill ph-warning-circle"></i> 系统维护</h3>
-                    <!-- 🌟 核心：强制更新按钮！ -->
                     <button class="btn-refresh" onclick="window.PhoneAPI.forceUpdate()" style="background: #f4a261; margin-top: 0; margin-bottom: 10px;"><i class="ph ph-arrows-clockwise"></i> 强制更新系统 (获取最新代码)</button>
                     <button class="btn-refresh" onclick="window.PhoneAPI.clearChat()" style="background: var(--danger-color); margin-top: 0;"><i class="ph ph-trash"></i> 清空所有聊天与小说记录</button>
                 </div>
@@ -302,11 +301,22 @@ export const PhoneUI = {
         window.Config.currentAppId = 'wechat';
     },
 
+    // 🌟 核心：触发 3D 翻开日记本动画！
+    unlockDiary() {
+        const cover = document.getElementById('diary-book-cover');
+        const coverView = document.getElementById('diary-cover-view');
+        const insideView = document.getElementById('diary-inside-view');
+        
+        if (cover && coverView && insideView) {
+            cover.classList.add('opened');
+            coverView.classList.add('opened');
+            insideView.classList.add('opened');
+        }
+    },
+
     renderNovelContent() {
         const roleId = window.Config.currentContactId;
         const allItems = window.Config.phoneData[roleId]?.novel?.items || [];
-        
-        // 🌟 核心修复：防卡顿，只画最后 50 句！
         const items = allItems.slice(-50);
         
         const listEl = document.getElementById('novel-content-list');
@@ -335,7 +345,7 @@ export const PhoneUI = {
                 content = window.marked.parse(content);
             }
 
-            const realIndex = allItems.length - items.length + index; // 修正索引
+            const realIndex = allItems.length - items.length + index;
             const avatarHtml = isMe ? `<img src="${avatar}" class="story-avatar">` : `<img src="${avatar}" class="story-avatar" onclick="window.PhoneUI.showThought(${realIndex}, 'novel')">`;
 
             html += `
@@ -450,12 +460,16 @@ export const PhoneUI = {
         }
         bgEl.innerHTML = starsHtml;
 
-        const allMemories = window.PhoneAPI.getCombinedMemory();
-        const validMemories = allMemories.filter(m => m.content && m.content.length > 5 && m.sender !== 'typing');
-        
+        const validMemories = window.PhoneAPI.getFavorites();
         fragmentsContainer.innerHTML = ''; 
         
-        if (validMemories.length > 0) {
+        if (validMemories.length === 0) {
+            const frag = document.createElement('div');
+            frag.className = 'memory-fragment';
+            frag.style.cssText = `top:50%; left:50%; animation-delay:0s;`;
+            frag.onclick = () => this.openBlindBox("星海空空如也...快去聊天记录里长按消息，点击【手动摘录】或【AI提炼】来收集星星吧！", "系统提示", "星海", "me");
+            fragmentsContainer.appendChild(frag);
+        } else {
             const shuffled = validMemories.sort(() => 0.5 - Math.random());
             const selected = shuffled.slice(0, 12);
             
@@ -465,12 +479,11 @@ export const PhoneUI = {
                 const delay = Math.random() * 2;
                 
                 const safeContent = mem.content.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-                const sourceText = mem.source === 'wechat' ? '线上微信' : '线下故事';
                 
                 const frag = document.createElement('div');
                 frag.className = 'memory-fragment';
                 frag.style.cssText = `top:${top}%; left:${left}%; animation-delay:${delay}s;`;
-                frag.onclick = () => this.openBlindBox(safeContent, mem.time, sourceText, mem.sender);
+                frag.onclick = () => this.openBlindBox(safeContent, mem.time, mem.source, mem.sender);
                 
                 fragmentsContainer.appendChild(frag);
             });

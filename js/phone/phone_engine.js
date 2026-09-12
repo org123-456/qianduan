@@ -57,6 +57,39 @@ export const PhoneEngine = {
         }
     },
 
+    // 🌟 新增：手动提取并压缩记忆档案！
+    async extractMemory(sourceApp) {
+        PhoneAPI.showToast("🧠 正在提取并压缩记忆，请稍候...");
+        try {
+            const roleId = Config.currentContactId;
+            const items = Config.phoneData[roleId]?.[sourceApp]?.items || [];
+            
+            // 提取最近的 30 句话进行总结
+            const recentItems = items.slice(-30).filter(i => i.sender !== 'typing');
+            if (recentItems.length === 0) {
+                alert("没有足够的聊天记录来提取记忆！");
+                return;
+            }
+            
+            let historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
+            
+            const prompt = `你是一个记忆整理助手。请将以下角色扮演的聊天记录，总结提炼成一段【简短、客观的第三人称记忆档案】（100字左右）。\n要求：\n1. 概括发生了什么事，双方的情感变化或核心互动。\n2. 绝对不要照抄原话，要进行高度浓缩和去水，去除所有敏感(NSFW)细节。\n3. 直接输出总结内容，不要多余的废话。\n\n聊天记录：\n${historyText}`;
+            
+            const messages = [{ role: "user", content: prompt }];
+            const reply = await PhoneAPI.chatWithAI(messages, true); // 强制使用副引擎
+            
+            let summary = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+            summary = summary.replace(/```.*?/g, '').replace(/```/g, '').trim();
+            
+            const confirmText = prompt("✨ AI 提取的记忆档案如下，确认无误后点击确定保存：", summary);
+            if (confirmText && confirmText.trim() !== "") {
+                PhoneAPI.saveToMemoryVault(confirmText.trim(), sourceApp === 'wechat' ? '线上微信' : '线下故事');
+            }
+        } catch (e) {
+            alert("记忆提取失败：" + e.message);
+        }
+    },
+
     deleteMsg() {
         this.closeMsgMenu();
         if (this.currentMsgIndex < 0) return;
@@ -452,7 +485,6 @@ ${historyText}`;
         }
     },
 
-    // 🌟 核心：让 AI 知道今天是 2026 年！
     async generateDiary(dateStr) {
         const contentAreaEl = document.getElementById('diary-content-area');
         if (!contentAreaEl) return;

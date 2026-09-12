@@ -172,7 +172,6 @@ export const PhoneUI = {
             html += '</div>';
             contentEl.innerHTML = html;
 
-        // 🌟 核心升级：赛博杂货铺开张！
         } else if (appId === 'shop') {
             let coins = localStorage.getItem('my_coins') || '500';
             contentEl.innerHTML = `
@@ -532,7 +531,6 @@ export const PhoneUI = {
         const item = window.Config.phoneData[roleId]?.[targetApp]?.items[index];
         if(!item) return;
         
-        // 🌟 核心修复：如果当前气泡没有心声，往前找同时间的第一个心声
         let thought = item.innerThought;
         if (thought && thought.includes('连发消息')) {
             for (let i = index - 1; i >= 0; i--) {
@@ -544,7 +542,7 @@ export const PhoneUI = {
             }
         }
         
-        document.getElementById('thought-content').innerText = thought || "（TA的心思藏得很深，什么也没看出来...）";
+        document.getElementById('thought-content').innerText = thought || "（那时候TA的心思藏得很深，什么也没看出来...）";
         document.getElementById('thought-bg').classList.add('show');
         document.getElementById('thought-modal').classList.add('show');
     },
@@ -726,5 +724,16 @@ export const PhoneUI = {
     closeBlindBox() {
         document.getElementById('blindbox-bg').classList.remove('show');
         document.getElementById('blindbox-modal').classList.remove('show');
+    },
+
+    // 🌟 核心补漏：加入控制舱开关方法！
+    openApiModal() {
+        document.getElementById('api-modal-bg').classList.add('show');
+        document.getElementById('api-modal').classList.add('show');
+    },
+
+    closeApiModal() {
+        document.getElementById('api-modal-bg').classList.remove('show');
+        document.getElementById('api-modal').classList.remove('show');
     }
 };

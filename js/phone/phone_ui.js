@@ -3,7 +3,13 @@ export const PhoneUI = {
         const roleId = window.Config?.currentContactId;
         if(!roleId) return;
         
-        const data = window.Config.phoneData[roleId]?.[appId];
+        let data = window.Config.phoneData[roleId]?.[appId];
+        
+        // 🌟 核心修复：防卡顿引擎！屏幕上永远只画最近的 50 句话！
+        if (data && data.items && data.items.length > 50) {
+            data = { ...data, items: data.items.slice(-50) };
+        }
+
         const listEl = document.getElementById('app-content-list');
         
         if (listEl && window.Apps && window.Apps[appId]) {
@@ -118,7 +124,9 @@ export const PhoneUI = {
             if (combinedItems.length === 0) {
                 html += '<div style="text-align:center; color:var(--text-sub); padding: 50px 0;">空空如也，快去创造回忆吧！</div>';
             } else {
-                combinedItems.forEach(item => {
+                // 🌟 记忆库也加上防卡顿，只显示最近 50 条
+                const renderItems = combinedItems.slice(-50);
+                renderItems.forEach(item => {
                     if (item.sender === 'typing') return;
                     const isWechat = item.source === 'wechat';
                     const iconClass = isWechat ? 'wechat' : 'novel';
@@ -238,8 +246,10 @@ export const PhoneUI = {
                 </div>
 
                 <div class="card">
-                    <h3 style="color: var(--danger-color); margin-bottom: 15px;"><i class="ph-fill ph-trash"></i> 危险操作</h3>
-                    <button class="btn-refresh" onclick="window.PhoneAPI.clearChat()" style="background: var(--danger-color); margin-top: 0;"><i class="ph ph-warning-circle"></i> 清空所有聊天与小说记录</button>
+                    <h3 style="color: var(--danger-color); margin-bottom: 15px;"><i class="ph-fill ph-warning-circle"></i> 系统维护</h3>
+                    <!-- 🌟 核心：强制更新按钮！ -->
+                    <button class="btn-refresh" onclick="window.PhoneAPI.forceUpdate()" style="background: #f4a261; margin-top: 0; margin-bottom: 10px;"><i class="ph ph-arrows-clockwise"></i> 强制更新系统 (获取最新代码)</button>
+                    <button class="btn-refresh" onclick="window.PhoneAPI.clearChat()" style="background: var(--danger-color); margin-top: 0;"><i class="ph ph-trash"></i> 清空所有聊天与小说记录</button>
                 </div>
             `;
             
@@ -294,7 +304,11 @@ export const PhoneUI = {
 
     renderNovelContent() {
         const roleId = window.Config.currentContactId;
-        const items = window.Config.phoneData[roleId]?.novel?.items || [];
+        const allItems = window.Config.phoneData[roleId]?.novel?.items || [];
+        
+        // 🌟 核心修复：防卡顿，只画最后 50 句！
+        const items = allItems.slice(-50);
+        
         const listEl = document.getElementById('novel-content-list');
         if (!listEl) return;
 
@@ -321,12 +335,13 @@ export const PhoneUI = {
                 content = window.marked.parse(content);
             }
 
-            const avatarHtml = isMe ? `<img src="${avatar}" class="story-avatar">` : `<img src="${avatar}" class="story-avatar" onclick="window.PhoneUI.showThought(${index}, 'novel')">`;
+            const realIndex = allItems.length - items.length + index; // 修正索引
+            const avatarHtml = isMe ? `<img src="${avatar}" class="story-avatar">` : `<img src="${avatar}" class="story-avatar" onclick="window.PhoneUI.showThought(${realIndex}, 'novel')">`;
 
             html += `
                 <div class="story-card">
                     <div class="story-header">${avatarHtml}<div class="story-name">${name}</div><div class="story-time">${item.time || '12:00 PM'}</div></div>
-                    <div class="story-content markdown-body" onclick="window.PhoneEngine.openMsgMenu(${index}, '${item.sender}')">${content}</div>
+                    <div class="story-content markdown-body" onclick="window.PhoneEngine.openMsgMenu(${realIndex}, '${item.sender}')">${content}</div>
                 </div>
             `;
         });
@@ -412,9 +427,6 @@ export const PhoneUI = {
 
     selectDiaryDate(dateStr) { window.Config.currentDiaryDate = dateStr; this.renderDiaryPage(); },
 
-    // ==========================================
-    // 🌟 终极浪漫：星海与记忆盲盒逻辑
-    // ==========================================
     initStarrySea() {
         const bgEl = document.getElementById('starry-sea-bg');
         const bubblesEl = document.getElementById('floating-bubbles');
@@ -422,13 +434,11 @@ export const PhoneUI = {
         
         if (!bgEl || !bubblesEl || !fragmentsContainer) return;
 
-        // 1. 触发开屏渐显动画
         setTimeout(() => {
             bgEl.classList.add('show');
             bubblesEl.classList.add('show');
         }, 100);
 
-        // 2. 生成背景繁星 (50颗普通星星)
         let starsHtml = '';
         for (let i = 0; i < 50; i++) {
             const size = Math.random() * 3 + 1;
@@ -440,24 +450,20 @@ export const PhoneUI = {
         }
         bgEl.innerHTML = starsHtml;
 
-        // 3. 抽取全局记忆，生成【记忆碎片盲盒】
         const allMemories = window.PhoneAPI.getCombinedMemory();
-        // 过滤掉太短的废话和正在输入的提示
         const validMemories = allMemories.filter(m => m.content && m.content.length > 5 && m.sender !== 'typing');
         
-        fragmentsContainer.innerHTML = ''; // 清空之前的碎片
+        fragmentsContainer.innerHTML = ''; 
         
         if (validMemories.length > 0) {
-            // 随机打乱并抽取最多 12 个碎片
             const shuffled = validMemories.sort(() => 0.5 - Math.random());
             const selected = shuffled.slice(0, 12);
             
             selected.forEach((mem, index) => {
-                const top = 15 + Math.random() * 65; // 限制在中间区域
+                const top = 15 + Math.random() * 65; 
                 const left = 10 + Math.random() * 80;
                 const delay = Math.random() * 2;
                 
-                // 把数据存在 DOM 属性里，方便点击时读取
                 const safeContent = mem.content.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
                 const sourceText = mem.source === 'wechat' ? '线上微信' : '线下故事';
                 
@@ -483,7 +489,6 @@ export const PhoneUI = {
         const charName = localStorage.getItem('char_name') || 'TA';
         const senderName = sender === 'me' ? myName : charName;
 
-        // 解析 Markdown，但去掉多余的段落间距，让它看起来像一句诗
         let parsed = window.marked ? window.marked.parse(content) : content;
         
         textEl.innerHTML = `“${parsed}”`;

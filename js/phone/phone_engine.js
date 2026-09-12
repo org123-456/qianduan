@@ -18,7 +18,6 @@ export const PhoneEngine = {
         document.getElementById('action-sheet').classList.remove('show');
     },
 
-    // 🌟 新增：手动摘录句子存入星海
     favoriteMsg() {
         this.closeMsgMenu();
         if (this.currentMsgIndex < 0) return;
@@ -32,7 +31,6 @@ export const PhoneEngine = {
         }
     },
 
-    // 🌟 新增：强制调用副引擎，一键提炼去敏！
     async aiSummarizeMsg() {
         this.closeMsgMenu();
         if (this.currentMsgIndex < 0) return;
@@ -45,7 +43,7 @@ export const PhoneEngine = {
             const prompt = `请将下面这段角色扮演的回复，提炼成一句【简短、唯美、或傲娇的语录/内心独白】（要求在20字以内）。\n【绝对要求】：去除所有动作描写、环境描写和敏感(NSFW)内容，只保留最核心的情感或金句。直接输出这唯一的一句话，不要任何多余解释！\n\n原文：\n${msg.content}`;
             
             const messages = [{ role: "user", content: prompt }];
-            const reply = await PhoneAPI.chatWithAI(messages, true); // 强制使用副引擎
+            const reply = await PhoneAPI.chatWithAI(messages, true); 
             
             let finalQuote = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
             finalQuote = finalQuote.replace(/```.*?/g, '').replace(/```/g, '').replace(/^["']|["']$/g, '').trim();
@@ -451,6 +449,76 @@ ${historyText}`;
             if (hasNewUserMsg) chatItems.pop(); 
             PhoneUI.renderNovelContent();
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+        }
+    },
+
+    // 🌟 核心：让 AI 知道今天是 2026 年！
+    async generateDiary(dateStr) {
+        const contentAreaEl = document.getElementById('diary-content-area');
+        if (!contentAreaEl) return;
+
+        contentAreaEl.innerHTML = `
+            <div class="notebook-empty">
+                <i class="ph-fill ph-spinner spin-anim" style="font-size: 48px; color: rgba(0,0,0,0.5); margin-bottom: 15px;"></i>
+                <p>正在偷看他的内心世界...</p>
+            </div>
+        `;
+
+        try {
+            const roleId = Config.currentContactId;
+            
+            const wechatItems = (Config.phoneData[roleId]?.wechat?.items || []).map(i => ({ ...i, source: '线上微信' }));
+            const novelItems = (Config.phoneData[roleId]?.novel?.items || []).map(i => ({ ...i, source: '线下故事' }));
+            
+            let combinedItems = [...wechatItems, ...novelItems];
+            combinedItems.sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+            
+            const recentItems = combinedItems.slice(-25);
+            let historyText = recentItems.map(item => `[${item.source}] ${item.time || ''} ${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
+            
+            if(!historyText) historyText = "(今天你们没怎么互动)";
+
+            const systemPrompt = localStorage.getItem('system_prompt') || '';
+            const charPersona = localStorage.getItem('char_persona') || '';
+            
+            let contextSetup = "";
+            if (systemPrompt) contextSetup += `【系统核心指令】：\n${systemPrompt}\n\n`;
+            if (charPersona) contextSetup += `【角色设定】：\n${charPersona}\n\n`;
+
+            const prompt = `你现在完全进入角色。以下是你的底层设定：
+${contextSetup}
+
+【重要时间设定】：今天是 ${dateStr}。
+
+请根据以下你和“我”在今天的【全局记忆库（包含线上微信和线下故事）】，用【第一人称（你的视角）】写一篇今天的深夜日记。
+要求：
+1. 字数在 150-300 字之间。
+2. 绝对符合你的人设（比如傲娇、毒舌、表面嫌弃实际在意等）。
+3. 必须是一篇真实的日记，不要提及“AI”、“用户”等词汇。
+4. 综合线上线下的事情来写，让日记显得连贯真实。
+5. 直接输出日记正文，不要输出标题、日期或多余的解释。
+
+今天的全局记忆库记录：
+${historyText}`;
+
+            const messages = [{ role: "user", content: prompt }];
+            const reply = await PhoneAPI.chatWithAI(messages, true); 
+
+            let finalDiary = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+            finalDiary = finalDiary.replace(/```.*?/g, '').replace(/```/g, '').trim();
+
+            PhoneAPI.saveDiary(dateStr, finalDiary);
+            PhoneUI.renderDiaryPage();
+            PhoneAPI.showToast('✨ 日记生成成功！');
+
+        } catch (error) {
+            contentAreaEl.innerHTML = `
+                <div class="notebook-empty">
+                    <i class="ph-fill ph-warning-circle" style="font-size: 48px; color: var(--danger-color); margin-bottom: 15px;"></i>
+                    <p style="color: var(--danger-color);">偷看失败：${error.message}</p>
+                    <button class="btn-refresh" onclick="window.PhoneUI.renderDiaryPage()" style="width: auto; padding: 10px 20px; margin-top: 15px;">返回重试</button>
+                </div>
+            `;
         }
     }
 };

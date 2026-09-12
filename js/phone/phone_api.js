@@ -21,10 +21,7 @@ export const PhoneAPI = {
         saveIfExist('bg-global', 'bg_global'); saveIfExist('bg-chat', 'bg_chat');
         saveIfExist('bg-diary-cover', 'bg_diary_cover'); saveIfExist('bg-diary-page', 'bg_diary_page'); 
         
-        saveIfExist('diary-title', 'diary_title'); 
-        saveIfExist('diary-quote', 'diary_quote'); 
-        // 🌟 新增：保存日记起始日期
-        saveIfExist('diary-start-date', 'diary_start_date'); 
+        saveIfExist('diary-title', 'diary_title'); saveIfExist('diary-quote', 'diary_quote'); saveIfExist('diary-start-date', 'diary_start_date'); 
         
         saveIfExist('ui-icon-novel', 'ui_icon_novel'); saveIfExist('ui-icon-worldbook', 'ui_icon_worldbook');
         saveIfExist('ui-icon-settings', 'ui_icon_settings'); saveIfExist('ui-icon-gallery', 'ui_icon_gallery');
@@ -56,7 +53,6 @@ export const PhoneAPI = {
             setVal('diary-title', localStorage.getItem('diary_title') || 'His Diary'); 
             setVal('diary-quote', localStorage.getItem('diary_quote') || '“时间会磨平一切痕迹，\n除了我为你写下的字。”'); 
             
-            // 🌟 新增：加载日记起始日期（如果没有，默认给当天的格式化日期）
             const today = new Date();
             const defaultDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
             setVal('diary-start-date', localStorage.getItem('diary_start_date') || defaultDate); 
@@ -322,6 +318,32 @@ export const PhoneAPI = {
         if (!confirm('确定要从星海中删除这句回忆吗？')) return;
         let favs = this.getFavorites(); favs = favs.filter(f => f.id !== id); localStorage.setItem('starry_favorites', JSON.stringify(favs));
         window.PhoneUI.renderAppContent('favorites'); this.showToast('🗑️ 已删除');
+    },
+
+    // 🌟 新增：全局记忆库的存取 API
+    getMemoryVault() {
+        return JSON.parse(localStorage.getItem('memory_vault_entries') || '[]');
+    },
+    saveToMemoryVault(summary, source) {
+        const vault = this.getMemoryVault();
+        const now = new Date();
+        vault.push({
+            id: 'mem_' + Date.now(),
+            content: summary,
+            source: source,
+            date: `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`,
+            time: `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
+        });
+        localStorage.setItem('memory_vault_entries', JSON.stringify(vault));
+        this.showToast('🧠 记忆已成功压缩并存入档案库！');
+    },
+    deleteFromMemoryVault(id) {
+        if(!confirm('确定要删除这段记忆档案吗？')) return;
+        let vault = this.getMemoryVault();
+        vault = vault.filter(m => m.id !== id);
+        localStorage.setItem('memory_vault_entries', JSON.stringify(vault));
+        window.PhoneUI.openApp('memory_vault', '全局记忆库');
+        this.showToast('🗑️ 记忆已消除');
     },
 
     async forceUpdate() {

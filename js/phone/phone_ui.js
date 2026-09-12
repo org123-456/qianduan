@@ -60,6 +60,13 @@ export const PhoneUI = {
         winEl.classList.add('open');
         contentEl.style.padding = '20px'; contentEl.style.background = 'transparent'; footerEl.innerHTML = ''; 
         
+        // 🌟 核心：如果是日记本，给整个窗口加上全屏模式类名！
+        if (appId === 'diary') {
+            winEl.classList.add('fullscreen-mode');
+        } else {
+            winEl.classList.remove('fullscreen-mode');
+        }
+        
         if (appId === 'novel') {
             contentEl.style.padding = '0';
             contentEl.innerHTML = `<div id="novel-content-list" class="story-bg" onclick="window.PhoneUI.closeStoryMenu()"></div>`;
@@ -77,15 +84,19 @@ export const PhoneUI = {
             this.renderNovelContent();
 
         } else if (appId === 'diary') {
-            contentEl.style.padding = '0';
+            // 🌟 核心：读取自定义的扉页标题
+            const diaryTitle = localStorage.getItem('diary_title') || 'His Diary';
+            
             contentEl.innerHTML = `
-                <div id="diary-cover-view" class="diary-cover-view" onclick="window.PhoneUI.unlockDiary()">
-                    <div class="diary-book-cover" id="diary-book-cover">
-                        <div class="diary-title">His Diary</div>
+                <div id="diary-cover-view" class="diary-cover-view">
+                    <div class="diary-book-cover" id="diary-book-cover" onclick="window.PhoneUI.unlockDiary()">
+                        <div class="diary-title">${diaryTitle}</div>
                         <div class="diary-hint">点击翻开日记</div>
                     </div>
+                    <div class="diary-back-btn" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div>
                 </div>
                 <div id="diary-inside-view" class="diary-inside-view">
+                    <div class="diary-back-btn" onclick="window.PhoneUI.closeApp()" style="top: 20px; left: 15px; background: rgba(0,0,0,0.1); color: #333;"><i class="ph ph-caret-left"></i></div>
                     <div class="notebook-page" id="diary-content-area"></div>
                     <div class="page-turner">
                         <div class="page-btn" onclick="window.PhoneUI.turnDiaryPage(-1)"><i class="ph ph-caret-left"></i></div>
@@ -93,7 +104,6 @@ export const PhoneUI = {
                     </div>
                 </div>
             `;
-            // 初始状态：-1 代表扉页，0-6 代表过去7天的日记
             window.Config.diaryPageIndex = -1; 
             this.renderDiaryPage();
 
@@ -185,6 +195,17 @@ export const PhoneUI = {
                     <div style="margin-bottom: 15px;">
                         <label style="font-size: 11px; color: var(--text-sub);">日记内页底图(网址)</label>
                         <input type="text" id="bg-diary-page" placeholder="推荐使用牛皮纸或水彩底图" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
+                    </div>
+                    
+                    <!-- 🌟 新增：扉页文字自定义 -->
+                    <div class="engine-title"><i class="ph-fill ph-text-aa"></i> 日记本扉页文字</div>
+                    <div style="margin-bottom: 10px;">
+                        <label style="font-size: 11px; color: var(--text-sub);">封面标题 (英文比较好看)</label>
+                        <input type="text" id="diary-title" placeholder="His Diary" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-size: 11px; color: var(--text-sub);">扉页寄语 (支持换行)</label>
+                        <textarea id="diary-quote" rows="3" placeholder="时间会磨平一切痕迹，\n除了我为你写下的字。" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px; resize:vertical;"></textarea>
                     </div>
 
                     <div class="engine-title"><i class="ph-fill ph-squares-four"></i> 主页 App 图标替换 (留空为默认)</div>
@@ -304,7 +325,10 @@ export const PhoneUI = {
 
     closeApp() {
         const winEl = document.getElementById('app-window');
-        if(winEl) winEl.classList.remove('open');
+        if(winEl) {
+            winEl.classList.remove('open');
+            winEl.classList.remove('fullscreen-mode'); // 退出时移除全屏
+        }
         window.Config.currentAppId = 'wechat';
     },
 
@@ -398,7 +422,7 @@ export const PhoneUI = {
     openArchiveModal() { this.renderArchiveList(); document.getElementById('archive-modal-bg').classList.add('show'); document.getElementById('archive-modal').classList.add('show'); },
     closeArchiveModal() { document.getElementById('archive-modal-bg').classList.remove('show'); document.getElementById('archive-modal').classList.remove('show'); },
 
-    // 🌟 核心：渲染全屏翻页日记本
+    // 🌟 核心：渲染带手写体扉页的日记本
     renderDiaryPage() {
         const contentAreaEl = document.getElementById('diary-content-area');
         if (!contentAreaEl) return;
@@ -412,12 +436,16 @@ export const PhoneUI = {
         const currentIndex = window.Config.diaryPageIndex;
 
         if (currentIndex === -1) {
-            // 渲染扉页
+            // 🌟 渲染自定义扉页，使用龙藏体
+            const quote = localStorage.getItem('diary_quote') || '“时间会磨平一切痕迹，\n除了我为你写下的字。”';
+            const formattedQuote = quote.replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
+            
             contentAreaEl.innerHTML = `
-                <div class="notebook-empty" style="text-align: center;">
-                    <i class="ph-fill ph-feather" style="font-size: 48px; color: rgba(0,0,0,0.3); margin-bottom: 20px;"></i>
-                    <p style="font-size: 28px; margin-bottom: 10px;">“时间会磨平一切痕迹，”</p>
-                    <p style="font-size: 28px;">“除了我为你写下的字。”</p>
+                <div class="notebook-empty">
+                    <i class="ph-fill ph-feather" style="font-size: 48px; color: rgba(0,0,0,0.3); margin-bottom: 30px;"></i>
+                    <div style="font-family: 'Long Cang', cursive; font-size: 32px; color: rgba(0,0,0,0.6); text-shadow: 1px 1px 2px rgba(255,255,255,0.5); line-height: 1.8;">
+                        ${formattedQuote}
+                    </div>
                 </div>
             `;
             return;

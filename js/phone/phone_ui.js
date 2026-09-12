@@ -73,6 +73,7 @@ export const PhoneUI = {
         if (btn) btn.style.transform = 'rotate(0deg)';
     },
 
+    // 🌟 核心：为各个 App 分配独立的窗口渲染逻辑
     openApp(appId, appName) {
         window.Config.currentAppId = appId;
         
@@ -92,10 +93,7 @@ export const PhoneUI = {
         
         if (appId === 'novel') {
             contentEl.style.padding = '0';
-            contentEl.innerHTML = `
-                <div id="novel-content-list" class="story-bg" onclick="window.PhoneUI.closeStoryMenu()"></div>
-            `;
-            
+            contentEl.innerHTML = `<div id="novel-content-list" class="story-bg" onclick="window.PhoneUI.closeStoryMenu()"></div>`;
             footerEl.innerHTML = `
                 <div id="story-plus-menu" class="story-menu">
                     <div class="story-menu-item" onclick="window.PhoneUI.openArchiveModal(); window.PhoneUI.closeStoryMenu();">
@@ -115,9 +113,57 @@ export const PhoneUI = {
             `;
             this.renderNovelContent();
 
+        } else if (appId === 'diary') {
+            // 🌟 渲染日记本窗口
+            contentEl.innerHTML = `
+                <div class="date-scroll-container" id="diary-date-list"></div>
+                <div class="diary-paper" id="diary-content-area"></div>
+            `;
+            this.renderDiaryPage();
+
+        } else if (appId === 'memory_vault') {
+            // 🌟 渲染全局记忆库窗口（时间轴）
+            const combinedItems = window.PhoneAPI.getCombinedMemory();
+            const myName = localStorage.getItem('my_name') || '我';
+            const charName = localStorage.getItem('char_name') || 'TA';
+            
+            let html = '<div class="timeline-container">';
+            
+            if (combinedItems.length === 0) {
+                html += '<div style="text-align:center; color:var(--text-sub); padding: 50px 0;">空空如也，快去创造回忆吧！</div>';
+            } else {
+                combinedItems.forEach(item => {
+                    if (item.sender === 'typing') return;
+                    
+                    const isWechat = item.source === 'wechat';
+                    const iconClass = isWechat ? 'wechat' : 'novel';
+                    const iconHtml = isWechat ? '<i class="ph-fill ph-chat-circle-dots"></i>' : '<i class="ph-fill ph-book-open"></i>';
+                    const sourceName = isWechat ? '线上微信' : '线下故事';
+                    const senderName = item.sender === 'me' ? myName : charName;
+                    
+                    let content = item.content;
+                    if (window.marked) content = window.marked.parse(content);
+
+                    html += `
+                        <div class="timeline-item">
+                            <div class="timeline-icon ${iconClass}">${iconHtml}</div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <span style="font-weight:bold; color:var(--primary-color);">${senderName}</span>
+                                    <span>${item.time || ''} · ${sourceName}</span>
+                                </div>
+                                <div class="timeline-text markdown-body">${content}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            html += '</div>';
+            contentEl.innerHTML = html;
+            setTimeout(() => { contentEl.scrollTop = contentEl.scrollHeight; }, 100);
+
         } else if (appId === 'settings') {
-            // 设置页面代码保持不变，太长省略以防字数超限，直接用你现在的即可
-            // (为了确保不报错，我还是把精简版贴在这里)
+            // 🌟 完整的设置页面
             contentEl.innerHTML = `
                 <div class="card">
                     <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph-fill ph-user-list"></i> 基础设定</h3>
@@ -148,7 +194,7 @@ export const PhoneUI = {
                         <div><label style="font-size: 11px; color: var(--text-sub);">线下故事</label><input type="text" id="ui-icon-novel" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
                         <div><label style="font-size: 11px; color: var(--text-sub);">世界书</label><input type="text" id="ui-icon-worldbook" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
                         <div><label style="font-size: 11px; color: var(--text-sub);">系统设置</label><input type="text" id="ui-icon-settings" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
-                        <div><label style="font-size: 11px; color: var(--text-sub);">日记本</label><input type="text" id="ui-icon-diary" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
+                        <div><label style="font-size: 11px; color: var(--text-sub);">相册</label><input type="text" id="ui-icon-gallery" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
                         <div><label style="font-size: 11px; color: var(--text-sub);">商店</label><input type="text" id="ui-icon-shop" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
                         <div><label style="font-size: 11px; color: var(--text-sub);">打工赚钱</label><input type="text" id="ui-icon-task" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
                     </div>
@@ -406,15 +452,11 @@ export const PhoneUI = {
         document.getElementById('archive-modal').classList.remove('show');
     },
 
-    // ==========================================
-    // 🌟 核心：渲染 Memory 页面的日历和日记
-    // ==========================================
-    renderMemoryPage() {
+    renderDiaryPage() {
         const dateListEl = document.getElementById('diary-date-list');
         const contentAreaEl = document.getElementById('diary-content-area');
         if (!dateListEl || !contentAreaEl) return;
 
-        // 生成最近 7 天的日期
         let dateHtml = '';
         const today = new Date();
         const dates = [];
@@ -424,7 +466,6 @@ export const PhoneUI = {
             dates.push(d);
         }
 
-        // 默认选中今天（最后一个）
         const selectedDateStr = window.Config.currentDiaryDate || dates[dates.length - 1].toISOString().split('T')[0];
 
         dates.forEach(d => {
@@ -442,7 +483,6 @@ export const PhoneUI = {
         });
         dateListEl.innerHTML = dateHtml;
 
-        // 渲染日记内容
         const diaries = window.PhoneAPI.getDiaries();
         const content = diaries[selectedDateStr];
 
@@ -472,6 +512,6 @@ export const PhoneUI = {
 
     selectDiaryDate(dateStr) {
         window.Config.currentDiaryDate = dateStr;
-        this.renderMemoryPage();
+        this.renderDiaryPage();
     }
 };

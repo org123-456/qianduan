@@ -7,17 +7,14 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#dbe9f6">
-    
-    <!-- 🌟 核心护盾：严厉警告手机浏览器，禁止强行反转网页颜色！ -->
     <meta name="color-scheme" content="light dark">
     <meta name="supported-color-schemes" content="light dark">
-    
     <link rel="manifest" href="manifest.json">
     
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=3500">
+    <link rel="stylesheet" href="css/style.css?t=3600">
 </head>
 <body>
     <div id="app-container">
@@ -52,7 +49,7 @@
                         <div class="icon" id="home-icon-settings"><i class="ph-fill ph-gear" style="color: var(--primary-color);"></i></div>
                         <div class="name" style="font-weight: bold;">系统设置</div>
                     </div>
-                    <div class="app-icon" onclick="alert('相册功能开发中！')">
+                    <div class="app-icon" onclick="alert('相册功能开发中，敬请期待！')">
                         <div class="icon" id="home-icon-gallery"><i class="ph-fill ph-images" style="color: #e5989b;"></i></div>
                         <div class="name">相册</div>
                     </div>
@@ -67,14 +64,39 @@
                 </div>
             </div>
 
+            <!-- 🌟 核心升级：Memory 页面变身“时光档案馆” -->
             <div id="page-memory" class="page">
-                <div style="padding: 0 5px; margin-bottom: 15px; color: var(--secondary-color); font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 18px;"><i class="ph-fill ph-calendar-heart"></i> 他的日记</span>
-                    <span style="font-size: 12px; color: var(--text-sub); font-weight: normal;">偷偷记录的碎碎念</span>
+                <div style="padding: 10px 5px 20px 5px;">
+                    <h2 style="color: var(--primary-color); margin-bottom: 5px; font-size: 22px;">时光档案馆</h2>
+                    <p style="font-size: 12px; color: var(--text-sub);">记录你们在不同次元的交织轨迹</p>
                 </div>
-                
-                <div class="date-scroll-container" id="diary-date-list"></div>
-                <div class="diary-paper" id="diary-content-area"></div>
+
+                <div class="memory-card diary-card" onclick="window.PhoneUI.openApp('diary', '他的日记')">
+                    <div class="mc-icon"><i class="ph-fill ph-book-bookmark"></i></div>
+                    <div class="mc-info">
+                        <div class="mc-title">他的日记</div>
+                        <div class="mc-desc">偷看他在深夜写下的傲娇碎碎念</div>
+                    </div>
+                    <i class="ph ph-caret-right mc-arrow"></i>
+                </div>
+
+                <div class="memory-card vault-card" onclick="window.PhoneUI.openApp('memory_vault', '全局记忆库')">
+                    <div class="mc-icon"><i class="ph-fill ph-database"></i></div>
+                    <div class="mc-info">
+                        <div class="mc-title">全局记忆库</div>
+                        <div class="mc-desc">线上微信与线下故事的完整时间线</div>
+                    </div>
+                    <i class="ph ph-caret-right mc-arrow"></i>
+                </div>
+
+                <div class="memory-card gallery-card" onclick="alert('相册功能开发中！')">
+                    <div class="mc-icon"><i class="ph-fill ph-polaroid-camera"></i></div>
+                    <div class="mc-info">
+                        <div class="mc-title">时光相册</div>
+                        <div class="mc-desc">定格每一个心动瞬间</div>
+                    </div>
+                    <i class="ph ph-caret-right mc-arrow"></i>
+                </div>
             </div>
 
             <div id="page-chat" class="page" style="position: relative; padding-bottom: 0;">
@@ -195,9 +217,6 @@
             if(index === 2 && window.PhoneUI) {
                 window.Config.currentAppId = 'wechat'; 
                 window.PhoneUI.renderAppContent('wechat');
-            }
-            if(index === 1 && window.PhoneUI) {
-                window.PhoneUI.renderMemoryPage();
             }
         }
 

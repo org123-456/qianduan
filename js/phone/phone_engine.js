@@ -5,7 +5,6 @@ import { PhoneUI } from './phone_ui.js';
 export const PhoneEngine = {
     currentMsgIndex: -1,
 
-    // 🌟 核心：一键清理卡死的“...”
     cleanStuckTyping() {
         let changed = false;
         for (let roleId in Config.phoneData) {
@@ -38,32 +37,76 @@ export const PhoneEngine = {
         document.getElementById('action-sheet').classList.remove('show');
     },
 
-    // 🌟 核心：发送图片！
-    async sendImageMsg() {
+    // 🌟 核心黑科技：调用手机相册 + 自动压缩 + 视觉直传！
+    sendImageMsg() {
         this.closeMsgMenu();
-        const url = await PhoneUI.showCustomPrompt("🖼️ 请输入你要发送的图片网址 (URL)：", "");
-        if (url && url.trim() !== "") {
-            const roleId = Config.currentContactId;
-            if (!Config.phoneData[roleId].wechat) Config.phoneData[roleId].wechat = { items: [] };
+        
+        // 动态创建一个隐藏的文件选择器
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*'; // 只允许选图片
+        
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
 
-            const now = new Date();
-            const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-            const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+            PhoneAPI.showToast("🖼️ 正在处理图片，请稍候...");
 
-            // 存为 Markdown 格式，前端会自动渲染出图片！
-            Config.phoneData[roleId].wechat.items.push({ 
-                sender: 'me', 
-                content: `![图片](${url.trim()})`, 
-                time: timeStr, 
-                date: dateStr 
-            });
+            // 使用 FileReader 读取图片
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    // 🌟 创建隐形画板进行压缩，防止撑爆手机缓存！
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    const MAX_SIZE = 800; // 限制最大边长为 800px
 
-            localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-            PhoneUI.renderAppContent('wechat');
+                    if (width > height && width > MAX_SIZE) {
+                        height *= MAX_SIZE / width;
+                        width = MAX_SIZE;
+                    } else if (height > MAX_SIZE) {
+                        width *= MAX_SIZE / height;
+                        height = MAX_SIZE;
+                    }
 
-            // 触发 AI 回复
-            this.sendChatMessage(false);
-        }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // 将压缩后的图片转为 Base64 编码 (画质 0.7)
+                    const base64Url = canvas.toDataURL('image/jpeg', 0.7);
+
+                    // 存入聊天记录
+                    const roleId = Config.currentContactId;
+                    if (!Config.phoneData[roleId].wechat) Config.phoneData[roleId].wechat = { items: [] };
+
+                    const now = new Date();
+                    const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+                    const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+
+                    Config.phoneData[roleId].wechat.items.push({ 
+                        sender: 'me', 
+                        content: `![图片](${base64Url})`, 
+                        time: timeStr, 
+                        date: dateStr 
+                    });
+
+                    localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+                    PhoneUI.renderAppContent('wechat');
+
+                    // 触发 AI 视觉回复
+                    this.sendChatMessage(false);
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+        
+        // 模拟点击，调起手机相册
+        input.click();
     },
 
     async favoriteMsg() {
@@ -400,16 +443,15 @@ ${historyText}`;
             const MAX_CONTEXT = 20;
             const recentItems = chatItems.slice(-MAX_CONTEXT);
 
-            // 🌟 核心升级：解析图片，转换为 Vision API 格式！
             recentItems.forEach((item) => {
                 if (item.sender !== 'typing') { 
                     let text = item.content;
                     
-                    // 检测是否包含图片 Markdown
+                    // 检测是否包含 Base64 图片
                     const imgMatch = text.match(/^!\[.*?\]\((.*?)\)$/);
                     
                     if (item.sender === 'me' && imgMatch) {
-                        // 如果是图片，转换为 OpenAI 视觉格式喂给模型
+                        // 🌟 视觉直传格式！
                         messages.push({
                             role: 'user',
                             content: [
@@ -417,7 +459,6 @@ ${historyText}`;
                             ]
                         });
                     } else {
-                        // 如果是普通文字
                         if (item.sender === 'other' && item.innerThought && !item.innerThought.includes('TA的心思藏得很深') && !item.innerThought.includes('连发消息')) {
                             text = `<inner>${item.innerThought}</inner>\n${text}`;
                         }

@@ -46,6 +46,7 @@ export const PhoneUI = {
         if (menu) menu.classList.remove('show'); if (btn) btn.style.transform = 'rotate(0deg)';
     },
 
+    // 🌟 核心：自定义输入弹窗
     showCustomPrompt(title, defaultValue = '') {
         return new Promise((resolve) => {
             const bg = document.getElementById('custom-prompt-bg');
@@ -78,6 +79,16 @@ export const PhoneUI = {
                 resolve(null);
             };
         });
+    },
+
+    // 🌟 核心：打开控制舱
+    openApiModal() {
+        document.getElementById('api-modal-bg').classList.add('show');
+        document.getElementById('api-modal').classList.add('show');
+    },
+    closeApiModal() {
+        document.getElementById('api-modal-bg').classList.remove('show');
+        document.getElementById('api-modal').classList.remove('show');
     },
 
     openApp(appId, appName) {
@@ -724,16 +735,5 @@ export const PhoneUI = {
     closeBlindBox() {
         document.getElementById('blindbox-bg').classList.remove('show');
         document.getElementById('blindbox-modal').classList.remove('show');
-    },
-
-    // 🌟 核心补漏：加入控制舱开关方法！
-    openApiModal() {
-        document.getElementById('api-modal-bg').classList.add('show');
-        document.getElementById('api-modal').classList.add('show');
-    },
-
-    closeApiModal() {
-        document.getElementById('api-modal-bg').classList.remove('show');
-        document.getElementById('api-modal').classList.remove('show');
     }
 };

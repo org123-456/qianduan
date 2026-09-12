@@ -14,7 +14,7 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=4100">
+    <link rel="stylesheet" href="css/style.css?t=4200">
 </head>
 <body>
     <div id="app-container">
@@ -208,11 +208,11 @@
             <div class="blindbox-meta" id="blindbox-meta">2023-10-24 · 线上微信</div>
         </div>
 
-        <!-- 🌟 核心救场：自定义输入弹窗 (替代被阉割的系统 prompt) -->
+        <!-- 🌟 核心升级：放大编辑舱，方便分行编辑多条记忆 -->
         <div id="custom-prompt-bg" class="action-sheet-bg"></div>
         <div id="custom-prompt-modal" class="thought-modal" style="padding: 20px; z-index: 1005;">
             <div class="thought-header" id="custom-prompt-title" style="font-size: 14px; line-height: 1.4;">请输入</div>
-            <textarea id="custom-prompt-input" style="width: 100%; height: 120px; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 14px; resize: none; outline: none; margin-bottom: 15px; font-family: inherit;"></textarea>
+            <textarea id="custom-prompt-input" style="width: 100%; height: 220px; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 14px; resize: none; outline: none; margin-bottom: 15px; font-family: inherit; line-height: 1.6;"></textarea>
             <div style="display: flex; gap: 10px;">
                 <button class="btn-refresh" id="custom-prompt-cancel" style="flex: 1; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0;">取消</button>
                 <button class="btn-refresh" id="custom-prompt-confirm" style="flex: 1; background: var(--primary-color); margin-top: 0;">确定保存</button>

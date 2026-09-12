@@ -187,9 +187,6 @@ body {
 .app-window.fullscreen-mode .app-window-header { display: none; }
 .app-window.fullscreen-mode .app-window-content { padding: 0; }
 
-.spin-anim { animation: spin-fast 1s cubic-bezier(0.2, 0.8, 0.2, 1) infinite; }
-@keyframes spin-fast { 100% { transform: rotate(360deg); } }
-
 .thought-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -40%) scale(0.9); width: 85%; max-height: 80vh; background: var(--input-bg); backdrop-filter: blur(15px); border-radius: 24px; padding: 25px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 1000; opacity: 0; visibility: hidden; transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1); display: flex; flex-direction: column; }
 .thought-modal.show { transform: translate(-50%, -50%) scale(1); opacity: 1; visibility: visible; }
 .thought-header { font-size: 16px; font-weight: bold; color: var(--primary-color); display: flex; align-items: center; gap: 8px; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;}
@@ -277,13 +274,12 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 .mc-desc { font-size: 12px; opacity: 0.85; line-height: 1.4; }
 .mc-arrow { font-size: 20px; opacity: 0.5; }
 
-/* 🌟 核心重绘：绝美蜿蜒藤蔓与叶片卡片 */
+/* 🌟 修复：藤蔓时间轴与编辑按钮排版 */
 .vault-tabs { display: flex; background: var(--input-bg); border-radius: 16px; padding: 5px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);}
 .vault-tab { flex: 1; text-align: center; padding: 10px; font-size: 13px; font-weight: bold; color: var(--text-sub); border-radius: 12px; cursor: pointer; transition: 0.3s; }
 .vault-tab.active { background: #fff; color: var(--primary-color); box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
 
 .vine-container { padding: 10px 15px 40px 45px; position: relative; }
-/* 蜿蜒的藤蔓线条 (SVG 背景) */
 .vine-container::before {
     content: ""; position: absolute; left: 20px; top: 0; bottom: 0; width: 20px;
     background-image: url("data:image/svg+xml,%3Csvg width='20' height='80' viewBox='0 0 20 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10,0 C20,20 0,60 10,80' stroke='%23a3b18a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
@@ -293,7 +289,6 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 .vine-item { position: relative; margin-bottom: 30px; z-index: 1; animation: fadeIn 0.5s ease-out backwards; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* 铃兰花节点 */
 .vine-node { 
     position: absolute; left: -36px; top: 10px; width: 32px; height: 32px; 
     background: var(--window-bg); border: 2px solid #a3b18a; border-radius: 50%; 
@@ -302,27 +297,31 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 }
 .vine-node.core { border-color: #ffb703; color: #ffb703; box-shadow: 0 0 20px rgba(251, 133, 0, 0.4); }
 
-/* 随机散落的小叶子 */
 .vine-leaf { position: absolute; color: #a3b18a; opacity: 0.5; font-size: 14px; z-index: 0; pointer-events: none;}
 
-/* 叶片状记忆卡片 */
 .vine-content { 
-    background: var(--card-bg); backdrop-filter: blur(15px); padding: 20px; 
+    background: var(--card-bg); backdrop-filter: blur(15px); padding: 20px 20px 10px 20px; 
     border-radius: 4px 20px 20px 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.05); 
     border: 1px solid rgba(163, 177, 138, 0.3); position: relative; 
 }
-/* 连接藤蔓的叶柄 */
 .vine-content::before {
     content: ""; position: absolute; left: -15px; top: 25px; width: 15px; height: 15px;
     border-top: 1.5px solid #a3b18a; border-left: 1.5px solid transparent; border-radius: 10px 0 0 0; opacity: 0.6;
 }
 
 .vine-header { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 12px; color: var(--text-sub); border-bottom: 1px dashed var(--border-color); padding-bottom: 8px;}
-/* 记忆档案使用手写体 */
-.vine-text { font-family: 'Long Cang', cursive; font-size: 20px; color: var(--text-main); line-height: 1.8; letter-spacing: 1px;}
-.vine-actions { position: absolute; right: 15px; bottom: -15px; display: flex; gap: 10px; background: var(--input-bg); padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: 0 4px 10px rgba(0,0,0,0.05);}
-.vine-btn { font-size: 18px; cursor: pointer; padding: 2px; }
+/* 🌟 核心修复：加入备用字体 Kaiti，防止被墙导致变成黑体 */
+.vine-text { font-family: 'Long Cang', 'Kaiti', 'STKaiti', cursive; font-size: 20px; color: var(--text-main); line-height: 1.8; letter-spacing: 1px;}
+
+/* 🌟 核心修复：把操作栏放到卡片内部，防止被遮挡，并加入编辑按钮 */
+.vine-actions { 
+    display: flex; justify-content: flex-end; gap: 15px; 
+    margin-top: 15px; padding-top: 10px; border-top: 1px dashed var(--border-color);
+}
+.vine-btn { font-size: 22px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center;}
+.vine-btn:active { transform: scale(0.8); }
 .vine-btn.star { color: #f4a261; }
+.vine-btn.edit { color: var(--primary-color); }
 .vine-btn.del { color: var(--danger-color); }
 
 #page-memory { background: transparent; }
@@ -359,7 +358,7 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 .blindbox-modal::-webkit-scrollbar { width: 4px; }
 .blindbox-modal::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 4px; }
 .blindbox-icon { font-size: 42px; color: var(--primary-color); margin-bottom: 15px; text-shadow: 0 0 20px rgba(107, 139, 189, 0.5); }
-.blindbox-text { font-family: 'Long Cang', cursive; font-size: 24px; line-height: 1.6; margin-bottom: 20px; letter-spacing: 1px;}
+.blindbox-text { font-family: 'Long Cang', 'Kaiti', 'STKaiti', cursive; font-size: 24px; line-height: 1.6; margin-bottom: 20px; letter-spacing: 1px;}
 .blindbox-meta { font-size: 12px; color: rgba(255,255,255,0.5); font-family: monospace; }
 
 .diary-cover-view {
@@ -416,14 +415,14 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 .notebook-mood { font-size: 24px; }
 
 .notebook-content {
-    font-family: 'Long Cang', cursive; font-size: 24px; line-height: 2.2rem;
+    font-family: 'Long Cang', 'Kaiti', 'STKaiti', cursive; font-size: 24px; line-height: 2.2rem;
     color: #2c3e50; text-align: justify;
     background: repeating-linear-gradient(transparent, transparent calc(2.2rem - 1px), rgba(0,0,0,0.15) calc(2.2rem - 1px), rgba(0,0,0,0.15) 2.2rem);
     padding-top: 5px; min-height: 100%;
 }
 .notebook-empty {
     height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;
-    font-family: 'Long Cang', cursive; font-size: 26px; color: rgba(0,0,0,0.4); text-align: center;
+    font-family: 'Long Cang', 'Kaiti', 'STKaiti', cursive; font-size: 26px; color: rgba(0,0,0,0.4); text-align: center;
 }
 
 .page-turner {

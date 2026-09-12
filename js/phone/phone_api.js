@@ -6,9 +6,7 @@ export const PhoneAPI = {
             toastMsg.innerText = msg;
             toast.classList.add('show');
             setTimeout(() => { toast.classList.remove('show'); }, 3000); 
-        } else {
-            alert(msg); 
-        }
+        } else { alert(msg); }
     },
 
     _doSave() {
@@ -21,6 +19,8 @@ export const PhoneAPI = {
         saveIfExist('my-avatar', 'my_avatar'); saveIfExist('ta-avatar', 'ta_avatar');
         
         saveIfExist('bg-global', 'bg_global'); saveIfExist('bg-chat', 'bg_chat');
+        saveIfExist('bg-diary-cover', 'bg_diary_cover'); // 🌟 新增：日记封面
+        
         saveIfExist('ui-icon-novel', 'ui_icon_novel'); saveIfExist('ui-icon-worldbook', 'ui_icon_worldbook');
         saveIfExist('ui-icon-settings', 'ui_icon_settings'); saveIfExist('ui-icon-gallery', 'ui_icon_gallery');
         saveIfExist('ui-icon-shop', 'ui_icon_shop'); saveIfExist('ui-icon-task', 'ui_icon_task');
@@ -44,7 +44,11 @@ export const PhoneAPI = {
             const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
             setVal('my-name', localStorage.getItem('my_name') || ''); setVal('char-name', localStorage.getItem('char_name') || '');
             setVal('my-avatar', localStorage.getItem('my_avatar') || ''); setVal('ta-avatar', localStorage.getItem('ta_avatar') || '');
-            setVal('bg-global', localStorage.getItem('bg_global') || ''); setVal('bg-chat', localStorage.getItem('bg_chat') || '');
+            
+            setVal('bg-global', localStorage.getItem('bg_global') || ''); 
+            setVal('bg-chat', localStorage.getItem('bg_chat') || '');
+            setVal('bg-diary-cover', localStorage.getItem('bg_diary_cover') || ''); // 🌟 新增：日记封面
+            
             setVal('ui-icon-novel', localStorage.getItem('ui_icon_novel') || ''); setVal('ui-icon-worldbook', localStorage.getItem('ui_icon_worldbook') || '');
             setVal('ui-icon-settings', localStorage.getItem('ui_icon_settings') || ''); setVal('ui-icon-gallery', localStorage.getItem('ui_icon_gallery') || '');
             setVal('ui-icon-shop', localStorage.getItem('ui_icon_shop') || ''); setVal('ui-icon-task', localStorage.getItem('ui_icon_task') || '');
@@ -64,9 +68,13 @@ export const PhoneAPI = {
     },
 
     applyUITheme() {
-        const globalBg = localStorage.getItem('bg_global'); const chatBg = localStorage.getItem('bg_chat');
+        const globalBg = localStorage.getItem('bg_global'); 
+        const chatBg = localStorage.getItem('bg_chat');
+        const diaryCover = localStorage.getItem('bg_diary_cover'); // 🌟 新增：应用日记封面
+        
         if (globalBg) { document.documentElement.style.setProperty('--bg-image-global', `url('${globalBg}')`); } else { document.documentElement.style.removeProperty('--bg-image-global'); }
         if (chatBg) { document.documentElement.style.setProperty('--bg-image-chat', `url('${chatBg}')`); } else { document.documentElement.style.removeProperty('--bg-image-chat'); }
+        if (diaryCover) { document.documentElement.style.setProperty('--bg-image-diary-cover', `url('${diaryCover}')`); } else { document.documentElement.style.removeProperty('--bg-image-diary-cover'); }
 
         const icons = [
             { id: 'novel', default: '<i class="ph-fill ph-book-open" style="color: var(--text-sub);"></i>' },
@@ -95,7 +103,7 @@ export const PhoneAPI = {
     saveUIPreset() {
         const name = prompt('给这套主题装修起个名字吧 (如: 赛博朋克风):'); if (!name) return;
         const getVal = (id) => document.getElementById(id)?.value.trim() || '';
-        const preset = { id: 'ui_' + Date.now(), name: name, bg_global: getVal('bg-global'), bg_chat: getVal('bg-chat'), icon_novel: getVal('ui-icon-novel'), icon_worldbook: getVal('ui-icon-worldbook'), icon_settings: getVal('ui-icon-settings'), icon_gallery: getVal('ui-icon-gallery'), icon_shop: getVal('ui-icon-shop'), icon_task: getVal('ui-icon-task') };
+        const preset = { id: 'ui_' + Date.now(), name: name, bg_global: getVal('bg-global'), bg_chat: getVal('bg-chat'), bg_diary_cover: getVal('bg-diary-cover'), icon_novel: getVal('ui-icon-novel'), icon_worldbook: getVal('ui-icon-worldbook'), icon_settings: getVal('ui-icon-settings'), icon_gallery: getVal('ui-icon-gallery'), icon_shop: getVal('ui-icon-shop'), icon_task: getVal('ui-icon-task') };
         let presets = this.getUIPresets(); presets = presets.filter(p => p.name !== name); presets.push(preset);
         localStorage.setItem('ui_presets', JSON.stringify(presets)); this.refreshUIDropdowns(); document.getElementById('ui-preset-select').value = preset.id; this.showToast('💾 UI 主题预设保存成功！');
     },
@@ -104,7 +112,8 @@ export const PhoneAPI = {
         const preset = this.getUIPresets().find(p => p.id === id);
         if (preset) {
             const setVal = (domId, val) => { const el = document.getElementById(domId); if(el) el.value = val || ''; };
-            setVal('bg-global', preset.bg_global); setVal('bg-chat', preset.bg_chat); setVal('ui-icon-novel', preset.icon_novel); setVal('ui-icon-worldbook', preset.icon_worldbook); setVal('ui-icon-settings', preset.icon_settings); setVal('ui-icon-gallery', preset.icon_gallery); setVal('ui-icon-shop', preset.icon_shop); setVal('ui-icon-task', preset.icon_task);
+            setVal('bg-global', preset.bg_global); setVal('bg-chat', preset.bg_chat); setVal('bg-diary-cover', preset.bg_diary_cover); 
+            setVal('ui-icon-novel', preset.icon_novel); setVal('ui-icon-worldbook', preset.icon_worldbook); setVal('ui-icon-settings', preset.icon_settings); setVal('ui-icon-gallery', preset.icon_gallery); setVal('ui-icon-shop', preset.icon_shop); setVal('ui-icon-task', preset.icon_task);
             this.autoSave(); this.showToast('✨ 主题切换成功！');
         }
     },
@@ -277,13 +286,9 @@ export const PhoneAPI = {
         reader.readAsText(file);
     },
 
-    getDiaries() {
-        return JSON.parse(localStorage.getItem('char_diaries') || '{}');
-    },
+    getDiaries() { return JSON.parse(localStorage.getItem('char_diaries') || '{}'); },
     saveDiary(dateStr, content) {
-        const diaries = this.getDiaries();
-        diaries[dateStr] = content;
-        localStorage.setItem('char_diaries', JSON.stringify(diaries));
+        const diaries = this.getDiaries(); diaries[dateStr] = content; localStorage.setItem('char_diaries', JSON.stringify(diaries));
     },
     getCombinedMemory() {
         const roleId = window.Config.currentContactId;
@@ -294,29 +299,36 @@ export const PhoneAPI = {
         return combinedItems;
     },
 
-    // 🌟 核心升级：一键强制杀缓存，获取最新代码！
+    getFavorites() { return JSON.parse(localStorage.getItem('starry_favorites') || '[]'); },
+    saveFavorite(text, source, sender) {
+        const favs = this.getFavorites();
+        favs.push({ id: 'fav_' + Date.now(), content: text, source: source, sender: sender, time: new Date().toISOString().split('T')[0] });
+        localStorage.setItem('starry_favorites', JSON.stringify(favs));
+        this.showToast('⭐ 已存入星海收藏夹！');
+    },
+    deleteFavorite(id) {
+        if (!confirm('确定要从星海中删除这句回忆吗？')) return;
+        let favs = this.getFavorites(); favs = favs.filter(f => f.id !== id); localStorage.setItem('starry_favorites', JSON.stringify(favs));
+        window.PhoneUI.renderAppContent('favorites'); this.showToast('🗑️ 已删除');
+    },
+
     async forceUpdate() {
         if (confirm("确定要强制刷新并获取最新代码吗？（这不会清除你的聊天记录和设置）")) {
             if ('serviceWorker' in navigator) {
                 const registrations = await navigator.serviceWorker.getRegistrations();
-                for (let reg of registrations) {
-                    await reg.unregister();
-                }
+                for (let reg of registrations) { await reg.unregister(); }
             }
             if ('caches' in window) {
                 const keys = await caches.keys();
-                for (let key of keys) {
-                    await caches.delete(key);
-                }
+                for (let key of keys) { await caches.delete(key); }
             }
-            // 加上随机时间戳，强迫浏览器去服务器拿最新文件
             window.location.href = window.location.pathname + '?t=' + new Date().getTime();
         }
     },
 
     async chatWithAI(messages, useSubEngine = false) {
         const config = this.getEngineConfig(useSubEngine);
-        if (!config) throw new Error("请先去【系统设置】里分配主引擎配置！");
+        if (!config) throw new Error("请先去【系统设置】里分配引擎配置！");
         const endpoint = config.url.endsWith('/chat/completions') ? config.url : config.url.replace(/\/$/, '') + '/chat/completions';
         try {
             const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.key}` }, body: JSON.stringify({ model: config.model, messages: messages, temperature: 0.7 }) });

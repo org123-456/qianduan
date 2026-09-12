@@ -184,7 +184,6 @@ body {
 .app-window-content { flex: 1; overflow-y: auto; padding: 20px; position: relative; } 
 #app-window-footer { position: relative; flex-shrink: 0; background: transparent; }
 
-/* 🌟 核心：当处于日记本全屏模式时，隐藏顶部的导航栏！ */
 .app-window.fullscreen-mode .app-window-header { display: none; }
 .app-window.fullscreen-mode .app-window-content { padding: 0; }
 
@@ -249,9 +248,7 @@ body {
 input:checked + .slider { background-color: var(--primary-color); }
 input:checked + .slider:before { transform: translateX(16px); }
 
-input[type="text"], input[type="password"], input[type="number"], select, textarea {
-    background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color);
-}
+input[type="text"], input[type="password"], input[type="number"], select, textarea { background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); }
 
 .archive-item { background: var(--icon-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
 .archive-info { display: flex; flex-direction: column; gap: 4px; }
@@ -280,16 +277,30 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 .mc-desc { font-size: 12px; opacity: 0.85; line-height: 1.4; }
 .mc-arrow { font-size: 20px; opacity: 0.5; }
 
-.timeline-container { padding: 10px 5px; }
-.timeline-item { display: flex; gap: 15px; margin-bottom: 25px; position: relative; }
-.timeline-item::before { content: ""; position: absolute; left: 21px; top: 40px; bottom: -30px; width: 2px; background: var(--border-color); }
-.timeline-item:last-child::before { display: none; }
-.timeline-icon { width: 44px; height: 44px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; color: #fff; z-index: 1; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
-.timeline-icon.wechat { background: #4ade80; }
-.timeline-icon.novel { background: #6b8bbd; }
-.timeline-content { background: var(--icon-bg); padding: 15px; border-radius: 16px; flex: 1; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid var(--border-color); }
-.timeline-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; color: var(--text-sub); }
-.timeline-text { font-size: 14px; color: var(--text-main); line-height: 1.6; word-wrap: break-word;}
+/* 🌟 核心：藤蔓时间轴样式！ */
+.vault-tabs { display: flex; background: var(--input-bg); border-radius: 16px; padding: 5px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);}
+.vault-tab { flex: 1; text-align: center; padding: 10px; font-size: 13px; font-weight: bold; color: var(--text-sub); border-radius: 12px; cursor: pointer; transition: 0.3s; }
+.vault-tab.active { background: #fff; color: var(--primary-color); box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+
+.vine-container { padding: 10px 5px 30px 25px; border-left: 2px solid #a3b18a; position: relative; margin-left: 10px;}
+.vine-item { position: relative; margin-bottom: 35px; padding-left: 20px; }
+.vine-node { 
+    position: absolute; left: -36px; top: 0; width: 24px; height: 24px; 
+    background: #e9edc9; border: 2px solid #a3b18a; border-radius: 50%; 
+    display: flex; justify-content: center; align-items: center; 
+    color: #718355; font-size: 14px; z-index: 2; box-shadow: 0 0 10px rgba(163, 177, 138, 0.4); 
+}
+.vine-node.core { background: #ffb703; border-color: #fb8500; color: #fff; box-shadow: 0 0 15px rgba(251, 133, 0, 0.5); }
+.vine-item::before { content: '🍃'; position: absolute; left: -25px; top: 30px; font-size: 12px; opacity: 0.6; transform: rotate(-30deg); }
+.vine-item:nth-child(even)::before { left: -15px; transform: rotate(45deg) scaleX(-1); }
+
+.vine-content { background: var(--icon-bg); padding: 15px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid var(--border-color); position: relative;}
+.vine-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; color: var(--text-sub); }
+.vine-text { font-size: 14px; color: var(--text-main); line-height: 1.6; word-wrap: break-word;}
+.vine-actions { position: absolute; right: 10px; bottom: -15px; display: flex; gap: 8px; background: var(--window-bg); padding: 4px 8px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 2px 5px rgba(0,0,0,0.05);}
+.vine-btn { font-size: 16px; cursor: pointer; padding: 2px; }
+.vine-btn.star { color: #f4a261; }
+.vine-btn.del { color: var(--danger-color); }
 
 #page-memory { background: transparent; }
 .starry-sea-bg { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%); z-index: -1; overflow: hidden; opacity: 0; transition: opacity 1.5s ease-in-out; }
@@ -328,9 +339,6 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 .blindbox-text { font-size: 16px; line-height: 1.8; margin-bottom: 20px; font-style: italic; }
 .blindbox-meta { font-size: 12px; color: rgba(255,255,255,0.5); font-family: monospace; }
 
-/* =========================================
-   🌟 终极浪漫：全屏沉浸式实体日记本
-   ========================================= */
 .diary-cover-view {
     position: absolute; top: 0; left: 0; right: 0; bottom: 0;
     display: flex; justify-content: center; align-items: center;
@@ -339,7 +347,6 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 }
 .diary-cover-view.opened { opacity: 0; visibility: hidden; pointer-events: none; }
 
-/* 🌟 全屏封面 */
 .diary-book-cover {
     width: 100%; height: 100%;
     background-image: var(--bg-image-diary-cover);
@@ -353,7 +360,6 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 .diary-title { font-size: 32px; font-weight: bold; letter-spacing: 2px; margin-bottom: 10px; font-family: 'Georgia', serif; }
 .diary-hint { font-size: 12px; opacity: 0.8; letter-spacing: 1px; animation: pulseGlow 2s infinite alternate; }
 
-/* 全屏返回按钮 */
 .diary-back-btn {
     position: absolute; top: 40px; left: 20px; width: 40px; height: 40px;
     background: rgba(0,0,0,0.3); backdrop-filter: blur(5px); border-radius: 50%;
@@ -361,7 +367,6 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
     color: #fff; font-size: 24px; cursor: pointer; z-index: 30;
 }
 
-/* 🌟 全屏日记内页 */
 .diary-inside-view {
     position: absolute; top: 0; left: 0; right: 0; bottom: 0;
     opacity: 0; transition: opacity 0.8s 0.5s; pointer-events: none;
@@ -371,7 +376,6 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 }
 .diary-inside-view.opened { opacity: 1; pointer-events: auto; }
 
-/* 🌟 核心修复：让内页可以顺畅滑动！ */
 .notebook-page {
     flex: 1; display: flex; flex-direction: column; padding: 60px 30px 100px 30px;
     position: relative; overflow-y: auto; overflow-x: hidden;
@@ -388,7 +392,6 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 .notebook-week { font-size: 14px; font-family: 'Georgia', serif; opacity: 0.8;}
 .notebook-mood { font-size: 24px; }
 
-/* 🌟 手写体 + 横线格 */
 .notebook-content {
     font-family: 'Long Cang', cursive; font-size: 24px; line-height: 2.2rem;
     color: #2c3e50; text-align: justify;
@@ -400,7 +403,6 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
     font-family: 'Long Cang', cursive; font-size: 26px; color: rgba(0,0,0,0.4); text-align: center;
 }
 
-/* 翻页按钮 */
 .page-turner {
     position: absolute; bottom: 30px; left: 30px; right: 30px;
     display: flex; justify-content: space-between; align-items: center; pointer-events: none;

@@ -37,13 +37,8 @@ export const PhoneUI = {
         const menu = document.getElementById('chat-plus-menu');
         const btn = document.getElementById('btn-plus');
         if (!menu || !btn) return; 
-
-        if (menu.classList.contains('show')) {
-            this.closeChatMenu();
-        } else {
-            menu.classList.add('show');
-            btn.style.transform = 'rotate(45deg)'; 
-        }
+        if (menu.classList.contains('show')) { this.closeChatMenu(); } 
+        else { menu.classList.add('show'); btn.style.transform = 'rotate(45deg)'; }
     },
 
     closeChatMenu() {
@@ -57,13 +52,8 @@ export const PhoneUI = {
         const menu = document.getElementById('story-plus-menu');
         const btn = document.getElementById('btn-story-plus');
         if (!menu || !btn) return; 
-
-        if (menu.classList.contains('show')) {
-            this.closeStoryMenu();
-        } else {
-            menu.classList.add('show');
-            btn.style.transform = 'rotate(45deg)'; 
-        }
+        if (menu.classList.contains('show')) { this.closeStoryMenu(); } 
+        else { menu.classList.add('show'); btn.style.transform = 'rotate(45deg)'; }
     },
 
     closeStoryMenu() {
@@ -73,7 +63,6 @@ export const PhoneUI = {
         if (btn) btn.style.transform = 'rotate(0deg)';
     },
 
-    // 🌟 核心：为各个 App 分配独立的窗口渲染逻辑
     openApp(appId, appName) {
         window.Config.currentAppId = appId;
         
@@ -114,7 +103,6 @@ export const PhoneUI = {
             this.renderNovelContent();
 
         } else if (appId === 'diary') {
-            // 🌟 渲染日记本窗口
             contentEl.innerHTML = `
                 <div class="date-scroll-container" id="diary-date-list"></div>
                 <div class="diary-paper" id="diary-content-area"></div>
@@ -122,25 +110,21 @@ export const PhoneUI = {
             this.renderDiaryPage();
 
         } else if (appId === 'memory_vault') {
-            // 🌟 渲染全局记忆库窗口（时间轴）
             const combinedItems = window.PhoneAPI.getCombinedMemory();
             const myName = localStorage.getItem('my_name') || '我';
             const charName = localStorage.getItem('char_name') || 'TA';
             
             let html = '<div class="timeline-container">';
-            
             if (combinedItems.length === 0) {
                 html += '<div style="text-align:center; color:var(--text-sub); padding: 50px 0;">空空如也，快去创造回忆吧！</div>';
             } else {
                 combinedItems.forEach(item => {
                     if (item.sender === 'typing') return;
-                    
                     const isWechat = item.source === 'wechat';
                     const iconClass = isWechat ? 'wechat' : 'novel';
                     const iconHtml = isWechat ? '<i class="ph-fill ph-chat-circle-dots"></i>' : '<i class="ph-fill ph-book-open"></i>';
                     const sourceName = isWechat ? '线上微信' : '线下故事';
                     const senderName = item.sender === 'me' ? myName : charName;
-                    
                     let content = item.content;
                     if (window.marked) content = window.marked.parse(content);
 
@@ -163,7 +147,6 @@ export const PhoneUI = {
             setTimeout(() => { contentEl.scrollTop = contentEl.scrollHeight; }, 100);
 
         } else if (appId === 'settings') {
-            // 🌟 完整的设置页面
             contentEl.innerHTML = `
                 <div class="card">
                     <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph-fill ph-user-list"></i> 基础设定</h3>
@@ -274,29 +257,13 @@ export const PhoneUI = {
             let wbHtml = '';
             wbData.forEach(wb => {
                 const deleteBtn = wb.isCustom ? `<div class="wb-delete-btn" onclick="window.PhoneAPI.deleteWorldbook('${wb.id}')"><i class="ph ph-trash"></i></div>` : '';
-                
                 wbHtml += `
                     <div class="wb-card">
-                        <div class="wb-header">
-                            <span class="wb-title">${wb.title}</span>
-                            ${deleteBtn}
-                        </div>
+                        <div class="wb-header"><span class="wb-title">${wb.title}</span>${deleteBtn}</div>
                         <div class="wb-content">${wb.content}</div>
                         <div class="wb-toggles">
-                            <div class="wb-toggle-item">
-                                <label class="switch">
-                                    <input type="checkbox" ${wb.online ? 'checked' : ''} onchange="window.PhoneAPI.toggleWorldbook('${wb.id}', 'online', this.checked)">
-                                    <span class="slider"></span>
-                                </label>
-                                线上
-                            </div>
-                            <div class="wb-toggle-item">
-                                <label class="switch">
-                                    <input type="checkbox" ${wb.offline ? 'checked' : ''} onchange="window.PhoneAPI.toggleWorldbook('${wb.id}', 'offline', this.checked)">
-                                    <span class="slider"></span>
-                                </label>
-                                线下
-                            </div>
+                            <div class="wb-toggle-item"><label class="switch"><input type="checkbox" ${wb.online ? 'checked' : ''} onchange="window.PhoneAPI.toggleWorldbook('${wb.id}', 'online', this.checked)"><span class="slider"></span></label>线上</div>
+                            <div class="wb-toggle-item"><label class="switch"><input type="checkbox" ${wb.offline ? 'checked' : ''} onchange="window.PhoneAPI.toggleWorldbook('${wb.id}', 'offline', this.checked)"><span class="slider"></span></label>线下</div>
                         </div>
                     </div>
                 `;
@@ -310,21 +277,12 @@ export const PhoneUI = {
                         <span style="font-size: 12px; color: var(--text-sub);">字 (打字自动保存)</span>
                     </div>
                 </div>
-                
                 <h3 style="font-size: 14px; color: var(--primary-color); margin-bottom: 10px; margin-left: 5px;"><i class="ph-fill ph-puzzle-piece"></i> 规则插件挂载</h3>
                 ${wbHtml}
-                
                 <button class="btn-refresh" onclick="window.PhoneUI.openWbModal()" style="margin-top: 10px; margin-bottom: 30px; background: transparent; color: var(--primary-color); border: 1px dashed var(--primary-color);"><i class="ph ph-plus"></i> 添加自定义规则</button>
             `;
-            
         } else {
-            contentEl.innerHTML = `
-                <div style="text-align:center; margin-top:100px; color:var(--text-sub);">
-                    <i class="ph-fill ph-hammer" style="font-size:64px; color: var(--primary-color); margin-bottom:15px;"></i>
-                    <h3>界面排版中...</h3>
-                    <p style="font-size: 12px; margin-top: 10px;">功能骨架已搭建，即将注入灵魂</p>
-                </div>
-            `;
+            contentEl.innerHTML = `<div style="text-align:center; margin-top:100px; color:var(--text-sub);"><i class="ph-fill ph-hammer" style="font-size:64px; color: var(--primary-color); margin-bottom:15px;"></i><h3>界面排版中...</h3><p style="font-size: 12px; margin-top: 10px;">功能骨架已搭建，即将注入灵魂</p></div>`;
         }
     },
 
@@ -363,26 +321,17 @@ export const PhoneUI = {
                 content = window.marked.parse(content);
             }
 
-            const avatarHtml = isMe ? `<img src="${avatar}" class="story-avatar">` 
-                                    : `<img src="${avatar}" class="story-avatar" onclick="window.PhoneUI.showThought(${index}, 'novel')">`;
+            const avatarHtml = isMe ? `<img src="${avatar}" class="story-avatar">` : `<img src="${avatar}" class="story-avatar" onclick="window.PhoneUI.showThought(${index}, 'novel')">`;
 
             html += `
                 <div class="story-card">
-                    <div class="story-header">
-                        ${avatarHtml}
-                        <div class="story-name">${name}</div>
-                        <div class="story-time">${item.time || '12:00 PM'}</div>
-                    </div>
+                    <div class="story-header">${avatarHtml}<div class="story-name">${name}</div><div class="story-time">${item.time || '12:00 PM'}</div></div>
                     <div class="story-content markdown-body" onclick="window.PhoneEngine.openMsgMenu(${index}, '${item.sender}')">${content}</div>
                 </div>
             `;
         });
         listEl.innerHTML = html;
-        
-        setTimeout(() => { 
-            const scrollContainer = document.getElementById('app-window-content');
-            if(scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight; 
-        }, 100);
+        setTimeout(() => { const scrollContainer = document.getElementById('app-window-content'); if(scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight; }, 100);
     },
 
     showThought(index) {
@@ -390,67 +339,33 @@ export const PhoneUI = {
         const targetApp = window.Config.currentAppId === 'novel' ? 'novel' : 'wechat';
         const item = window.Config.phoneData[roleId]?.[targetApp]?.items[index];
         if(!item) return;
-        
-        const thought = item.innerThought || "（那时候TA的心思藏得很深，什么也没看出来...）";
-        
-        document.getElementById('thought-content').innerText = thought;
+        document.getElementById('thought-content').innerText = item.innerThought || "（那时候TA的心思藏得很深，什么也没看出来...）";
         document.getElementById('thought-bg').classList.add('show');
         document.getElementById('thought-modal').classList.add('show');
     },
-
-    closeThought() {
-        document.getElementById('thought-bg').classList.remove('show');
-        document.getElementById('thought-modal').classList.remove('show');
-    },
-
-    openWbModal() {
-        document.getElementById('wb-modal-bg').classList.add('show');
-        document.getElementById('wb-modal').classList.add('show');
-    },
-
-    closeWbModal() {
-        document.getElementById('wb-modal-bg').classList.remove('show');
-        document.getElementById('wb-modal').classList.remove('show');
-    },
-
+    closeThought() { document.getElementById('thought-bg').classList.remove('show'); document.getElementById('thought-modal').classList.remove('show'); },
+    openWbModal() { document.getElementById('wb-modal-bg').classList.add('show'); document.getElementById('wb-modal').classList.add('show'); },
+    closeWbModal() { document.getElementById('wb-modal-bg').classList.remove('show'); document.getElementById('wb-modal').classList.remove('show'); },
+    
     renderArchiveList() {
         const archives = window.PhoneAPI.getArchives();
         const listEl = document.getElementById('archive-list');
         if (!listEl) return;
-        
-        if (archives.length === 0) {
-            listEl.innerHTML = '<div style="text-align:center; color:var(--text-sub); padding: 20px 0;">暂无存档</div>';
-            return;
-        }
+        if (archives.length === 0) { listEl.innerHTML = '<div style="text-align:center; color:var(--text-sub); padding: 20px 0;">暂无存档</div>'; return; }
         
         let html = '';
         [...archives].reverse().forEach(arc => {
             html += `
                 <div class="archive-item">
-                    <div class="archive-info">
-                        <div class="archive-name">${arc.name}</div>
-                        <div class="archive-meta">${arc.date} · 共 ${arc.count} 条记录</div>
-                    </div>
-                    <div class="archive-actions">
-                        <button class="archive-btn load" onclick="window.PhoneAPI.loadArchive('${arc.id}')">读取</button>
-                        <button class="archive-btn del" onclick="window.PhoneAPI.deleteArchive('${arc.id}')"><i class="ph ph-trash"></i></button>
-                    </div>
+                    <div class="archive-info"><div class="archive-name">${arc.name}</div><div class="archive-meta">${arc.date} · 共 ${arc.count} 条记录</div></div>
+                    <div class="archive-actions"><button class="archive-btn load" onclick="window.PhoneAPI.loadArchive('${arc.id}')">读取</button><button class="archive-btn del" onclick="window.PhoneAPI.deleteArchive('${arc.id}')"><i class="ph ph-trash"></i></button></div>
                 </div>
             `;
         });
         listEl.innerHTML = html;
     },
-
-    openArchiveModal() {
-        this.renderArchiveList();
-        document.getElementById('archive-modal-bg').classList.add('show');
-        document.getElementById('archive-modal').classList.add('show');
-    },
-
-    closeArchiveModal() {
-        document.getElementById('archive-modal-bg').classList.remove('show');
-        document.getElementById('archive-modal').classList.remove('show');
-    },
+    openArchiveModal() { this.renderArchiveList(); document.getElementById('archive-modal-bg').classList.add('show'); document.getElementById('archive-modal').classList.add('show'); },
+    closeArchiveModal() { document.getElementById('archive-modal-bg').classList.remove('show'); document.getElementById('archive-modal').classList.remove('show'); },
 
     renderDiaryPage() {
         const dateListEl = document.getElementById('diary-date-list');
@@ -461,25 +376,15 @@ export const PhoneUI = {
         const today = new Date();
         const dates = [];
         for (let i = 6; i >= 0; i--) {
-            const d = new Date(today);
-            d.setDate(today.getDate() - i);
-            dates.push(d);
+            const d = new Date(today); d.setDate(today.getDate() - i); dates.push(d);
         }
 
         const selectedDateStr = window.Config.currentDiaryDate || dates[dates.length - 1].toISOString().split('T')[0];
 
         dates.forEach(d => {
             const dStr = d.toISOString().split('T')[0];
-            const month = d.getMonth() + 1;
-            const day = d.getDate();
             const isActive = dStr === selectedDateStr ? 'active' : '';
-            
-            dateHtml += `
-                <div class="date-bubble ${isActive}" onclick="window.PhoneUI.selectDiaryDate('${dStr}')">
-                    <div class="month">${month}月</div>
-                    <div class="day">${day}</div>
-                </div>
-            `;
+            dateHtml += `<div class="date-bubble ${isActive}" onclick="window.PhoneUI.selectDiaryDate('${dStr}')"><div class="month">${d.getMonth() + 1}月</div><div class="day">${d.getDate()}</div></div>`;
         });
         dateListEl.innerHTML = dateHtml;
 
@@ -500,18 +405,96 @@ export const PhoneUI = {
                     </div>
                 `;
             } else {
-                contentAreaEl.innerHTML = `
-                    <div class="diary-empty">
-                        <i class="ph-fill ph-wind" style="font-size: 48px; color: var(--border-color); margin-bottom: 15px;"></i>
-                        <p>这一天，他什么也没留下。</p>
-                    </div>
-                `;
+                contentAreaEl.innerHTML = `<div class="diary-empty"><i class="ph-fill ph-wind" style="font-size: 48px; color: var(--border-color); margin-bottom: 15px;"></i><p>这一天，他什么也没留下。</p></div>`;
             }
         }
     },
 
-    selectDiaryDate(dateStr) {
-        window.Config.currentDiaryDate = dateStr;
-        this.renderDiaryPage();
+    selectDiaryDate(dateStr) { window.Config.currentDiaryDate = dateStr; this.renderDiaryPage(); },
+
+    // ==========================================
+    // 🌟 终极浪漫：星海与记忆盲盒逻辑
+    // ==========================================
+    initStarrySea() {
+        const bgEl = document.getElementById('starry-sea-bg');
+        const bubblesEl = document.getElementById('floating-bubbles');
+        const fragmentsContainer = document.getElementById('memory-fragments-container');
+        
+        if (!bgEl || !bubblesEl || !fragmentsContainer) return;
+
+        // 1. 触发开屏渐显动画
+        setTimeout(() => {
+            bgEl.classList.add('show');
+            bubblesEl.classList.add('show');
+        }, 100);
+
+        // 2. 生成背景繁星 (50颗普通星星)
+        let starsHtml = '';
+        for (let i = 0; i < 50; i++) {
+            const size = Math.random() * 3 + 1;
+            const top = Math.random() * 100;
+            const left = Math.random() * 100;
+            const delay = Math.random() * 5;
+            const duration = Math.random() * 3 + 2;
+            starsHtml += `<div class="star" style="width:${size}px; height:${size}px; top:${top}%; left:${left}%; animation-delay:${delay}s; animation-duration:${duration}s;"></div>`;
+        }
+        bgEl.innerHTML = starsHtml;
+
+        // 3. 抽取全局记忆，生成【记忆碎片盲盒】
+        const allMemories = window.PhoneAPI.getCombinedMemory();
+        // 过滤掉太短的废话和正在输入的提示
+        const validMemories = allMemories.filter(m => m.content && m.content.length > 5 && m.sender !== 'typing');
+        
+        fragmentsContainer.innerHTML = ''; // 清空之前的碎片
+        
+        if (validMemories.length > 0) {
+            // 随机打乱并抽取最多 12 个碎片
+            const shuffled = validMemories.sort(() => 0.5 - Math.random());
+            const selected = shuffled.slice(0, 12);
+            
+            selected.forEach((mem, index) => {
+                const top = 15 + Math.random() * 65; // 限制在中间区域
+                const left = 10 + Math.random() * 80;
+                const delay = Math.random() * 2;
+                
+                // 把数据存在 DOM 属性里，方便点击时读取
+                const safeContent = mem.content.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                const sourceText = mem.source === 'wechat' ? '线上微信' : '线下故事';
+                
+                const frag = document.createElement('div');
+                frag.className = 'memory-fragment';
+                frag.style.cssText = `top:${top}%; left:${left}%; animation-delay:${delay}s;`;
+                frag.onclick = () => this.openBlindBox(safeContent, mem.time, sourceText, mem.sender);
+                
+                fragmentsContainer.appendChild(frag);
+            });
+        }
+    },
+
+    openBlindBox(content, time, source, sender) {
+        const modal = document.getElementById('blindbox-modal');
+        const bg = document.getElementById('blindbox-bg');
+        const textEl = document.getElementById('blindbox-text');
+        const metaEl = document.getElementById('blindbox-meta');
+        
+        if (!modal || !bg) return;
+
+        const myName = localStorage.getItem('my_name') || '我';
+        const charName = localStorage.getItem('char_name') || 'TA';
+        const senderName = sender === 'me' ? myName : charName;
+
+        // 解析 Markdown，但去掉多余的段落间距，让它看起来像一句诗
+        let parsed = window.marked ? window.marked.parse(content) : content;
+        
+        textEl.innerHTML = `“${parsed}”`;
+        metaEl.innerHTML = `${time || '某时'} · ${source} · ${senderName}`;
+        
+        bg.classList.add('show');
+        modal.classList.add('show');
+    },
+
+    closeBlindBox() {
+        document.getElementById('blindbox-bg').classList.remove('show');
+        document.getElementById('blindbox-modal').classList.remove('show');
     }
 };

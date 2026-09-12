@@ -390,7 +390,7 @@ export const PhoneUI = {
             const leafRot = Math.random() * 360;
             const leafHtml = `<i class="ph-fill ph-leaf vine-leaf" style="top:${leafTop}%; left:${leafLeft}px; transform:rotate(${leafRot}deg);"></i>`;
 
-            // 🌟 核心：加入了编辑按钮！
+            // 🌟 核心修复：把 star 类名换成了 core-btn，避免和星海冲突！
             html += `
                 <div class="vine-item">
                     <div class="${nodeClass}">${iconHtml}</div>
@@ -402,7 +402,7 @@ export const PhoneUI = {
                         </div>
                         <div class="vine-text">${content}</div>
                         <div class="vine-actions">
-                            <div class="vine-btn star" onclick="window.PhoneAPI.toggleCoreMemory('${item.id}')">
+                            <div class="vine-btn core-btn" onclick="window.PhoneAPI.toggleCoreMemory('${item.id}')">
                                 ${isCore ? '<i class="ph-fill ph-star"></i>' : '<i class="ph ph-star"></i>'}
                             </div>
                             <div class="vine-btn edit" onclick="window.PhoneAPI.editMemoryVault('${item.id}')">

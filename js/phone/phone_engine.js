@@ -18,7 +18,6 @@ export const PhoneEngine = {
         document.getElementById('action-sheet').classList.remove('show');
     },
 
-    // 🌟 核心救场：全部换成自定义弹窗，不再触发手机系统的 Bug！
     async favoriteMsg() {
         this.closeMsgMenu();
         if (this.currentMsgIndex < 0) return;
@@ -58,8 +57,9 @@ export const PhoneEngine = {
         }
     },
 
+    // 🌟 核心升级：原子化记忆拆解！
     async extractMemory(sourceApp) {
-        PhoneAPI.showToast("🧠 正在提取并压缩记忆，请稍候...");
+        PhoneAPI.showToast("🧠 正在提取并拆解记忆，请稍候...");
         try {
             const roleId = Config.currentContactId;
             const items = Config.phoneData[roleId]?.[sourceApp]?.items || [];
@@ -72,17 +72,33 @@ export const PhoneEngine = {
             
             let historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
             
-            const aiPrompt = `你是一个记忆整理助手。请将以下角色扮演的聊天记录，总结提炼成一段【简短、客观的第三人称记忆档案】（100字左右）。\n要求：\n1. 概括发生了什么事，双方的情感变化或核心互动。\n2. 绝对不要照抄原话，要进行高度浓缩和去水，去除所有敏感(NSFW)细节。\n3. 直接输出总结内容，不要多余的废话。\n\n聊天记录：\n${historyText}`;
+            const aiPrompt = `你是一个专门负责提取“角色扮演记忆锚点”的AI。请分析以下聊天记录，提取出其中所有具体的、有价值的细节，生成【多条独立的记忆碎片】。
+
+提取规则：
+1. 必须具体：提取具体的事件、物品、承诺、暗号、称呼、情绪转折。绝不要写空泛的总结（如“两人进行了深情互动”）。
+2. 独立成条：每一条记忆必须是一个完整、独立的客观陈述句（第三人称）。
+3. 去敏：去除NSFW敏感描写，保留核心剧情。
+4. 强制格式：每条记忆必须用 "|||" 隔开！绝对不要输出序号、换行或其他废话！
+
+示例：
+女主假扮客服推销服务，不死途花钱买断了她的后半生|||不死途承诺如果女主失忆，他会重新追求她直到再次相爱|||不死途右臂诅咒发作，躲在冰柜里压制剧痛
+
+聊天记录：
+${historyText}`;
             
             const messages = [{ role: "user", content: aiPrompt }];
             const reply = await PhoneAPI.chatWithAI(messages, true); 
             
-            let summary = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-            summary = summary.replace(/```.*?/g, '').replace(/```/g, '').trim();
+            let rawText = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```.*?/g, '').replace(/```/g, '').trim();
+            // 把 AI 返回的 ||| 替换成两个换行符，方便用户在编辑框里分段查看
+            let summaryList = rawText.split('|||').map(s => s.trim()).filter(s => s.length > 0);
+            let editText = summaryList.join('\n\n');
             
-            const confirmText = await PhoneUI.showCustomPrompt("✨ AI 提取的记忆档案如下，你可以手动删减去敏，确认无误后点击确定保存：", summary);
+            const confirmText = await PhoneUI.showCustomPrompt("✨ AI 提取了多条记忆碎片，请分段修改（每段将存为独立档案）：", editText);
             if (confirmText && confirmText.trim() !== "") {
-                PhoneAPI.saveToMemoryVault(confirmText.trim(), sourceApp === 'wechat' ? '线上微信' : '线下故事');
+                // 用户修改完后，按换行符重新切分成数组
+                let finalItems = confirmText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+                PhoneAPI.saveToMemoryVault(finalItems, sourceApp === 'wechat' ? '线上微信' : '线下故事');
             }
         } catch (e) {
             alert("记忆提取失败：" + e.message);
@@ -91,7 +107,7 @@ export const PhoneEngine = {
 
     async washMemory(sourceApp) {
         this.closeMsgMenu();
-        if (!confirm("⚠️ 确定要进行【记忆洗地】吗？\nAI将把当前所有聊天记录浓缩成一段长期记忆，随后【清空】当前聊天界面！\n(洗地后不可恢复，请确认)")) return;
+        if (!confirm("⚠️ 确定要进行【记忆洗地】吗？\nAI将把当前所有聊天记录拆解成多段长期记忆，随后【清空】当前聊天界面！\n(洗地后不可恢复，请确认)")) return;
 
         PhoneAPI.showToast("🧹 正在进行记忆洗地，请稍候...");
         try {
@@ -106,17 +122,28 @@ export const PhoneEngine = {
             const recentItems = items.slice(-50).filter(i => i.sender !== 'typing');
             let historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
             
-            const aiPrompt = `你是一个记忆整理助手。请将以下角色扮演的聊天记录，总结提炼成一段【简短、客观的第三人称记忆档案】（150字左右）。\n要求：\n1. 概括发生了什么事，双方的情感变化或核心互动。\n2. 绝对不要照抄原话，要进行高度浓缩和去水，去除所有敏感(NSFW)细节。\n3. 直接输出总结内容，不要多余的废话。\n\n聊天记录：\n${historyText}`;
+            const aiPrompt = `你是一个专门负责提取“角色扮演记忆锚点”的AI。请分析以下聊天记录，提取出其中所有具体的、有价值的细节，生成【多条独立的记忆碎片】。
+
+提取规则：
+1. 必须具体：提取具体的事件、物品、承诺、暗号、称呼、情绪转折。绝不要写空泛的总结。
+2. 独立成条：每一条记忆必须是一个完整、独立的客观陈述句（第三人称）。
+3. 去敏：去除NSFW敏感描写，保留核心剧情。
+4. 强制格式：每条记忆必须用 "|||" 隔开！绝对不要输出序号、换行或其他废话！
+
+聊天记录：
+${historyText}`;
             
             const messages = [{ role: "user", content: aiPrompt }];
             const reply = await PhoneAPI.chatWithAI(messages, true); 
             
-            let summary = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-            summary = summary.replace(/```.*?/g, '').replace(/```/g, '').trim();
+            let rawText = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```.*?/g, '').replace(/```/g, '').trim();
+            let summaryList = rawText.split('|||').map(s => s.trim()).filter(s => s.length > 0);
+            let editText = summaryList.join('\n\n');
             
-            const confirmText = await PhoneUI.showCustomPrompt("✨ 洗地总结如下，你可以手动修改去敏，确认后将存入记忆库并清空界面：", summary);
+            const confirmText = await PhoneUI.showCustomPrompt("✨ 洗地记忆碎片如下，请分段修改去敏，确认后将存入记忆库并清空界面：", editText);
             if (confirmText && confirmText.trim() !== "") {
-                PhoneAPI.saveToMemoryVault(confirmText.trim(), sourceApp === 'wechat' ? '线上微信' : '线下故事');
+                let finalItems = confirmText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+                PhoneAPI.saveToMemoryVault(finalItems, sourceApp === 'wechat' ? '线上微信' : '线下故事');
                 
                 Config.phoneData[roleId][sourceApp].items = [];
                 localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));

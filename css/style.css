@@ -52,11 +52,30 @@ body {
     overflow: hidden; 
 }
 
+/* 🌟 核心：暗黑模式智能调光滤镜！防止亮色壁纸刺眼 */
+[data-theme="dark"] body::before {
+    content: ""; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.55); z-index: -1; pointer-events: none;
+}
+
 #app-container { width: 100vw; height: 100vh; height: 100dvh; max-width: 400px; position: relative; display: flex; flex-direction: column; }
 
-.top-bar { display: flex; justify-content: space-between; align-items: center; padding: 40px 20px 10px 20px; color: var(--primary-color); font-weight: bold; z-index: 50;}
-.top-bar .menu-btn { width: 30px; height: 30px; background: var(--card-bg); border-radius: 8px; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+/* 🌟 核心：顶部导航栏加入毛玻璃护盾，文字永不被壁纸吞噬 */
+.top-bar { 
+    display: flex; justify-content: space-between; align-items: center; 
+    padding: 45px 20px 15px 20px; color: var(--primary-color); font-weight: bold; z-index: 50;
+    background: var(--input-bg); backdrop-filter: blur(15px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.top-bar .menu-btn { width: 30px; height: 30px; background: var(--icon-bg); border-radius: 8px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05);}
 .top-bar .heart { color: var(--danger-color); font-size: 14px; display: flex; align-items: center; gap: 4px;}
+
+/* 🌟 核心：星海全屏协议（隐藏顶部导航栏） */
+#app-container.hide-top-bar .top-bar {
+    transform: translateY(-100%);
+    position: absolute; width: 100%;
+}
 
 .page-container { 
     flex: 1; display: flex; overflow-x: auto; overflow-y: hidden; 
@@ -187,6 +206,9 @@ body {
 .app-window.fullscreen-mode .app-window-header { display: none; }
 .app-window.fullscreen-mode .app-window-content { padding: 0; }
 
+.spin-anim { animation: spin-fast 1s cubic-bezier(0.2, 0.8, 0.2, 1) infinite; }
+@keyframes spin-fast { 100% { transform: rotate(360deg); } }
+
 .thought-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -40%) scale(0.9); width: 85%; max-height: 80vh; background: var(--input-bg); backdrop-filter: blur(15px); border-radius: 24px; padding: 25px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 1000; opacity: 0; visibility: hidden; transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1); display: flex; flex-direction: column; }
 .thought-modal.show { transform: translate(-50%, -50%) scale(1); opacity: 1; visibility: visible; }
 .thought-header { font-size: 16px; font-weight: bold; color: var(--primary-color); display: flex; align-items: center; gap: 8px; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;}
@@ -274,7 +296,6 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 .mc-desc { font-size: 12px; opacity: 0.85; line-height: 1.4; }
 .mc-arrow { font-size: 20px; opacity: 0.5; }
 
-/* 🌟 核心修复：重绘藤蔓时间轴，确保操作按钮显示正常 */
 .vault-tabs { display: flex; background: var(--input-bg); border-radius: 16px; padding: 5px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);}
 .vault-tab { flex: 1; text-align: center; padding: 10px; font-size: 13px; font-weight: bold; color: var(--text-sub); border-radius: 12px; cursor: pointer; transition: 0.3s; }
 .vault-tab.active { background: #fff; color: var(--primary-color); box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
@@ -312,14 +333,13 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 .vine-header { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 12px; color: var(--text-sub); border-bottom: 1px dashed var(--border-color); padding-bottom: 8px;}
 .vine-text { font-family: 'Long Cang', 'Kaiti', 'STKaiti', cursive; font-size: 20px; color: var(--text-main); line-height: 1.8; letter-spacing: 1px;}
 
-/* 🌟 将操作按钮放在卡片内部，使用 flex 排列 */
 .vine-actions { 
     display: flex; justify-content: flex-end; gap: 15px; 
     margin-top: 15px; padding-top: 10px; border-top: 1px dashed var(--border-color);
 }
 .vine-btn { font-size: 22px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center;}
 .vine-btn:active { transform: scale(0.8); }
-.vine-btn.core-btn { color: #f4a261; } /* 🌟 核心：改名叫 core-btn，避开星海的 star 类名！ */
+.vine-btn.core-btn { color: #f4a261; }
 .vine-btn.edit { color: var(--primary-color); }
 .vine-btn.del { color: var(--danger-color); }
 

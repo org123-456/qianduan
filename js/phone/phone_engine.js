@@ -50,7 +50,6 @@ export const PhoneEngine = {
         document.getElementById('action-sheet').classList.remove('show');
     },
 
-    // 🌟 核心修改：发图片后不再自动触发 AI 回复，允许连发！
     sendImageMsg() {
         this.closeMsgMenu();
         const input = document.createElement('input');
@@ -103,9 +102,6 @@ export const PhoneEngine = {
 
                     localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
                     PhoneUI.renderAppContent('wechat');
-
-                    // 🛑 删除了这行，不再自动调用 sendChatMessage
-                    // this.sendChatMessage(false);
                 };
                 img.src = event.target.result;
             };
@@ -151,7 +147,6 @@ export const PhoneEngine = {
                     });
                     localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
                     PhoneUI.renderAppContent('wechat');
-                    // 发送文件也不自动回复了，等用户手动点发送
                 };
                 reader.readAsText(file);
             } else {
@@ -469,8 +464,10 @@ ${historyText}`;
 
             let formatRule = "";
             if (banEmoji) formatRule += "【最高禁令】：绝对不允许使用任何 Emoji、颜文字、波浪号(~)，违者抹杀！\n";
-            formatRule += "【微信连发强制要求】：你每次回复**必须**输出 4 到 5 句话，并且**每一句话都必须用换行符（回车）隔开**！系统会根据换行符将你的回复切分成多个连续的微信气泡。绝对不要只回一句话，也绝对不要把所有话挤在同一行！\n";
-            // 🌟 核心：强化警告，必须生成全新心声！
+            
+            // 🌟 核心修改：去掉数字限制，允许自由连发！
+            formatRule += "【微信连发机制】：请像真实人类用微信一样，把你的回复自然地切分成多个短句。**不限制气泡数量，请务必把你想说的话完整说完！** 系统会根据你输出的换行符（回车）来切分微信气泡。绝对不要把所有话挤在同一行！\n";
+            
             formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。**【绝对警告】：严禁重复你之前的心声！必须根据当前的最新对话，产生全新的心理活动！**\n";
 
             const wbData = PhoneAPI.getWorldbookData();
@@ -485,7 +482,6 @@ ${historyText}`;
                 formatRule += `\n【长期记忆档案】：以下是你脑海中深刻的长期记忆，请在对话中自然地保持连贯：\n${recentVault}\n`;
                 
                 if (hasNewUserMsg) {
-                    // 如果用户连发图片，取最后一条文本消息进行检索
                     let userText = "";
                     for (let i = chatItems.length - 2; i >= 0; i--) {
                         if (chatItems[i].sender === 'me' && !chatItems[i].content.includes('![图片]')) {
@@ -537,7 +533,6 @@ ${historyText}`;
                             ]
                         });
                     } else {
-                        // 🌟 核心物理隔离：彻底抠掉历史记录里的心声，不给 AI 抄作业的机会！
                         messages.push({
                             role: item.sender === 'me' ? 'user' : 'assistant',
                             content: text
@@ -647,8 +642,7 @@ ${historyText}`;
 
             let formatRule = "【线下沉浸模式】：当前是面对面的真实场景。请用写小说/语C的笔法进行演绎。\n";
             formatRule += `【字数与细节强制要求】：每次回复**必须不少于 ${minWords} 字**（不包含思维链的字数）！请尽情展开环境渲染、细腻的动作刻画和深度的心理描写，让场景充满画面感。绝对禁止像微信聊天那样只发短对话，必须像长篇小说的一段一样丰满！\n`;
-            // 🌟 核心：强化警告
-            formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。**【绝对警告】：严禁重复你之前的心声！必须根据当前的最新对话，产生全新的心理活动！**\n";
+            formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。**【警告】：绝对禁止重复之前的心声！必须产生全新的心理活动！**\n";
 
             if (banEmoji) formatRule += "【最高禁令】：绝对不允许使用任何 Emoji、颜文字、波浪号(~)，违者抹杀！\n";
 
@@ -691,7 +685,6 @@ ${historyText}`;
             const MAX_CONTEXT = 20;
             const recentItems = chatItems.slice(-MAX_CONTEXT);
             
-            // 🌟 核心物理隔离：抠掉线下历史记录里的心声！
             recentItems.forEach(item => {
                 if (item.sender !== 'typing') { 
                     messages.push({ role: item.sender === 'me' ? 'user' : 'assistant', content: item.content });
@@ -728,6 +721,75 @@ ${historyText}`;
             if (hasNewUserMsg) chatItems.pop(); 
             PhoneUI.renderNovelContent();
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+        }
+    },
+
+    async generateDiary(dateStr) {
+        const contentAreaEl = document.getElementById('diary-content-area');
+        if (!contentAreaEl) return;
+
+        contentAreaEl.innerHTML = `
+            <div class="notebook-empty">
+                <i class="ph-fill ph-spinner spin-anim" style="font-size: 48px; color: rgba(0,0,0,0.5); margin-bottom: 15px;"></i>
+                <p>正在偷看他的内心世界...</p>
+            </div>
+        `;
+
+        try {
+            const roleId = Config.currentContactId;
+            
+            const wechatItems = (Config.phoneData[roleId]?.wechat?.items || []).map(i => ({ ...i, source: '线上微信' }));
+            const novelItems = (Config.phoneData[roleId]?.novel?.items || []).map(i => ({ ...i, source: '线下故事' }));
+            
+            let combinedItems = [...wechatItems, ...novelItems];
+            combinedItems.sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+            
+            const recentItems = combinedItems.slice(-25);
+            let historyText = recentItems.map(item => `[${item.source}] ${item.time || ''} ${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
+            
+            if(!historyText) historyText = "(今天你们没怎么互动)";
+
+            const systemPrompt = localStorage.getItem('system_prompt') || '';
+            const charPersona = localStorage.getItem('char_persona') || '';
+            
+            let contextSetup = "";
+            if (systemPrompt) contextSetup += `【系统核心指令】：\n${systemPrompt}\n\n`;
+            if (charPersona) contextSetup += `【角色设定】：\n${charPersona}\n\n`;
+
+            const prompt = `你现在完全进入角色。以下是你的底层设定：
+${contextSetup}
+
+【重要时间设定】：今天是 ${dateStr}。
+
+请根据以下你和“我”在今天的【全局记忆库（包含线上微信和线下故事）】，用【第一人称（你的视角）】写一篇今天的深夜日记。
+要求：
+1. 字数在 150-300 字之间。
+2. 绝对符合你的人设（比如傲娇、毒舌、表面嫌弃实际在意等）。
+3. 必须是一篇真实的日记，不要提及“AI”、“用户”等词汇。
+4. 综合线上线下的事情来写，让日记显得连贯真实。
+5. 直接输出日记正文，不要输出标题、日期或多余的解释。
+
+今天的全局记忆库记录：
+${historyText}`;
+
+            const messages = [{ role: "user", content: prompt }];
+            const reply = await PhoneAPI.chatWithAI(messages, true); 
+
+            let finalDiary = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+            finalDiary = finalDiary.replace(/```.*?/g, '').replace(/```/g, '').trim();
+
+            PhoneAPI.saveDiary(dateStr, finalDiary);
+            PhoneUI.renderDiaryPage();
+            PhoneAPI.showToast('✨ 日记生成成功！');
+
+        } catch (error) {
+            contentAreaEl.innerHTML = `
+                <div class="notebook-empty">
+                    <i class="ph-fill ph-warning-circle" style="font-size: 48px; color: var(--danger-color); margin-bottom: 15px;"></i>
+                    <p style="color: var(--danger-color);">偷看失败：${error.message}</p>
+                    <button class="btn-refresh" onclick="window.PhoneUI.renderDiaryPage()" style="width: auto; padding: 10px 20px; margin-top: 15px;">返回重试</button>
+                </div>
+            `;
         }
     }
 };

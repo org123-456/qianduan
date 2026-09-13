@@ -21,8 +21,7 @@ export const PhoneAPI = {
         saveIfExist('bg-diary-cover', 'bg_diary_cover'); saveIfExist('bg-diary-page', 'bg_diary_page'); 
         saveIfExist('diary-title', 'diary_title'); saveIfExist('diary-quote', 'diary_quote'); saveIfExist('diary-start-date', 'diary_start_date'); 
         saveIfExist('ui-icon-novel', 'ui_icon_novel'); saveIfExist('ui-icon-worldbook', 'ui_icon_worldbook');
-        saveIfExist('ui-icon-settings', 'ui_icon_settings'); saveIfExist('ui-icon-gallery', 'ui_icon_gallery');
-        saveIfExist('ui-icon-shop', 'ui_icon_shop'); saveIfExist('ui-icon-task', 'ui_icon_task');
+        saveIfExist('ui-icon-settings', 'ui_icon_settings'); saveIfExist('ui-icon-shop', 'ui_icon_shop'); saveIfExist('ui-icon-task', 'ui_icon_task');
         
         this.applyUITheme(); 
         
@@ -32,8 +31,9 @@ export const PhoneAPI = {
         saveIfExist('img-api-url', 'img_api_url'); 
         saveIfExist('img-api-key', 'img_api_key'); 
         saveIfExist('img-api-model', 'img_api_model');
-        // 🌟 新增：画风锁脸提示词
         saveIfExist('img-base-prompt', 'img_base_prompt');
+        // 🌟 新增：保存垫图 URL
+        saveIfExist('img-ref-url', 'img_ref_url');
         saveIfExist('auto-photo', 'auto_photo', true);
 
         const charName = localStorage.getItem('char_name'); const myName = localStorage.getItem('my_name');
@@ -55,8 +55,7 @@ export const PhoneAPI = {
             const today = new Date(); const defaultDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
             setVal('diary-start-date', localStorage.getItem('diary_start_date') || defaultDate); 
             setVal('ui-icon-novel', localStorage.getItem('ui_icon_novel') || ''); setVal('ui-icon-worldbook', localStorage.getItem('ui_icon_worldbook') || '');
-            setVal('ui-icon-settings', localStorage.getItem('ui_icon_settings') || ''); setVal('ui-icon-gallery', localStorage.getItem('ui_icon_gallery') || '');
-            setVal('ui-icon-shop', localStorage.getItem('ui_icon_shop') || ''); setVal('ui-icon-task', localStorage.getItem('ui_icon_task') || '');
+            setVal('ui-icon-settings', localStorage.getItem('ui_icon_settings') || ''); setVal('ui-icon-shop', localStorage.getItem('ui_icon_shop') || ''); setVal('ui-icon-task', localStorage.getItem('ui_icon_task') || '');
             
             this.applyUITheme(); 
 
@@ -68,8 +67,9 @@ export const PhoneAPI = {
             setVal('img-api-key', localStorage.getItem('img_api_key') || ''); 
             setVal('img-api-model', localStorage.getItem('img_api_model') || 'dall-e-3');
             
-            // 🌟 新增：加载画风提示词和自动拍照开关
             setVal('img-base-prompt', localStorage.getItem('img_base_prompt') || '');
+            // 🌟 新增：加载垫图 URL
+            setVal('img-ref-url', localStorage.getItem('img_ref_url') || '');
             const autoPhotoEl = document.getElementById('auto-photo'); if(autoPhotoEl) autoPhotoEl.checked = localStorage.getItem('auto_photo') === 'true';
 
             const savedCharName = localStorage.getItem('char_name'); const savedMyName = localStorage.getItem('my_name');
@@ -86,7 +86,7 @@ export const PhoneAPI = {
         if (diaryCover) { document.documentElement.style.setProperty('--bg-image-diary-cover', `url('${diaryCover}')`); } else { document.documentElement.style.removeProperty('--bg-image-diary-cover'); }
         if (diaryPage) { document.documentElement.style.setProperty('--bg-image-diary-page', `url('${diaryPage}')`); } else { document.documentElement.style.removeProperty('--bg-image-diary-page'); }
 
-        const icons = [ { id: 'novel', default: '<i class="ph-fill ph-book-open" style="color: var(--text-sub);"></i>' }, { id: 'worldbook', default: '<i class="ph-fill ph-globe-hemisphere-west" style="color: var(--primary-color);"></i>' }, { id: 'settings', default: '<i class="ph-fill ph-gear" style="color: var(--primary-color);"></i>' }, { id: 'gallery', default: '<i class="ph-fill ph-images" style="color: #e5989b;"></i>' }, { id: 'shop', default: '<i class="ph-fill ph-storefront" style="color: #f4a261;"></i>' }, { id: 'task', default: '<i class="ph-fill ph-check-square-offset" style="color: #2a9d8f;"></i>' } ];
+        const icons = [ { id: 'novel', default: '<i class="ph-fill ph-book-open" style="color: var(--text-sub);"></i>' }, { id: 'worldbook', default: '<i class="ph-fill ph-globe-hemisphere-west" style="color: var(--primary-color);"></i>' }, { id: 'settings', default: '<i class="ph-fill ph-gear" style="color: var(--primary-color);"></i>' }, { id: 'shop', default: '<i class="ph-fill ph-storefront" style="color: #f4a261;"></i>' }, { id: 'task', default: '<i class="ph-fill ph-check-square-offset" style="color: #2a9d8f;"></i>' } ];
         icons.forEach(item => { const el = document.getElementById(`home-icon-${item.id}`); if (el) { const customUrl = localStorage.getItem(`ui_icon_${item.id}`); if (customUrl) { el.innerHTML = `<img src="${customUrl}" style="width:100%; height:100%; object-fit:cover; border-radius:18px;">`; el.style.background = 'transparent'; el.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)'; } else { el.innerHTML = item.default; el.style.background = 'var(--icon-bg)'; el.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.05)'; } } });
     },
 
@@ -94,7 +94,7 @@ export const PhoneAPI = {
     saveUIPreset() {
         const name = prompt('给这套主题装修起个名字吧 (如: 赛博朋克风):'); if (!name) return;
         const getVal = (id) => document.getElementById(id)?.value.trim() || '';
-        const preset = { id: 'ui_' + Date.now(), name: name, bg_global: getVal('bg-global'), bg_chat: getVal('bg-chat'), bg_diary_cover: getVal('bg-diary-cover'), bg_diary_page: getVal('bg-diary-page'), icon_novel: getVal('ui-icon-novel'), icon_worldbook: getVal('ui-icon-worldbook'), icon_settings: getVal('ui-icon-settings'), icon_gallery: getVal('ui-icon-gallery'), icon_shop: getVal('ui-icon-shop'), icon_task: getVal('ui-icon-task') };
+        const preset = { id: 'ui_' + Date.now(), name: name, bg_global: getVal('bg-global'), bg_chat: getVal('bg-chat'), bg_diary_cover: getVal('bg-diary-cover'), bg_diary_page: getVal('bg-diary-page'), icon_novel: getVal('ui-icon-novel'), icon_worldbook: getVal('ui-icon-worldbook'), icon_settings: getVal('ui-icon-settings'), icon_shop: getVal('ui-icon-shop'), icon_task: getVal('ui-icon-task') };
         let presets = this.getUIPresets(); presets = presets.filter(p => p.name !== name); presets.push(preset);
         localStorage.setItem('ui_presets', JSON.stringify(presets)); this.refreshUIDropdowns(); document.getElementById('ui-preset-select').value = preset.id; this.showToast('💾 UI 主题预设保存成功！');
     },
@@ -104,7 +104,7 @@ export const PhoneAPI = {
         if (preset) {
             const setVal = (domId, val) => { const el = document.getElementById(domId); if(el) el.value = val || ''; };
             setVal('bg-global', preset.bg_global); setVal('bg-chat', preset.bg_chat); setVal('bg-diary-cover', preset.bg_diary_cover); setVal('bg-diary-page', preset.bg_diary_page);
-            setVal('ui-icon-novel', preset.icon_novel); setVal('ui-icon-worldbook', preset.icon_worldbook); setVal('ui-icon-settings', preset.icon_settings); setVal('ui-icon-gallery', preset.icon_gallery); setVal('ui-icon-shop', preset.icon_shop); setVal('ui-icon-task', preset.icon_task);
+            setVal('ui-icon-novel', preset.icon_novel); setVal('ui-icon-worldbook', preset.icon_worldbook); setVal('ui-icon-settings', preset.icon_settings); setVal('ui-icon-shop', preset.icon_shop); setVal('ui-icon-task', preset.icon_task);
             this.autoSave(); this.showToast('✨ 主题切换成功！');
         }
     },

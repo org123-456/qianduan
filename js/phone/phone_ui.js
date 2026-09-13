@@ -15,6 +15,10 @@ export const PhoneUI = {
             setTimeout(() => { listEl.scrollTop = listEl.scrollHeight; }, 100);
         } else if (appId === 'gallery') {
             this.renderGallery();
+        } else if (appId === 'shop') {
+            this.renderShop();
+        } else if (appId === 'task') {
+            this.renderTask();
         }
     },
 
@@ -264,15 +268,6 @@ export const PhoneUI = {
                             <label style="font-size: 11px; color: var(--text-sub);">扉页寄语 (支持换行)</label>
                             <textarea id="diary-quote" rows="3" placeholder="时间会磨平一切痕迹，\n除了我为你写下的字。" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px; resize:vertical;"></textarea>
                         </div>
-
-                        <div class="engine-title"><i class="ph-fill ph-squares-four"></i> 主页 App 图标替换 (留空为默认)</div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 5px;">
-                            <div><label style="font-size: 11px; color: var(--text-sub);">线下故事</label><input type="text" id="ui-icon-novel" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
-                            <div><label style="font-size: 11px; color: var(--text-sub);">世界书</label><input type="text" id="ui-icon-worldbook" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
-                            <div><label style="font-size: 11px; color: var(--text-sub);">系统设置</label><input type="text" id="ui-icon-settings" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
-                            <div><label style="font-size: 11px; color: var(--text-sub);">商店</label><input type="text" id="ui-icon-shop" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
-                            <div><label style="font-size: 11px; color: var(--text-sub);">打工赚钱</label><input type="text" id="ui-icon-task" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
-                        </div>
                     </div>
                 </div>
 
@@ -381,37 +376,6 @@ export const PhoneUI = {
                 window.PhoneAPI.refreshImgDropdowns();
             }, 50);
 
-        } else if (appId === 'worldbook') {
-            const minWords = localStorage.getItem('novel_min_words') || '150';
-            const wbData = window.PhoneAPI.getWorldbookData();
-            
-            let wbHtml = '';
-            wbData.forEach(wb => {
-                const deleteBtn = wb.isCustom ? `<div class="wb-delete-btn" onclick="window.PhoneAPI.deleteWorldbook('${wb.id}')"><i class="ph ph-trash"></i></div>` : '';
-                wbHtml += `
-                    <div class="wb-card">
-                        <div class="wb-header"><span class="wb-title">${wb.title}</span>${deleteBtn}</div>
-                        <div class="wb-content">${wb.content}</div>
-                        <div class="wb-toggles">
-                            <div class="wb-toggle-item"><label class="switch"><input type="checkbox" ${wb.online ? 'checked' : ''} onchange="window.PhoneAPI.toggleWorldbook('${wb.id}', 'online', this.checked)"><span class="slider"></span></label>线上</div>
-                            <div class="wb-toggle-item"><label class="switch"><input type="checkbox" ${wb.offline ? 'checked' : ''} onchange="window.PhoneAPI.toggleWorldbook('${wb.id}', 'offline', this.checked)"><span class="slider"></span></label>线下</div>
-                        </div>
-                    </div>
-                `;
-            });
-
-            contentEl.innerHTML = `
-                <div class="card" style="margin-bottom: 20px;">
-                    <h3 style="font-size: 14px; color: var(--primary-color); margin-bottom: 10px;"><i class="ph-fill ph-text-aa"></i> 线下小说字数底线</h3>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <input type="number" id="novel-min-words" value="${minWords}" oninput="window.PhoneAPI.saveNovelWords()" style="width: 80px; padding: 8px; border: 1px solid var(--border-color); border-radius: 8px; text-align: center; background: var(--icon-bg); color: var(--text-main);">
-                        <span style="font-size: 12px; color: var(--text-sub);">字 (打字自动保存)</span>
-                    </div>
-                </div>
-                <h3 style="font-size: 14px; color: var(--primary-color); margin-bottom: 10px; margin-left: 5px;"><i class="ph-fill ph-puzzle-piece"></i> 规则插件挂载</h3>
-                ${wbHtml}
-                <button class="btn-refresh" onclick="window.PhoneUI.openWbModal()" style="margin-top: 10px; margin-bottom: 30px; background: transparent; color: var(--primary-color); border: 1px dashed var(--primary-color);"><i class="ph ph-plus"></i> 添加自定义规则</button>
-            `;
         } else {
             contentEl.innerHTML = `<div style="text-align:center; margin-top:100px; color:var(--text-sub);"><i class="ph-fill ph-hammer" style="font-size:64px; color: var(--primary-color); margin-bottom:15px;"></i><h3>界面排版中...</h3><p style="font-size: 12px; margin-top: 10px;">功能骨架已搭建，即将注入灵魂</p></div>`;
         }
@@ -444,13 +408,13 @@ export const PhoneUI = {
         } else {
             shopItems.forEach((item, idx) => {
                 gridHtml += `
-                    <div class="shop-item">
+                    <div class="shop-item" onclick="window.PhoneUI.openShopDetail(${idx})">
                         <div class="shop-item-icon">${item.icon}</div>
                         <div class="shop-item-name">${item.name}</div>
                         <div class="shop-item-desc">${item.desc}</div>
                         <div class="shop-item-bottom">
                             <div class="shop-item-price"><i class="ph-fill ph-coin"></i> ${item.price}</div>
-                            <button class="shop-item-add" onclick="window.PhoneEngine.addToCart(${idx})"><i class="ph ph-plus"></i></button>
+                            <button class="shop-item-add" onclick="event.stopPropagation(); window.PhoneEngine.addToCart(${idx})"><i class="ph ph-plus"></i></button>
                         </div>
                     </div>
                 `;
@@ -505,7 +469,47 @@ export const PhoneUI = {
                     </div>
                 </div>
             </div>
+
+            <!-- 🌟 核心：商品详情弹窗 -->
+            <div id="shop-detail-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeShopDetail()"></div>
+            <div id="shop-detail-modal" class="thought-modal" style="padding: 0; overflow: hidden; max-height: 90vh;">
+                <div style="background: var(--bg-gradient-start); padding: 40px 20px; text-align: center; position: relative;">
+                    <div style="font-size: 80px; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.1));" id="detail-icon">🎁</div>
+                    <i class="ph-fill ph-x-circle" style="position: absolute; top: 15px; right: 15px; font-size: 28px; color: rgba(0,0,0,0.2); cursor: pointer;" onclick="window.PhoneUI.closeShopDetail()"></i>
+                </div>
+                <div style="padding: 25px 20px;">
+                    <h2 style="color: var(--text-main); margin-bottom: 10px;" id="detail-name">商品名称</h2>
+                    <div style="color: #e76f51; font-size: 24px; font-weight: bold; margin-bottom: 15px;"><i class="ph-fill ph-coin"></i> <span id="detail-price">0</span></div>
+                    <p style="color: var(--text-sub); font-size: 14px; line-height: 1.6; margin-bottom: 25px;" id="detail-desc">商品描述详情</p>
+                    <button class="btn-refresh" id="detail-add-btn" style="margin-top: 0; border-radius: 16px; padding: 15px;"><i class="ph ph-shopping-cart"></i> 加入购物车</button>
+                </div>
+            </div>
         `;
+    },
+
+    openShopDetail(index) {
+        const shopItems = JSON.parse(localStorage.getItem('shop_current_items') || '[]');
+        const item = shopItems[index];
+        if (!item) return;
+
+        document.getElementById('detail-icon').innerHTML = item.icon;
+        document.getElementById('detail-name').innerText = item.name;
+        document.getElementById('detail-price').innerText = item.price;
+        document.getElementById('detail-desc').innerText = item.desc;
+        
+        const addBtn = document.getElementById('detail-add-btn');
+        addBtn.onclick = () => {
+            window.PhoneEngine.addToCart(index);
+            this.closeShopDetail();
+        };
+
+        document.getElementById('shop-detail-bg').classList.add('show');
+        document.getElementById('shop-detail-modal').classList.add('show');
+    },
+
+    closeShopDetail() {
+        document.getElementById('shop-detail-bg').classList.remove('show');
+        document.getElementById('shop-detail-modal').classList.remove('show');
     },
 
     openCartModal() {
@@ -557,40 +561,45 @@ export const PhoneUI = {
         
         let coins = localStorage.getItem('my_coins') || '500';
         
+        // 读取当前任务列表，如果没有则显示默认的
+        let currentTasks = JSON.parse(localStorage.getItem('task_current_items') || '[]');
+        if (currentTasks.length === 0) {
+            currentTasks = [
+                { name: '帮大侦探整理案卷', reward: 50, icon: '<i class="ph-fill ph-keyboard" style="color: #60a5fa;"></i>', isStory: false },
+                { name: '去楼下便利店跑腿买咖啡', reward: 30, icon: '<i class="ph-fill ph-coffee" style="color: #f4a261;"></i>', isStory: false },
+                { name: '给事务所的流浪猫洗澡', reward: 100, icon: '<i class="ph-fill ph-cat" style="color: #e5989b;"></i>', isStory: true }
+            ];
+            localStorage.setItem('task_current_items', JSON.stringify(currentTasks));
+        }
+        
+        let taskHtml = '';
+        currentTasks.forEach((task, idx) => {
+            const btnClass = task.isStory ? 'task-btn story' : 'task-btn';
+            const btnText = task.isStory ? '去线下打工' : '去打工';
+            taskHtml += `
+                <div class="task-item">
+                    <div class="task-icon">${task.icon}</div>
+                    <div class="task-info">
+                        <div class="task-name">${task.name}</div>
+                        <div class="task-reward"><i class="ph-fill ph-coin"></i> +${task.reward} 金币</div>
+                    </div>
+                    <button class="${btnClass}" onclick="window.PhoneEngine.doTask(${idx})">${btnText}</button>
+                </div>
+            `;
+        });
+        
         contentEl.innerHTML = `
             <div class="gold-card">
                 <div class="gold-title">我的小金库余额</div>
                 <div class="gold-amount"><i class="ph-fill ph-coin" style="font-size: 28px;"></i> <span id="wallet-coin-display">${coins}</span></div>
             </div>
             
-            <h3 style="font-size: 14px; color: var(--primary-color); margin-bottom: 10px; margin-left: 5px;"><i class="ph-fill ph-briefcase"></i> 悬赏打工板</h3>
-            <div class="task-list">
-                <div class="task-item">
-                    <div class="task-icon"><i class="ph-fill ph-keyboard" style="color: #60a5fa;"></i></div>
-                    <div class="task-info">
-                        <div class="task-name">帮大侦探整理案卷</div>
-                        <div class="task-reward"><i class="ph-fill ph-coin"></i> +50 金币</div>
-                    </div>
-                    <button class="task-btn" onclick="window.PhoneEngine.doTask(50, '整理案卷')">去打工</button>
-                </div>
-                
-                <div class="task-item">
-                    <div class="task-icon"><i class="ph-fill ph-coffee" style="color: #f4a261;"></i></div>
-                    <div class="task-info">
-                        <div class="task-name">去楼下便利店跑腿买咖啡</div>
-                        <div class="task-reward"><i class="ph-fill ph-coin"></i> +30 金币</div>
-                    </div>
-                    <button class="task-btn" onclick="window.PhoneEngine.doTask(30, '跑腿买咖啡')">去打工</button>
-                </div>
-
-                <div class="task-item">
-                    <div class="task-icon"><i class="ph-fill ph-cat" style="color: #e5989b;"></i></div>
-                    <div class="task-info">
-                        <div class="task-name">给事务所的流浪猫洗澡</div>
-                        <div class="task-reward"><i class="ph-fill ph-coin"></i> +100 金币 (高薪)</div>
-                    </div>
-                    <button class="task-btn" onclick="window.PhoneEngine.doTask(100, '给猫洗澡')">去打工</button>
-                </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px; margin-left: 5px;">
+                <h3 style="font-size: 14px; color: var(--primary-color); margin: 0;"><i class="ph-fill ph-briefcase"></i> 悬赏打工板</h3>
+                <div onclick="window.PhoneEngine.refreshTasks()" style="color: var(--primary-color); cursor: pointer; padding: 5px;"><i class="ph ph-arrows-clockwise"></i> 刷新委托</div>
+            </div>
+            <div class="task-list" id="task-list-container">
+                ${taskHtml}
             </div>
         `;
     },
@@ -811,7 +820,7 @@ export const PhoneUI = {
             }
         }
         
-        document.getElementById('thought-content').innerText = thought || "（那时候TA的心思藏得很深，什么也没看出来...）";
+        document.getElementById('thought-content').innerText = thought || "（TA的心思藏得很深，什么也没看出来...）";
         document.getElementById('thought-bg').classList.add('show');
         document.getElementById('thought-modal').classList.add('show');
     },

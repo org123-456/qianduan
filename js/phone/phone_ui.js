@@ -197,54 +197,13 @@ export const PhoneUI = {
             html += '</div>';
             contentEl.innerHTML = html;
 
+        // 🌟 核心：赛博淘宝商店渲染！
         } else if (appId === 'shop') {
-            let coins = localStorage.getItem('my_coins') || '500';
-            contentEl.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; padding: 0 5px;">
-                    <div style="font-size: 18px; font-weight: bold; color: var(--primary-color);">深夜杂货铺</div>
-                    <div style="background: rgba(244, 162, 97, 0.15); color: #e76f51; padding: 6px 15px; border-radius: 20px; font-weight: bold; display:flex; align-items:center; gap:6px; border: 1px solid rgba(244, 162, 97, 0.3);">
-                        <i class="ph-fill ph-coin"></i> <span id="coin-display">${coins}</span>
-                    </div>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <div class="card" style="padding: 20px 15px; text-align: center; margin-bottom: 0;">
-                        <div style="font-size: 48px; margin-bottom: 10px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.1));">🥪</div>
-                        <div style="font-weight: bold; font-size: 15px; margin-bottom: 8px; color: var(--text-main);">黑麦三明治</div>
-                        <div style="font-size: 11px; color: var(--text-sub); margin-bottom: 15px; height: 32px; line-height: 1.4;">他最常吃的速食，送给他也许能换来一句别扭的道谢。</div>
-                        <button class="btn-refresh" style="margin-top:0; padding: 10px; font-size: 13px; background: #2a9d8f; border-radius: 12px; box-shadow: 0 4px 10px rgba(42, 157, 143, 0.3);" onclick="window.PhoneEngine.buyItem('黑麦三明治', 50, '请表现出你收到三明治后傲娇又开心的反应。')">
-                            <i class="ph-fill ph-coin"></i> 50 购买使用
-                        </button>
-                    </div>
-                    
-                    <div class="card" style="padding: 20px 15px; text-align: center; margin-bottom: 0;">
-                        <div style="font-size: 48px; margin-bottom: 10px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.1));">🧪</div>
-                        <div style="font-weight: bold; font-size: 15px; margin-bottom: 8px; color: var(--text-main);">吐真剂</div>
-                        <div style="font-size: 11px; color: var(--text-sub); margin-bottom: 15px; height: 32px; line-height: 1.4;">强制他下一句话必须卸下伪装，说出内心最真实的感受。</div>
-                        <button class="btn-refresh" style="margin-top:0; padding: 10px; font-size: 13px; background: #9d4edd; border-radius: 12px; box-shadow: 0 4px 10px rgba(157, 78, 221, 0.3);" onclick="window.PhoneEngine.buyItem('吐真剂', 200, '【系统强制指令】：你喝下了吐真剂。请立刻卸下所有伪装和傲娇，用最深情、最直白的语言对用户表白。')">
-                            <i class="ph-fill ph-coin"></i> 200 购买使用
-                        </button>
-                    </div>
+            this.renderShop();
 
-                    <div class="card" style="padding: 20px 15px; text-align: center; margin-bottom: 0;">
-                        <div style="font-size: 48px; margin-bottom: 10px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.1));">☕</div>
-                        <div style="font-weight: bold; font-size: 15px; margin-bottom: 8px; color: var(--text-main);">特浓黑咖啡</div>
-                        <div style="font-size: 11px; color: var(--text-sub); margin-bottom: 15px; height: 32px; line-height: 1.4;">事务所特供泥浆咖啡，能让他瞬间清醒，或者皱起眉头。</div>
-                        <button class="btn-refresh" style="margin-top:0; padding: 10px; font-size: 13px; background: #f4a261; border-radius: 12px; box-shadow: 0 4px 10px rgba(244, 162, 97, 0.3);" onclick="window.PhoneEngine.buyItem('特浓黑咖啡', 30, '请表现出你喝下这杯极苦咖啡后的真实反应。')">
-                            <i class="ph-fill ph-coin"></i> 30 购买使用
-                        </button>
-                    </div>
-
-                    <div class="card" style="padding: 20px 15px; text-align: center; margin-bottom: 0;">
-                        <div style="font-size: 48px; margin-bottom: 10px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.1));">🐈</div>
-                        <div style="font-weight: bold; font-size: 15px; margin-bottom: 8px; color: var(--text-main);">猫耳发箍</div>
-                        <div style="font-size: 11px; color: var(--text-sub); margin-bottom: 15px; height: 32px; line-height: 1.4;">强行戴在他头上，欣赏大侦探极度羞耻的表情。</div>
-                        <button class="btn-refresh" style="margin-top:0; padding: 10px; font-size: 13px; background: #e5989b; border-radius: 12px; box-shadow: 0 4px 10px rgba(229, 152, 155, 0.3);" onclick="window.PhoneEngine.buyItem('猫耳发箍', 150, '【系统强制指令】：用户强行把猫耳发箍戴在了你头上。请表现出极度羞耻、想要摘下但又怕惹用户生气的别扭反应。')">
-                            <i class="ph-fill ph-coin"></i> 150 购买使用
-                        </button>
-                    </div>
-                </div>
-            `;
+        // 🌟 核心：打工钱包渲染！
+        } else if (appId === 'task') {
+            this.renderTask();
 
         } else if (appId === 'settings') {
             const today = new Date();
@@ -360,7 +319,7 @@ export const PhoneUI = {
                         <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph-fill ph-cpu"></i> 主副引擎分配</h3>
                         <div class="engine-title"><i class="ph-fill ph-chat-circle-dots"></i> 主引擎 (聊天/小说专用)</div>
                         <select id="main-engine-select" onchange="window.PhoneAPI.assignEngine('main', this.value)" style="width: 100%; padding: 8px; border-radius: 8px; margin-bottom: 15px;"></select>
-                        <div class="engine-title"><i class="ph-fill ph-lightning"></i> 副引擎 (转盘/工具专用)</div>
+                        <div class="engine-title"><i class="ph-fill ph-lightning"></i> 副引擎 (转盘/商店专用)</div>
                         <select id="sub-engine-select" onchange="window.PhoneAPI.assignEngine('sub', this.value)" style="width: 100%; padding: 8px; border-radius: 8px;">
                             <option value="">-- 同主引擎 (自动降级) --</option>
                         </select>
@@ -381,9 +340,17 @@ export const PhoneUI = {
                             <button class="preset-btn" onclick="window.PhoneAPI.saveImgPreset()">存为预设</button>
                             <button class="preset-btn del" onclick="window.PhoneAPI.deleteImgPreset()">删除</button>
                         </div>
-                        <div style="font-size: 11px; color: var(--text-sub); margin-bottom: 10px;">如果使用 Midjourney/NAI，可以填入公开的图片 URL 作为垫图锁脸。<br><span style="color:var(--danger-color)">注意：使用 DALL-E 3 请将垫图和反向提示词留空！</span></div>
-                        <div style="margin-bottom: 10px;"><input type="text" id="img-ref-url" placeholder="参考图(垫图) URL (例如: https://.../img.jpg)" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
-                        <div style="margin-bottom: 10px;"><textarea id="img-base-prompt" rows="3" placeholder="正向提示词 (例如: 1boy, handsome, black hair)" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; resize:vertical;"></textarea></div>
+                        <div style="font-size: 11px; color: var(--text-sub); margin-bottom: 10px;">如果使用 Midjourney/NAI，可以上传一张照片作为垫图锁脸。<br><span style="color:var(--danger-color)">注意：使用 DALL-E 3 请勿上传垫图和反向词！</span></div>
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center;">
+                            <div id="face-lock-preview" style="width: 60px; height: 60px; border-radius: 12px; background: var(--icon-bg); border: 1px dashed var(--border-color); display: flex; justify-content: center; align-items: center; overflow: hidden;">
+                                <i class="ph ph-plus" style="font-size: 24px; color: var(--text-sub);"></i>
+                            </div>
+                            <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
+                                <button class="btn-refresh" onclick="window.PhoneEngine.uploadFaceLock()" style="margin: 0; padding: 8px; font-size: 12px; border-radius: 8px;">上传锁脸图</button>
+                                <button class="btn-refresh" onclick="window.PhoneEngine.clearFaceLock()" style="margin: 0; padding: 8px; font-size: 12px; border-radius: 8px; background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color);">清除</button>
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 10px;"><textarea id="img-base-prompt" rows="4" placeholder="正向提示词 (例如: 1boy, handsome, black hair)" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; resize:vertical;"></textarea></div>
                         <div style="margin-bottom: 5px;"><textarea id="img-negative-prompt" rows="3" placeholder="反向提示词 (例如: lowres, bad anatomy, bad hands, error, missing fingers)" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; resize:vertical;"></textarea></div>
                     </div>
                 </div>
@@ -450,7 +417,184 @@ export const PhoneUI = {
         }
     },
 
-    // 🌟 核心：渲染相册，加入保存按钮！
+    // 🌟 核心：渲染赛博淘宝商店！
+    renderShop() {
+        const contentEl = document.getElementById('app-window-content');
+        if (!contentEl) return;
+        
+        let coins = localStorage.getItem('my_coins') || '500';
+        const currentTag = window.Config.currentShopTag || '日常用品';
+        
+        // 获取自定义标签
+        let customTags = JSON.parse(localStorage.getItem('shop_custom_tags') || '[]');
+        const defaultTags = ['日常用品', '奇葩服装', '赛博外卖', '真心话道具'];
+        const allTags = [...defaultTags, ...customTags];
+
+        let tagsHtml = '';
+        allTags.forEach(tag => {
+            const activeClass = tag === currentTag ? 'active' : '';
+            tagsHtml += `<div class="shop-tag ${activeClass}" onclick="window.PhoneEngine.switchShopTag('${tag}')">${tag}</div>`;
+        });
+
+        // 渲染商品列表
+        const shopItems = JSON.parse(localStorage.getItem('shop_current_items') || '[]');
+        let gridHtml = '';
+        if (shopItems.length === 0) {
+            gridHtml = `<div style="grid-column: span 2; text-align:center; padding: 40px 0; color: var(--text-sub);">货架空空如也，点击右上角进货吧！</div>`;
+        } else {
+            shopItems.forEach((item, idx) => {
+                gridHtml += `
+                    <div class="shop-item">
+                        <div class="shop-item-icon">${item.icon}</div>
+                        <div class="shop-item-name">${item.name}</div>
+                        <div class="shop-item-desc">${item.desc}</div>
+                        <div class="shop-item-bottom">
+                            <div class="shop-item-price"><i class="ph-fill ph-coin"></i> ${item.price}</div>
+                            <button class="shop-item-add" onclick="window.PhoneEngine.addToCart(${idx})"><i class="ph ph-plus"></i></button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // 购物车角标
+        const cart = JSON.parse(localStorage.getItem('shopping_cart') || '[]');
+        const badgeHtml = cart.length > 0 ? `<div class="cart-badge" id="cart-badge">${cart.length}</div>` : `<div class="cart-badge" id="cart-badge" style="display:none;">0</div>`;
+
+        contentEl.innerHTML = `
+            <div class="shop-header">
+                <div class="shop-title">深夜杂货铺</div>
+                <div class="shop-actions">
+                    <div style="background: rgba(244, 162, 97, 0.15); color: #e76f51; padding: 6px 12px; border-radius: 20px; font-weight: bold; display:flex; align-items:center; gap:4px; font-size: 14px;">
+                        <i class="ph-fill ph-coin"></i> <span id="coin-display">${coins}</span>
+                    </div>
+                    <div class="shop-cart-btn" onclick="window.PhoneUI.openCartModal()">
+                        <i class="ph ph-shopping-cart"></i>
+                        ${badgeHtml}
+                    </div>
+                    <div class="shop-cart-btn" onclick="window.PhoneEngine.refreshShop()" style="color: var(--primary-color);">
+                        <i class="ph ph-arrows-clockwise"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="shop-tags-container">
+                <div class="shop-tags">
+                    ${tagsHtml}
+                </div>
+                <div class="shop-tag-add" onclick="window.PhoneEngine.addCustomShopTag()"><i class="ph ph-plus"></i></div>
+            </div>
+
+            <div class="shop-grid" id="shop-grid">
+                ${gridHtml}
+            </div>
+
+            <!-- 购物车模态框 -->
+            <div id="cart-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeCartModal()"></div>
+            <div id="cart-modal" class="cart-modal">
+                <div class="cart-header">
+                    <span>购物车</span>
+                    <i class="ph ph-x" style="cursor:pointer; color:var(--text-sub);" onclick="window.PhoneUI.closeCartModal()"></i>
+                </div>
+                <div class="cart-list" id="cart-list"></div>
+                <div class="cart-footer">
+                    <div class="cart-total"><span>合计：</span><span style="color:#e76f51;"><i class="ph-fill ph-coin"></i> <span id="cart-total-price">0</span></span></div>
+                    <div class="cart-btn-group">
+                        <button class="cart-btn share" onclick="window.PhoneEngine.checkoutCart(true)"><i class="ph-fill ph-share-network"></i> 发给老公代付</button>
+                        <button class="cart-btn pay" onclick="window.PhoneEngine.checkoutCart(false)"><i class="ph-fill ph-wallet"></i> 余额买单</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    openCartModal() {
+        this.renderCartList();
+        document.getElementById('cart-modal-bg').classList.add('show');
+        document.getElementById('cart-modal').classList.add('show');
+    },
+
+    closeCartModal() {
+        document.getElementById('cart-modal-bg').classList.remove('show');
+        document.getElementById('cart-modal').classList.remove('show');
+    },
+
+    renderCartList() {
+        const cart = JSON.parse(localStorage.getItem('shopping_cart') || '[]');
+        const listEl = document.getElementById('cart-list');
+        const totalEl = document.getElementById('cart-total-price');
+        if (!listEl || !totalEl) return;
+
+        if (cart.length === 0) {
+            listEl.innerHTML = `<div style="text-align:center; color:var(--text-sub); padding: 20px 0;">购物车是空的哦~</div>`;
+            totalEl.innerText = '0';
+            return;
+        }
+
+        let html = '';
+        let total = 0;
+        cart.forEach((item, idx) => {
+            total += parseInt(item.price);
+            html += `
+                <div class="cart-item">
+                    <div class="cart-item-icon">${item.icon}</div>
+                    <div class="cart-item-info">
+                        <div class="cart-item-name">${item.name}</div>
+                        <div class="cart-item-price"><i class="ph-fill ph-coin"></i> ${item.price}</div>
+                    </div>
+                    <div class="cart-item-del" onclick="window.PhoneEngine.removeFromCart(${idx})"><i class="ph ph-minus-circle"></i></div>
+                </div>
+            `;
+        });
+        listEl.innerHTML = html;
+        totalEl.innerText = total;
+    },
+
+    // 🌟 核心：打工钱包渲染！
+    renderTask() {
+        const contentEl = document.getElementById('app-window-content');
+        if (!contentEl) return;
+        
+        let coins = localStorage.getItem('my_coins') || '500';
+        
+        contentEl.innerHTML = `
+            <div class="gold-card">
+                <div class="gold-title">我的小金库余额</div>
+                <div class="gold-amount"><i class="ph-fill ph-coin" style="font-size: 28px;"></i> <span id="wallet-coin-display">${coins}</span></div>
+            </div>
+            
+            <h3 style="font-size: 14px; color: var(--primary-color); margin-bottom: 10px; margin-left: 5px;"><i class="ph-fill ph-briefcase"></i> 悬赏打工板</h3>
+            <div class="task-list">
+                <div class="task-item">
+                    <div class="task-icon"><i class="ph-fill ph-keyboard" style="color: #60a5fa;"></i></div>
+                    <div class="task-info">
+                        <div class="task-name">帮大侦探整理案卷</div>
+                        <div class="task-reward"><i class="ph-fill ph-coin"></i> +50 金币</div>
+                    </div>
+                    <button class="task-btn" onclick="window.PhoneEngine.doTask(50, '整理案卷')">去打工</button>
+                </div>
+                
+                <div class="task-item">
+                    <div class="task-icon"><i class="ph-fill ph-coffee" style="color: #f4a261;"></i></div>
+                    <div class="task-info">
+                        <div class="task-name">去楼下便利店跑腿买咖啡</div>
+                        <div class="task-reward"><i class="ph-fill ph-coin"></i> +30 金币</div>
+                    </div>
+                    <button class="task-btn" onclick="window.PhoneEngine.doTask(30, '跑腿买咖啡')">去打工</button>
+                </div>
+
+                <div class="task-item">
+                    <div class="task-icon"><i class="ph-fill ph-cat" style="color: #e5989b;"></i></div>
+                    <div class="task-info">
+                        <div class="task-name">给事务所的流浪猫洗澡</div>
+                        <div class="task-reward"><i class="ph-fill ph-coin"></i> +100 金币 (高薪)</div>
+                    </div>
+                    <button class="task-btn" onclick="window.PhoneEngine.doTask(100, '给猫洗澡')">去打工</button>
+                </div>
+            </div>
+        `;
+    },
+
     renderGallery() {
         const contentEl = document.getElementById('app-window-content');
         if (!contentEl) return;
@@ -499,7 +643,6 @@ export const PhoneUI = {
         if (viewer) viewer.classList.remove('show');
     },
 
-    // 🌟 核心：下载当前图片到手机
     downloadCurrentImage() {
         const img = document.getElementById('viewer-img');
         if (!img || !img.src) return;

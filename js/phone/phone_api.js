@@ -221,16 +221,18 @@ export const PhoneAPI = {
         }
     },
 
-    // 🌟 核心修复：自动补全 URL，并在控制舱显示详细报错！
+    // 🌟 核心升级：强行下载 URL 转存，并且自动把人设注入进绘画提示词！
     async generateImageAPI(prompt) {
         let url = localStorage.getItem('img_api_url');
         const key = localStorage.getItem('img_api_key');
         const model = localStorage.getItem('img_api_model');
         const negPrompt = localStorage.getItem('img_negative_prompt') || '';
+        const refUrl = localStorage.getItem('img_ref_url') || '';
+        const persona = localStorage.getItem('char_persona') || '';
         
         if (!url || !key) throw new Error("请先在【系统设置】中配置绘画引擎 API！");
 
-        // 自动补全 URL，防止 404！
+        // 自动补全 URL，防止 404
         if (!url.endsWith('/images/generations')) {
             url = url.replace(/\/$/, '') + '/images/generations';
         }
@@ -241,9 +243,13 @@ export const PhoneAPI = {
         if (statusText) { statusText.innerText = '正在绘制中...'; statusText.style.color = 'var(--primary-color)'; }
 
         try {
-            const payload = { model: model, prompt: prompt, n: 1, size: "1024x1024", response_format: "b64_json" };
-            // 只有当用户填了反向词时才传这个参数（防止 DALL-E 3 报错）
-            if (negPrompt) payload.negative_prompt = negPrompt; 
+            // 🌟 魔法欺骗方案：把一切都拼进文字提示词里！
+            let finalPrompt = prompt;
+            if (persona) finalPrompt += `\n\n【角色外貌与设定参考】：${persona}`;
+            if (negPrompt) finalPrompt += `\n\n【绝对禁止出现的元素(Negative Prompt)】：${negPrompt}`;
+            if (refUrl) finalPrompt = `${refUrl} ${finalPrompt}`;
+
+            const payload = { model: model, prompt: finalPrompt, n: 1, size: "1024x1024", response_format: "b64_json" };
 
             const response = await fetch(url, {
                 method: 'POST',
@@ -253,7 +259,6 @@ export const PhoneAPI = {
             
             if (!response.ok) { 
                 const errData = await response.json().catch(() => ({})); 
-                // 抛出详细错误
                 throw new Error(`[${response.status}] ${errData.error?.message || '未知服务器错误'}`); 
             }
             const data = await response.json();
@@ -261,18 +266,36 @@ export const PhoneAPI = {
             if (fab) fab.classList.remove('loading');
             if (statusText) { statusText.innerText = '绘制成功'; statusText.style.color = '#4ade80'; }
 
-            if (data.data && data.data[0] && data.data[0].b64_json) {
-                return data.data[0].b64_json;
-            } else if (data.data && data.data[0] && data.data[0].url) {
-                throw new Error("API返回了URL格式，请使用支持 b64_json 格式的模型！");
-            } else {
-                throw new Error("API未返回有效的图片数据。");
+            if (data.data && data.data[0]) {
+                if (data.data[0].b64_json) {
+                    return data.data[0].b64_json;
+                } else if (data.data[0].url) {
+                    // 🌟 终极兜底：如果中转站耍流氓非要返回 URL，我们在前端强行下载它！
+                    console.log("API返回了URL，尝试前端下载...");
+                    try {
+                        PhoneAPI.showToast("API返回了URL，正在尝试后台下载并转换...");
+                        const imgRes = await fetch(data.data[0].url);
+                        const blob = await imgRes.blob();
+                        return new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                                // 只需要 base64 的数据部分
+                                const base64data = reader.result.split(',')[1];
+                                resolve(base64data);
+                            };
+                            reader.onerror = reject;
+                            reader.readAsDataURL(blob);
+                        });
+                    } catch (fetchErr) {
+                        throw new Error("中转站强行返回了URL，且由于浏览器跨域安全限制(CORS)，无法自动下载图片。请更换一个标准支持 b64_json 的中转站！");
+                    }
+                }
             }
+            throw new Error("API未返回有效的图片数据。");
         } catch (error) {
             console.error(error);
             if (fab) { fab.classList.remove('loading'); fab.classList.add('error'); }
             if (statusText) { 
-                // 把详细报错写进控制舱
                 statusText.innerText = '绘制失败: ' + error.message; 
                 statusText.style.color = 'var(--danger-color)'; 
                 statusText.style.fontSize = '11px';

@@ -111,17 +111,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .chat-plus-menu.show { transform: translateY(0) scale(1); opacity: 1; pointer-events: auto; }
 .chat-plus-menu .app-icon .icon { width: 50px; height: 50px; font-size: 24px; border-radius: 14px; }
 
-/* 🌟 核心修复：限制报错框大小，防止撑爆屏幕 */
-#toast { 
-    position: absolute; top: -150px; left: 50%; transform: translateX(-50%); 
-    background: rgba(0, 0, 0, 0.85); color: white; padding: 12px 20px; 
-    border-radius: 20px; font-size: 13px; font-weight: bold; 
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
-    transition: top 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55); 
-    z-index: 9999; display: flex; align-items: center; gap: 8px;
-    width: 90%; max-width: 350px; max-height: 80px; overflow: hidden;
-    word-break: break-all; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
-}
+#toast { position: absolute; top: -150px; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.85); color: white; padding: 12px 20px; border-radius: 20px; font-size: 13px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: top 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55); z-index: 9999; display: flex; align-items: center; gap: 8px; width: 90%; max-width: 350px; max-height: 80px; overflow: hidden; word-break: break-all; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;}
 #toast.show { top: 50px; }
 
 .typing-indicator { display: flex; align-items: center; gap: 4px; padding: 6px 4px; }
@@ -309,3 +299,15 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 
 .api-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -40%) scale(0.9); width: 85%; background: var(--input-bg); backdrop-filter: blur(20px); border-radius: 24px; padding: 25px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 1001; opacity: 0; visibility: hidden; transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1); }
 .api-modal.show { transform: translate(-50%, -50%) scale(1); opacity: 1; visibility: visible; }
+
+/* 🌟 核心：相册网格样式与看图模式 */
+.gallery-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
+.gallery-item { position: relative; padding-top: 100%; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); cursor: pointer; background: var(--icon-bg); }
+.gallery-item img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
+.gallery-item:active img { transform: scale(1.05); }
+.gallery-del-btn { position: absolute; top: 5px; right: 5px; width: 24px; height: 24px; background: rgba(0,0,0,0.5); color: #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; backdrop-filter: blur(5px); z-index: 2; }
+.image-viewer { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: 0.3s; }
+.image-viewer.show { opacity: 1; visibility: visible; }
+.image-viewer img { max-width: 95%; max-height: 90%; border-radius: 12px; box-shadow: 0 0 30px rgba(0,0,0,0.5); transform: scale(0.9); transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1); }
+.image-viewer.show img { transform: scale(1); }
+.viewer-close { position: absolute; top: 40px; right: 20px; color: #fff; font-size: 32px; cursor: pointer; background: rgba(255,255,255,0.2); width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; }

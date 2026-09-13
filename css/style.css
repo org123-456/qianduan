@@ -297,6 +297,17 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 .page-btn { pointer-events: auto; background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.1); width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; color: #333; cursor: pointer; transition: 0.2s; backdrop-filter: blur(5px); }
 .page-btn:active { transform: scale(0.9); background: rgba(0,0,0,0.1); }
 
+/* 🌟 核心修复：补回被删掉的控制舱样式！ */
+.api-fab { position: fixed; right: 15px; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); border: 1px solid var(--border-color); display: flex; justify-content: center; align-items: center; font-size: 22px; color: var(--primary-color); cursor: pointer; z-index: 100; transition: 0.3s; }
+.api-fab:active { transform: translateY(-50%) scale(0.9); }
+.api-fab.loading { background: var(--primary-color); color: #fff; box-shadow: 0 0 20px var(--primary-color); animation: pulse-fab 1.5s infinite; }
+.api-fab.loading i { animation: spin-fast 1s linear infinite; }
+.api-fab.error { background: var(--danger-color); color: #fff; box-shadow: 0 0 20px var(--danger-color); }
+@keyframes pulse-fab { 0% { transform: translateY(-50%) scale(1); } 50% { transform: translateY(-50%) scale(1.1); } 100% { transform: translateY(-50%) scale(1); } }
+
+.api-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -40%) scale(0.9); width: 85%; background: var(--input-bg); backdrop-filter: blur(20px); border-radius: 24px; padding: 25px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 1001; opacity: 0; visibility: hidden; transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1); }
+.api-modal.show { transform: translate(-50%, -50%) scale(1); opacity: 1; visibility: visible; }
+
 .gallery-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
 .gallery-item { position: relative; padding-top: 100%; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); cursor: pointer; background: var(--icon-bg); }
 .gallery-item img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
@@ -310,7 +321,6 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 .viewer-download { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 16px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
 .viewer-download:active { background: rgba(255,255,255,0.4); }
 
-/* 🌟 核心：赛博淘宝与打工系统样式 */
 .shop-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 0 5px; }
 .shop-title { font-size: 18px; font-weight: bold; color: var(--primary-color); }
 .shop-actions { display: flex; gap: 10px; }

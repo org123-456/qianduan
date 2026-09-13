@@ -50,6 +50,66 @@ export const PhoneEngine = {
         document.getElementById('action-sheet').classList.remove('show');
     },
 
+    // 🌟 核心：上传锁脸图！
+    uploadFaceLock() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*'; 
+        
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            PhoneAPI.showToast("🔒 正在提取面部特征...");
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    // 锁脸图不需要太大，512px 足够了，防止撑爆提示词
+                    const MAX_SIZE = 512; 
+
+                    if (width > height && width > MAX_SIZE) {
+                        height *= MAX_SIZE / width;
+                        width = MAX_SIZE;
+                    } else if (height > MAX_SIZE) {
+                        width *= MAX_SIZE / height;
+                        height = MAX_SIZE;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const base64Url = canvas.toDataURL('image/jpeg', 0.6);
+                    localStorage.setItem('img_ref_base64', base64Url);
+                    
+                    const previewEl = document.getElementById('face-lock-preview');
+                    if (previewEl) {
+                        previewEl.innerHTML = `<img src="${base64Url}" style="width:100%;height:100%;object-fit:cover;">`;
+                    }
+                    PhoneAPI.showToast("✅ 锁脸图已保存！生图时将自动应用。");
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+        input.click();
+    },
+
+    clearFaceLock() {
+        localStorage.removeItem('img_ref_base64');
+        const previewEl = document.getElementById('face-lock-preview');
+        if (previewEl) {
+            previewEl.innerHTML = `<i class="ph ph-plus" style="font-size: 24px; color: var(--text-sub);"></i>`;
+        }
+        PhoneAPI.showToast("🗑️ 锁脸图已清除！");
+    },
+
     sendImageMsg() {
         this.closeMsgMenu();
         const input = document.createElement('input');
@@ -454,7 +514,11 @@ ${historyText}`;
         if (!prompt) return;
         
         try {
-            const b64Json = await PhoneAPI.generateImageAPI(prompt);
+            const basePrompt = localStorage.getItem('img_base_prompt') || '';
+            const fullPrompt = prompt + (basePrompt ? ', ' + basePrompt : '');
+
+            const b64Json = await PhoneAPI.generateImageAPI(fullPrompt);
+            
             PhoneAPI.showToast("✨ 画作已生成，正在冲洗入册...");
             
             const finalB64 = await this.compressImage(b64Json);
@@ -676,7 +740,10 @@ ${historyText}`;
                 
                 try {
                     PhoneAPI.showToast("📸 他正在拍照，请稍候...");
-                    const b64Json = await PhoneAPI.generateImageAPI(photoPrompt);
+                    const basePrompt = localStorage.getItem('img_base_prompt') || '';
+                    const fullPrompt = photoPrompt + (basePrompt ? ', ' + basePrompt : '');
+                    
+                    const b64Json = await PhoneAPI.generateImageAPI(fullPrompt);
                     const finalB64 = await this.compressImage(b64Json);
                     
                     chatItems.pop(); 

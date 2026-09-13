@@ -290,7 +290,6 @@ export const PhoneUI = {
                         <div><label style="font-size: 11px; color: var(--text-sub);">线下故事</label><input type="text" id="ui-icon-novel" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
                         <div><label style="font-size: 11px; color: var(--text-sub);">世界书</label><input type="text" id="ui-icon-worldbook" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
                         <div><label style="font-size: 11px; color: var(--text-sub);">系统设置</label><input type="text" id="ui-icon-settings" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
-                        <div><label style="font-size: 11px; color: var(--text-sub);">相册</label><input type="text" id="ui-icon-gallery" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
                         <div><label style="font-size: 11px; color: var(--text-sub);">商店</label><input type="text" id="ui-icon-shop" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
                         <div><label style="font-size: 11px; color: var(--text-sub);">打工赚钱</label><input type="text" id="ui-icon-task" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
                     </div>
@@ -316,7 +315,6 @@ export const PhoneUI = {
                     <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; background: var(--icon-bg); padding: 10px; border-radius: 8px;">
                         <label style="font-size: 13px; color: var(--text-main); font-weight: bold;"><i class="ph ph-arrows-merge"></i> 开启线上/线下记忆互通</label><input type="checkbox" id="share-memory" onchange="window.PhoneAPI.autoSave()" style="width: 18px; height: 18px;">
                     </div>
-                    <!-- 🌟 核心：自动拍照开关 -->
                     <div style="margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between; background: var(--icon-bg); padding: 10px; border-radius: 8px;">
                         <label style="font-size: 13px; color: var(--text-main); font-weight: bold;"><i class="ph ph-camera"></i> 允许 AI 在聊天中自动发自拍</label><input type="checkbox" id="auto-photo" onchange="window.PhoneAPI.autoSave()" style="width: 18px; height: 18px;">
                     </div>
@@ -345,7 +343,6 @@ export const PhoneUI = {
                     </select>
                 </div>
 
-                <!-- 🌟 核心：独立的绘画引擎配置！ -->
                 <div class="card">
                     <h3 style="color: var(--primary-color); margin-bottom: 10px;"><i class="ph-fill ph-image"></i> 绘画引擎配置 (DALL-E 格式)</h3>
                     <div style="font-size: 11px; color: var(--text-sub); margin-bottom: 10px;">用于生成相册照片，必须支持返回 b64_json 格式。</div>
@@ -353,9 +350,11 @@ export const PhoneUI = {
                     <div style="margin-bottom: 10px;"><input type="password" id="img-api-key" placeholder="API Key (密钥)" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
                     <div style="margin-bottom: 10px;"><input type="text" id="img-api-model" placeholder="模型名称 (例如: dall-e-3)" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
                     
-                    <div class="engine-title" style="margin-top: 15px;"><i class="ph-fill ph-mask-happy"></i> 基础画风与锁脸提示词</div>
-                    <div style="font-size: 11px; color: var(--text-sub); margin-bottom: 10px;">每次生图都会自动拼在最后。支持 NAI 标签 (例如: 1boy, handsome, black hair)。</div>
-                    <textarea id="img-base-prompt" rows="3" placeholder="输入基础画风或角色外貌特征..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; resize:vertical;"></textarea>
+                    <div class="engine-title" style="margin-top: 15px;"><i class="ph-fill ph-mask-happy"></i> 画风与垫图 (锁脸)</div>
+                    <div style="font-size: 11px; color: var(--text-sub); margin-bottom: 10px;">如果使用 Midjourney/NAI，可以填入公开的图片 URL 作为垫图锁脸。</div>
+                    <!-- 🌟 核心：加入垫图 URL -->
+                    <div style="margin-bottom: 10px;"><input type="text" id="img-ref-url" placeholder="参考图(垫图) URL (例如: https://.../img.jpg)" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
+                    <textarea id="img-base-prompt" rows="3" placeholder="基础画风 (例如: 1boy, handsome, black hair)" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; resize:vertical;"></textarea>
                 </div>
 
                 <div class="card">

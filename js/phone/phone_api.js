@@ -33,7 +33,6 @@ export const PhoneAPI = {
         saveIfExist('img-api-model', 'img_api_model');
         saveIfExist('img-base-prompt', 'img_base_prompt');
         saveIfExist('img-negative-prompt', 'img_negative_prompt');
-        saveIfExist('img-ref-url', 'img_ref_url');
         saveIfExist('auto-photo', 'auto_photo', true);
 
         const charName = localStorage.getItem('char_name'); const myName = localStorage.getItem('my_name');
@@ -69,8 +68,18 @@ export const PhoneAPI = {
             
             setVal('img-base-prompt', localStorage.getItem('img_base_prompt') || '');
             setVal('img-negative-prompt', localStorage.getItem('img_negative_prompt') || '');
-            setVal('img-ref-url', localStorage.getItem('img_ref_url') || '');
             const autoPhotoEl = document.getElementById('auto-photo'); if(autoPhotoEl) autoPhotoEl.checked = localStorage.getItem('auto_photo') === 'true';
+
+            // 🌟 核心：加载锁脸图预览
+            const refBase64 = localStorage.getItem('img_ref_base64');
+            const previewEl = document.getElementById('face-lock-preview');
+            if (previewEl) {
+                if (refBase64) {
+                    previewEl.innerHTML = `<img src="${refBase64}" style="width:100%;height:100%;object-fit:cover;">`;
+                } else {
+                    previewEl.innerHTML = `<i class="ph ph-plus" style="font-size: 24px; color: var(--text-sub);"></i>`;
+                }
+            }
 
             const savedCharName = localStorage.getItem('char_name'); const savedMyName = localStorage.getItem('my_name');
             if (savedCharName && savedMyName) { const titleEl = document.getElementById('top-title'); if (titleEl) titleEl.innerText = `${savedMyName} & ${savedCharName}`; }
@@ -135,7 +144,7 @@ export const PhoneAPI = {
     saveImgPreset() {
         const name = prompt('给这套画风起个名字吧 (如: NAI-二次元):'); if (!name) return;
         const getVal = (id) => document.getElementById(id)?.value.trim() || '';
-        const preset = { id: 'ipr_' + Date.now(), name: name, ref: getVal('img-ref-url'), base: getVal('img-base-prompt'), neg: getVal('img-negative-prompt') };
+        const preset = { id: 'ipr_' + Date.now(), name: name, base: getVal('img-base-prompt'), neg: getVal('img-negative-prompt') };
         let presets = this.getImgPresets(); presets = presets.filter(p => p.name !== name); presets.push(preset);
         localStorage.setItem('img_prompt_presets', JSON.stringify(presets)); this.refreshImgDropdowns(); document.getElementById('img-preset-select').value = preset.id; this.showToast('💾 画风预设保存成功！');
     },
@@ -144,7 +153,7 @@ export const PhoneAPI = {
         const preset = this.getImgPresets().find(p => p.id === id);
         if (preset) {
             const setVal = (domId, val) => { const el = document.getElementById(domId); if(el) el.value = val; };
-            setVal('img-ref-url', preset.ref); setVal('img-base-prompt', preset.base); setVal('img-negative-prompt', preset.neg);
+            setVal('img-base-prompt', preset.base); setVal('img-negative-prompt', preset.neg);
             this.autoSave(); this.showToast('✨ 画风切换成功！');
         }
     },
@@ -221,18 +230,17 @@ export const PhoneAPI = {
         }
     },
 
-    // 🌟 核心升级：强行下载 URL 转存，并且自动把人设注入进绘画提示词！
+    // 🌟 核心升级：强行注入 Base64 锁脸图，并兼容反向提示词！
     async generateImageAPI(prompt) {
         let url = localStorage.getItem('img_api_url');
         const key = localStorage.getItem('img_api_key');
         const model = localStorage.getItem('img_api_model');
         const negPrompt = localStorage.getItem('img_negative_prompt') || '';
-        const refUrl = localStorage.getItem('img_ref_url') || '';
+        const refBase64 = localStorage.getItem('img_ref_base64') || '';
         const persona = localStorage.getItem('char_persona') || '';
         
         if (!url || !key) throw new Error("请先在【系统设置】中配置绘画引擎 API！");
 
-        // 自动补全 URL，防止 404
         if (!url.endsWith('/images/generations')) {
             url = url.replace(/\/$/, '') + '/images/generations';
         }
@@ -243,11 +251,14 @@ export const PhoneAPI = {
         if (statusText) { statusText.innerText = '正在绘制中...'; statusText.style.color = 'var(--primary-color)'; }
 
         try {
-            // 🌟 魔法欺骗方案：把一切都拼进文字提示词里！
             let finalPrompt = prompt;
-            if (persona) finalPrompt += `\n\n【角色外貌与设定参考】：${persona}`;
+            if (persona) finalPrompt += `\n\n【角色外貌特征参考】：${persona}`;
             if (negPrompt) finalPrompt += `\n\n【绝对禁止出现的元素(Negative Prompt)】：${negPrompt}`;
-            if (refUrl) finalPrompt = `${refUrl} ${finalPrompt}`;
+            
+            // 🌟 核心：如果有锁脸图，把它变成 Data URL 塞在提示词最前面！
+            if (refBase64) {
+                finalPrompt = `${refBase64} ${finalPrompt}`;
+            }
 
             const payload = { model: model, prompt: finalPrompt, n: 1, size: "1024x1024", response_format: "b64_json" };
 
@@ -270,7 +281,6 @@ export const PhoneAPI = {
                 if (data.data[0].b64_json) {
                     return data.data[0].b64_json;
                 } else if (data.data[0].url) {
-                    // 🌟 终极兜底：如果中转站耍流氓非要返回 URL，我们在前端强行下载它！
                     console.log("API返回了URL，尝试前端下载...");
                     try {
                         PhoneAPI.showToast("API返回了URL，正在尝试后台下载并转换...");
@@ -279,7 +289,6 @@ export const PhoneAPI = {
                         return new Promise((resolve, reject) => {
                             const reader = new FileReader();
                             reader.onloadend = () => {
-                                // 只需要 base64 的数据部分
                                 const base64data = reader.result.split(',')[1];
                                 resolve(base64data);
                             };

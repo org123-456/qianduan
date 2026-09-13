@@ -5,234 +5,78 @@ import { PhoneUI } from './phone_ui.js';
 export const PhoneEngine = {
     currentMsgIndex: -1,
 
-    getRealIndex(targetApp, index) {
-        const roleId = Config.currentContactId;
-        const items = Config.phoneData[roleId]?.[targetApp]?.items || [];
-        if (items.length > 50 && index < 50) {
-            return items.length - 50 + index;
+    getRealIndex(targetApp, index) { const roleId = Config.currentContactId; const items = Config.phoneData[roleId]?.[targetApp]?.items || []; if (items.length > 50 && index < 50) { return items.length - 50 + index; } return index; },
+    cleanStuckTyping() { let changed = false; for (let roleId in Config.phoneData) { ['wechat', 'novel'].forEach(app => { if (Config.phoneData[roleId][app]) { const items = Config.phoneData[roleId][app].items; if (items.length > 0 && items[items.length - 1].sender === 'typing') { items.pop(); changed = true; } } }); } if (changed) { localStorage.setItem('phone_data', JSON.stringify(Config.phoneData)); PhoneUI.renderAppContent('wechat'); PhoneUI.renderNovelContent(); PhoneAPI.showToast("✅ 已强制清除卡死的 AI 状态！"); } else { PhoneAPI.showToast("当前没有卡死的状态。"); } },
+    openMsgMenu(index, sender) { this.currentMsgIndex = index; document.getElementById('action-bg').classList.add('show'); document.getElementById('action-sheet').classList.add('show'); const btnRegen = document.getElementById('btn-regen'); if (btnRegen) btnRegen.style.display = (sender === 'other') ? 'flex' : 'none'; },
+    closeMsgMenu() { document.getElementById('action-bg').classList.remove('show'); document.getElementById('action-sheet').classList.remove('show'); },
+
+    // 🌟 核心：打工任务系统（支持 AI 刷新与剧情触发）
+    async refreshTasks() {
+        PhoneAPI.showToast(`🔄 正在联系中介所，为您获取最新委托...`);
+        const listEl = document.getElementById('task-list-container');
+        if (listEl) listEl.innerHTML = `<div style="text-align:center; padding: 40px 0; color: var(--primary-color);"><i class="ph-fill ph-spinner spin-anim" style="font-size: 32px;"></i><br>正在生成委托...</div>`;
+
+        try {
+            const prompt = `你是一个赛博悬赏委托发布员。请生成 3 个打工任务。
+要求：
+1. 前 2 个是普通跑腿/日常任务（isStory 为 false）。
+2. 第 3 个必须是【需要和男主一起完成的、有剧情张力的特殊任务】（isStory 为 true）。
+3. 图标(icon)必须使用 Phosphor 格式，例如 "ph-fill ph-coffee", "ph-fill ph-magnifying-glass", "ph-fill ph-cat"。
+【绝对要求】：严格输出 JSON 数组，不要任何 markdown 标记！
+格式范例：[{"name":"整理案卷","reward":50,"icon":"ph-fill ph-keyboard","isStory":false}]`;
+            
+            const reply = await PhoneAPI.chatWithAI([{ role: 'user', content: prompt }], true);
+            let jsonStr = reply.replace(/```json/gi, '').replace(/```/g, '').trim();
+            const items = JSON.parse(jsonStr);
+            
+            if (Array.isArray(items) && items.length > 0) {
+                localStorage.setItem('task_current_items', JSON.stringify(items));
+                PhoneUI.renderAppContent('task');
+                PhoneAPI.showToast("🎉 委托刷新成功！");
+            } else { throw new Error("解析失败"); }
+        } catch (e) {
+            console.error(e);
+            PhoneAPI.showToast("刷新失败，请重试！");
+            PhoneUI.renderAppContent('task');
         }
-        return index;
     },
 
-    cleanStuckTyping() {
-        let changed = false;
-        for (let roleId in Config.phoneData) {
-            ['wechat', 'novel'].forEach(app => {
-                if (Config.phoneData[roleId][app]) {
-                    const items = Config.phoneData[roleId][app].items;
-                    if (items.length > 0 && items[items.length - 1].sender === 'typing') {
-                        items.pop();
-                        changed = true;
-                    }
-                }
-            });
-        }
-        if (changed) {
-            localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-            PhoneUI.renderAppContent('wechat');
-            PhoneUI.renderNovelContent();
-            PhoneAPI.showToast("✅ 已强制清除卡死的 AI 状态！");
-        } else {
-            PhoneAPI.showToast("当前没有卡死的状态。");
-        }
-    },
+    doTask(index) {
+        const tasks = JSON.parse(localStorage.getItem('task_current_items') || '[]');
+        const task = tasks[index];
+        if (!task) return;
 
-    openMsgMenu(index, sender) {
-        this.currentMsgIndex = index;
-        document.getElementById('action-bg').classList.add('show');
-        document.getElementById('action-sheet').classList.add('show');
-        const btnRegen = document.getElementById('btn-regen');
-        if (btnRegen) btnRegen.style.display = (sender === 'other') ? 'flex' : 'none';
-    },
-
-    closeMsgMenu() {
-        document.getElementById('action-bg').classList.remove('show');
-        document.getElementById('action-sheet').classList.remove('show');
-    },
-
-    uploadFaceLock() {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*'; 
-        
-        input.onchange = async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            PhoneAPI.showToast("🔒 正在提取面部特征...");
-
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
-                    const MAX_SIZE = 512; 
-
-                    if (width > height && width > MAX_SIZE) {
-                        height *= MAX_SIZE / width;
-                        width = MAX_SIZE;
-                    } else if (height > MAX_SIZE) {
-                        width *= MAX_SIZE / height;
-                        height = MAX_SIZE;
-                    }
-
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    const base64Url = canvas.toDataURL('image/jpeg', 0.6);
-                    localStorage.setItem('img_ref_base64', base64Url);
-                    
-                    const previewEl = document.getElementById('face-lock-preview');
-                    if (previewEl) {
-                        previewEl.innerHTML = `<img src="${base64Url}" style="width:100%;height:100%;object-fit:cover;">`;
-                    }
-                    PhoneAPI.showToast("✅ 锁脸图已保存！生图时将自动应用。");
-                };
-                img.src = event.target.result;
-            };
-            reader.readAsDataURL(file);
-        };
-        input.click();
-    },
-
-    clearFaceLock() {
-        localStorage.removeItem('img_ref_base64');
-        const previewEl = document.getElementById('face-lock-preview');
-        if (previewEl) {
-            previewEl.innerHTML = `<i class="ph ph-plus" style="font-size: 24px; color: var(--text-sub);"></i>`;
-        }
-        PhoneAPI.showToast("🗑️ 锁脸图已清除！");
-    },
-
-    sendImageMsg() {
-        this.closeMsgMenu();
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*'; 
-        
-        input.onchange = async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            PhoneAPI.showToast("🖼️ 图片处理中，处理完可继续发图或打字发送...");
-
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
-                    const MAX_SIZE = 800; 
-
-                    if (width > height && width > MAX_SIZE) {
-                        height *= MAX_SIZE / width;
-                        width = MAX_SIZE;
-                    } else if (height > MAX_SIZE) {
-                        width *= MAX_SIZE / height;
-                        height = MAX_SIZE;
-                    }
-
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    const base64Url = canvas.toDataURL('image/jpeg', 0.7);
-
-                    const roleId = Config.currentContactId;
-                    if (!Config.phoneData[roleId].wechat) Config.phoneData[roleId].wechat = { items: [] };
-
-                    const now = new Date();
-                    const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-                    const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-
-                    Config.phoneData[roleId].wechat.items.push({ 
-                        sender: 'me', 
-                        content: `![图片](${base64Url})`, 
-                        time: timeStr, 
-                        date: dateStr 
-                    });
-
-                    localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-                    PhoneUI.renderAppContent('wechat');
-                };
-                img.src = event.target.result;
-            };
-            reader.readAsDataURL(file);
-        };
-        input.click();
-    },
-
-    sendFileMsg() {
-        this.closeMsgMenu();
-        const input = document.createElement('input');
-        input.type = 'file';
-        
-        input.onchange = async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            if (file.type.startsWith('image/')) {
-                PhoneAPI.showToast("图片请使用【发图片】功能哦！");
-                return;
-            }
-
-            PhoneAPI.showToast(`📁 正在发送文件: ${file.name}...`);
-
+        if (task.isStory) {
+            // 🌟 触发线下剧情
+            PhoneUI.closeApp();
+            window.PhoneUI.openApp('novel', '线下故事');
             const roleId = Config.currentContactId;
-            if (!Config.phoneData[roleId].wechat) Config.phoneData[roleId].wechat = { items: [] };
-            const chatItems = Config.phoneData[roleId].wechat.items;
+            if (!Config.phoneData[roleId].novel) Config.phoneData[roleId].novel = { items: [] };
+            
             const now = new Date();
             const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
             const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-
-            const isText = file.type.startsWith('text/') || file.name.endsWith('.md') || file.name.endsWith('.json') || file.name.endsWith('.csv');
             
-            if (isText && file.size < 100 * 1024) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const content = event.target.result;
-                    chatItems.push({
-                        sender: 'me',
-                        content: `📁 [发送了文件: ${file.name}]\n\n文件内容如下：\n\`\`\`\n${content}\n\`\`\``,
-                        time: timeStr,
-                        date: dateStr
-                    });
-                    localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-                    PhoneUI.renderAppContent('wechat');
-                };
-                reader.readAsText(file);
-            } else {
-                const sizeMB = (file.size / 1024 / 1024).toFixed(2);
-                chatItems.push({
-                    sender: 'me',
-                    content: `📁 [发送了文件: ${file.name}] (大小: ${sizeMB}MB)\n\n【系统提示】：用户向你发送了一份文件。由于跨次元限制，你无法直接读取文件内容，请你根据文件名脑补文件内容，并作出符合人设的反应。`,
-                    time: timeStr,
-                    date: dateStr
-                });
-                localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-                PhoneUI.renderAppContent('wechat');
-            }
-        };
-        input.click();
-    },
-
-    // 🌟 核心：打工赚钱！
-    doTask(reward, taskName) {
-        PhoneAPI.showToast(`💼 正在进行打工: ${taskName}...`);
-        setTimeout(() => {
-            let coins = parseInt(localStorage.getItem('my_coins') || '500');
-            coins += reward;
-            localStorage.setItem('my_coins', coins);
-            const coinEl = document.getElementById('wallet-coin-display');
-            if (coinEl) coinEl.innerText = coins;
-            PhoneAPI.showToast(`🎉 打工完成！赚取了 ${reward} 金币！`);
-        }, 1500);
+            Config.phoneData[roleId].novel.items.push({
+                sender: 'me',
+                content: `【系统提示】：我接取了高薪悬赏任务 [${task.name}]，需要和你一起去完成。`,
+                time: timeStr,
+                date: dateStr
+            });
+            localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+            PhoneUI.renderNovelContent();
+            this.sendNovelMessage(false);
+        } else {
+            // 普通打工加钱
+            PhoneAPI.showToast(`💼 正在进行打工: ${task.name}...`);
+            setTimeout(() => {
+                let coins = parseInt(localStorage.getItem('my_coins') || '500');
+                coins += task.reward;
+                localStorage.setItem('my_coins', coins);
+                PhoneUI.renderAppContent('task'); 
+                PhoneAPI.showToast(`🎉 打工完成！赚取了 ${task.reward} 金币！`);
+            }, 1500);
+        }
     },
 
     // 🌟 核心：商店标签切换与 AI 进货
@@ -250,7 +94,6 @@ export const PhoneEngine = {
 
     switchShopTag(tag) {
         window.Config.currentShopTag = tag;
-        // 清空当前货架，准备重新进货
         localStorage.setItem('shop_current_items', '[]');
         PhoneUI.renderAppContent('shop');
         this.refreshShop();
@@ -264,19 +107,16 @@ export const PhoneEngine = {
         if (gridEl) gridEl.innerHTML = `<div style="grid-column: span 2; text-align:center; padding: 40px 0; color: var(--primary-color);"><i class="ph-fill ph-spinner spin-anim" style="font-size: 32px;"></i><br>AI 进货中...</div>`;
 
         try {
-            const prompt = `你是一个赛博杂货铺的创意进货员。现在用户想要采购【${tag}】类的商品，用于在语C(角色扮演)中对男主使用。
-请发挥你的脑洞，生成 6 个奇葩、有趣、或者能引发傲娇男主强烈反应的商品。
-【绝对要求】：必须严格输出一个 JSON 数组格式，不要包含任何 markdown 标记（如 \`\`\`json），直接输出纯 JSON 字符串！
-格式范例：
-[
-  {"icon": "🍎", "name": "毒苹果", "desc": "吃下后必须说一句真心话", "price": 50, "effect": "【系统强制指令】：用户对你使用了毒苹果。你必须立刻说出一句深藏心底的真心话。"},
-  ...
-]`;
+            const prompt = `你是一个极简高级感赛博杂货铺的进货员。现在用户想要采购【${tag}】类的商品，用于在语C(角色扮演)中对男主使用。
+请发挥脑洞，生成 6 个奇葩、有趣、能引发傲娇男主强烈反应的商品。
+要求：
+1. 图标(icon)必须使用 Phosphor 格式，例如 "ph-fill ph-package", "ph-fill ph-gift", "ph-fill ph-t-shirt"。
+2. 名字(name)要有高级感。
+3. 效果(effect)要写明对男主强制生效的系统指令。
+【绝对要求】：严格输出 JSON 数组，不要包含任何 markdown 标记！
+格式范例：[{"icon":"ph-fill ph-flask","name":"吐真剂","desc":"强制说出真心话","price":200,"effect":"【系统强制指令】：用户对你使用了吐真剂。你必须说出真心话。"}]`;
             
-            // 使用副引擎（如果没配置会自动降级为主引擎）
             const reply = await PhoneAPI.chatWithAI([{ role: 'user', content: prompt }], true);
-            
-            // 清理可能存在的 markdown 标记
             let jsonStr = reply.replace(/```json/gi, '').replace(/```/g, '').trim();
             const items = JSON.parse(jsonStr);
             
@@ -284,9 +124,7 @@ export const PhoneEngine = {
                 localStorage.setItem('shop_current_items', JSON.stringify(items));
                 PhoneUI.renderAppContent('shop');
                 PhoneAPI.showToast("🎉 进货成功！快来看看新商品吧！");
-            } else {
-                throw new Error("解析失败");
-            }
+            } else { throw new Error("解析失败"); }
         } catch (e) {
             console.error(e);
             PhoneAPI.showToast("进货失败，AI 迷路了，请重试！");
@@ -311,14 +149,9 @@ export const PhoneEngine = {
         let cart = JSON.parse(localStorage.getItem('shopping_cart') || '[]');
         cart.splice(index, 1);
         localStorage.setItem('shopping_cart', JSON.stringify(cart));
-        
         PhoneUI.renderCartList();
-        
         const badge = document.getElementById('cart-badge');
-        if (badge) {
-            badge.innerText = cart.length;
-            badge.style.display = cart.length > 0 ? 'flex' : 'none';
-        }
+        if (badge) { badge.innerText = cart.length; badge.style.display = cart.length > 0 ? 'flex' : 'none'; }
     },
 
     // 🌟 核心：双轨支付模式！
@@ -326,12 +159,10 @@ export const PhoneEngine = {
         let cart = JSON.parse(localStorage.getItem('shopping_cart') || '[]');
         if (cart.length === 0) return;
 
-        let total = 0;
-        let itemNames = [];
-        let effects = [];
+        let total = 0; let itemNames = []; let effects = [];
         cart.forEach(item => {
             total += parseInt(item.price);
-            itemNames.push(`[${item.icon} ${item.name}]`);
+            itemNames.push(`[${item.name}]`);
             effects.push(item.effect);
         });
 
@@ -346,16 +177,13 @@ export const PhoneEngine = {
 
         if (isHusbandPay) {
             // 代付撒娇模式
-            PhoneUI.closeCartModal();
-            window.PhoneUI.closeApp();
-            
+            PhoneUI.closeCartModal(); window.PhoneUI.closeApp();
             chatItems.push({ 
                 sender: 'me', 
                 content: `🛒 【分享了购物车】\n亲爱的，我看中了这些东西：\n${itemNames.join('、')}\n\n一共需要 ${total} 金币，帮我清空购物车好不好嘛~🥺`, 
-                time: timeStr, 
-                date: dateStr 
+                time: timeStr, date: dateStr 
             });
-            
+            localStorage.setItem('shopping_cart', '[]'); // 清空购物车
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
             PhoneUI.renderAppContent('wechat');
             this.sendChatMessage(false);
@@ -363,27 +191,20 @@ export const PhoneEngine = {
         } else {
             // 自己买单模式
             let coins = parseInt(localStorage.getItem('my_coins') || '500');
-            if (coins < total) {
-                PhoneAPI.showToast("余额不足，快去打工赚钱吧！");
-                return;
-            }
+            if (coins < total) { PhoneAPI.showToast("余额不足，快去打工赚钱吧！"); return; }
             
             if (confirm(`确定花费 ${total} 金币购买购物车里的所有商品，并立即在微信里对他使用吗？`)) {
                 coins -= total;
                 localStorage.setItem('my_coins', coins);
-                
-                // 清空购物车
                 localStorage.setItem('shopping_cart', '[]');
                 
-                PhoneUI.closeCartModal();
-                window.PhoneUI.closeApp(); 
+                PhoneUI.closeCartModal(); window.PhoneUI.closeApp(); 
                 PhoneAPI.showToast(`🎉 购买成功！已对他使用道具！`);
                 
                 chatItems.push({ 
                     sender: 'me', 
                     content: `【系统动作】：我豪掷 ${total} 金币，购买并对你使用了以下道具：\n${itemNames.join('、')}。\n\n${effects.join('\n')}`, 
-                    time: timeStr, 
-                    date: dateStr 
+                    time: timeStr, date: dateStr 
                 });
                 
                 localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
@@ -393,269 +214,22 @@ export const PhoneEngine = {
         }
     },
 
-    async favoriteMsg() {
-        this.closeMsgMenu();
-        if (this.currentMsgIndex < 0) return;
-        const roleId = Config.currentContactId;
-        const targetApp = Config.currentAppId === 'novel' ? 'novel' : 'wechat';
-        
-        const realIndex = this.getRealIndex(targetApp, this.currentMsgIndex);
-        const msg = Config.phoneData[roleId][targetApp].items[realIndex];
-        
-        const selectedText = await PhoneUI.showCustomPrompt("⭐ 请精简你要收藏的句子（太长会撑爆星星）：", msg.content);
-        if (selectedText && selectedText.trim() !== "") {
-            PhoneAPI.saveFavorite(selectedText.trim(), targetApp === 'wechat' ? '线上微信' : '线下故事', msg.sender);
-        }
-    },
-
-    async aiSummarizeMsg() {
-        this.closeMsgMenu();
-        if (this.currentMsgIndex < 0) return;
-        const roleId = Config.currentContactId;
-        const targetApp = Config.currentAppId === 'novel' ? 'novel' : 'wechat';
-        
-        const realIndex = this.getRealIndex(targetApp, this.currentMsgIndex);
-        const msg = Config.phoneData[roleId][targetApp].items[realIndex];
-        
-        PhoneAPI.showToast("✨ AI 正在提炼金句，请稍候...");
-        try {
-            const aiPrompt = `请将下面这段角色扮演的回复，提炼成一句【简短、唯美、或傲娇的语录/内心独白】（要求在20字以内）。\n【绝对要求】：去除所有动作描写、环境描写和敏感(NSFW)内容，只保留最核心的情感或金句。直接输出这唯一的一句话，不要任何多余解释！\n\n原文：\n${msg.content}`;
-            
-            const messages = [{ role: "user", content: aiPrompt }];
-            const reply = await PhoneAPI.chatWithAI(messages, true); 
-            
-            let finalQuote = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-            finalQuote = finalQuote.replace(/```.*?/g, '').replace(/```/g, '').replace(/^["']|["']$/g, '').trim();
-            
-            const confirmText = await PhoneUI.showCustomPrompt("✨ AI 提炼结果如下，确认无误后点击确定保存：", finalQuote);
-            if (confirmText && confirmText.trim() !== "") {
-                PhoneAPI.saveFavorite(confirmText.trim(), targetApp === 'wechat' ? '线上微信' : '线下故事', msg.sender);
-            }
-        } catch (e) {
-            alert("提炼失败：" + e.message);
-        }
-    },
-
-    async extractMemory(sourceApp) {
-        PhoneAPI.showToast("🧠 正在提取并拆解记忆，请稍候...");
-        try {
-            const roleId = Config.currentContactId;
-            const items = Config.phoneData[roleId]?.[sourceApp]?.items || [];
-            
-            const recentItems = items.slice(-30).filter(i => i.sender !== 'typing');
-            if (recentItems.length === 0) {
-                alert("没有足够的聊天记录来提取记忆！");
-                return;
-            }
-            
-            let historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
-            
-            const aiPrompt = `你是一个专门负责提取“角色扮演记忆锚点”的AI。请分析以下聊天记录，提取出其中所有具体的、有价值的细节，生成【多条独立的记忆碎片】。
-
-提取规则：
-1. 必须具体：提取具体的事件、物品、承诺、暗号、称呼、情绪转折。绝不要写空泛的总结（如“两人进行了深情互动”）。
-2. 独立成条：每一条记忆必须是一个完整、独立的客观陈述句（第三人称）。
-3. 去敏：去除NSFW敏感描写，保留核心剧情。
-4. 强制格式：每条记忆必须用 "|||" 隔开！绝对不要输出序号、换行或其他废话！
-
-聊天记录：
-${historyText}`;
-            
-            const messages = [{ role: "user", content: aiPrompt }];
-            const reply = await PhoneAPI.chatWithAI(messages, true); 
-            
-            let rawText = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```.*?/g, '').replace(/```/g, '').trim();
-            let summaryList = rawText.split('|||').map(s => s.trim()).filter(s => s.length > 0);
-            let editText = summaryList.join('\n\n');
-            
-            const confirmText = await PhoneUI.showCustomPrompt("✨ AI 提取了多条记忆碎片，请分段修改（每段将存为独立档案）：", editText);
-            if (confirmText && confirmText.trim() !== "") {
-                let finalItems = confirmText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
-                PhoneAPI.saveToMemoryVault(finalItems, sourceApp === 'wechat' ? '线上微信' : '线下故事');
-            }
-        } catch (e) {
-            alert("记忆提取失败：" + e.message);
-        }
-    },
-
-    async washMemory(sourceApp) {
-        this.closeMsgMenu();
-        if (!confirm("⚠️ 确定要进行【记忆洗地】吗？\nAI将把当前所有聊天记录拆解成多段长期记忆，随后【清空】当前聊天界面！\n(洗地后不可恢复，请确认)")) return;
-
-        PhoneAPI.showToast("🧹 正在进行记忆洗地，请稍候...");
-        try {
-            const roleId = Config.currentContactId;
-            const items = Config.phoneData[roleId]?.[sourceApp]?.items || [];
-            
-            if (items.length === 0) {
-                alert("当前没有聊天记录可以洗地！");
-                return;
-            }
-            
-            const recentItems = items.slice(-50).filter(i => i.sender !== 'typing');
-            let historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
-            
-            const aiPrompt = `你是一个专门负责提取“角色扮演记忆锚点”的AI。请分析以下聊天记录，提取出其中所有具体的、有价值的细节，生成【多条独立的记忆碎片】。
-
-提取规则：
-1. 必须具体：提取具体的事件、物品、承诺、暗号、称呼、情绪转折。绝不要写空泛的总结。
-2. 独立成条：每一条记忆必须是一个完整、独立的客观陈述句（第三人称）。
-3. 去敏：去除NSFW敏感描写，保留核心剧情。
-4. 强制格式：每条记忆必须用 "|||" 隔开！绝对不要输出序号、换行或其他废话！
-
-聊天记录：
-${historyText}`;
-            
-            const messages = [{ role: "user", content: aiPrompt }];
-            const reply = await PhoneAPI.chatWithAI(messages, true); 
-            
-            let rawText = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```.*?/g, '').replace(/```/g, '').trim();
-            let summaryList = rawText.split('|||').map(s => s.trim()).filter(s => s.length > 0);
-            let editText = summaryList.join('\n\n');
-            
-            const confirmText = await PhoneUI.showCustomPrompt("✨ 洗地记忆碎片如下，请分段修改去敏，确认后将存入记忆库并清空界面：", editText);
-            if (confirmText && confirmText.trim() !== "") {
-                let finalItems = confirmText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
-                PhoneAPI.saveToMemoryVault(finalItems, sourceApp === 'wechat' ? '线上微信' : '线下故事');
-                
-                Config.phoneData[roleId][sourceApp].items = [];
-                localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-                
-                if (sourceApp === 'novel') PhoneUI.renderNovelContent();
-                else PhoneUI.renderAppContent('wechat');
-                
-                PhoneAPI.showToast("🧹 洗地完成！界面已清空，记忆已入库。");
-            }
-        } catch (e) {
-            alert("洗地失败：" + e.message);
-        }
-    },
-
-    async editMsg() {
-        this.closeMsgMenu();
-        if (this.currentMsgIndex < 0) return;
-        const roleId = Config.currentContactId;
-        const targetApp = Config.currentAppId === 'novel' ? 'novel' : 'wechat';
-        
-        const realIndex = this.getRealIndex(targetApp, this.currentMsgIndex);
-        const oldText = Config.phoneData[roleId][targetApp].items[realIndex].content;
-        
-        const newText = await PhoneUI.showCustomPrompt("✏️ 编辑消息：", oldText);
-        if (newText !== null && newText.trim() !== "") {
-            Config.phoneData[roleId][targetApp].items[realIndex].content = newText.trim();
-            
-            if (targetApp === 'novel') PhoneUI.renderNovelContent();
-            else PhoneUI.renderAppContent('wechat');
-            
-            localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-            PhoneAPI.showToast("✅ 修改成功");
-        }
-    },
-
-    deleteMsg() {
-        this.closeMsgMenu();
-        if (this.currentMsgIndex < 0) return;
-        const roleId = Config.currentContactId;
-        const targetApp = Config.currentAppId === 'novel' ? 'novel' : 'wechat';
-        
-        const realIndex = this.getRealIndex(targetApp, this.currentMsgIndex);
-        Config.phoneData[roleId][targetApp].items.splice(realIndex, 1);
-        
-        if (targetApp === 'novel') PhoneUI.renderNovelContent();
-        else PhoneUI.renderAppContent('wechat');
-        
-        localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-        PhoneAPI.showToast("🗑️ 消息已删除");
-    },
-
-    regenMsg() {
-        this.closeMsgMenu();
-        if (this.currentMsgIndex < 0) return;
-        const roleId = Config.currentContactId;
-        const targetApp = Config.currentAppId === 'novel' ? 'novel' : 'wechat';
-        
-        const realIndex = this.getRealIndex(targetApp, this.currentMsgIndex);
-        Config.phoneData[roleId][targetApp].items.splice(realIndex);
-        localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-        
-        if (targetApp === 'novel') {
-            PhoneUI.renderNovelContent();
-            this.sendNovelMessage(true);
-        } else {
-            PhoneUI.renderAppContent('wechat');
-            this.sendChatMessage(true);
-        }
-    },
-
-    compressImage(base64Str) {
-        return new Promise((resolve) => {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                let width = img.width;
-                let height = img.height;
-                const MAX_SIZE = 1024; 
-
-                if (width > height && width > MAX_SIZE) {
-                    height *= MAX_SIZE / width;
-                    width = MAX_SIZE;
-                } else if (height > MAX_SIZE) {
-                    width *= MAX_SIZE / height;
-                    height = MAX_SIZE;
-                }
-
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL('image/jpeg', 0.8));
-            };
-            img.src = 'data:image/png;base64,' + base64Str;
-        });
-    },
-
-    async generateAiImage() {
-        const prompt = await window.PhoneUI.showCustomPrompt("🎨 请输入画面描述：", "大侦探不死途穿着黑衬衫，在赛博朋克城市的霓虹灯下抽烟，二次元动漫风格");
-        if (!prompt) return;
-        
-        try {
-            const b64Json = await PhoneAPI.generateImageAPI(prompt);
-            PhoneAPI.showToast("✨ 画作已生成，正在冲洗入册...");
-            
-            const finalB64 = await this.compressImage(b64Json);
-
-            const roleId = Config.currentContactId;
-            if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
-            if (!Config.phoneData[roleId].gallery) Config.phoneData[roleId].gallery = { items: [] };
-
-            const now = new Date();
-            const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-
-            Config.phoneData[roleId].gallery.items.push({
-                id: 'img_' + Date.now(),
-                content: finalB64,
-                date: dateStr
-            });
-
-            localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-            PhoneUI.renderAppContent('gallery');
-            PhoneAPI.showToast("📸 新照片已保存在回忆相册！");
-            
-        } catch (e) {
-            alert(e.message);
-        }
-    },
-
-    deleteGalleryImage(id) {
-        if (!confirm("确定要销毁这张照片吗？")) return;
-        const roleId = Config.currentContactId;
-        let items = Config.phoneData[roleId].gallery.items;
-        Config.phoneData[roleId].gallery.items = items.filter(i => i.id !== id);
-        localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-        PhoneUI.renderAppContent('gallery');
-        PhoneUI.closeImageViewer();
-        PhoneAPI.showToast("🗑️ 照片已销毁");
-    },
+    // ================= 基础功能压缩版 (防截断) =================
+    uploadFaceLock() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = async (e) => { const file = e.target.files[0]; if (!file) return; PhoneAPI.showToast("🔒 正在提取面部特征..."); const reader = new FileReader(); reader.onload = (event) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); let width = img.width; let height = img.height; const MAX_SIZE = 512; if (width > height && width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } else if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height); const base64Url = canvas.toDataURL('image/jpeg', 0.6); localStorage.setItem('img_ref_base64', base64Url); const previewEl = document.getElementById('face-lock-preview'); if (previewEl) { previewEl.innerHTML = `<img src="${base64Url}" style="width:100%;height:100%;object-fit:cover;">`; } PhoneAPI.showToast("✅ 锁脸图已保存！"); }; img.src = event.target.result; }; reader.readAsDataURL(file); }; input.click(); },
+    clearFaceLock() { localStorage.removeItem('img_ref_base64'); const previewEl = document.getElementById('face-lock-preview'); if (previewEl) { previewEl.innerHTML = `<i class="ph ph-plus" style="font-size: 24px; color: var(--text-sub);"></i>`; } PhoneAPI.showToast("🗑️ 锁脸图已清除！"); },
+    sendImageMsg() { this.closeMsgMenu(); const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = async (e) => { const file = e.target.files[0]; if (!file) return; PhoneAPI.showToast("🖼️ 图片处理中..."); const reader = new FileReader(); reader.onload = (event) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); let width = img.width; let height = img.height; const MAX_SIZE = 800; if (width > height && width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } else if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height); const base64Url = canvas.toDataURL('image/jpeg', 0.7); const roleId = Config.currentContactId; if (!Config.phoneData[roleId].wechat) Config.phoneData[roleId].wechat = { items: [] }; const now = new Date(); const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`; const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`; Config.phoneData[roleId].wechat.items.push({ sender: 'me', content: `![图片](${base64Url})`, time: timeStr, date: dateStr }); localStorage.setItem('phone_data', JSON.stringify(Config.phoneData)); PhoneUI.renderAppContent('wechat'); }; img.src = event.target.result; }; reader.readAsDataURL(file); }; input.click(); },
+    sendFileMsg() { this.closeMsgMenu(); const input = document.createElement('input'); input.type = 'file'; input.onchange = async (e) => { const file = e.target.files[0]; if (!file) return; if (file.type.startsWith('image/')) { PhoneAPI.showToast("图片请使用【发图片】功能哦！"); return; } PhoneAPI.showToast(`📁 正在发送文件...`); const roleId = Config.currentContactId; if (!Config.phoneData[roleId].wechat) Config.phoneData[roleId].wechat = { items: [] }; const chatItems = Config.phoneData[roleId].wechat.items; const now = new Date(); const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`; const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`; const isText = file.type.startsWith('text/') || file.name.endsWith('.md') || file.name.endsWith('.json') || file.name.endsWith('.csv'); if (isText && file.size < 100 * 1024) { const reader = new FileReader(); reader.onload = (event) => { const content = event.target.result; chatItems.push({ sender: 'me', content: `📁 [发送了文件: ${file.name}]\n\n文件内容如下：\n\`\`\`\n${content}\n\`\`\``, time: timeStr, date: dateStr }); localStorage.setItem('phone_data', JSON.stringify(Config.phoneData)); PhoneUI.renderAppContent('wechat'); }; reader.readAsText(file); } else { const sizeMB = (file.size / 1024 / 1024).toFixed(2); chatItems.push({ sender: 'me', content: `📁 [发送了文件: ${file.name}] (大小: ${sizeMB}MB)\n\n【系统提示】：用户向你发送了一份文件。由于跨次元限制，你无法直接读取文件内容，请你根据文件名脑补文件内容，并作出符合人设的反应。`, time: timeStr, date: dateStr }); localStorage.setItem('phone_data', JSON.stringify(Config.phoneData)); PhoneUI.renderAppContent('wechat'); } }; input.click(); },
+    async favoriteMsg() { this.closeMsgMenu(); if (this.currentMsgIndex < 0) return; const roleId = Config.currentContactId; const targetApp = Config.currentAppId === 'novel' ? 'novel' : 'wechat'; const realIndex = this.getRealIndex(targetApp, this.currentMsgIndex); const msg = Config.phoneData[roleId][targetApp].items[realIndex]; const selectedText = await PhoneUI.showCustomPrompt("⭐ 请精简你要收藏的句子：", msg.content); if (selectedText && selectedText.trim() !== "") { PhoneAPI.saveFavorite(selectedText.trim(), targetApp === 'wechat' ? '线上微信' : '线下故事', msg.sender); } },
+    async aiSummarizeMsg() { this.closeMsgMenu(); if (this.currentMsgIndex < 0) return; const roleId = Config.currentContactId; const targetApp = Config.currentAppId === 'novel' ? 'novel' : 'wechat'; const realIndex = this.getRealIndex(targetApp, this.currentMsgIndex); const msg = Config.phoneData[roleId][targetApp].items[realIndex]; PhoneAPI.showToast("✨ AI 正在提炼金句..."); try { const aiPrompt = `请将下面这段角色扮演的回复，提炼成一句【简短、唯美、或傲娇的语录/内心独白】（要求在20字以内）。\n【绝对要求】：去除所有动作描写、环境描写和敏感内容，只保留最核心的情感或金句。直接输出这唯一的一句话！\n\n原文：\n${msg.content}`; const reply = await PhoneAPI.chatWithAI([{ role: "user", content: aiPrompt }], true); let finalQuote = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim().replace(/```.*?/g, '').replace(/```/g, '').replace(/^["']|["']$/g, '').trim(); const confirmText = await PhoneUI.showCustomPrompt("✨ AI 提炼结果：", finalQuote); if (confirmText && confirmText.trim() !== "") { PhoneAPI.saveFavorite(confirmText.trim(), targetApp === 'wechat' ? '线上微信' : '线下故事', msg.sender); } } catch (e) { alert("提炼失败：" + e.message); } },
+    async extractMemory(sourceApp) { PhoneAPI.showToast("🧠 正在提取记忆..."); try { const roleId = Config.currentContactId; const items = Config.phoneData[roleId]?.[sourceApp]?.items || []; const recentItems = items.slice(-30).filter(i => i.sender !== 'typing'); if (recentItems.length === 0) return alert("没有足够的聊天记录！"); let historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n'); const aiPrompt = `分析聊天记录，提取具体的记忆碎片。独立成条(第三人称)，用 "|||" 隔开！\n\n记录：\n${historyText}`; const reply = await PhoneAPI.chatWithAI([{ role: "user", content: aiPrompt }], true); let rawText = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```.*?/g, '').replace(/```/g, '').trim(); let summaryList = rawText.split('|||').map(s => s.trim()).filter(s => s.length > 0); let editText = summaryList.join('\n\n'); const confirmText = await PhoneUI.showCustomPrompt("✨ AI 提取了多条记忆：", editText); if (confirmText && confirmText.trim() !== "") { let finalItems = confirmText.split('\n').map(s => s.trim()).filter(s => s.length > 0); PhoneAPI.saveToMemoryVault(finalItems, sourceApp === 'wechat' ? '线上微信' : '线下故事'); } } catch (e) { alert("提取失败：" + e.message); } },
+    async washMemory(sourceApp) { this.closeMsgMenu(); if (!confirm("⚠️ 确定要进行【记忆洗地】吗？")) return; PhoneAPI.showToast("🧹 正在洗地..."); try { const roleId = Config.currentContactId; const items = Config.phoneData[roleId]?.[sourceApp]?.items || []; if (items.length === 0) return alert("没有记录！"); const recentItems = items.slice(-50).filter(i => i.sender !== 'typing'); let historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n'); const aiPrompt = `分析聊天记录，提取具体的记忆碎片。独立成条(第三人称)，用 "|||" 隔开！\n\n记录：\n${historyText}`; const reply = await PhoneAPI.chatWithAI([{ role: "user", content: aiPrompt }], true); let rawText = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```.*?/g, '').replace(/```/g, '').trim(); let summaryList = rawText.split('|||').map(s => s.trim()).filter(s => s.length > 0); let editText = summaryList.join('\n\n'); const confirmText = await PhoneUI.showCustomPrompt("✨ 洗地记忆如下：", editText); if (confirmText && confirmText.trim() !== "") { let finalItems = confirmText.split('\n').map(s => s.trim()).filter(s => s.length > 0); PhoneAPI.saveToMemoryVault(finalItems, sourceApp === 'wechat' ? '线上微信' : '线下故事'); Config.phoneData[roleId][sourceApp].items = []; localStorage.setItem('phone_data', JSON.stringify(Config.phoneData)); if (sourceApp === 'novel') PhoneUI.renderNovelContent(); else PhoneUI.renderAppContent('wechat'); PhoneAPI.showToast("🧹 洗地完成！"); } } catch (e) { alert("洗地失败：" + e.message); } },
+    async editMsg() { this.closeMsgMenu(); if (this.currentMsgIndex < 0) return; const roleId = Config.currentContactId; const targetApp = Config.currentAppId === 'novel' ? 'novel' : 'wechat'; const realIndex = this.getRealIndex(targetApp, this.currentMsgIndex); const oldText = Config.phoneData[roleId][targetApp].items[realIndex].content; const newText = await PhoneUI.showCustomPrompt("✏️ 编辑消息：", oldText); if (newText !== null && newText.trim() !== "") { Config.phoneData[roleId][targetApp].items[realIndex].content = newText.trim(); if (targetApp === 'novel') PhoneUI.renderNovelContent(); else PhoneUI.renderAppContent('wechat'); localStorage.setItem('phone_data', JSON.stringify(Config.phoneData)); PhoneAPI.showToast("✅ 修改成功"); } },
+    deleteMsg() { this.closeMsgMenu(); if (this.currentMsgIndex < 0) return; const roleId = Config.currentContactId; const targetApp = Config.currentAppId === 'novel' ? 'novel' : 'wechat'; const realIndex = this.getRealIndex(targetApp, this.currentMsgIndex); Config.phoneData[roleId][targetApp].items.splice(realIndex, 1); if (targetApp === 'novel') PhoneUI.renderNovelContent(); else PhoneUI.renderAppContent('wechat'); localStorage.setItem('phone_data', JSON.stringify(Config.phoneData)); PhoneAPI.showToast("🗑️ 消息已删除"); },
+    regenMsg() { this.closeMsgMenu(); if (this.currentMsgIndex < 0) return; const roleId = Config.currentContactId; const targetApp = Config.currentAppId === 'novel' ? 'novel' : 'wechat'; const realIndex = this.getRealIndex(targetApp, this.currentMsgIndex); Config.phoneData[roleId][targetApp].items.splice(realIndex); localStorage.setItem('phone_data', JSON.stringify(Config.phoneData)); if (targetApp === 'novel') { PhoneUI.renderNovelContent(); this.sendNovelMessage(true); } else { PhoneUI.renderAppContent('wechat'); this.sendChatMessage(true); } },
+    sendUserMsgOnly() { const targetApp = Config.currentAppId === 'novel' ? 'novel' : 'wechat'; const inputEl = targetApp === 'novel' ? document.getElementById('novel-input') : document.getElementById('chat-input'); if(!inputEl) return; const text = inputEl.value.trim(); if (!text) return; const roleId = Config.currentContactId; if (!Config.phoneData[roleId][targetApp]) Config.phoneData[roleId][targetApp] = { items: [] }; const chatItems = Config.phoneData[roleId][targetApp].items; const now = new Date(); const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`; const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`; chatItems.push({ sender: 'me', content: text, time: timeStr, date: dateStr }); inputEl.value = ''; if (targetApp === 'novel') PhoneUI.renderNovelContent(); else PhoneUI.renderAppContent('wechat'); localStorage.setItem('phone_data', JSON.stringify(Config.phoneData)); },
+    compressImage(base64Str) { return new Promise((resolve) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); let width = img.width; let height = img.height; const MAX_SIZE = 1024; if (width > height && width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } else if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height); resolve(canvas.toDataURL('image/jpeg', 0.8)); }; img.src = 'data:image/png;base64,' + base64Str; }); },
+    async generateAiImage() { const prompt = await window.PhoneUI.showCustomPrompt("🎨 请输入画面描述：", "大侦探不死途穿着黑衬衫，在赛博朋克城市的霓虹灯下抽烟，二次元动漫风格"); if (!prompt) return; try { const b64Json = await PhoneAPI.generateImageAPI(prompt); PhoneAPI.showToast("✨ 画作已生成，正在冲洗入册..."); const finalB64 = await this.compressImage(b64Json); const roleId = Config.currentContactId; if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {}; if (!Config.phoneData[roleId].gallery) Config.phoneData[roleId].gallery = { items: [] }; const now = new Date(); const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`; Config.phoneData[roleId].gallery.items.push({ id: 'img_' + Date.now(), content: finalB64, date: dateStr }); localStorage.setItem('phone_data', JSON.stringify(Config.phoneData)); PhoneUI.renderAppContent('gallery'); PhoneAPI.showToast("📸 新照片已保存在回忆相册！"); } catch (e) { alert(e.message); } },
+    deleteGalleryImage(id) { if (!confirm("确定要销毁这张照片吗？")) return; const roleId = Config.currentContactId; let items = Config.phoneData[roleId].gallery.items; Config.phoneData[roleId].gallery.items = items.filter(i => i.id !== id); localStorage.setItem('phone_data', JSON.stringify(Config.phoneData)); PhoneUI.renderAppContent('gallery'); PhoneUI.closeImageViewer(); PhoneAPI.showToast("🗑️ 照片已销毁"); },
 
     async sendChatMessage(isRegen = false) {
         const roleId = Config.currentContactId;

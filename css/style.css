@@ -214,7 +214,6 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 .mc-desc { font-size: 12px; opacity: 0.85; line-height: 1.4; }
 .mc-arrow { font-size: 20px; opacity: 0.5; }
 
-/* 🌟 设置页的 Tab 样式 */
 .set-section { display: none; animation: fadeIn 0.3s ease-out; }
 .set-section.active { display: block; }
 .settings-tabs { display: flex; overflow-x: auto; white-space: nowrap; gap: 10px; padding: 5px 0 15px 0; border-bottom: 1px solid var(--border-color); margin-bottom: 15px; }
@@ -318,3 +317,6 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 .image-viewer img { max-width: 95%; max-height: 90%; border-radius: 12px; box-shadow: 0 0 30px rgba(0,0,0,0.5); transform: scale(0.9); transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1); }
 .image-viewer.show img { transform: scale(1); }
 .viewer-close { position: absolute; top: 40px; right: 20px; color: #fff; font-size: 32px; cursor: pointer; background: rgba(255,255,255,0.2); width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
+/* 🌟 新增：保存到手机按钮样式 */
+.viewer-download { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 16px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+.viewer-download:active { background: rgba(255,255,255,0.4); }

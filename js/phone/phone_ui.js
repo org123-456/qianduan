@@ -3,11 +3,18 @@ export const PhoneUI = {
         const roleId = window.Config?.currentContactId;
         if(!roleId) return;
         
-        const data = window.Config.phoneData[roleId]?.[appId];
+        let data = window.Config.phoneData[roleId]?.[appId];
+        
+        if (appId !== 'gallery' && data && data.items && data.items.length > 50) {
+            data = { ...data, items: data.items.slice(-50) };
+        }
+
         const listEl = document.getElementById('app-content-list');
         if (listEl && window.Apps && window.Apps[appId]) {
             listEl.innerHTML = window.Apps[appId].renderList(data);
             setTimeout(() => { listEl.scrollTop = listEl.scrollHeight; }, 100);
+        } else if (appId === 'gallery') {
+            this.renderGallery();
         }
     },
 
@@ -306,13 +313,17 @@ export const PhoneUI = {
                     <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; background: var(--icon-bg); padding: 10px; border-radius: 8px;">
                         <label style="font-size: 13px; color: var(--text-main); font-weight: bold;"><i class="ph ph-prohibit"></i> 绝对禁止 AI 使用 Emoji</label><input type="checkbox" id="ban-emoji" onchange="window.PhoneAPI.autoSave()" style="width: 18px; height: 18px;">
                     </div>
-                    <div style="margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between; background: var(--icon-bg); padding: 10px; border-radius: 8px;">
+                    <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; background: var(--icon-bg); padding: 10px; border-radius: 8px;">
                         <label style="font-size: 13px; color: var(--text-main); font-weight: bold;"><i class="ph ph-arrows-merge"></i> 开启线上/线下记忆互通</label><input type="checkbox" id="share-memory" onchange="window.PhoneAPI.autoSave()" style="width: 18px; height: 18px;">
+                    </div>
+                    <!-- 🌟 核心：自动拍照开关 -->
+                    <div style="margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between; background: var(--icon-bg); padding: 10px; border-radius: 8px;">
+                        <label style="font-size: 13px; color: var(--text-main); font-weight: bold;"><i class="ph ph-camera"></i> 允许 AI 在聊天中自动发自拍</label><input type="checkbox" id="auto-photo" onchange="window.PhoneAPI.autoSave()" style="width: 18px; height: 18px;">
                     </div>
                 </div>
 
                 <div class="card">
-                    <h3 style="color: var(--primary-color); margin-bottom: 10px;"><i class="ph-fill ph-database"></i> API 预设库</h3>
+                    <h3 style="color: var(--primary-color); margin-bottom: 10px;"><i class="ph-fill ph-database"></i> 语言引擎预设库 (文本模型)</h3>
                     <div style="margin-bottom: 10px;"><input type="text" id="preset-name" placeholder="起个名字 (如: 硅基-DeepSeek)" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
                     <div style="margin-bottom: 10px;"><input type="text" id="preset-url" placeholder="接口地址 (Base URL)" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
                     <div style="margin-bottom: 10px;"><input type="password" id="preset-key" placeholder="API Key (密钥)" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
@@ -332,6 +343,19 @@ export const PhoneUI = {
                     <select id="sub-engine-select" onchange="window.PhoneAPI.assignEngine('sub', this.value)" style="width: 100%; padding: 8px; border-radius: 8px;">
                         <option value="">-- 同主引擎 (自动降级) --</option>
                     </select>
+                </div>
+
+                <!-- 🌟 核心：独立的绘画引擎配置！ -->
+                <div class="card">
+                    <h3 style="color: var(--primary-color); margin-bottom: 10px;"><i class="ph-fill ph-image"></i> 绘画引擎配置 (DALL-E 格式)</h3>
+                    <div style="font-size: 11px; color: var(--text-sub); margin-bottom: 10px;">用于生成相册照片，必须支持返回 b64_json 格式。</div>
+                    <div style="margin-bottom: 10px;"><input type="text" id="img-api-url" placeholder="接口地址 (例如: https://api.openai.com/v1/images/generations)" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
+                    <div style="margin-bottom: 10px;"><input type="password" id="img-api-key" placeholder="API Key (密钥)" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
+                    <div style="margin-bottom: 10px;"><input type="text" id="img-api-model" placeholder="模型名称 (例如: dall-e-3)" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
+                    
+                    <div class="engine-title" style="margin-top: 15px;"><i class="ph-fill ph-mask-happy"></i> 基础画风与锁脸提示词</div>
+                    <div style="font-size: 11px; color: var(--text-sub); margin-bottom: 10px;">每次生图都会自动拼在最后。支持 NAI 标签 (例如: 1boy, handsome, black hair)。</div>
+                    <textarea id="img-base-prompt" rows="3" placeholder="输入基础画风或角色外貌特征..." oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; resize:vertical;"></textarea>
                 </div>
 
                 <div class="card">
@@ -391,6 +415,53 @@ export const PhoneUI = {
         } else {
             contentEl.innerHTML = `<div style="text-align:center; margin-top:100px; color:var(--text-sub);"><i class="ph-fill ph-hammer" style="font-size:64px; color: var(--primary-color); margin-bottom:15px;"></i><h3>界面排版中...</h3><p style="font-size: 12px; margin-top: 10px;">功能骨架已搭建，即将注入灵魂</p></div>`;
         }
+    },
+
+    renderGallery() {
+        const contentEl = document.getElementById('app-window-content');
+        if (!contentEl) return;
+        
+        const roleId = window.Config.currentContactId;
+        const items = window.Config.phoneData[roleId]?.gallery?.items || [];
+        
+        let html = `
+            <button class="btn-refresh" onclick="window.PhoneEngine.generateAiImage()" style="margin-top: 0; margin-bottom: 15px; border-radius: 16px; background: linear-gradient(135deg, #a78bfa, #8b5cf6); box-shadow: 0 5px 15px rgba(139, 92, 246, 0.3);">
+                <i class="ph-fill ph-magic-wand"></i> 生成新照片
+            </button>
+            <div id="image-viewer" class="image-viewer">
+                <div class="viewer-close" onclick="window.PhoneUI.closeImageViewer()"><i class="ph ph-x"></i></div>
+                <img id="viewer-img" src="">
+            </div>
+        `;
+        
+        if (items.length === 0) {
+            html += `<div style="text-align:center; padding: 50px 0; color: var(--text-sub);"><i class="ph-fill ph-images" style="font-size: 48px; color: var(--border-color); margin-bottom: 10px;"></i><br>相册空空如也，快去生成第一张合照吧！</div>`;
+        } else {
+            html += `<div class="gallery-grid">`;
+            [...items].reverse().forEach(img => {
+                html += `
+                    <div class="gallery-item" onclick="window.PhoneUI.openImageViewer('${img.content}')">
+                        <img src="${img.content}">
+                        <div class="gallery-del-btn" onclick="event.stopPropagation(); window.PhoneEngine.deleteGalleryImage('${img.id}')"><i class="ph ph-trash"></i></div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+        }
+        contentEl.innerHTML = html;
+    },
+
+    openImageViewer(src) {
+        const viewer = document.getElementById('image-viewer');
+        const img = document.getElementById('viewer-img');
+        if (viewer && img) {
+            img.src = src;
+            viewer.classList.add('show');
+        }
+    },
+    closeImageViewer() {
+        const viewer = document.getElementById('image-viewer');
+        if (viewer) viewer.classList.remove('show');
     },
 
     closeApp() {
@@ -487,11 +558,8 @@ export const PhoneUI = {
 
     renderNovelContent() {
         const roleId = window.Config.currentContactId;
-        const totalItems = window.Config.phoneData[roleId]?.novel?.items || [];
-        const totalLen = totalItems.length;
-
-        const renderItems = totalLen > 50 ? totalItems.slice(-50) : totalItems;
-        const offset = totalLen > 50 ? totalLen - 50 : 0;
+        const allItems = window.Config.phoneData[roleId]?.novel?.items || [];
+        const items = allItems.slice(-50);
         
         const listEl = document.getElementById('novel-content-list');
         if (!listEl) return;
@@ -502,9 +570,7 @@ export const PhoneUI = {
         const avatarOther = localStorage.getItem('ta_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=You&backgroundColor=dbe9f6';
 
         let html = '';
-        renderItems.forEach((item, index) => {
-            const realIndex = offset + index;
-
+        items.forEach((item, index) => {
             if (item.sender === 'typing') {
                 html += `<div style="text-align:center; padding: 20px; color: var(--primary-color);"><i class="ph ph-spinner spin-anim" style="font-size: 24px;"></i></div>`;
                 return;
@@ -521,6 +587,7 @@ export const PhoneUI = {
                 content = window.marked.parse(content);
             }
 
+            const realIndex = allItems.length - items.length + index;
             const avatarHtml = isMe ? `<img src="${avatar}" class="story-avatar">` : `<img src="${avatar}" class="story-avatar" onclick="window.PhoneUI.showThought(${realIndex}, 'novel')">`;
 
             html += `
@@ -534,19 +601,18 @@ export const PhoneUI = {
         setTimeout(() => { const scrollContainer = document.getElementById('app-window-content'); if(scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight; }, 100);
     },
 
-    // 🌟 核心绝对坐标读取：传入的 realIndex 直接拿取，不再有时空错乱！
-    showThought(realIndex, targetApp) {
+    showThought(index) {
         const roleId = window.Config?.currentContactId;
-        const app = targetApp || (window.Config.currentAppId === 'novel' ? 'novel' : 'wechat');
+        const targetApp = window.Config.currentAppId === 'novel' ? 'novel' : 'wechat';
         
-        const item = window.Config.phoneData[roleId]?.[app]?.items?.[realIndex];
+        const realIndex = window.PhoneEngine.getRealIndex(targetApp, index);
+        const item = window.Config.phoneData[roleId]?.[targetApp]?.items[realIndex];
         if(!item) return;
         
         let thought = item.innerThought;
-        // 如果是连发消息，倒查上一条属于同一个批次的心声
         if (thought && thought.includes('连发消息')) {
             for (let i = realIndex - 1; i >= 0; i--) {
-                const prevItem = window.Config.phoneData[roleId][app].items[i];
+                const prevItem = window.Config.phoneData[roleId][targetApp].items[i];
                 if (prevItem.sender === 'other' && prevItem.time === item.time && prevItem.innerThought && !prevItem.innerThought.includes('连发消息')) {
                     thought = prevItem.innerThought;
                     break;

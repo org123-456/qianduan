@@ -29,10 +29,12 @@ export const PhoneAPI = {
         saveIfExist('system-prompt', 'system_prompt'); saveIfExist('char-persona', 'char_persona'); saveIfExist('novel-style', 'novel_style');
         saveIfExist('ban-emoji', 'ban_emoji', true); saveIfExist('share-memory', 'share_memory', true);
         
-        // 🌟 新增：保存绘画引擎配置
         saveIfExist('img-api-url', 'img_api_url'); 
         saveIfExist('img-api-key', 'img_api_key'); 
         saveIfExist('img-api-model', 'img_api_model');
+        // 🌟 新增：画风锁脸提示词
+        saveIfExist('img-base-prompt', 'img_base_prompt');
+        saveIfExist('auto-photo', 'auto_photo', true);
 
         const charName = localStorage.getItem('char_name'); const myName = localStorage.getItem('my_name');
         if (charName && myName) { const titleEl = document.getElementById('top-title'); if (titleEl) titleEl.innerText = `${myName} & ${charName}`; }
@@ -62,10 +64,13 @@ export const PhoneAPI = {
             const banEmojiEl = document.getElementById('ban-emoji'); if(banEmojiEl) banEmojiEl.checked = localStorage.getItem('ban_emoji') === 'true';
             const shareMemoryEl = document.getElementById('share-memory'); if(shareMemoryEl) shareMemoryEl.checked = localStorage.getItem('share_memory') === 'true';
 
-            // 🌟 新增：加载绘画引擎配置 (默认填入 DALL-E 3 标准参数方便用户)
             setVal('img-api-url', localStorage.getItem('img_api_url') || 'https://api.openai.com/v1/images/generations'); 
             setVal('img-api-key', localStorage.getItem('img_api_key') || ''); 
             setVal('img-api-model', localStorage.getItem('img_api_model') || 'dall-e-3');
+            
+            // 🌟 新增：加载画风提示词和自动拍照开关
+            setVal('img-base-prompt', localStorage.getItem('img_base_prompt') || '');
+            const autoPhotoEl = document.getElementById('auto-photo'); if(autoPhotoEl) autoPhotoEl.checked = localStorage.getItem('auto_photo') === 'true';
 
             const savedCharName = localStorage.getItem('char_name'); const savedMyName = localStorage.getItem('my_name');
             if (savedCharName && savedMyName) { const titleEl = document.getElementById('top-title'); if (titleEl) titleEl.innerText = `${savedMyName} & ${savedCharName}`; }
@@ -196,7 +201,6 @@ export const PhoneAPI = {
         }
     },
 
-    // 🌟 核心：独立图像生成 API (对接 OpenAI DALL-E 格式)
     async generateImageAPI(prompt) {
         const url = localStorage.getItem('img_api_url');
         const key = localStorage.getItem('img_api_key');
@@ -213,7 +217,6 @@ export const PhoneAPI = {
             const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-                // 强制要求返回 b64_json，避免图片跨域和下载过期问题
                 body: JSON.stringify({ model: model, prompt: prompt, n: 1, size: "1024x1024", response_format: "b64_json" })
             });
             
@@ -223,7 +226,6 @@ export const PhoneAPI = {
             if (fab) fab.classList.remove('loading');
             if (statusText) { statusText.innerText = '绘制成功'; statusText.style.color = '#4ade80'; }
 
-            // OpenAI 的 DALL-E 返回结构
             if (data.data && data.data[0] && data.data[0].b64_json) {
                 return data.data[0].b64_json;
             } else if (data.data && data.data[0] && data.data[0].url) {

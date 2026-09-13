@@ -50,7 +50,6 @@ export const PhoneEngine = {
         document.getElementById('action-sheet').classList.remove('show');
     },
 
-    // 🌟 核心：上传锁脸图！
     uploadFaceLock() {
         const input = document.createElement('input');
         input.type = 'file';
@@ -69,7 +68,6 @@ export const PhoneEngine = {
                     const canvas = document.createElement('canvas');
                     let width = img.width;
                     let height = img.height;
-                    // 锁脸图不需要太大，512px 足够了，防止撑爆提示词
                     const MAX_SIZE = 512; 
 
                     if (width > height && width > MAX_SIZE) {
@@ -222,6 +220,177 @@ export const PhoneEngine = {
             }
         };
         input.click();
+    },
+
+    // 🌟 核心：打工赚钱！
+    doTask(reward, taskName) {
+        PhoneAPI.showToast(`💼 正在进行打工: ${taskName}...`);
+        setTimeout(() => {
+            let coins = parseInt(localStorage.getItem('my_coins') || '500');
+            coins += reward;
+            localStorage.setItem('my_coins', coins);
+            const coinEl = document.getElementById('wallet-coin-display');
+            if (coinEl) coinEl.innerText = coins;
+            PhoneAPI.showToast(`🎉 打工完成！赚取了 ${reward} 金币！`);
+        }, 1500);
+    },
+
+    // 🌟 核心：商店标签切换与 AI 进货
+    async addCustomShopTag() {
+        const newTag = await PhoneUI.showCustomPrompt("🏷️ 输入你要添加的商品分类标签：", "例如：赛博义体");
+        if (newTag && newTag.trim() !== "") {
+            let customTags = JSON.parse(localStorage.getItem('shop_custom_tags') || '[]');
+            if (!customTags.includes(newTag.trim())) {
+                customTags.push(newTag.trim());
+                localStorage.setItem('shop_custom_tags', JSON.stringify(customTags));
+                this.switchShopTag(newTag.trim());
+            }
+        }
+    },
+
+    switchShopTag(tag) {
+        window.Config.currentShopTag = tag;
+        // 清空当前货架，准备重新进货
+        localStorage.setItem('shop_current_items', '[]');
+        PhoneUI.renderAppContent('shop');
+        this.refreshShop();
+    },
+
+    async refreshShop() {
+        const tag = window.Config.currentShopTag || '日常用品';
+        PhoneAPI.showToast(`🔄 正在联系 AI 进货商，为您采购【${tag}】...`);
+        
+        const gridEl = document.getElementById('shop-grid');
+        if (gridEl) gridEl.innerHTML = `<div style="grid-column: span 2; text-align:center; padding: 40px 0; color: var(--primary-color);"><i class="ph-fill ph-spinner spin-anim" style="font-size: 32px;"></i><br>AI 进货中...</div>`;
+
+        try {
+            const prompt = `你是一个赛博杂货铺的创意进货员。现在用户想要采购【${tag}】类的商品，用于在语C(角色扮演)中对男主使用。
+请发挥你的脑洞，生成 6 个奇葩、有趣、或者能引发傲娇男主强烈反应的商品。
+【绝对要求】：必须严格输出一个 JSON 数组格式，不要包含任何 markdown 标记（如 \`\`\`json），直接输出纯 JSON 字符串！
+格式范例：
+[
+  {"icon": "🍎", "name": "毒苹果", "desc": "吃下后必须说一句真心话", "price": 50, "effect": "【系统强制指令】：用户对你使用了毒苹果。你必须立刻说出一句深藏心底的真心话。"},
+  ...
+]`;
+            
+            // 使用副引擎（如果没配置会自动降级为主引擎）
+            const reply = await PhoneAPI.chatWithAI([{ role: 'user', content: prompt }], true);
+            
+            // 清理可能存在的 markdown 标记
+            let jsonStr = reply.replace(/```json/gi, '').replace(/```/g, '').trim();
+            const items = JSON.parse(jsonStr);
+            
+            if (Array.isArray(items) && items.length > 0) {
+                localStorage.setItem('shop_current_items', JSON.stringify(items));
+                PhoneUI.renderAppContent('shop');
+                PhoneAPI.showToast("🎉 进货成功！快来看看新商品吧！");
+            } else {
+                throw new Error("解析失败");
+            }
+        } catch (e) {
+            console.error(e);
+            PhoneAPI.showToast("进货失败，AI 迷路了，请重试！");
+            if (gridEl) gridEl.innerHTML = `<div style="grid-column: span 2; text-align:center; padding: 40px 0; color: var(--danger-color);">进货失败，请点击右上角重试。</div>`;
+        }
+    },
+
+    addToCart(index) {
+        const shopItems = JSON.parse(localStorage.getItem('shop_current_items') || '[]');
+        const item = shopItems[index];
+        if (!item) return;
+
+        let cart = JSON.parse(localStorage.getItem('shopping_cart') || '[]');
+        cart.push(item);
+        localStorage.setItem('shopping_cart', JSON.stringify(cart));
+        
+        PhoneUI.renderAppContent('shop');
+        PhoneAPI.showToast(`🛒 已将【${item.name}】加入购物车！`);
+    },
+
+    removeFromCart(index) {
+        let cart = JSON.parse(localStorage.getItem('shopping_cart') || '[]');
+        cart.splice(index, 1);
+        localStorage.setItem('shopping_cart', JSON.stringify(cart));
+        
+        PhoneUI.renderCartList();
+        
+        const badge = document.getElementById('cart-badge');
+        if (badge) {
+            badge.innerText = cart.length;
+            badge.style.display = cart.length > 0 ? 'flex' : 'none';
+        }
+    },
+
+    // 🌟 核心：双轨支付模式！
+    checkoutCart(isHusbandPay) {
+        let cart = JSON.parse(localStorage.getItem('shopping_cart') || '[]');
+        if (cart.length === 0) return;
+
+        let total = 0;
+        let itemNames = [];
+        let effects = [];
+        cart.forEach(item => {
+            total += parseInt(item.price);
+            itemNames.push(`[${item.icon} ${item.name}]`);
+            effects.push(item.effect);
+        });
+
+        const roleId = Config.currentContactId;
+        if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
+        if (!Config.phoneData[roleId].wechat) Config.phoneData[roleId].wechat = { items: [] };
+        
+        const chatItems = Config.phoneData[roleId].wechat.items;
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+
+        if (isHusbandPay) {
+            // 代付撒娇模式
+            PhoneUI.closeCartModal();
+            window.PhoneUI.closeApp();
+            
+            chatItems.push({ 
+                sender: 'me', 
+                content: `🛒 【分享了购物车】\n亲爱的，我看中了这些东西：\n${itemNames.join('、')}\n\n一共需要 ${total} 金币，帮我清空购物车好不好嘛~🥺`, 
+                time: timeStr, 
+                date: dateStr 
+            });
+            
+            localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+            PhoneUI.renderAppContent('wechat');
+            this.sendChatMessage(false);
+            
+        } else {
+            // 自己买单模式
+            let coins = parseInt(localStorage.getItem('my_coins') || '500');
+            if (coins < total) {
+                PhoneAPI.showToast("余额不足，快去打工赚钱吧！");
+                return;
+            }
+            
+            if (confirm(`确定花费 ${total} 金币购买购物车里的所有商品，并立即在微信里对他使用吗？`)) {
+                coins -= total;
+                localStorage.setItem('my_coins', coins);
+                
+                // 清空购物车
+                localStorage.setItem('shopping_cart', '[]');
+                
+                PhoneUI.closeCartModal();
+                window.PhoneUI.closeApp(); 
+                PhoneAPI.showToast(`🎉 购买成功！已对他使用道具！`);
+                
+                chatItems.push({ 
+                    sender: 'me', 
+                    content: `【系统动作】：我豪掷 ${total} 金币，购买并对你使用了以下道具：\n${itemNames.join('、')}。\n\n${effects.join('\n')}`, 
+                    time: timeStr, 
+                    date: dateStr 
+                });
+                
+                localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+                PhoneUI.renderAppContent('wechat');
+                this.sendChatMessage(false);
+            }
+        }
     },
 
     async favoriteMsg() {
@@ -418,70 +587,6 @@ ${historyText}`;
         }
     },
 
-    buyItem(itemName, price, effectPrompt) {
-        let coins = parseInt(localStorage.getItem('my_coins') || '500');
-        if (coins < price) {
-            PhoneAPI.showToast("余额不足，快去打工赚钱吧！");
-            return;
-        }
-        
-        if (confirm(`确定花费 ${price} 金币购买【${itemName}】并立即在微信里对他使用吗？`)) {
-            coins -= price;
-            localStorage.setItem('my_coins', coins);
-            const coinEl = document.getElementById('coin-display');
-            if(coinEl) coinEl.innerText = coins;
-            
-            PhoneAPI.showToast(`🎉 购买成功！已对他使用【${itemName}】`);
-            window.PhoneUI.closeApp(); 
-            
-            const roleId = Config.currentContactId;
-            if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
-            if (!Config.phoneData[roleId].wechat) Config.phoneData[roleId].wechat = { items: [] };
-            
-            const chatItems = Config.phoneData[roleId].wechat.items;
-            const now = new Date();
-            const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-            const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-            
-            chatItems.push({ 
-                sender: 'me', 
-                content: `【系统动作】：我购买并对你使用了道具 [${itemName}]。${effectPrompt}`, 
-                time: timeStr, 
-                date: dateStr 
-            });
-            
-            localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-            PhoneUI.renderAppContent('wechat');
-            
-            this.sendChatMessage(false);
-        }
-    },
-
-    sendUserMsgOnly() {
-        const targetApp = Config.currentAppId === 'novel' ? 'novel' : 'wechat';
-        const inputEl = targetApp === 'novel' ? document.getElementById('novel-input') : document.getElementById('chat-input');
-        
-        if(!inputEl) return;
-        const text = inputEl.value.trim();
-        if (!text) return;
-
-        const roleId = Config.currentContactId;
-        if (!Config.phoneData[roleId][targetApp]) Config.phoneData[roleId][targetApp] = { items: [] };
-        const chatItems = Config.phoneData[roleId][targetApp].items;
-
-        const now = new Date();
-        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-        const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-        
-        chatItems.push({ sender: 'me', content: text, time: timeStr, date: dateStr });
-        inputEl.value = '';
-
-        if (targetApp === 'novel') PhoneUI.renderNovelContent();
-        else PhoneUI.renderAppContent('wechat');
-        
-        localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-    },
-
     compressImage(base64Str) {
         return new Promise((resolve) => {
             const img = new Image();
@@ -514,11 +619,7 @@ ${historyText}`;
         if (!prompt) return;
         
         try {
-            const basePrompt = localStorage.getItem('img_base_prompt') || '';
-            const fullPrompt = prompt + (basePrompt ? ', ' + basePrompt : '');
-
-            const b64Json = await PhoneAPI.generateImageAPI(fullPrompt);
-            
+            const b64Json = await PhoneAPI.generateImageAPI(prompt);
             PhoneAPI.showToast("✨ 画作已生成，正在冲洗入册...");
             
             const finalB64 = await this.compressImage(b64Json);
@@ -740,10 +841,7 @@ ${historyText}`;
                 
                 try {
                     PhoneAPI.showToast("📸 他正在拍照，请稍候...");
-                    const basePrompt = localStorage.getItem('img_base_prompt') || '';
-                    const fullPrompt = photoPrompt + (basePrompt ? ', ' + basePrompt : '');
-                    
-                    const b64Json = await PhoneAPI.generateImageAPI(fullPrompt);
+                    const b64Json = await PhoneAPI.generateImageAPI(photoPrompt);
                     const finalB64 = await this.compressImage(b64Json);
                     
                     chatItems.pop(); 

@@ -14,7 +14,7 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=11000">
+    <link rel="stylesheet" href="css/style.css?t=12000">
 </head>
 <body>
     <div id="api-fab" class="api-fab" onclick="window.PhoneUI.openApiModal()">
@@ -71,7 +71,8 @@
                         <div class="icon" id="home-icon-settings"><i class="ph-fill ph-gear" style="color: var(--primary-color);"></i></div>
                         <div class="name" style="font-weight: bold;">系统设置</div>
                     </div>
-                    <div class="app-icon" onclick="alert('相册功能开发中，敬请期待！')">
+                    <!-- 🌟 核心：打通相册入口 -->
+                    <div class="app-icon" onclick="window.PhoneUI.openApp('gallery', '回忆相册')">
                         <div class="icon" id="home-icon-gallery"><i class="ph-fill ph-images" style="color: #e5989b;"></i></div>
                         <div class="name">相册</div>
                     </div>
@@ -98,7 +99,8 @@
                         <i class="ph-fill ph-database icon"></i>
                         <span class="text">记忆库</span>
                     </div>
-                    <div class="glass-bubble bubble-gallery" onclick="alert('相册功能开发中！')">
+                    <!-- 🌟 核心：打通相册入口 -->
+                    <div class="glass-bubble bubble-gallery" onclick="window.PhoneUI.openApp('gallery', '回忆相册')">
                         <i class="ph-fill ph-polaroid-camera icon"></i>
                         <span class="text">相册</span>
                     </div>
@@ -330,6 +332,6 @@
                 .catch(err => console.error('Service Worker 注册失败:', err));
         }
     </script>
-    <script type="module" src="js/main.js?t=11000"></script>
+    <script type="module" src="js/main.js?t=12000"></script>
 </body>
 </html>

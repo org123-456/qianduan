@@ -422,6 +422,82 @@ ${historyText}`;
         localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
     },
 
+    // 🌟 核心：辅助压缩图片的方法，返回 Promise
+    compressImage(base64Str) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                const MAX_SIZE = 1024; 
+
+                if (width > height && width > MAX_SIZE) {
+                    height *= MAX_SIZE / width;
+                    width = MAX_SIZE;
+                } else if (height > MAX_SIZE) {
+                    width *= MAX_SIZE / height;
+                    height = MAX_SIZE;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', 0.8));
+            };
+            img.src = 'data:image/png;base64,' + base64Str;
+        });
+    },
+
+    // 🌟 核心：独立生图方法（去相册里点的那个）
+    async generateAiImage() {
+        const prompt = await window.PhoneUI.showCustomPrompt("🎨 请输入画面描述：", "大侦探不死途穿着黑衬衫，在赛博朋克城市的霓虹灯下抽烟，二次元动漫风格");
+        if (!prompt) return;
+        
+        try {
+            const basePrompt = localStorage.getItem('img_base_prompt') || '';
+            const fullPrompt = prompt + (basePrompt ? ', ' + basePrompt : '');
+
+            const b64Json = await PhoneAPI.generateImageAPI(fullPrompt);
+            
+            PhoneAPI.showToast("✨ 画作已生成，正在冲洗入册...");
+            
+            const finalB64 = await this.compressImage(b64Json);
+
+            const roleId = Config.currentContactId;
+            if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
+            if (!Config.phoneData[roleId].gallery) Config.phoneData[roleId].gallery = { items: [] };
+
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+
+            Config.phoneData[roleId].gallery.items.push({
+                id: 'img_' + Date.now(),
+                content: finalB64,
+                date: dateStr
+            });
+
+            localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+            PhoneUI.renderAppContent('gallery');
+            PhoneAPI.showToast("📸 新照片已保存在回忆相册！");
+            
+        } catch (e) {
+            alert(e.message);
+        }
+    },
+
+    deleteGalleryImage(id) {
+        if (!confirm("确定要销毁这张照片吗？")) return;
+        const roleId = Config.currentContactId;
+        let items = Config.phoneData[roleId].gallery.items;
+        Config.phoneData[roleId].gallery.items = items.filter(i => i.id !== id);
+        localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+        PhoneUI.renderAppContent('gallery');
+        PhoneUI.closeImageViewer();
+        PhoneAPI.showToast("🗑️ 照片已销毁");
+    },
+
     async sendChatMessage(isRegen = false) {
         const roleId = Config.currentContactId;
         if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
@@ -454,7 +530,8 @@ ${historyText}`;
         try {
             const myName = localStorage.getItem('my_name') || '我';
             const banEmoji = localStorage.getItem('ban_emoji') === 'true';
-            const shareMemory = localStorage.getItem('share_memory') === 'true'; // 🌟 读取互通状态
+            const shareMemory = localStorage.getItem('share_memory') === 'true';
+            const autoPhoto = localStorage.getItem('auto_photo') === 'true'; // 🌟 读取自动拍照开关
             
             const systemPrompt = localStorage.getItem('system_prompt') || '';
             const charPersona = localStorage.getItem('char_persona') || '';
@@ -465,8 +542,14 @@ ${historyText}`;
 
             let formatRule = "";
             if (banEmoji) formatRule += "【最高禁令】：绝对不允许使用任何 Emoji、颜文字、波浪号(~)，违者抹杀！\n";
-            formatRule += "【微信连发机制】：请像真实人类用微信一样，把你的回复自然地切分成多个短句。不限制气泡数量，请务必把你想说的话完整说完！系统会根据你输出的换行符（回车）来切分微信气泡。绝对不要把所有话挤在同一行！\n";
-            formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。**【绝对警告】：严禁重复你之前的心声！必须根据当前的最新对话，产生全新的心理活动！**\n";
+            formatRule += "【互动最高指令】：如果用户向你发送了问卷、测试题单或提问，**绝对禁止**说‘等我写完告诉你有空再答’等拖延废话！你**必须立刻、当场逐题作答**，给出你的具体选项并配合傲娇或犀利的吐槽！\n";
+            formatRule += "【微信连发机制】：不限制气泡数量，请务必把你想说的话完整说完！系统会根据换行符切分微信气泡。绝对不要把所有话挤在同一行！\n";
+            formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。\n【心声强制规则】：**绝对严禁再次提及‘小手机’、‘实验对象/实验品’、‘修东西’等老调重弹的内容！** 此刻的心声必须严格聚焦在【你对用户刚刚发的具体内容最私密、最真实的心理反应】！\n";
+
+            // 🌟 核心：如果开启了自动拍照，注入生图触发指令！
+            if (autoPhoto) {
+                formatRule += "【视觉交互机制】：如果用户在聊天中要求你“发一张自拍”、“拍个照看看”或者“让我看看你在干嘛”，你除了正常的文字回复外，**必须**在回复的最后加上一个 <photo> 标签，里面用英文详细描述你当前的动作、表情、穿着和环境（用于AI绘图）。例如：<photo>1boy, handsome, looking at viewer, holding a coffee cup, neon city background, masterpiece</photo>。注意：如果没有要求拍照，绝对不要输出这个标签！\n";
+            }
 
             const wbData = PhoneAPI.getWorldbookData();
             const activeOnlineWb = wbData.filter(w => w.online).map(w => w.content).join('\n');
@@ -474,11 +557,9 @@ ${historyText}`;
                 formatRule += `\n【当前生效的世界书/规则插件】：\n${activeOnlineWb}\n`;
             }
 
-            // 🌟 核心隔离：根据互通状态过滤记忆库！
             const allVault = PhoneAPI.getMemoryVault();
             let accessibleVault = allVault;
             if (!shareMemory) {
-                // 如果没开互通，只能看【核心记忆】和【线上微信】的记忆
                 accessibleVault = allVault.filter(v => v.isCore || v.source === '线上微信');
             }
 
@@ -569,6 +650,14 @@ ${historyText}`;
                 }
             }
 
+            // 🌟 核心：解析返回的 <photo> 标签！
+            let photoPrompt = null;
+            const photoMatch = rawReply.match(/<photo>([\s\S]*?)<\/photo>/i);
+            if (photoMatch) {
+                photoPrompt = photoMatch[1].trim();
+                rawReply = rawReply.replace(/<photo>[\s\S]*?<\/photo>/gi, '').trim();
+            }
+
             const innerMatch = rawReply.match(/<inner>([\s\S]*?)<\/inner>/i);
             const innerThought = innerMatch ? innerMatch[1].trim() : "（TA的心思藏得很深，什么也没看出来...）";
 
@@ -588,6 +677,49 @@ ${historyText}`;
 
             PhoneUI.renderAppContent('wechat'); 
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+
+            // 🌟 核心：如果 AI 决定拍照，后台静默生图！
+            if (photoPrompt) {
+                chatItems.push({ sender: 'typing' });
+                PhoneUI.renderAppContent('wechat'); 
+                
+                try {
+                    PhoneAPI.showToast("📸 他正在拍照，请稍候...");
+                    const basePrompt = localStorage.getItem('img_base_prompt') || '';
+                    const fullPrompt = photoPrompt + (basePrompt ? ', ' + basePrompt : '');
+                    
+                    const b64Json = await PhoneAPI.generateImageAPI(fullPrompt);
+                    const finalB64 = await this.compressImage(b64Json);
+                    
+                    chatItems.pop(); // 移除 typing
+                    
+                    // 把照片发进微信
+                    chatItems.push({ 
+                        sender: 'other', 
+                        content: `![图片](${finalB64})`, 
+                        time: timeStr, 
+                        date: dateStr,
+                        innerThought: "（拍张照给她看看吧...）"
+                    });
+                    
+                    // 同时洗一份进相册
+                    if (!Config.phoneData[roleId].gallery) Config.phoneData[roleId].gallery = { items: [] };
+                    Config.phoneData[roleId].gallery.items.push({
+                        id: 'img_' + Date.now(),
+                        content: finalB64,
+                        date: dateStr
+                    });
+
+                    localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+                    PhoneUI.renderAppContent('wechat');
+                    PhoneAPI.showToast("📸 照片已发送并存入相册！");
+                    
+                } catch (e) {
+                    chatItems.pop(); 
+                    PhoneUI.renderAppContent('wechat');
+                    PhoneAPI.showToast("拍照失败：" + e.message);
+                }
+            }
 
         } catch (error) {
             PhoneAPI.showToast(error.message);
@@ -631,7 +763,7 @@ ${historyText}`;
         try {
             const myName = localStorage.getItem('my_name') || '我';
             const banEmoji = localStorage.getItem('ban_emoji') === 'true';
-            const shareMemory = localStorage.getItem('share_memory') === 'true'; // 🌟 读取互通状态
+            const shareMemory = localStorage.getItem('share_memory') === 'true'; 
             
             const systemPrompt = localStorage.getItem('system_prompt') || '';
             const charPersona = localStorage.getItem('char_persona') || '';
@@ -646,7 +778,7 @@ ${historyText}`;
 
             let formatRule = "【线下沉浸模式】：当前是面对面的真实场景。请用写小说/语C的笔法进行演绎。\n";
             formatRule += `【字数与细节强制要求】：每次回复**必须不少于 ${minWords} 字**（不包含思维链的字数）！请尽情展开环境渲染、细腻的动作刻画和深度的心理描写，让场景充满画面感。绝对禁止像微信聊天那样只发短对话，必须像长篇小说的一段一样丰满！\n`;
-            formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。**【警告】：绝对禁止重复之前的心声！必须产生全新的心理活动！**\n";
+            formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。严禁重复心声，必须产生全新心理活动！\n";
 
             if (banEmoji) formatRule += "【最高禁令】：绝对不允许使用任何 Emoji、颜文字、波浪号(~)，违者抹杀！\n";
 
@@ -656,11 +788,9 @@ ${historyText}`;
                 formatRule += `\n【当前生效的世界书/规则插件】：\n${activeOfflineWb}\n`;
             }
 
-            // 🌟 核心隔离：根据互通状态过滤记忆库！
             const allVault = PhoneAPI.getMemoryVault();
             let accessibleVault = allVault;
             if (!shareMemory) {
-                // 如果没开互通，只能看【核心记忆】和【线下故事】的记忆
                 accessibleVault = allVault.filter(v => v.isCore || v.source === '线下故事');
             }
 

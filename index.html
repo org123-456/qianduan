@@ -14,7 +14,7 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=15000">
+    <link rel="stylesheet" href="css/style.css?t=16000">
 </head>
 <body>
     <div id="api-fab" class="api-fab" onclick="window.PhoneUI.openApiModal()">
@@ -30,7 +30,7 @@
         </div>
         <div class="card" style="padding: 15px; margin-bottom: 15px; background: var(--icon-bg);">
             <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 5px;">上一次 API 状态：</div>
-            <div id="api-status-text" style="font-size: 14px; font-weight: bold; color: var(--text-main);">待命</div>
+            <div id="api-status-text" style="font-size: 14px; font-weight: bold; color: var(--text-main); word-break: break-all;">待命</div>
             <div style="font-size: 12px; color: var(--text-sub); margin-top: 10px; margin-bottom: 5px;">消耗 Token：</div>
             <div id="api-token-text" style="font-size: 14px; font-family: monospace; color: var(--primary-color);">0</div>
         </div>
@@ -70,6 +70,10 @@
                     <div class="app-icon" onclick="window.PhoneUI.openApp('settings', '系统设置')">
                         <div class="icon" id="home-icon-settings"><i class="ph-fill ph-gear" style="color: var(--primary-color);"></i></div>
                         <div class="name" style="font-weight: bold;">系统设置</div>
+                    </div>
+                    <div class="app-icon" onclick="window.PhoneUI.openApp('gallery', '回忆相册')">
+                        <div class="icon" id="home-icon-gallery"><i class="ph-fill ph-images" style="color: #e5989b;"></i></div>
+                        <div class="name">相册</div>
                     </div>
                     <div class="app-icon" onclick="window.PhoneUI.openApp('shop', '商店')">
                         <div class="icon" id="home-icon-shop"><i class="ph-fill ph-storefront" style="color: #f4a261;"></i></div>
@@ -313,7 +317,7 @@
                     window.PhoneAPI.refreshPresetDropdowns(); 
                     window.PhoneAPI.refreshPromptDropdowns();
                     window.PhoneAPI.refreshUIDropdowns();
-                    window.PhoneAPI.refreshImgDropdowns(); // 加载生图预设
+                    window.PhoneAPI.refreshImgDropdowns();
                     window.PhoneAPI.loadSettings();
                     if(window.PhoneEngine) window.PhoneEngine.cleanStuckTyping();
                 }
@@ -327,6 +331,6 @@
                 .catch(err => console.error('Service Worker 注册失败:', err));
         }
     </script>
-    <script type="module" src="js/main.js?t=15000"></script>
+    <script type="module" src="js/main.js?t=16000"></script>
 </body>
 </html>

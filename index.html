@@ -15,20 +15,14 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
-    <!-- 🌟 核心暴力破解：把容易丢失的样式直接写死在 HTML 里！ -->
     <style>
-        /* 强制修复控制舱错位 */
         .api-modal { position: fixed !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -40%) scale(0.9) !important; width: 85% !important; background: var(--input-bg) !important; backdrop-filter: blur(20px) !important; border-radius: 24px !important; padding: 25px !important; box-shadow: 0 10px 40px rgba(0,0,0,0.2) !important; z-index: 1001 !important; opacity: 0 !important; visibility: hidden !important; transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1) !important; }
         .api-modal.show { transform: translate(-50%, -50%) scale(1) !important; opacity: 1 !important; visibility: visible !important; }
-        
-        /* 强制修复底部导航栏挤压 */
         .bottom-nav { position: absolute !important; bottom: 0 !important; left: 0 !important; right: 0 !important; height: 75px !important; background: var(--input-bg) !important; backdrop-filter: blur(10px) !important; display: flex !important; justify-content: space-around !important; align-items: center !important; border-radius: 30px 30px 0 0 !important; box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.05) !important; padding-bottom: env(safe-area-inset-bottom) !important; z-index: 20 !important; }
-        
-        /* 强制修复顶部标题栏挤压 */
         .top-bar { display: flex !important; justify-content: space-between !important; align-items: center !important; padding: 45px 20px 15px 20px !important; color: var(--primary-color) !important; font-weight: bold !important; z-index: 50 !important; background: var(--input-bg) !important; backdrop-filter: blur(15px) !important; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important; transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1) !important; width: 100% !important; box-sizing: border-box !important;}
     </style>
 
-    <link rel="stylesheet" href="css/style.css?t=21000">
+    <link rel="stylesheet" href="css/style.css?t=22000">
 </head>
 <body>
     <div id="api-fab" class="api-fab" onclick="window.PhoneUI.openApiModal()">
@@ -89,10 +83,6 @@
                         <div class="icon" id="home-icon-shop"><i class="ph-fill ph-storefront" style="color: #f4a261;"></i></div>
                         <div class="name">商店</div>
                     </div>
-                    <div class="app-icon" onclick="window.PhoneUI.openApp('task', '打工赚钱')">
-                        <div class="icon" id="home-icon-task"><i class="ph-fill ph-check-square-offset" style="color: #2a9d8f;"></i></div>
-                        <div class="name">打工赚钱</div>
-                    </div>
                 </div>
             </div>
 
@@ -145,10 +135,6 @@
                         <div class="icon"><i class="ph-fill ph-aperture" style="color: #ffb703;"></i></div>
                         <div class="name">转盘</div>
                     </div>
-                    <div class="app-icon" onclick="window.PhoneUI.openApp('wallet', '钱包'); window.PhoneUI.toggleChatMenu();">
-                        <div class="icon"><i class="ph-fill ph-wallet" style="color: var(--secondary-color);"></i></div>
-                        <div class="name">钱包</div>
-                    </div>
                 </div>
 
                 <form class="chat-input-bar" onsubmit="event.preventDefault(); window.PhoneEngine.sendUserMsgOnly(); window.PhoneUI.closeChatMenu();">
@@ -166,13 +152,28 @@
                 </div>
             </div>
 
+            <!-- 🌟 核心：Mine 页面重构，加入钱包和打工 -->
             <div id="page-mine" class="page">
-                <div class="card" style="text-align: center; padding: 40px 20px; color: var(--text-main);">
+                <div class="card" style="text-align: center; padding: 40px 20px; color: var(--text-main); position: relative;">
                     <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa" id="mine-avatar-display" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 15px; border: 3px solid var(--primary-color); object-fit: cover;">
                     <h3 style="color: var(--primary-color); margin-bottom: 5px;" id="mine-name-display">我</h3>
                     <p style="font-size: 12px; color: var(--text-sub);">你的专属空间</p>
                 </div>
                 
+                <div class="gold-card" style="margin-bottom: 15px;">
+                    <div class="gold-title">我的小金库余额</div>
+                    <div class="gold-amount"><i class="ph-fill ph-coin" style="font-size: 28px;"></i> <span id="mine-coin-display">500</span></div>
+                </div>
+
+                <div class="memory-card gallery-card" onclick="window.PhoneUI.openApp('task', '打工赚钱')">
+                    <div class="mc-icon"><i class="ph-fill ph-briefcase"></i></div>
+                    <div class="mc-info">
+                        <div class="mc-title">悬赏打工板</div>
+                        <div class="mc-desc">接取委托，赚取金币，触发剧情</div>
+                    </div>
+                    <i class="ph ph-caret-right mc-arrow"></i>
+                </div>
+
                 <div class="memory-card" style="background: linear-gradient(135deg, #f4a261, #e76f51);" onclick="window.PhoneUI.openApp('favorites', '星海收藏夹')">
                     <div class="mc-icon"><i class="ph-fill ph-star"></i></div>
                     <div class="mc-info">
@@ -294,6 +295,10 @@
                 const name = localStorage.getItem('my_name') || '我';
                 document.getElementById('mine-avatar-display').src = avatar;
                 document.getElementById('mine-name-display').innerText = name;
+                // 🌟 更新 Mine 页面的余额
+                const coins = localStorage.getItem('my_coins') || '500';
+                const coinEl = document.getElementById('mine-coin-display');
+                if (coinEl) coinEl.innerText = coins;
             }
         }
 
@@ -341,6 +346,6 @@
                 .catch(err => console.error('Service Worker 注册失败:', err));
         }
     </script>
-    <script type="module" src="js/main.js?t=21000"></script>
+    <script type="module" src="js/main.js?t=22000"></script>
 </body>
 </html>

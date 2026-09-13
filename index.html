@@ -14,7 +14,7 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=16000">
+    <link rel="stylesheet" href="css/style.css?t=17000">
 </head>
 <body>
     <div id="api-fab" class="api-fab" onclick="window.PhoneUI.openApiModal()">
@@ -317,7 +317,7 @@
                     window.PhoneAPI.refreshPresetDropdowns(); 
                     window.PhoneAPI.refreshPromptDropdowns();
                     window.PhoneAPI.refreshUIDropdowns();
-                    window.PhoneAPI.refreshImgDropdowns();
+                    window.PhoneAPI.refreshImgDropdowns(); 
                     window.PhoneAPI.loadSettings();
                     if(window.PhoneEngine) window.PhoneEngine.cleanStuckTyping();
                 }
@@ -331,6 +331,6 @@
                 .catch(err => console.error('Service Worker 注册失败:', err));
         }
     </script>
-    <script type="module" src="js/main.js?t=16000"></script>
+    <script type="module" src="js/main.js?t=17000"></script>
 </body>
 </html>

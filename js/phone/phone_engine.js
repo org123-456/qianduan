@@ -422,7 +422,6 @@ ${historyText}`;
         localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
     },
 
-    // 🌟 核心：辅助压缩图片的方法，返回 Promise
     compressImage(base64Str) {
         return new Promise((resolve) => {
             const img = new Image();
@@ -450,17 +449,12 @@ ${historyText}`;
         });
     },
 
-    // 🌟 核心：独立生图方法（去相册里点的那个）
     async generateAiImage() {
         const prompt = await window.PhoneUI.showCustomPrompt("🎨 请输入画面描述：", "大侦探不死途穿着黑衬衫，在赛博朋克城市的霓虹灯下抽烟，二次元动漫风格");
         if (!prompt) return;
         
         try {
-            const basePrompt = localStorage.getItem('img_base_prompt') || '';
-            const fullPrompt = prompt + (basePrompt ? ', ' + basePrompt : '');
-
-            const b64Json = await PhoneAPI.generateImageAPI(fullPrompt);
-            
+            const b64Json = await PhoneAPI.generateImageAPI(prompt);
             PhoneAPI.showToast("✨ 画作已生成，正在冲洗入册...");
             
             const finalB64 = await this.compressImage(b64Json);
@@ -531,7 +525,7 @@ ${historyText}`;
             const myName = localStorage.getItem('my_name') || '我';
             const banEmoji = localStorage.getItem('ban_emoji') === 'true';
             const shareMemory = localStorage.getItem('share_memory') === 'true';
-            const autoPhoto = localStorage.getItem('auto_photo') === 'true'; // 🌟 读取自动拍照开关
+            const autoPhoto = localStorage.getItem('auto_photo') === 'true'; 
             
             const systemPrompt = localStorage.getItem('system_prompt') || '';
             const charPersona = localStorage.getItem('char_persona') || '';
@@ -546,7 +540,6 @@ ${historyText}`;
             formatRule += "【微信连发机制】：不限制气泡数量，请务必把你想说的话完整说完！系统会根据换行符切分微信气泡。绝对不要把所有话挤在同一行！\n";
             formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。\n【心声强制规则】：**绝对严禁再次提及‘小手机’、‘实验对象/实验品’、‘修东西’等老调重弹的内容！** 此刻的心声必须严格聚焦在【你对用户刚刚发的具体内容最私密、最真实的心理反应】！\n";
 
-            // 🌟 核心：如果开启了自动拍照，注入生图触发指令！
             if (autoPhoto) {
                 formatRule += "【视觉交互机制】：如果用户在聊天中要求你“发一张自拍”、“拍个照看看”或者“让我看看你在干嘛”，你除了正常的文字回复外，**必须**在回复的最后加上一个 <photo> 标签，里面用英文详细描述你当前的动作、表情、穿着和环境（用于AI绘图）。例如：<photo>1boy, handsome, looking at viewer, holding a coffee cup, neon city background, masterpiece</photo>。注意：如果没有要求拍照，绝对不要输出这个标签！\n";
             }
@@ -650,7 +643,6 @@ ${historyText}`;
                 }
             }
 
-            // 🌟 核心：解析返回的 <photo> 标签！
             let photoPrompt = null;
             const photoMatch = rawReply.match(/<photo>([\s\S]*?)<\/photo>/i);
             if (photoMatch) {
@@ -678,22 +670,17 @@ ${historyText}`;
             PhoneUI.renderAppContent('wechat'); 
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
 
-            // 🌟 核心：如果 AI 决定拍照，后台静默生图！
             if (photoPrompt) {
                 chatItems.push({ sender: 'typing' });
                 PhoneUI.renderAppContent('wechat'); 
                 
                 try {
                     PhoneAPI.showToast("📸 他正在拍照，请稍候...");
-                    const basePrompt = localStorage.getItem('img_base_prompt') || '';
-                    const fullPrompt = photoPrompt + (basePrompt ? ', ' + basePrompt : '');
-                    
-                    const b64Json = await PhoneAPI.generateImageAPI(fullPrompt);
+                    const b64Json = await PhoneAPI.generateImageAPI(photoPrompt);
                     const finalB64 = await this.compressImage(b64Json);
                     
-                    chatItems.pop(); // 移除 typing
+                    chatItems.pop(); 
                     
-                    // 把照片发进微信
                     chatItems.push({ 
                         sender: 'other', 
                         content: `![图片](${finalB64})`, 
@@ -702,7 +689,6 @@ ${historyText}`;
                         innerThought: "（拍张照给她看看吧...）"
                     });
                     
-                    // 同时洗一份进相册
                     if (!Config.phoneData[roleId].gallery) Config.phoneData[roleId].gallery = { items: [] };
                     Config.phoneData[roleId].gallery.items.push({
                         id: 'img_' + Date.now(),

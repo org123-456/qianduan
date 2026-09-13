@@ -92,6 +92,20 @@ export const PhoneUI = {
         document.getElementById('api-modal').classList.remove('show');
     },
 
+    // 🌟 核心：设置页 Tab 切换逻辑
+    switchSetTab(tabId) {
+        ['basic', 'ai', 'draw', 'sys'].forEach(id => {
+            const tab = document.getElementById('stab-' + id);
+            const sec = document.getElementById('set-sec-' + id);
+            if(tab) tab.classList.remove('active');
+            if(sec) sec.classList.remove('active');
+        });
+        const activeTab = document.getElementById('stab-' + tabId);
+        const activeSec = document.getElementById('set-sec-' + tabId);
+        if(activeTab) activeTab.classList.add('active');
+        if(activeSec) activeSec.classList.add('active');
+    },
+
     openApp(appId, appName) {
         window.Config.currentAppId = appId;
         
@@ -233,143 +247,168 @@ export const PhoneUI = {
                 </div>
             `;
 
+        // 🌟 核心重构：设置页面的 Tab 分类排版！
         } else if (appId === 'settings') {
             const today = new Date();
             const defaultDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
             
             contentEl.innerHTML = `
-                <div class="card">
-                    <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph-fill ph-user-list"></i> 基础设定</h3>
-                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                        <div style="flex: 1;"><label style="font-size: 12px; color: var(--text-sub);">我的名字</label><input type="text" id="my-name" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
-                        <div style="flex: 1;"><label style="font-size: 12px; color: var(--text-sub);">TA的名字</label><input type="text" id="char-name" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
+                <div class="settings-tabs">
+                    <div class="settings-tab active" id="stab-basic" onclick="window.PhoneUI.switchSetTab('basic')">基础/UI</div>
+                    <div class="settings-tab" id="stab-ai" onclick="window.PhoneUI.switchSetTab('ai')">大模型</div>
+                    <div class="settings-tab" id="stab-draw" onclick="window.PhoneUI.switchSetTab('draw')">绘画引擎</div>
+                    <div class="settings-tab" id="stab-sys" onclick="window.PhoneUI.switchSetTab('sys')">系统维护</div>
+                </div>
+
+                <!-- 1. 基础与UI -->
+                <div id="set-sec-basic" class="set-section active">
+                    <div class="card">
+                        <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph-fill ph-user-list"></i> 基础设定</h3>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <div style="flex: 1;"><label style="font-size: 12px; color: var(--text-sub);">我的名字</label><input type="text" id="my-name" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
+                            <div style="flex: 1;"><label style="font-size: 12px; color: var(--text-sub);">TA的名字</label><input type="text" id="char-name" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                            <div style="flex: 1;"><label style="font-size: 12px; color: var(--text-sub);">我的头像(网址)</label><input type="text" id="my-avatar" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
+                            <div style="flex: 1;"><label style="font-size: 12px; color: var(--text-sub);">TA的头像(网址)</label><input type="text" id="ta-avatar" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
+                        </div>
                     </div>
-                    <div style="display: flex; gap: 10px; margin-bottom: 5px;">
-                        <div style="flex: 1;"><label style="font-size: 12px; color: var(--text-sub);">我的头像(网址)</label><input type="text" id="my-avatar" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
-                        <div style="flex: 1;"><label style="font-size: 12px; color: var(--text-sub);">TA的头像(网址)</label><input type="text" id="ta-avatar" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
+
+                    <div class="card">
+                        <h3 style="color: var(--primary-color); margin-bottom: 10px;"><i class="ph-fill ph-palette"></i> UI 主题装修 (预设库)</h3>
+                        <div class="preset-bar">
+                            <select id="ui-preset-select" onchange="window.PhoneAPI.loadUIPreset()"></select>
+                            <button class="preset-btn" onclick="window.PhoneAPI.saveUIPreset()">存为预设</button>
+                            <button class="preset-btn del" onclick="window.PhoneAPI.deleteUIPreset()">删除</button>
+                        </div>
+                        <div class="engine-title"><i class="ph-fill ph-image"></i> 壁纸与封面</div>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <div style="flex: 1;"><label style="font-size: 11px; color: var(--text-sub);">全局壁纸(网址)</label><input type="text" id="bg-global" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
+                            <div style="flex: 1;"><label style="font-size: 11px; color: var(--text-sub);">聊天壁纸(网址)</label><input type="text" id="bg-chat" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <label style="font-size: 11px; color: var(--text-sub);">日记本封面(网址)</label>
+                            <input type="text" id="bg-diary-cover" placeholder="例如: ./cover.jpg" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <label style="font-size: 11px; color: var(--text-sub);">日记内页底图(网址)</label>
+                            <input type="text" id="bg-diary-page" placeholder="推荐使用牛皮纸或水彩底图" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
+                        </div>
+                        
+                        <div class="engine-title"><i class="ph-fill ph-text-aa"></i> 日记本专属设置</div>
+                        <div style="margin-bottom: 10px;">
+                            <label style="font-size: 11px; color: var(--text-sub); font-weight: bold; color: var(--danger-color);">日记起始日期 (决定第一页是哪天！)</label>
+                            <input type="date" id="diary-start-date" value="${defaultDate}" onchange="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <label style="font-size: 11px; color: var(--text-sub);">封面标题 (英文比较好看)</label>
+                            <input type="text" id="diary-title" placeholder="His Diary" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <label style="font-size: 11px; color: var(--text-sub);">扉页寄语 (支持换行)</label>
+                            <textarea id="diary-quote" rows="3" placeholder="时间会磨平一切痕迹，\n除了我为你写下的字。" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px; resize:vertical;"></textarea>
+                        </div>
+
+                        <div class="engine-title"><i class="ph-fill ph-squares-four"></i> 主页 App 图标替换 (留空为默认)</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 5px;">
+                            <div><label style="font-size: 11px; color: var(--text-sub);">线下故事</label><input type="text" id="ui-icon-novel" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
+                            <div><label style="font-size: 11px; color: var(--text-sub);">世界书</label><input type="text" id="ui-icon-worldbook" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
+                            <div><label style="font-size: 11px; color: var(--text-sub);">系统设置</label><input type="text" id="ui-icon-settings" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
+                            <div><label style="font-size: 11px; color: var(--text-sub);">商店</label><input type="text" id="ui-icon-shop" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
+                            <div><label style="font-size: 11px; color: var(--text-sub);">打工赚钱</label><input type="text" id="ui-icon-task" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="card">
-                    <h3 style="color: var(--primary-color); margin-bottom: 10px;"><i class="ph-fill ph-palette"></i> UI 主题装修 (预设库)</h3>
-                    <div class="preset-bar">
-                        <select id="ui-preset-select" onchange="window.PhoneAPI.loadUIPreset()"></select>
-                        <button class="preset-btn" onclick="window.PhoneAPI.saveUIPreset()">存为预设</button>
-                        <button class="preset-btn del" onclick="window.PhoneAPI.deleteUIPreset()">删除</button>
-                    </div>
-                    <div class="engine-title"><i class="ph-fill ph-image"></i> 壁纸与封面</div>
-                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                        <div style="flex: 1;"><label style="font-size: 11px; color: var(--text-sub);">全局壁纸(网址)</label><input type="text" id="bg-global" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
-                        <div style="flex: 1;"><label style="font-size: 11px; color: var(--text-sub);">聊天壁纸(网址)</label><input type="text" id="bg-chat" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
-                    </div>
-                    <div style="margin-bottom: 10px;">
-                        <label style="font-size: 11px; color: var(--text-sub);">日记本封面(网址)</label>
-                        <input type="text" id="bg-diary-cover" placeholder="例如: ./cover.jpg" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
-                    </div>
-                    <div style="margin-bottom: 15px;">
-                        <label style="font-size: 11px; color: var(--text-sub);">日记内页底图(网址)</label>
-                        <input type="text" id="bg-diary-page" placeholder="推荐使用牛皮纸或水彩底图" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
-                    </div>
-                    
-                    <div class="engine-title"><i class="ph-fill ph-text-aa"></i> 日记本专属设置</div>
-                    <div style="margin-bottom: 10px;">
-                        <label style="font-size: 11px; color: var(--text-sub); font-weight: bold; color: var(--danger-color);">日记起始日期 (决定第一页是哪天！)</label>
-                        <input type="date" id="diary-start-date" value="${defaultDate}" onchange="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
-                    </div>
-                    <div style="margin-bottom: 10px;">
-                        <label style="font-size: 11px; color: var(--text-sub);">封面标题 (英文比较好看)</label>
-                        <input type="text" id="diary-title" placeholder="His Diary" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;">
-                    </div>
-                    <div style="margin-bottom: 15px;">
-                        <label style="font-size: 11px; color: var(--text-sub);">扉页寄语 (支持换行)</label>
-                        <textarea id="diary-quote" rows="3" placeholder="时间会磨平一切痕迹，\n除了我为你写下的字。" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px; resize:vertical;"></textarea>
+                <!-- 2. 大模型与人设 -->
+                <div id="set-sec-ai" class="set-section">
+                    <div class="card">
+                        <h3 style="color: var(--primary-color); margin-bottom: 10px;"><i class="ph-fill ph-scroll"></i> 提示词与人设 (预设库)</h3>
+                        <div class="preset-bar">
+                            <select id="prompt-preset-select" onchange="window.PhoneAPI.loadPromptPreset()"></select>
+                            <button class="preset-btn" onclick="window.PhoneAPI.savePromptPreset()">存为预设</button>
+                            <button class="preset-btn del" onclick="window.PhoneAPI.deletePromptPreset()">删除</button>
+                        </div>
+                        <div style="margin-bottom: 15px;"><label style="font-size: 12px; color: var(--text-main); font-weight: bold;">1. 系统指令 (防八股/核心规则)</label><textarea id="system-prompt" rows="4" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 10px; border-radius: 8px; resize: vertical; font-size: 12px; margin-top: 4px;"></textarea></div>
+                        <div style="margin-bottom: 15px;"><label style="font-size: 12px; color: var(--text-main); font-weight: bold;">2. 角色人设 (性格/背景/口吻)</label><textarea id="char-persona" rows="6" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 10px; border-radius: 8px; resize: vertical; font-size: 12px; margin-top: 4px;"></textarea></div>
+                        <div style="margin-bottom: 5px;"><label style="font-size: 12px; color: var(--text-main); font-weight: bold;">3. 线下文风 (小说模式专属要求)</label><textarea id="novel-style" rows="4" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 10px; border-radius: 8px; resize: vertical; font-size: 12px; margin-top: 4px;"></textarea></div>
                     </div>
 
-                    <div class="engine-title"><i class="ph-fill ph-squares-four"></i> 主页 App 图标替换 (留空为默认)</div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 5px;">
-                        <div><label style="font-size: 11px; color: var(--text-sub);">线下故事</label><input type="text" id="ui-icon-novel" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
-                        <div><label style="font-size: 11px; color: var(--text-sub);">世界书</label><input type="text" id="ui-icon-worldbook" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
-                        <div><label style="font-size: 11px; color: var(--text-sub);">系统设置</label><input type="text" id="ui-icon-settings" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
-                        <div><label style="font-size: 11px; color: var(--text-sub);">商店</label><input type="text" id="ui-icon-shop" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
-                        <div><label style="font-size: 11px; color: var(--text-sub);">打工赚钱</label><input type="text" id="ui-icon-task" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 4px;"></div>
+                    <div class="card">
+                        <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph-fill ph-toggle-left"></i> 功能开关</h3>
+                        <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; background: var(--icon-bg); padding: 10px; border-radius: 8px;">
+                            <label style="font-size: 13px; color: var(--text-main); font-weight: bold;"><i class="ph ph-prohibit"></i> 绝对禁止 AI 使用 Emoji</label><input type="checkbox" id="ban-emoji" onchange="window.PhoneAPI.autoSave()" style="width: 18px; height: 18px;">
+                        </div>
+                        <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; background: var(--icon-bg); padding: 10px; border-radius: 8px;">
+                            <label style="font-size: 13px; color: var(--text-main); font-weight: bold;"><i class="ph ph-arrows-merge"></i> 开启线上/线下记忆互通</label><input type="checkbox" id="share-memory" onchange="window.PhoneAPI.autoSave()" style="width: 18px; height: 18px;">
+                        </div>
+                        <div style="margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between; background: var(--icon-bg); padding: 10px; border-radius: 8px;">
+                            <label style="font-size: 13px; color: var(--text-main); font-weight: bold;"><i class="ph ph-camera"></i> 允许 AI 在聊天中自动发自拍</label><input type="checkbox" id="auto-photo" onchange="window.PhoneAPI.autoSave()" style="width: 18px; height: 18px;">
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3 style="color: var(--primary-color); margin-bottom: 10px;"><i class="ph-fill ph-database"></i> 语言引擎预设库 (文本模型)</h3>
+                        <div style="margin-bottom: 10px;"><input type="text" id="preset-name" placeholder="起个名字 (如: 硅基-DeepSeek)" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
+                        <div style="margin-bottom: 10px;"><input type="text" id="preset-url" placeholder="接口地址 (Base URL)" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
+                        <div style="margin-bottom: 10px;"><input type="password" id="preset-key" placeholder="API Key (密钥)" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
+                        <div style="margin-bottom: 15px;"><input type="text" id="preset-model" placeholder="模型名称 (Model)" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
+                        <button class="btn-refresh" onclick="window.PhoneAPI.savePreset()" style="margin-top: 0; margin-bottom: 15px;"><i class="ph ph-plus"></i> 添加到预设库</button>
+                        <div style="display: flex; gap: 8px; align-items: center; border-top: 1px dashed var(--border-color); padding-top: 15px;">
+                            <select id="preset-delete-select" style="flex: 1; padding: 8px; border-radius: 8px;"></select>
+                            <button class="btn-refresh" onclick="window.PhoneAPI.deletePreset()" style="width: auto; margin-top: 0; background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); padding: 8px 12px;"><i class="ph ph-trash"></i> 删除</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph-fill ph-cpu"></i> 主副引擎分配</h3>
+                        <div class="engine-title"><i class="ph-fill ph-chat-circle-dots"></i> 主引擎 (聊天/小说专用)</div>
+                        <select id="main-engine-select" onchange="window.PhoneAPI.assignEngine('main', this.value)" style="width: 100%; padding: 8px; border-radius: 8px; margin-bottom: 15px;"></select>
+                        <div class="engine-title"><i class="ph-fill ph-lightning"></i> 副引擎 (转盘/工具专用)</div>
+                        <select id="sub-engine-select" onchange="window.PhoneAPI.assignEngine('sub', this.value)" style="width: 100%; padding: 8px; border-radius: 8px;">
+                            <option value="">-- 同主引擎 (自动降级) --</option>
+                        </select>
                     </div>
                 </div>
 
-                <div class="card">
-                    <h3 style="color: var(--primary-color); margin-bottom: 10px;"><i class="ph-fill ph-scroll"></i> 提示词与人设 (预设库)</h3>
-                    <div class="preset-bar">
-                        <select id="prompt-preset-select" onchange="window.PhoneAPI.loadPromptPreset()"></select>
-                        <button class="preset-btn" onclick="window.PhoneAPI.savePromptPreset()">存为预设</button>
-                        <button class="preset-btn del" onclick="window.PhoneAPI.deletePromptPreset()">删除</button>
-                    </div>
-                    <div style="margin-bottom: 15px;"><label style="font-size: 12px; color: var(--text-main); font-weight: bold;">1. 系统指令 (防八股/核心规则)</label><textarea id="system-prompt" rows="4" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 10px; border-radius: 8px; resize: vertical; font-size: 12px; margin-top: 4px;"></textarea></div>
-                    <div style="margin-bottom: 15px;"><label style="font-size: 12px; color: var(--text-main); font-weight: bold;">2. 角色人设 (性格/背景/口吻)</label><textarea id="char-persona" rows="6" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 10px; border-radius: 8px; resize: vertical; font-size: 12px; margin-top: 4px;"></textarea></div>
-                    <div style="margin-bottom: 5px;"><label style="font-size: 12px; color: var(--text-main); font-weight: bold;">3. 线下文风 (小说模式专属要求)</label><textarea id="novel-style" rows="4" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 10px; border-radius: 8px; resize: vertical; font-size: 12px; margin-top: 4px;"></textarea></div>
-                </div>
-
-                <div class="card">
-                    <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph-fill ph-toggle-left"></i> 功能开关</h3>
-                    <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; background: var(--icon-bg); padding: 10px; border-radius: 8px;">
-                        <label style="font-size: 13px; color: var(--text-main); font-weight: bold;"><i class="ph ph-prohibit"></i> 绝对禁止 AI 使用 Emoji</label><input type="checkbox" id="ban-emoji" onchange="window.PhoneAPI.autoSave()" style="width: 18px; height: 18px;">
-                    </div>
-                    <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; background: var(--icon-bg); padding: 10px; border-radius: 8px;">
-                        <label style="font-size: 13px; color: var(--text-main); font-weight: bold;"><i class="ph ph-arrows-merge"></i> 开启线上/线下记忆互通</label><input type="checkbox" id="share-memory" onchange="window.PhoneAPI.autoSave()" style="width: 18px; height: 18px;">
-                    </div>
-                    <div style="margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between; background: var(--icon-bg); padding: 10px; border-radius: 8px;">
-                        <label style="font-size: 13px; color: var(--text-main); font-weight: bold;"><i class="ph ph-camera"></i> 允许 AI 在聊天中自动发自拍</label><input type="checkbox" id="auto-photo" onchange="window.PhoneAPI.autoSave()" style="width: 18px; height: 18px;">
+                <!-- 3. 绘画引擎 -->
+                <div id="set-sec-draw" class="set-section">
+                    <div class="card">
+                        <h3 style="color: var(--primary-color); margin-bottom: 10px;"><i class="ph-fill ph-image"></i> 绘画引擎配置 (DALL-E 格式)</h3>
+                        <div style="font-size: 11px; color: var(--text-sub); margin-bottom: 10px;">用于生成相册照片，必须支持返回 b64_json 格式。</div>
+                        <div style="margin-bottom: 10px;"><input type="text" id="img-api-url" placeholder="接口地址 (例如: https://api.openai.com/v1/images/generations)" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
+                        <div style="margin-bottom: 10px;"><input type="password" id="img-api-key" placeholder="API Key (密钥)" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
+                        <div style="margin-bottom: 10px;"><input type="text" id="img-api-model" placeholder="模型名称 (例如: dall-e-3)" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
+                        
+                        <div class="engine-title" style="margin-top: 15px;"><i class="ph-fill ph-mask-happy"></i> 画风与垫图 (锁脸) 预设库</div>
+                        <div class="preset-bar">
+                            <select id="img-preset-select" onchange="window.PhoneAPI.loadImgPreset()"></select>
+                            <button class="preset-btn" onclick="window.PhoneAPI.saveImgPreset()">存为预设</button>
+                            <button class="preset-btn del" onclick="window.PhoneAPI.deleteImgPreset()">删除</button>
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-sub); margin-bottom: 10px;">如果使用 Midjourney/NAI，可以填入公开的图片 URL 作为垫图锁脸。</div>
+                        <div style="margin-bottom: 10px;"><input type="text" id="img-ref-url" placeholder="参考图(垫图) URL (例如: https://.../img.jpg)" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
+                        <div style="margin-bottom: 10px;"><textarea id="img-base-prompt" rows="3" placeholder="正向提示词 (例如: 1boy, handsome, black hair)" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; resize:vertical;"></textarea></div>
+                        <div style="margin-bottom: 5px;"><textarea id="img-negative-prompt" rows="3" placeholder="反向提示词 (例如: lowres, bad anatomy, bad hands, error, missing fingers)" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; resize:vertical;"></textarea></div>
                     </div>
                 </div>
 
-                <div class="card">
-                    <h3 style="color: var(--primary-color); margin-bottom: 10px;"><i class="ph-fill ph-database"></i> 语言引擎预设库 (文本模型)</h3>
-                    <div style="margin-bottom: 10px;"><input type="text" id="preset-name" placeholder="起个名字 (如: 硅基-DeepSeek)" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
-                    <div style="margin-bottom: 10px;"><input type="text" id="preset-url" placeholder="接口地址 (Base URL)" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
-                    <div style="margin-bottom: 10px;"><input type="password" id="preset-key" placeholder="API Key (密钥)" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
-                    <div style="margin-bottom: 15px;"><input type="text" id="preset-model" placeholder="模型名称 (Model)" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
-                    <button class="btn-refresh" onclick="window.PhoneAPI.savePreset()" style="margin-top: 0; margin-bottom: 15px;"><i class="ph ph-plus"></i> 添加到预设库</button>
-                    <div style="display: flex; gap: 8px; align-items: center; border-top: 1px dashed var(--border-color); padding-top: 15px;">
-                        <select id="preset-delete-select" style="flex: 1; padding: 8px; border-radius: 8px;"></select>
-                        <button class="btn-refresh" onclick="window.PhoneAPI.deletePreset()" style="width: auto; margin-top: 0; background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); padding: 8px 12px;"><i class="ph ph-trash"></i> 删除</button>
+                <!-- 4. 系统维护 -->
+                <div id="set-sec-sys" class="set-section">
+                    <div class="card">
+                        <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph-fill ph-floppy-disk-back"></i> 数据备份与恢复</h3>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn-refresh" onclick="window.PhoneAPI.exportData()" style="flex: 1; margin-top: 0; background: var(--secondary-color);"><i class="ph ph-export"></i> 导出备份</button>
+                            <button class="btn-refresh" onclick="document.getElementById('import-file').click()" style="flex: 1; margin-top: 0; background: #2a9d8f;"><i class="ph ph-import"></i> 导入恢复</button>
+                            <input type="file" id="import-file" style="display:none" accept=".json" onchange="window.PhoneAPI.importData(event)">
+                        </div>
                     </div>
-                </div>
 
-                <div class="card">
-                    <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph-fill ph-cpu"></i> 主副引擎分配</h3>
-                    <div class="engine-title"><i class="ph-fill ph-chat-circle-dots"></i> 主引擎 (聊天/小说专用)</div>
-                    <select id="main-engine-select" onchange="window.PhoneAPI.assignEngine('main', this.value)" style="width: 100%; padding: 8px; border-radius: 8px; margin-bottom: 15px;"></select>
-                    <div class="engine-title"><i class="ph-fill ph-lightning"></i> 副引擎 (转盘/工具专用)</div>
-                    <select id="sub-engine-select" onchange="window.PhoneAPI.assignEngine('sub', this.value)" style="width: 100%; padding: 8px; border-radius: 8px;">
-                        <option value="">-- 同主引擎 (自动降级) --</option>
-                    </select>
-                </div>
-
-                <div class="card">
-                    <h3 style="color: var(--primary-color); margin-bottom: 10px;"><i class="ph-fill ph-image"></i> 绘画引擎配置 (DALL-E 格式)</h3>
-                    <div style="font-size: 11px; color: var(--text-sub); margin-bottom: 10px;">用于生成相册照片，必须支持返回 b64_json 格式。</div>
-                    <div style="margin-bottom: 10px;"><input type="text" id="img-api-url" placeholder="接口地址 (例如: https://api.openai.com/v1/images/generations)" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
-                    <div style="margin-bottom: 10px;"><input type="password" id="img-api-key" placeholder="API Key (密钥)" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
-                    <div style="margin-bottom: 10px;"><input type="text" id="img-api-model" placeholder="模型名称 (例如: dall-e-3)" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
-                    
-                    <div class="engine-title" style="margin-top: 15px;"><i class="ph-fill ph-mask-happy"></i> 画风与垫图 (锁脸)</div>
-                    <div style="font-size: 11px; color: var(--text-sub); margin-bottom: 10px;">如果使用 Midjourney/NAI，可以填入公开的图片 URL 作为垫图锁脸。</div>
-                    <!-- 🌟 核心：加入垫图 URL -->
-                    <div style="margin-bottom: 10px;"><input type="text" id="img-ref-url" placeholder="参考图(垫图) URL (例如: https://.../img.jpg)" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
-                    <textarea id="img-base-prompt" rows="3" placeholder="基础画风 (例如: 1boy, handsome, black hair)" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; resize:vertical;"></textarea>
-                </div>
-
-                <div class="card">
-                    <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph-fill ph-floppy-disk-back"></i> 数据备份与恢复</h3>
-                    <div style="display: flex; gap: 10px;">
-                        <button class="btn-refresh" onclick="window.PhoneAPI.exportData()" style="flex: 1; margin-top: 0; background: var(--secondary-color);"><i class="ph ph-export"></i> 导出备份</button>
-                        <button class="btn-refresh" onclick="document.getElementById('import-file').click()" style="flex: 1; margin-top: 0; background: #2a9d8f;"><i class="ph ph-import"></i> 导入恢复</button>
-                        <input type="file" id="import-file" style="display:none" accept=".json" onchange="window.PhoneAPI.importData(event)">
+                    <div class="card">
+                        <h3 style="color: var(--danger-color); margin-bottom: 15px;"><i class="ph-fill ph-warning-circle"></i> 系统维护</h3>
+                        <button class="btn-refresh" onclick="window.PhoneAPI.forceUpdate()" style="background: #f4a261; margin-top: 0; margin-bottom: 10px;"><i class="ph ph-arrows-clockwise"></i> 强制更新系统 (获取最新代码)</button>
+                        <button class="btn-refresh" onclick="window.PhoneAPI.clearChat()" style="background: var(--danger-color); margin-top: 0;"><i class="ph ph-trash"></i> 清空所有聊天与小说记录</button>
                     </div>
-                </div>
-
-                <div class="card">
-                    <h3 style="color: var(--danger-color); margin-bottom: 15px;"><i class="ph-fill ph-warning-circle"></i> 系统维护</h3>
-                    <button class="btn-refresh" onclick="window.PhoneAPI.forceUpdate()" style="background: #f4a261; margin-top: 0; margin-bottom: 10px;"><i class="ph ph-arrows-clockwise"></i> 强制更新系统 (获取最新代码)</button>
-                    <button class="btn-refresh" onclick="window.PhoneAPI.clearChat()" style="background: var(--danger-color); margin-top: 0;"><i class="ph ph-trash"></i> 清空所有聊天与小说记录</button>
                 </div>
             `;
             
@@ -378,6 +417,7 @@ export const PhoneUI = {
                 window.PhoneAPI.refreshPresetDropdowns();
                 window.PhoneAPI.refreshPromptDropdowns();
                 window.PhoneAPI.refreshUIDropdowns();
+                window.PhoneAPI.refreshImgDropdowns();
             }, 50);
 
         } else if (appId === 'worldbook') {
@@ -724,7 +764,7 @@ export const PhoneUI = {
         window.Config.diaryPageIndex = newIndex;
         this.renderDiaryPage();
     },
-
+    
     initStarrySea() {
         const bgEl = document.getElementById('starry-sea-bg');
         const bubblesEl = document.getElementById('floating-bubbles');
@@ -804,3 +844,5 @@ export const PhoneUI = {
         document.getElementById('blindbox-modal').classList.remove('show');
     }
 };
+
+    

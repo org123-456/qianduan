@@ -187,7 +187,6 @@ export const PhoneAPI = {
         delSelect.innerHTML = optionsHtml; mainSelect.innerHTML = optionsHtml; subSelect.innerHTML = '<option value="">-- 同主引擎 (自动降级) --</option>' + optionsHtml;
         mainSelect.value = localStorage.getItem('main_engine_id') || ''; subSelect.value = localStorage.getItem('sub_engine_id') || '';
         
-        // 🌟 更新控制舱里的下拉菜单
         const quickSelect = document.getElementById('quick-main-engine');
         if (quickSelect) {
             quickSelect.innerHTML = optionsHtml;
@@ -251,13 +250,29 @@ export const PhoneAPI = {
     },
     saveNovelWords() { localStorage.setItem('novel_min_words', document.getElementById('novel-min-words')?.value || '150'); },
     getArchives() { return JSON.parse(localStorage.getItem('story_archives') || '[]'); },
+    
+    // 🌟 核心修复：存档时绑定线下记忆！
     saveArchive() {
         const nameInput = document.getElementById('archive-name'); const name = nameInput.value.trim(); if (!name) return alert('请先输入存档名称！');
         const roleId = window.Config.currentContactId; const items = window.Config.phoneData[roleId]?.novel?.items || [];
         if (items.length === 0) return alert('当前没有线下剧情可以存档哦！');
-        const archives = this.getArchives(); archives.push({ id: 'arc_' + Date.now(), name: name, date: new Date().toLocaleString(), count: items.length, data: JSON.parse(JSON.stringify(items)) });
+        
+        const vault = this.getMemoryVault();
+        const offlineVault = vault.filter(v => v.source === '线下故事' && !v.isCore);
+        
+        const archives = this.getArchives(); 
+        archives.push({ 
+            id: 'arc_' + Date.now(), 
+            name: name, 
+            date: new Date().toLocaleString(), 
+            count: items.length, 
+            data: JSON.parse(JSON.stringify(items)),
+            vault: offlineVault // 存入专属记忆
+        });
         localStorage.setItem('story_archives', JSON.stringify(archives)); nameInput.value = ''; window.PhoneUI.renderArchiveList(); this.showToast('💾 线下剧情存档成功！');
     },
+
+    // 🌟 核心修复：读档时恢复线下记忆！
     loadArchive(id) {
         if (!confirm('读取存档将覆盖当前的线下剧情，确定要读取吗？')) return;
         const archives = this.getArchives(); const arc = archives.find(a => a.id === id);
@@ -267,19 +282,36 @@ export const PhoneAPI = {
             if (!window.Config.phoneData[roleId].novel) window.Config.phoneData[roleId].novel = {};
             window.Config.phoneData[roleId].novel.items = JSON.parse(JSON.stringify(arc.data));
             localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
+            
+            if (arc.vault) {
+                let vault = this.getMemoryVault();
+                vault = vault.filter(v => !(v.source === '线下故事' && !v.isCore)); // 删掉当前的线下非核心记忆
+                vault = vault.concat(arc.vault); // 注入存档里的记忆
+                localStorage.setItem('memory_vault_entries', JSON.stringify(vault));
+            }
+            
             window.PhoneUI.closeArchiveModal(); if (window.Config.currentAppId === 'novel') window.PhoneUI.renderNovelContent(); this.showToast('✨ 线下剧情读取成功！');
         }
     },
+
     deleteArchive(id) {
         if (!confirm('确定要删除这个存档吗？删除后无法恢复！')) return;
         let archives = this.getArchives(); archives = archives.filter(a => a.id !== id); localStorage.setItem('story_archives', JSON.stringify(archives)); window.PhoneUI.renderArchiveList(); this.showToast('🗑️ 存档已删除');
     },
+
+    // 🌟 核心修复：开新档时清空线下旧记忆！
     startNewTimeline() {
         if (!confirm('开启新剧情将清空当前的【线下故事】记录！确定要清空吗？')) return;
         const roleId = window.Config.currentContactId;
         if (window.Config.phoneData[roleId]?.novel) { window.Config.phoneData[roleId].novel.items = []; localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData)); }
+        
+        let vault = this.getMemoryVault();
+        vault = vault.filter(v => !(v.source === '线下故事' && !v.isCore));
+        localStorage.setItem('memory_vault_entries', JSON.stringify(vault));
+        
         window.PhoneUI.closeArchiveModal(); if (window.Config.currentAppId === 'novel') window.PhoneUI.renderNovelContent(); this.showToast('🚀 已开启全新线下时间线！');
     },
+
     async exportData() {
         const data = {}; for (let i = 0; i < localStorage.length; i++) { const key = localStorage.key(i); data[key] = localStorage.getItem(key); }
         const jsonStr = JSON.stringify(data, null, 2); const dateStr = new Date().toISOString().replace(/[:\-\sT]/g, '').slice(0, 14); const fileName = `ClaireClaude_Backup_${dateStr}.json`;
@@ -402,7 +434,6 @@ export const PhoneAPI = {
         }
     },
 
-    // 🌟 核心：Token 监控与悬浮球动画
     async chatWithAI(messages, useSubEngine = false) {
         const config = this.getEngineConfig(useSubEngine);
         if (!config) throw new Error("请先去【系统设置】里分配引擎配置！");

@@ -32,7 +32,8 @@ export const PhoneAPI = {
         saveIfExist('img-api-key', 'img_api_key'); 
         saveIfExist('img-api-model', 'img_api_model');
         saveIfExist('img-base-prompt', 'img_base_prompt');
-        // 🌟 新增：保存垫图 URL
+        // 🌟 新增：反向提示词
+        saveIfExist('img-negative-prompt', 'img_negative_prompt');
         saveIfExist('img-ref-url', 'img_ref_url');
         saveIfExist('auto-photo', 'auto_photo', true);
 
@@ -68,7 +69,8 @@ export const PhoneAPI = {
             setVal('img-api-model', localStorage.getItem('img_api_model') || 'dall-e-3');
             
             setVal('img-base-prompt', localStorage.getItem('img_base_prompt') || '');
-            // 🌟 新增：加载垫图 URL
+            // 🌟 新增：加载反向提示词
+            setVal('img-negative-prompt', localStorage.getItem('img_negative_prompt') || '');
             setVal('img-ref-url', localStorage.getItem('img_ref_url') || '');
             const autoPhotoEl = document.getElementById('auto-photo'); if(autoPhotoEl) autoPhotoEl.checked = localStorage.getItem('auto_photo') === 'true';
 
@@ -130,6 +132,27 @@ export const PhoneAPI = {
     },
     deletePromptPreset() { const id = document.getElementById('prompt-preset-select').value; if (!id) return alert('请先选择预设！'); if (!confirm('确定删除吗？')) return; let presets = this.getPromptPresets(); presets = presets.filter(p => p.id !== id); localStorage.setItem('prompt_presets', JSON.stringify(presets)); this.refreshPromptDropdowns(); this.showToast('🗑️ 预设已删除'); },
     refreshPromptDropdowns() { const selectEl = document.getElementById('prompt-preset-select'); if (!selectEl) return; let optionsHtml = '<option value="">-- 切换人设预设 --</option>'; this.getPromptPresets().forEach(p => { optionsHtml += `<option value="${p.id}">${p.name}</option>`; }); selectEl.innerHTML = optionsHtml; },
+
+    // 🌟 新增：生图预设库
+    getImgPresets() { return JSON.parse(localStorage.getItem('img_prompt_presets') || '[]'); },
+    saveImgPreset() {
+        const name = prompt('给这套画风起个名字吧 (如: NAI-二次元):'); if (!name) return;
+        const getVal = (id) => document.getElementById(id)?.value.trim() || '';
+        const preset = { id: 'ipr_' + Date.now(), name: name, ref: getVal('img-ref-url'), base: getVal('img-base-prompt'), neg: getVal('img-negative-prompt') };
+        let presets = this.getImgPresets(); presets = presets.filter(p => p.name !== name); presets.push(preset);
+        localStorage.setItem('img_prompt_presets', JSON.stringify(presets)); this.refreshImgDropdowns(); document.getElementById('img-preset-select').value = preset.id; this.showToast('💾 画风预设保存成功！');
+    },
+    loadImgPreset() {
+        const id = document.getElementById('img-preset-select').value; if (!id) return;
+        const preset = this.getImgPresets().find(p => p.id === id);
+        if (preset) {
+            const setVal = (domId, val) => { const el = document.getElementById(domId); if(el) el.value = val; };
+            setVal('img-ref-url', preset.ref); setVal('img-base-prompt', preset.base); setVal('img-negative-prompt', preset.neg);
+            this.autoSave(); this.showToast('✨ 画风切换成功！');
+        }
+    },
+    deleteImgPreset() { const id = document.getElementById('img-preset-select').value; if (!id) return alert('请先选择预设！'); if (!confirm('确定删除吗？')) return; let presets = this.getImgPresets(); presets = presets.filter(p => p.id !== id); localStorage.setItem('img_prompt_presets', JSON.stringify(presets)); this.refreshImgDropdowns(); this.showToast('🗑️ 预设已删除'); },
+    refreshImgDropdowns() { const selectEl = document.getElementById('img-preset-select'); if (!selectEl) return; let optionsHtml = '<option value="">-- 切换画风预设 --</option>'; this.getImgPresets().forEach(p => { optionsHtml += `<option value="${p.id}">${p.name}</option>`; }); selectEl.innerHTML = optionsHtml; },
 
     getPresets() { return JSON.parse(localStorage.getItem('ai_api_presets') || '[]'); },
     savePreset() {
@@ -201,10 +224,12 @@ export const PhoneAPI = {
         }
     },
 
+    // 🌟 核心升级：加入反向提示词 (Negative Prompt) 的请求
     async generateImageAPI(prompt) {
         const url = localStorage.getItem('img_api_url');
         const key = localStorage.getItem('img_api_key');
         const model = localStorage.getItem('img_api_model');
+        const negPrompt = localStorage.getItem('img_negative_prompt') || '';
         
         if (!url || !key) throw new Error("请先在【系统设置】中配置绘画引擎 API！");
 
@@ -214,10 +239,13 @@ export const PhoneAPI = {
         if (statusText) { statusText.innerText = '正在绘制中...'; statusText.style.color = 'var(--primary-color)'; }
 
         try {
+            const payload = { model: model, prompt: prompt, n: 1, size: "1024x1024", response_format: "b64_json" };
+            if (negPrompt) payload.negative_prompt = negPrompt; // 完美兼容 NAI 和中转站
+
             const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-                body: JSON.stringify({ model: model, prompt: prompt, n: 1, size: "1024x1024", response_format: "b64_json" })
+                body: JSON.stringify(payload)
             });
             
             if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(`API 报错: ${response.status} ${errData.error?.message || ''}`); }

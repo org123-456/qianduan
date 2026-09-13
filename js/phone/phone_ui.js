@@ -92,7 +92,6 @@ export const PhoneUI = {
         document.getElementById('api-modal').classList.remove('show');
     },
 
-    // 🌟 核心：设置页 Tab 切换逻辑
     switchSetTab(tabId) {
         ['basic', 'ai', 'draw', 'sys'].forEach(id => {
             const tab = document.getElementById('stab-' + id);
@@ -247,7 +246,6 @@ export const PhoneUI = {
                 </div>
             `;
 
-        // 🌟 核心重构：设置页面的 Tab 分类排版！
         } else if (appId === 'settings') {
             const today = new Date();
             const defaultDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
@@ -260,7 +258,6 @@ export const PhoneUI = {
                     <div class="settings-tab" id="stab-sys" onclick="window.PhoneUI.switchSetTab('sys')">系统维护</div>
                 </div>
 
-                <!-- 1. 基础与UI -->
                 <div id="set-sec-basic" class="set-section active">
                     <div class="card">
                         <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph-fill ph-user-list"></i> 基础设定</h3>
@@ -320,7 +317,6 @@ export const PhoneUI = {
                     </div>
                 </div>
 
-                <!-- 2. 大模型与人设 -->
                 <div id="set-sec-ai" class="set-section">
                     <div class="card">
                         <h3 style="color: var(--primary-color); margin-bottom: 10px;"><i class="ph-fill ph-scroll"></i> 提示词与人设 (预设库)</h3>
@@ -371,7 +367,6 @@ export const PhoneUI = {
                     </div>
                 </div>
 
-                <!-- 3. 绘画引擎 -->
                 <div id="set-sec-draw" class="set-section">
                     <div class="card">
                         <h3 style="color: var(--primary-color); margin-bottom: 10px;"><i class="ph-fill ph-image"></i> 绘画引擎配置 (DALL-E 格式)</h3>
@@ -386,14 +381,13 @@ export const PhoneUI = {
                             <button class="preset-btn" onclick="window.PhoneAPI.saveImgPreset()">存为预设</button>
                             <button class="preset-btn del" onclick="window.PhoneAPI.deleteImgPreset()">删除</button>
                         </div>
-                        <div style="font-size: 11px; color: var(--text-sub); margin-bottom: 10px;">如果使用 Midjourney/NAI，可以填入公开的图片 URL 作为垫图锁脸。</div>
+                        <div style="font-size: 11px; color: var(--text-sub); margin-bottom: 10px;">如果使用 Midjourney/NAI，可以填入公开的图片 URL 作为垫图锁脸。<br><span style="color:var(--danger-color)">注意：使用 DALL-E 3 请将垫图和反向提示词留空！</span></div>
                         <div style="margin-bottom: 10px;"><input type="text" id="img-ref-url" placeholder="参考图(垫图) URL (例如: https://.../img.jpg)" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px;"></div>
                         <div style="margin-bottom: 10px;"><textarea id="img-base-prompt" rows="3" placeholder="正向提示词 (例如: 1boy, handsome, black hair)" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; resize:vertical;"></textarea></div>
                         <div style="margin-bottom: 5px;"><textarea id="img-negative-prompt" rows="3" placeholder="反向提示词 (例如: lowres, bad anatomy, bad hands, error, missing fingers)" oninput="window.PhoneAPI.autoSave()" style="width: 100%; padding: 8px; border-radius: 8px; resize:vertical;"></textarea></div>
                     </div>
                 </div>
 
-                <!-- 4. 系统维护 -->
                 <div id="set-sec-sys" class="set-section">
                     <div class="card">
                         <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="ph-fill ph-floppy-disk-back"></i> 数据备份与恢复</h3>
@@ -456,6 +450,7 @@ export const PhoneUI = {
         }
     },
 
+    // 🌟 核心：渲染相册，加入保存按钮！
     renderGallery() {
         const contentEl = document.getElementById('app-window-content');
         if (!contentEl) return;
@@ -469,6 +464,7 @@ export const PhoneUI = {
             </button>
             <div id="image-viewer" class="image-viewer">
                 <div class="viewer-close" onclick="window.PhoneUI.closeImageViewer()"><i class="ph ph-x"></i></div>
+                <div class="viewer-download" onclick="window.PhoneUI.downloadCurrentImage()"><i class="ph ph-download-simple"></i> 保存到手机</div>
                 <img id="viewer-img" src="">
             </div>
         `;
@@ -501,6 +497,19 @@ export const PhoneUI = {
     closeImageViewer() {
         const viewer = document.getElementById('image-viewer');
         if (viewer) viewer.classList.remove('show');
+    },
+
+    // 🌟 核心：下载当前图片到手机
+    downloadCurrentImage() {
+        const img = document.getElementById('viewer-img');
+        if (!img || !img.src) return;
+        const a = document.createElement('a');
+        a.href = img.src;
+        a.download = 'Claire_Claude_Photo_' + Date.now() + '.jpg';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.PhoneAPI.showToast('✅ 图片已保存到手机！');
     },
 
     closeApp() {
@@ -764,7 +773,7 @@ export const PhoneUI = {
         window.Config.diaryPageIndex = newIndex;
         this.renderDiaryPage();
     },
-    
+
     initStarrySea() {
         const bgEl = document.getElementById('starry-sea-bg');
         const bubblesEl = document.getElementById('floating-bubbles');
@@ -844,5 +853,3 @@ export const PhoneUI = {
         document.getElementById('blindbox-modal').classList.remove('show');
     }
 };
-
-    

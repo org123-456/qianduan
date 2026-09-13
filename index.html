@@ -14,7 +14,7 @@
     <title>Claire & Claude</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="css/style.css?t=9100">
+    <link rel="stylesheet" href="css/style.css?t=11000">
 </head>
 <body>
     <div id="api-fab" class="api-fab" onclick="window.PhoneUI.openApiModal()">
@@ -110,11 +110,14 @@
             <div id="page-chat" class="page" style="position: relative; padding-bottom: 0;">
                 <div id="app-content-list" style="flex: 1; overflow-y: auto; padding-bottom: 140px;"></div>
                 
-                <!-- 🌟 核心：微信菜单加入发图片按钮 (3列2行) -->
-                <div id="chat-plus-menu" class="chat-plus-menu" style="grid-template-columns: repeat(3, 1fr);">
+                <div id="chat-plus-menu" class="chat-plus-menu" style="grid-template-columns: repeat(4, 1fr);">
                     <div class="app-icon" onclick="window.PhoneEngine.sendImageMsg();">
                         <div class="icon"><i class="ph-fill ph-image" style="color: #4ade80;"></i></div>
                         <div class="name">发图片</div>
+                    </div>
+                    <div class="app-icon" onclick="window.PhoneEngine.sendFileMsg();">
+                        <div class="icon"><i class="ph-fill ph-file-text" style="color: #60a5fa;"></i></div>
+                        <div class="name">发文件</div>
                     </div>
                     <div class="app-icon" onclick="window.PhoneEngine.extractMemory('wechat'); window.PhoneUI.closeChatMenu();">
                         <div class="icon"><i class="ph-fill ph-brain" style="color: #a78bfa;"></i></div>
@@ -327,6 +330,6 @@
                 .catch(err => console.error('Service Worker 注册失败:', err));
         }
     </script>
-    <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/main.js?t=11000"></script>
 </body>
 </html>

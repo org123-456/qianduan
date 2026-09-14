@@ -193,6 +193,7 @@ export const PhoneEngine = {
         let cart = JSON.parse(localStorage.getItem('shopping_cart') || '[]');
         cart.splice(index, 1);
         localStorage.setItem('shopping_cart', JSON.stringify(cart));
+        
         PhoneUI.renderCartList();
         
         const badge = document.getElementById('cart-badge');
@@ -225,12 +226,18 @@ export const PhoneEngine = {
         const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 
         if (isHusbandPay) {
+            let orderHtml = `<div class="chat-order-card"><div class="chat-order-header"><span>🛍️ 赛博杂货铺 购物车清单</span><span>¥${total}</span></div>`;
+            cart.forEach(item => {
+                orderHtml += `<div class="chat-order-item"><span class="chat-order-item-name"><i class="${item.icon}" style="color:var(--primary-color);"></i> ${item.name}</span><span>x1</span></div>`;
+            });
+            orderHtml += `<div class="chat-order-meta"><div>📍 配送地址：[待填写]</div><div>⏱️ 预计送达：付款后 30 分钟内</div></div></div>`;
+
             PhoneUI.closeCartModal();
             window.PhoneUI.closeApp();
             
             chatItems.push({ 
                 sender: 'me', 
-                content: `🛒 【分享了购物车】\n亲爱的，我看中了这些东西：\n${itemNames.join('、')}\n\n一共需要 ${total} 金币，帮我清空购物车好不好嘛~🥺`, 
+                content: `亲爱的，我看中了这些东西，帮我代付一下嘛~🥺\n${orderHtml}\n\n【系统提示】：用户向你发送了一份代付订单。请你根据商品内容进行傲娇的吐槽，并决定是否帮她付款。如果付款，请顺便告诉她配送地址填哪里。`, 
                 time: timeStr, 
                 date: dateStr 
             });
@@ -252,13 +259,19 @@ export const PhoneEngine = {
                 localStorage.setItem('my_coins', coins);
                 localStorage.setItem('shopping_cart', '[]');
                 
+                let orderHtml = `<div class="chat-order-card"><div class="chat-order-header"><span>🛍️ 赛博杂货铺 已购订单</span><span>¥${total}</span></div>`;
+                cart.forEach(item => {
+                    orderHtml += `<div class="chat-order-item"><span class="chat-order-item-name"><i class="${item.icon}" style="color:var(--primary-color);"></i> ${item.name}</span><span>x1</span></div>`;
+                });
+                orderHtml += `<div class="chat-order-meta"><div>✅ 支付状态：已付款</div><div>📍 配送目标：大侦探不死途</div></div></div>`;
+
                 PhoneUI.closeCartModal();
                 window.PhoneUI.closeApp(); 
                 PhoneAPI.showToast(`🎉 购买成功！已对他使用道具！`);
                 
                 chatItems.push({ 
                     sender: 'me', 
-                    content: `【系统动作】：我豪掷 ${total} 金币，购买并对你使用了以下道具：\n${itemNames.join('、')}。\n\n${effects.join('\n')}`, 
+                    content: `【系统动作】：我豪掷 ${total} 金币，购买并对你使用了以下道具！\n${orderHtml}\n\n${effects.join('\n')}`, 
                     time: timeStr, 
                     date: dateStr 
                 });
@@ -345,7 +358,9 @@ export const PhoneEngine = {
                 const img = new Image();
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
-                    let width = img.width; let height = img.height; const MAX_SIZE = 800; 
+                    let width = img.width;
+                    let height = img.height;
+                    const MAX_SIZE = 800; 
                     if (width > height && width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } 
                     else if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
                     canvas.width = width; canvas.height = height;
@@ -575,7 +590,7 @@ export const PhoneEngine = {
         PhoneUI.renderAppContent('gallery'); PhoneUI.closeImageViewer(); PhoneAPI.showToast("🗑️ 照片已销毁");
     },
 
-    // ================= 核心聊天引擎 (加入 Cove Prompt Cache) =================
+    // ================= 核心聊天引擎 (加入 AI 动态交易解析) =================
     async sendChatMessage(isRegen = false) {
         const roleId = Config.currentContactId;
         if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
@@ -614,7 +629,6 @@ export const PhoneEngine = {
             const systemPrompt = localStorage.getItem('system_prompt') || '';
             const charPersona = localStorage.getItem('char_persona') || '';
             
-            // 🌟 1. 拆分：构建【稳定】的系统提示词部分
             let stablePrompt = "";
             if (systemPrompt) stablePrompt += `【系统核心指令】：\n${systemPrompt}\n\n`;
             if (charPersona) stablePrompt += `【角色设定】：\n${charPersona}\n\n`;
@@ -629,6 +643,9 @@ export const PhoneEngine = {
                 formatRule += "【视觉交互机制】：如果用户在聊天中要求你“发一张自拍”、“拍个照看看”或者“让我看看你在干嘛”，你除了正常的文字回复外，**必须**在回复的最后加上一个 <photo> 标签，里面用英文详细描述你当前的动作、表情、穿着和环境（用于AI绘图）。例如：<photo>1boy, handsome, looking at viewer, holding a coffee cup, neon city background, masterpiece</photo>。注意：如果没有要求拍照，绝对不要输出这个标签！\n";
             }
 
+            // 🌟 核心：加入动态交易机制指令
+            formatRule += "【动态交易机制】：如果剧情中发生了购买、点外卖、送礼等消费行为，你必须根据情境【自行编造商品名称和合理的金币价格】，并在回复最末尾加上 `<purchase>商品名称|价格数字</purchase>`。例如：`<purchase>双人豪华晚餐|120</purchase>`。系统会自动扣除金币并生成订单卡片。无消费行为时绝对不要输出此标签！\n";
+
             const wbData = PhoneAPI.getWorldbookData();
             const activeOnlineWb = wbData.filter(w => w.online).map(w => w.content).join('\n');
             if (activeOnlineWb) {
@@ -637,7 +654,6 @@ export const PhoneEngine = {
             stablePrompt += formatRule;
             stablePrompt += `\n当前正在和你聊天的人是：【${myName}】。\n`;
 
-            // 🌟 2. 拆分：构建【动态】的系统提示词部分（记忆、时间等）
             let dynamicPrompt = "";
             const allVault = PhoneAPI.getMemoryVault();
             let accessibleVault = allVault;
@@ -676,13 +692,12 @@ export const PhoneEngine = {
                 }
             }
 
-            // 🌟 3. 组装 Cove Prompt Cache 格式的 System Message
             let systemContent = [];
             if (stablePrompt) {
                 systemContent.push({
                     type: "text",
                     text: stablePrompt,
-                    cache_control: { type: "ephemeral" } // Anthropic 专属缓存标签
+                    cache_control: { type: "ephemeral" } 
                 });
             }
             if (dynamicPrompt) {
@@ -732,10 +747,9 @@ export const PhoneEngine = {
             try {
                 rawReply = await PhoneAPI.chatWithAI(messages, false);
             } catch (err) {
-                // 如果因为加了 cache_control 导致普通 OpenAI 接口报错，自动降级为纯文本重试
                 if (err.message.includes('content must be a string') || err.message.includes('cache_control') || (hasImage && err.message.includes('INVALID_ARGUMENT'))) {
                     console.warn("模型不支持高级数组结构或视觉，自动降级为纯文本重试...");
-                    messages[0].content = stablePrompt + dynamicPrompt; // 降级为普通字符串
+                    messages[0].content = stablePrompt + dynamicPrompt; 
                     messages = messages.map(m => {
                         if (Array.isArray(m.content)) {
                             return { role: m.role, content: "[用户发送了一张图片，但系统无法解析]" };
@@ -755,6 +769,24 @@ export const PhoneEngine = {
                 rawReply = rawReply.replace(/<photo>[\s\S]*?<\/photo>/gi, '').trim();
             }
 
+            // 🌟 核心：解析动态交易标签！
+            let purchaseHtml = null;
+            const purchaseMatch = rawReply.match(/<purchase>(.*)\|(\d+)<\/purchase>/i);
+            if (purchaseMatch) {
+                const itemName = purchaseMatch[1].trim();
+                const itemPrice = parseInt(purchaseMatch[2].trim());
+                let coins = parseInt(localStorage.getItem('my_coins') || '500');
+                
+                if (coins >= itemPrice) {
+                    coins -= itemPrice;
+                    localStorage.setItem('my_coins', coins);
+                    purchaseHtml = `<div class="chat-order-card"><div class="chat-order-header"><span>🛍️ 赛博订单自动生成</span><span>¥${itemPrice}</span></div><div class="chat-order-item"><span class="chat-order-item-name"><i class="ph-fill ph-package" style="color:var(--primary-color);"></i> ${itemName}</span><span>x1</span></div><div class="chat-order-meta"><div>✅ 支付状态：已自动扣款</div><div>💰 小金库剩余：${coins} 金币</div></div></div>`;
+                } else {
+                    purchaseHtml = `<div class="chat-order-card" style="border-color:var(--danger-color);"><div class="chat-order-header" style="color:var(--danger-color);"><span>❌ 支付失败</span><span>¥${itemPrice}</span></div><div class="chat-order-item"><span class="chat-order-item-name">${itemName}</span></div><div class="chat-order-meta"><div>⚠️ 余额不足，当前仅剩 ${coins} 金币，请去打工赚钱！</div></div></div>`;
+                }
+                rawReply = rawReply.replace(/<purchase>[\s\S]*?<\/purchase>/gi, '').trim();
+            }
+
             const innerMatch = rawReply.match(/<inner>([\s\S]*?)<\/inner>/i);
             const innerThought = innerMatch ? innerMatch[1].trim() : "（TA的心思藏得很深，什么也没看出来...）";
 
@@ -771,6 +803,11 @@ export const PhoneEngine = {
                 let thought = (idx === 0) ? innerThought : "（连发消息，心声已在上一条显示）";
                 chatItems.push({ sender: 'other', content: part, time: timeStr, date: dateStr, innerThought: thought });
             });
+
+            // 🌟 注入购买卡片
+            if (purchaseHtml) {
+                chatItems.push({ sender: 'me', content: purchaseHtml, time: timeStr, date: dateStr });
+            }
 
             PhoneUI.renderAppContent('wechat'); 
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
@@ -860,7 +897,6 @@ export const PhoneEngine = {
             const charPersona = localStorage.getItem('char_persona') || '';
             const novelStyle = localStorage.getItem('novel_style') || '';
             
-            // 🌟 1. 拆分：构建【稳定】的系统提示词部分
             let stablePrompt = "";
             if (systemPrompt) stablePrompt += `【系统核心指令】：\n${systemPrompt}\n\n`;
             if (charPersona) stablePrompt += `【角色设定】：\n${charPersona}\n\n`;
@@ -871,6 +907,9 @@ export const PhoneEngine = {
             let formatRule = "【线下沉浸模式】：当前是面对面的真实场景。请用写小说/语C的笔法进行演绎。\n";
             formatRule += `【字数与细节强制要求】：每次回复**必须不少于 ${minWords} 字**（不包含思维链的字数）！请尽情展开环境渲染、细腻的动作刻画和深度的心理描写，让场景充满画面感。绝对禁止像微信聊天那样只发短对话，必须像长篇小说的一段一样丰满！\n`;
             formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。严禁重复心声，必须产生全新心理活动！\n";
+            
+            // 🌟 核心：线下小说同样支持动态交易！
+            formatRule += "【动态交易机制】：如果剧情中发生了购买、点外卖、送礼等消费行为，你必须根据情境【自行编造商品名称和合理的金币价格】，并在回复最末尾加上 `<purchase>商品名称|价格数字</purchase>`。例如：`<purchase>双人豪华晚餐|120</purchase>`。系统会自动扣除金币并生成订单卡片。无消费行为时绝对不要输出此标签！\n";
 
             if (banEmoji) formatRule += "【最高禁令】：绝对不允许使用任何 Emoji、颜文字、波浪号(~)，违者抹杀！\n";
 
@@ -882,7 +921,6 @@ export const PhoneEngine = {
             stablePrompt += formatRule;
             stablePrompt += `\n当前正在和你面对面互动的人是：【${myName}】。\n`;
 
-            // 🌟 2. 拆分：构建【动态】的系统提示词部分
             let dynamicPrompt = "";
             const allVault = PhoneAPI.getMemoryVault();
             let accessibleVault = allVault;
@@ -914,7 +952,6 @@ export const PhoneEngine = {
                 }
             }
 
-            // 🌟 3. 组装 Cove Prompt Cache 格式
             let systemContent = [];
             if (stablePrompt) {
                 systemContent.push({
@@ -952,7 +989,6 @@ export const PhoneEngine = {
             try {
                 rawReply = await PhoneAPI.chatWithAI(messages, false);
             } catch (err) {
-                // 自动降级机制
                 if (err.message.includes('content must be a string') || err.message.includes('cache_control')) {
                     console.warn("模型不支持高级数组结构，自动降级为纯文本重试...");
                     messages[0].content = stablePrompt + dynamicPrompt;
@@ -962,6 +998,24 @@ export const PhoneEngine = {
                 }
             }
             
+            // 🌟 核心：解析动态交易标签！
+            let purchaseHtml = null;
+            const purchaseMatch = rawReply.match(/<purchase>(.*)\|(\d+)<\/purchase>/i);
+            if (purchaseMatch) {
+                const itemName = purchaseMatch[1].trim();
+                const itemPrice = parseInt(purchaseMatch[2].trim());
+                let coins = parseInt(localStorage.getItem('my_coins') || '500');
+                
+                if (coins >= itemPrice) {
+                    coins -= itemPrice;
+                    localStorage.setItem('my_coins', coins);
+                    purchaseHtml = `<div class="chat-order-card"><div class="chat-order-header"><span>🛍️ 赛博订单自动生成</span><span>¥${itemPrice}</span></div><div class="chat-order-item"><span class="chat-order-item-name"><i class="ph-fill ph-package" style="color:var(--primary-color);"></i> ${itemName}</span><span>x1</span></div><div class="chat-order-meta"><div>✅ 支付状态：已自动扣款</div><div>💰 小金库剩余：${coins} 金币</div></div></div>`;
+                } else {
+                    purchaseHtml = `<div class="chat-order-card" style="border-color:var(--danger-color);"><div class="chat-order-header" style="color:var(--danger-color);"><span>❌ 支付失败</span><span>¥${itemPrice}</span></div><div class="chat-order-item"><span class="chat-order-item-name">${itemName}</span></div><div class="chat-order-meta"><div>⚠️ 余额不足，当前仅剩 ${coins} 金币，请去打工赚钱！</div></div></div>`;
+                }
+                rawReply = rawReply.replace(/<purchase>[\s\S]*?<\/purchase>/gi, '').trim();
+            }
+
             const innerMatch = rawReply.match(/<inner>([\s\S]*?)<\/inner>/i);
             const innerThought = innerMatch ? innerMatch[1].trim() : "（TA的心思藏得很深，什么也没看出来...）";
             
@@ -973,6 +1027,11 @@ export const PhoneEngine = {
             chatItems.pop(); 
             
             chatItems.push({ sender: 'other', content: finalReply, time: timeStr, date: dateStr, innerThought: innerThought });
+
+            // 🌟 注入购买卡片
+            if (purchaseHtml) {
+                chatItems.push({ sender: 'me', content: purchaseHtml, time: timeStr, date: dateStr });
+            }
 
             PhoneUI.renderNovelContent();
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
@@ -1018,7 +1077,6 @@ export const PhoneEngine = {
             if (systemPrompt) contextSetup += `【系统核心指令】：\n${systemPrompt}\n\n`;
             if (charPersona) contextSetup += `【角色设定】：\n${charPersona}\n\n`;
 
-            // 🌟 日记生成同样应用 Prompt Cache
             let stablePrompt = `你现在完全进入角色。以下是你的底层设定：\n${contextSetup}`;
             let dynamicPrompt = `【重要时间设定】：今天是 ${dateStr}。\n请根据以下你和“我”在今天的【全局记忆库（包含线上微信和线下故事）】，用【第一人称（你的视角）】写一篇今天的深夜日记。\n要求：\n1. 字数在 150-300 字之间。\n2. 绝对符合你的人设（比如傲娇、毒舌、表面嫌弃实际在意等）。\n3. 必须是一篇真实的日记，不要提及“AI”、“用户”等词汇。\n4. 综合线上线下的事情来写，让日记显得连贯真实。\n5. 直接输出日记正文，不要输出标题、日期或多余的解释。\n\n今天的全局记忆库记录：\n${historyText}`;
 

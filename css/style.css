@@ -574,64 +574,25 @@ input[type="text"], input[type="password"], input[type="number"], select, textar
 .page-btn { pointer-events: auto; background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.1); width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; color: #333; cursor: pointer; transition: 0.2s; backdrop-filter: blur(5px); }
 .page-btn:active { transform: scale(0.9); background: rgba(0,0,0,0.1); }
 
-/* 🌟 悬浮球强制修复（防错位） */
-.api-fab { position: fixed !important; right: 15px !important; top: 50% !important; transform: translateY(-50%) !important; width: 44px !important; height: 44px !important; border-radius: 50% !important; background: rgba(255, 255, 255, 0.8) !important; backdrop-filter: blur(10px) !important; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important; border: 1px solid var(--border-color) !important; display: flex !important; justify-content: center !important; align-items: center !important; font-size: 22px !important; color: var(--primary-color) !important; cursor: pointer !important; z-index: 9999 !important; transition: 0.3s !important; }
-.api-fab:active { transform: translateY(-50%) scale(0.9) !important; }
-.api-fab.loading { background: var(--primary-color) !important; color: #fff !important; box-shadow: 0 0 20px var(--primary-color) !important; animation: pulse-fab 1.5s infinite !important; }
-.api-fab.loading i { animation: spin-fast 1s linear infinite !important; }
-.api-fab.error { background: var(--danger-color) !important; color: #fff !important; box-shadow: 0 0 20px var(--danger-color) !important; }
-@keyframes pulse-fab { 0% { transform: translateY(-50%) scale(1); } 50% { transform: translateY(-50%) scale(1.1); } 100% { transform: translateY(-50%) scale(1); } }
-.api-modal { position: fixed !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -40%) scale(0.9) !important; width: 85% !important; background: var(--input-bg) !important; backdrop-filter: blur(20px) !important; border-radius: 24px !important; padding: 25px !important; box-shadow: 0 10px 40px rgba(0,0,0,0.2) !important; z-index: 10001 !important; opacity: 0 !important; visibility: hidden !important; transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1) !important; }
-.api-modal.show { transform: translate(-50%, -50%) scale(1) !important; opacity: 1 !important; visibility: visible !important; }
+.gallery-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
+.gallery-item { position: relative; padding-top: 100%; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); cursor: pointer; background: var(--icon-bg); }
+.gallery-item img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
+.gallery-item:active img { transform: scale(1.05); }
+.gallery-del-btn { position: absolute; top: 5px; right: 5px; width: 24px; height: 24px; background: rgba(0,0,0,0.5); color: #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; backdrop-filter: blur(5px); z-index: 2; }
+.image-viewer { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: 0.3s; }
+.image-viewer.show { opacity: 1; visibility: visible; }
+.image-viewer img { max-width: 95%; max-height: 90%; border-radius: 12px; box-shadow: 0 0 30px rgba(0,0,0,0.5); transform: scale(0.9); transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1); }
+.image-viewer.show img { transform: scale(1); }
+.viewer-close { position: absolute; top: 40px; right: 20px; color: #fff; font-size: 32px; cursor: pointer; background: rgba(255,255,255,0.2); width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
+.viewer-download { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 16px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+.viewer-download:active { background: rgba(255,255,255,0.4); }
 
-/* 🌟 商店与订单卡片高级感 UI */
-.shop-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 0 5px; }
-.shop-title { font-size: 18px; font-weight: bold; color: var(--primary-color); }
-.shop-actions { display: flex; gap: 10px; }
-.shop-cart-btn { position: relative; background: var(--icon-bg); color: var(--text-main); width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 18px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); cursor: pointer; }
-.shop-cart-btn:active { transform: scale(0.9); }
-.cart-badge { position: absolute; top: -5px; right: -5px; background: var(--danger-color); color: #fff; font-size: 10px; font-weight: bold; width: 18px; height: 18px; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 2px solid var(--window-bg); }
-.shop-tags-container { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
-.shop-tags { flex: 1; display: flex; overflow-x: auto; gap: 8px; padding-bottom: 5px; scroll-behavior: smooth; }
-.shop-tags::-webkit-scrollbar { display: none; }
-.shop-tag { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; color: var(--text-sub); background: var(--icon-bg); border: 1px solid var(--border-color); cursor: pointer; white-space: nowrap; transition: 0.2s; }
-.shop-tag.active { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
-.shop-tag-add { width: 30px; height: 30px; border-radius: 50%; background: var(--icon-bg); border: 1px dashed var(--border-color); display: flex; justify-content: center; align-items: center; color: var(--text-sub); cursor: pointer; flex-shrink: 0; }
-.shop-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-.shop-item { background: var(--icon-bg); border-radius: 16px; padding: 15px; display: flex; flex-direction: column; align-items: center; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.03); position: relative; cursor: pointer; }
-.shop-item:active { transform: scale(0.98); }
-.shop-item-icon { font-size: 32px; margin-bottom: 10px; color: var(--primary-color); background: var(--bg-gradient-start); width: 56px; height: 56px; border-radius: 16px; display: flex; justify-content: center; align-items: center; }
-.shop-item-name { font-size: 14px; font-weight: bold; color: var(--text-main); margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
-.shop-item-desc { font-size: 11px; color: var(--text-sub); margin-bottom: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 30px; line-height: 1.4; }
-.shop-item-bottom { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: auto; }
-.shop-item-price { color: #e76f51; font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 2px; }
-.shop-item-add { width: 28px; height: 28px; border-radius: 50%; background: var(--primary-color); color: #fff; display: flex; justify-content: center; align-items: center; font-size: 14px; cursor: pointer; transition: 0.2s; border: none; }
-.shop-item-add:active { transform: scale(0.8); }
-.cart-modal { position: fixed; bottom: 0; left: 0; right: 0; background: var(--window-bg); border-radius: 24px 24px 0 0; padding: 20px 15px 30px 15px; z-index: 1000; transform: translateY(100%); transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1); box-shadow: 0 -10px 40px rgba(0,0,0,0.1); display: flex; flex-direction: column; max-height: 80vh; }
-.cart-modal.show { transform: translateY(0); }
-.cart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 16px; font-weight: bold; color: var(--text-main); }
-.cart-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
-.cart-list::-webkit-scrollbar { display: none; }
-.cart-item { display: flex; align-items: center; background: var(--icon-bg); padding: 10px; border-radius: 12px; gap: 10px; }
-.cart-item-icon { font-size: 20px; background: var(--bg-gradient-start); color: var(--primary-color); width: 40px; height: 40px; border-radius: 10px; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
-.cart-item-info { flex: 1; overflow: hidden; }
-.cart-item-name { font-size: 13px; font-weight: bold; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cart-item-price { font-size: 12px; color: #e76f51; font-weight: bold; margin-top: 2px; }
-.cart-item-del { color: var(--text-sub); font-size: 18px; padding: 5px; cursor: pointer; }
-.cart-footer { display: flex; flex-direction: column; gap: 10px; }
-.cart-total { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; color: var(--text-main); margin-bottom: 5px; padding: 0 5px; }
-.cart-btn-group { display: flex; gap: 10px; }
-.cart-btn { flex: 1; padding: 12px; border-radius: 12px; font-size: 14px; font-weight: bold; cursor: pointer; border: none; display: flex; justify-content: center; align-items: center; gap: 6px; }
-.cart-btn.pay { background: var(--primary-color); color: #fff; }
-.cart-btn.share { background: #f4a261; color: #fff; }
-.cart-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* 🌟 聊天界面的订单卡片样式 */
-.chat-order-card { background: var(--window-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; margin-top: 8px; font-size: 13px; color: var(--text-main); }
-.chat-order-header { font-weight: bold; color: var(--primary-color); border-bottom: 1px dashed var(--border-color); padding-bottom: 6px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;}
-.chat-order-item { display: flex; justify-content: space-between; margin-bottom: 4px; align-items: center;}
-.chat-order-item-name { display: flex; align-items: center; gap: 6px; }
-.chat-order-meta { font-size: 11px; color: var(--text-sub); margin-top: 8px; background: var(--icon-bg); padding: 8px; border-radius: 6px; line-height: 1.6;}
+/* 🌟 聊天界面的订单卡片样式 (防挤压修复版) */
+.chat-order-card { background: var(--icon-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; margin-top: 8px; font-size: 13px; color: var(--text-main); min-width: 240px; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+.chat-order-header { font-weight: bold; color: var(--primary-color); border-bottom: 1px dashed var(--border-color); padding-bottom: 8px; margin-bottom: 8px; display: flex !important; justify-content: space-between !important; align-items: center !important; width: 100%; }
+.chat-order-item { display: flex !important; justify-content: space-between !important; margin-bottom: 6px; align-items: center !important; width: 100%; }
+.chat-order-item-name { display: flex; align-items: center; gap: 6px; color: var(--text-main); }
+.chat-order-meta { font-size: 11px; color: var(--text-sub); margin-top: 10px; background: var(--window-bg); padding: 10px; border-radius: 8px; line-height: 1.6; display: flex; flex-direction: column; gap: 4px; }
 
 .gold-card { background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); border-radius: 20px; padding: 25px 20px; color: #fff; box-shadow: 0 10px 20px rgba(253, 160, 133, 0.3); margin-bottom: 20px; position: relative; overflow: hidden; }
 .gold-card::after { content: "💳"; position: absolute; right: -10px; bottom: -20px; font-size: 100px; opacity: 0.2; transform: rotate(-15deg); }

@@ -226,7 +226,6 @@ export const PhoneEngine = {
         const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 
         if (isHusbandPay) {
-            // 🌟 修复：使用 div 替代 span，防止挤压
             let orderHtml = `<div class="chat-order-card"><div class="chat-order-header"><div>🛍️ 赛博杂货铺 购物车清单</div><div>¥${total}</div></div>`;
             cart.forEach(item => {
                 orderHtml += `<div class="chat-order-item"><div class="chat-order-item-name"><i class="${item.icon}" style="color:var(--primary-color);"></i> ${item.name}</div><div>x1</div></div>`;
@@ -260,7 +259,6 @@ export const PhoneEngine = {
                 localStorage.setItem('my_coins', coins);
                 localStorage.setItem('shopping_cart', '[]');
                 
-                // 🌟 修复：使用 div 替代 span，防止挤压
                 let orderHtml = `<div class="chat-order-card"><div class="chat-order-header"><div>🛍️ 赛博杂货铺 已购订单</div><div>¥${total}</div></div>`;
                 cart.forEach(item => {
                     orderHtml += `<div class="chat-order-item"><div class="chat-order-item-name"><i class="${item.icon}" style="color:var(--primary-color);"></i> ${item.name}</div><div>x1</div></div>`;
@@ -449,14 +447,19 @@ export const PhoneEngine = {
         } catch (e) { alert("提炼失败：" + e.message); }
     },
 
+    // 🌟 核心修复：解除 30 条限制，读取全部聊天记录提取记忆！
     async extractMemory(sourceApp) {
         PhoneAPI.showToast("🧠 正在提取并拆解记忆，请稍候...");
         try {
             const roleId = Config.currentContactId;
             const items = Config.phoneData[roleId]?.[sourceApp]?.items || [];
-            const recentItems = items.slice(-30).filter(i => i.sender !== 'typing');
+            
+            // 🌟 修复：不再使用 slice(-30)，而是读取所有非 typing 的记录！
+            const recentItems = items.filter(i => i.sender !== 'typing');
+            
             if (recentItems.length === 0) return alert("没有足够的聊天记录来提取记忆！");
             let historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
+            
             const aiPrompt = `你是一个专门负责提取“角色扮演记忆锚点”的AI。请分析以下聊天记录，提取出其中所有具体的、有价值的细节，生成【多条独立的记忆碎片】。提取规则：1. 必须具体。2. 独立成条(第三人称)。3. 去敏。4. 强制用 "|||" 隔开！\n\n聊天记录：\n${historyText}`;
             const reply = await PhoneAPI.chatWithAI([{ role: "user", content: aiPrompt }], true); 
             let rawText = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```.*?/g, '').replace(/```/g, '').trim();
@@ -470,6 +473,7 @@ export const PhoneEngine = {
         } catch (e) { alert("记忆提取失败：" + e.message); }
     },
 
+    // 🌟 核心修复：解除 50 条限制，读取全部聊天记录洗地！
     async washMemory(sourceApp) {
         this.closeMsgMenu();
         if (!confirm("⚠️ 确定要进行【记忆洗地】吗？\nAI将把当前所有聊天记录拆解成多段长期记忆，随后【清空】当前聊天界面！")) return;
@@ -478,7 +482,10 @@ export const PhoneEngine = {
             const roleId = Config.currentContactId;
             const items = Config.phoneData[roleId]?.[sourceApp]?.items || [];
             if (items.length === 0) return alert("当前没有聊天记录可以洗地！");
-            const recentItems = items.slice(-50).filter(i => i.sender !== 'typing');
+            
+            // 🌟 修复：不再使用 slice(-50)，而是读取所有非 typing 的记录！
+            const recentItems = items.filter(i => i.sender !== 'typing');
+            
             let historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
             const aiPrompt = `分析聊天记录，提取具体的记忆碎片。独立成条(第三人称)，用 "|||" 隔开！\n\n记录：\n${historyText}`;
             const reply = await PhoneAPI.chatWithAI([{ role: "user", content: aiPrompt }], true); 
@@ -592,7 +599,7 @@ export const PhoneEngine = {
         PhoneUI.renderAppContent('gallery'); PhoneUI.closeImageViewer(); PhoneAPI.showToast("🗑️ 照片已销毁");
     },
 
-    // ================= 核心聊天引擎 (加入 AI 动态交易解析) =================
+    // ================= 核心聊天引擎 =================
     async sendChatMessage(isRegen = false) {
         const roleId = Config.currentContactId;
         if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
@@ -645,7 +652,6 @@ export const PhoneEngine = {
                 formatRule += "【视觉交互机制】：如果用户在聊天中要求你“发一张自拍”、“拍个照看看”或者“让我看看你在干嘛”，你除了正常的文字回复外，**必须**在回复的最后加上一个 <photo> 标签，里面用英文详细描述你当前的动作、表情、穿着和环境（用于AI绘图）。例如：<photo>1boy, handsome, looking at viewer, holding a coffee cup, neon city background, masterpiece</photo>。注意：如果没有要求拍照，绝对不要输出这个标签！\n";
             }
 
-            // 🌟 核心：加入动态交易机制指令
             formatRule += "【动态交易机制】：如果剧情中发生了购买、点外卖、送礼等消费行为，你必须根据情境【自行编造商品名称和合理的金币价格】，并在回复最末尾加上 `<purchase>商品名称|价格数字</purchase>`。例如：`<purchase>双人豪华晚餐|120</purchase>`。系统会自动扣除金币并生成订单卡片。无消费行为时绝对不要输出此标签！\n";
 
             const wbData = PhoneAPI.getWorldbookData();
@@ -771,7 +777,6 @@ export const PhoneEngine = {
                 rawReply = rawReply.replace(/<photo>[\s\S]*?<\/photo>/gi, '').trim();
             }
 
-            // 🌟 核心：解析动态交易标签并生成【防挤压版】订单卡片！
             let purchaseHtml = null;
             const purchaseMatch = rawReply.match(/<purchase>(.*)\|(\d+)<\/purchase>/i);
             if (purchaseMatch) {
@@ -806,7 +811,6 @@ export const PhoneEngine = {
                 chatItems.push({ sender: 'other', content: part, time: timeStr, date: dateStr, innerThought: thought });
             });
 
-            // 🌟 注入购买卡片
             if (purchaseHtml) {
                 chatItems.push({ sender: 'me', content: purchaseHtml, time: timeStr, date: dateStr });
             }
@@ -910,7 +914,6 @@ export const PhoneEngine = {
             formatRule += `【字数与细节强制要求】：每次回复**必须不少于 ${minWords} 字**（不包含思维链的字数）！请尽情展开环境渲染、细腻的动作刻画和深度的心理描写，让场景充满画面感。绝对禁止像微信聊天那样只发短对话，必须像长篇小说的一段一样丰满！\n`;
             formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。严禁重复心声，必须产生全新心理活动！\n";
             
-            // 🌟 核心：线下小说同样支持动态交易！
             formatRule += "【动态交易机制】：如果剧情中发生了购买、点外卖、送礼等消费行为，你必须根据情境【自行编造商品名称和合理的金币价格】，并在回复最末尾加上 `<purchase>商品名称|价格数字</purchase>`。例如：`<purchase>双人豪华晚餐|120</purchase>`。系统会自动扣除金币并生成订单卡片。无消费行为时绝对不要输出此标签！\n";
 
             if (banEmoji) formatRule += "【最高禁令】：绝对不允许使用任何 Emoji、颜文字、波浪号(~)，违者抹杀！\n";
@@ -1000,7 +1003,6 @@ export const PhoneEngine = {
                 }
             }
             
-            // 🌟 核心：解析动态交易标签并生成【防挤压版】订单卡片！
             let purchaseHtml = null;
             const purchaseMatch = rawReply.match(/<purchase>(.*)\|(\d+)<\/purchase>/i);
             if (purchaseMatch) {
@@ -1030,7 +1032,6 @@ export const PhoneEngine = {
             
             chatItems.push({ sender: 'other', content: finalReply, time: timeStr, date: dateStr, innerThought: innerThought });
 
-            // 🌟 注入购买卡片
             if (purchaseHtml) {
                 chatItems.push({ sender: 'me', content: purchaseHtml, time: timeStr, date: dateStr });
             }

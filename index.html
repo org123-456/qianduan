@@ -22,7 +22,7 @@
         .top-bar { display: flex !important; justify-content: space-between !important; align-items: center !important; padding: 45px 20px 15px 20px !important; color: var(--primary-color) !important; font-weight: bold !important; z-index: 50 !important; background: var(--input-bg) !important; backdrop-filter: blur(15px) !important; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important; transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1) !important; width: 100% !important; box-sizing: border-box !important;}
     </style>
 
-    <link rel="stylesheet" href="css/style.css?t=22000">
+    <link rel="stylesheet" href="css/style.css?t=23000">
 </head>
 <body>
     <div id="api-fab" class="api-fab" onclick="window.PhoneUI.openApiModal()">
@@ -145,33 +145,28 @@
                 </form>
             </div>
 
+            <!-- 🌟 核心：Together 页面重构，加入钱包和打工 -->
             <div id="page-together" class="page">
-                <div class="card" style="text-align: center;">
-                    <h3 style="color: var(--primary-color);">Together</h3>
-                    <p style="color: var(--text-sub); margin-top: 10px;">功能开发中...</p>
+                <div class="gold-card" style="margin-bottom: 15px;">
+                    <div class="gold-title">我们的共同金库</div>
+                    <div class="gold-amount"><i class="ph-fill ph-coin" style="font-size: 28px;"></i> <span id="together-coin-display">500</span></div>
+                </div>
+
+                <div class="memory-card gallery-card" onclick="window.PhoneUI.openApp('task', '悬赏打工')">
+                    <div class="mc-icon"><i class="ph-fill ph-briefcase"></i></div>
+                    <div class="mc-info">
+                        <div class="mc-title">悬赏打工板</div>
+                        <div class="mc-desc">接取委托，赚取金币，触发双人剧情</div>
+                    </div>
+                    <i class="ph ph-caret-right mc-arrow"></i>
                 </div>
             </div>
 
-            <!-- 🌟 核心：Mine 页面重构，加入钱包和打工 -->
             <div id="page-mine" class="page">
                 <div class="card" style="text-align: center; padding: 40px 20px; color: var(--text-main); position: relative;">
                     <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa" id="mine-avatar-display" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 15px; border: 3px solid var(--primary-color); object-fit: cover;">
                     <h3 style="color: var(--primary-color); margin-bottom: 5px;" id="mine-name-display">我</h3>
                     <p style="font-size: 12px; color: var(--text-sub);">你的专属空间</p>
-                </div>
-                
-                <div class="gold-card" style="margin-bottom: 15px;">
-                    <div class="gold-title">我的小金库余额</div>
-                    <div class="gold-amount"><i class="ph-fill ph-coin" style="font-size: 28px;"></i> <span id="mine-coin-display">500</span></div>
-                </div>
-
-                <div class="memory-card gallery-card" onclick="window.PhoneUI.openApp('task', '打工赚钱')">
-                    <div class="mc-icon"><i class="ph-fill ph-briefcase"></i></div>
-                    <div class="mc-info">
-                        <div class="mc-title">悬赏打工板</div>
-                        <div class="mc-desc">接取委托，赚取金币，触发剧情</div>
-                    </div>
-                    <i class="ph ph-caret-right mc-arrow"></i>
                 </div>
 
                 <div class="memory-card" style="background: linear-gradient(135deg, #f4a261, #e76f51);" onclick="window.PhoneUI.openApp('favorites', '星海收藏夹')">
@@ -200,7 +195,7 @@
                 </div>
             </div>
             <div class="nav-item" onclick="switchTab(3)">
-                <div class="icon"><i class="ph ph-music-notes"></i></div><div class="text">Together</div>
+                <div class="icon"><i class="ph ph-users"></i></div><div class="text">Together</div>
             </div>
             <div class="nav-item" onclick="switchTab(4)">
                 <div class="icon"><i class="ph ph-moon"></i></div><div class="text">Mine</div>
@@ -290,15 +285,19 @@
                 window.Config.currentAppId = 'wechat'; 
                 window.PhoneUI.renderAppContent('wechat');
             }
+            
+            // 🌟 更新 Together 页面的金币
+            if(index === 3) {
+                const coins = localStorage.getItem('my_coins') || '500';
+                const coinEl = document.getElementById('together-coin-display');
+                if (coinEl) coinEl.innerText = coins;
+            }
+
             if(index === 4) {
                 const avatar = localStorage.getItem('my_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa';
                 const name = localStorage.getItem('my_name') || '我';
                 document.getElementById('mine-avatar-display').src = avatar;
                 document.getElementById('mine-name-display').innerText = name;
-                // 🌟 更新 Mine 页面的余额
-                const coins = localStorage.getItem('my_coins') || '500';
-                const coinEl = document.getElementById('mine-coin-display');
-                if (coinEl) coinEl.innerText = coins;
             }
         }
 
@@ -346,6 +345,6 @@
                 .catch(err => console.error('Service Worker 注册失败:', err));
         }
     </script>
-    <script type="module" src="js/main.js?t=22000"></script>
+    <script type="module" src="js/main.js?t=23000"></script>
 </body>
 </html>

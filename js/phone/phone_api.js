@@ -70,7 +70,6 @@ export const PhoneAPI = {
             setVal('img-negative-prompt', localStorage.getItem('img_negative_prompt') || '');
             const autoPhotoEl = document.getElementById('auto-photo'); if(autoPhotoEl) autoPhotoEl.checked = localStorage.getItem('auto_photo') === 'true';
 
-            // 🌟 核心：加载锁脸图预览
             const refBase64 = localStorage.getItem('img_ref_base64');
             const previewEl = document.getElementById('face-lock-preview');
             if (previewEl) {
@@ -209,6 +208,7 @@ export const PhoneAPI = {
 
     async forceUpdate() { if (confirm("确定要强制刷新并获取最新代码吗？")) { if ('serviceWorker' in navigator) { const registrations = await navigator.serviceWorker.getRegistrations(); for (let reg of registrations) { await reg.unregister(); } } if ('caches' in window) { const keys = await caches.keys(); for (let key of keys) { await caches.delete(key); } } window.location.href = window.location.pathname + '?t=' + new Date().getTime(); } },
 
+    // 🌟 核心修改：读取并展示 Cache Token 战绩！
     async chatWithAI(messages, useSubEngine = false) {
         const config = this.getEngineConfig(useSubEngine);
         if (!config) throw new Error("请先去【系统设置】里分配引擎配置！");
@@ -222,7 +222,21 @@ export const PhoneAPI = {
             const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.key}` }, body: JSON.stringify({ model: config.model, messages: messages, temperature: 0.7 }) });
             if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(`API 报错: ${response.status} ${errData.error?.message || ''}`); }
             const data = await response.json(); 
-            if (data.usage) { const tokenText = document.getElementById('api-token-text'); if (tokenText) tokenText.innerText = `提示词: ${data.usage.prompt_tokens} | 回复: ${data.usage.completion_tokens} | 总计: ${data.usage.total_tokens}`; }
+            
+            // 🌟 解析并展示缓存命中率！
+            if (data.usage) { 
+                const tokenText = document.getElementById('api-token-text'); 
+                if (tokenText) {
+                    let uStr = `提示词: ${data.usage.prompt_tokens || 0} | 回复: ${data.usage.completion_tokens || 0}`;
+                    if (data.usage.cache_creation_input_tokens || data.usage.cache_read_input_tokens) {
+                        uStr += `\n📦 缓存创建: ${data.usage.cache_creation_input_tokens || 0}`;
+                        uStr += `\n⚡ 缓存命中: ${data.usage.cache_read_input_tokens || 0}`;
+                    }
+                    uStr += `\n📊 总计消耗: ${data.usage.total_tokens || 0}`;
+                    tokenText.innerText = uStr;
+                } 
+            }
+            
             if (fab) fab.classList.remove('loading'); if (statusText) { statusText.innerText = '请求成功'; statusText.style.color = '#4ade80'; }
             return data.choices[0].message.content;
         } catch (error) { 
@@ -230,7 +244,6 @@ export const PhoneAPI = {
         }
     },
 
-    // 🌟 核心升级：强行注入 Base64 锁脸图，并兼容反向提示词！
     async generateImageAPI(prompt) {
         let url = localStorage.getItem('img_api_url');
         const key = localStorage.getItem('img_api_key');
@@ -255,7 +268,6 @@ export const PhoneAPI = {
             if (persona) finalPrompt += `\n\n【角色外貌特征参考】：${persona}`;
             if (negPrompt) finalPrompt += `\n\n【绝对禁止出现的元素(Negative Prompt)】：${negPrompt}`;
             
-            // 🌟 核心：如果有锁脸图，把它变成 Data URL 塞在提示词最前面！
             if (refBase64) {
                 finalPrompt = `${refBase64} ${finalPrompt}`;
             }

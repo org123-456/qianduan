@@ -89,7 +89,6 @@ export const PhoneEngine = {
         if (!task) return;
 
         if (task.isStory) {
-            // 触发线下剧情
             PhoneUI.closeApp();
             window.PhoneUI.openApp('novel', '线下故事');
             const roleId = Config.currentContactId;
@@ -109,7 +108,6 @@ export const PhoneEngine = {
             PhoneUI.renderNovelContent();
             this.sendNovelMessage(false);
         } else {
-            // 普通打工加钱
             PhoneAPI.showToast(`💼 正在进行打工: ${task.name}...`);
             setTimeout(() => {
                 let coins = parseInt(localStorage.getItem('my_coins') || '500');
@@ -195,7 +193,6 @@ export const PhoneEngine = {
         let cart = JSON.parse(localStorage.getItem('shopping_cart') || '[]');
         cart.splice(index, 1);
         localStorage.setItem('shopping_cart', JSON.stringify(cart));
-        
         PhoneUI.renderCartList();
         
         const badge = document.getElementById('cart-badge');
@@ -228,7 +225,6 @@ export const PhoneEngine = {
         const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 
         if (isHusbandPay) {
-            // 代付模式
             PhoneUI.closeCartModal();
             window.PhoneUI.closeApp();
             
@@ -245,7 +241,6 @@ export const PhoneEngine = {
             this.sendChatMessage(false);
             
         } else {
-            // 余额买单模式
             let coins = parseInt(localStorage.getItem('my_coins') || '500');
             if (coins < total) {
                 PhoneAPI.showToast("余额不足，快去打工赚钱吧！");
@@ -350,9 +345,7 @@ export const PhoneEngine = {
                 const img = new Image();
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
-                    const MAX_SIZE = 800; 
+                    let width = img.width; let height = img.height; const MAX_SIZE = 800; 
                     if (width > height && width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } 
                     else if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
                     canvas.width = width; canvas.height = height;
@@ -582,7 +575,7 @@ export const PhoneEngine = {
         PhoneUI.renderAppContent('gallery'); PhoneUI.closeImageViewer(); PhoneAPI.showToast("🗑️ 照片已销毁");
     },
 
-    // ================= 聊天与小说核心引擎 =================
+    // ================= 核心聊天引擎 (加入 Cove Prompt Cache) =================
     async sendChatMessage(isRegen = false) {
         const roleId = Config.currentContactId;
         if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
@@ -590,11 +583,20 @@ export const PhoneEngine = {
         const chatItems = Config.phoneData[roleId].wechat.items;
 
         let hasNewUserMsg = false;
-        const now = new Date(); const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`; const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 
         if (!isRegen) {
             const inputEl = document.getElementById('chat-input');
-            if(inputEl) { const text = inputEl.value.trim(); if (text) { chatItems.push({ sender: 'me', content: text, time: timeStr, date: dateStr }); inputEl.value = ''; hasNewUserMsg = true; } }
+            if(inputEl) {
+                const text = inputEl.value.trim();
+                if (text) {
+                    chatItems.push({ sender: 'me', content: text, time: timeStr, date: dateStr });
+                    inputEl.value = '';
+                    hasNewUserMsg = true;
+                }
+            }
         }
 
         if (!isRegen && !hasNewUserMsg && chatItems.length === 0) return;
@@ -608,12 +610,14 @@ export const PhoneEngine = {
             const banEmoji = localStorage.getItem('ban_emoji') === 'true';
             const shareMemory = localStorage.getItem('share_memory') === 'true';
             const autoPhoto = localStorage.getItem('auto_photo') === 'true'; 
+            
             const systemPrompt = localStorage.getItem('system_prompt') || '';
             const charPersona = localStorage.getItem('char_persona') || '';
             
-            let fullPrompt = "";
-            if (systemPrompt) fullPrompt += `【系统核心指令】：\n${systemPrompt}\n\n`;
-            if (charPersona) fullPrompt += `【角色设定】：\n${charPersona}\n\n`;
+            // 🌟 1. 拆分：构建【稳定】的系统提示词部分
+            let stablePrompt = "";
+            if (systemPrompt) stablePrompt += `【系统核心指令】：\n${systemPrompt}\n\n`;
+            if (charPersona) stablePrompt += `【角色设定】：\n${charPersona}\n\n`;
 
             let formatRule = "";
             if (banEmoji) formatRule += "【最高禁令】：绝对不允许使用任何 Emoji、颜文字、波浪号(~)，违者抹杀！\n";
@@ -627,27 +631,39 @@ export const PhoneEngine = {
 
             const wbData = PhoneAPI.getWorldbookData();
             const activeOnlineWb = wbData.filter(w => w.online).map(w => w.content).join('\n');
-            if (activeOnlineWb) { formatRule += `\n【当前生效的世界书/规则插件】：\n${activeOnlineWb}\n`; }
+            if (activeOnlineWb) {
+                formatRule += `\n【当前生效的世界书/规则插件】：\n${activeOnlineWb}\n`;
+            }
+            stablePrompt += formatRule;
+            stablePrompt += `\n当前正在和你聊天的人是：【${myName}】。\n`;
 
+            // 🌟 2. 拆分：构建【动态】的系统提示词部分（记忆、时间等）
+            let dynamicPrompt = "";
             const allVault = PhoneAPI.getMemoryVault();
             let accessibleVault = allVault;
-            if (!shareMemory) { accessibleVault = allVault.filter(v => v.isCore || v.source === '线上微信'); }
+            if (!shareMemory) {
+                accessibleVault = allVault.filter(v => v.isCore || v.source === '线上微信');
+            }
 
             if (accessibleVault.length > 0) {
                 const recentVault = accessibleVault.slice(-5).map(v => `[${v.date}] ${v.source}: ${v.content}`).join('\n');
-                formatRule += `\n【长期记忆档案】：以下是你脑海中深刻的长期记忆，请在对话中自然地保持连贯：\n${recentVault}\n`;
+                dynamicPrompt += `\n【长期记忆档案】：以下是你脑海中深刻的长期记忆，请在对话中自然地保持连贯：\n${recentVault}\n`;
                 
                 if (hasNewUserMsg) {
                     let userText = "";
                     for (let i = chatItems.length - 2; i >= 0; i--) {
-                        if (chatItems[i].sender === 'me' && !chatItems[i].content.includes('![图片]')) { userText = chatItems[i].content; break; }
+                        if (chatItems[i].sender === 'me' && !chatItems[i].content.includes('![图片]')) {
+                            userText = chatItems[i].content;
+                            break;
+                        }
                     }
+                    
                     const recallTriggers = ['你还记得', '昨天', '上次', '之前', '那个事', '还记得', '那次'];
                     const needsRecall = recallTriggers.some(t => userText.includes(t));
                     
                     if (needsRecall && accessibleVault.length > 5) {
                         const extendedVault = accessibleVault.slice(-20).map(v => `[${v.date}] ${v.source}: ${v.content}`).join('\n');
-                        formatRule += `\n【系统提示(记忆检索触发)】：用户似乎在试图唤醒你的某段记忆。以下是你的扩展记忆库，请检索是否有相关内容，并以你的口吻作出回应：\n${extendedVault}\n`;
+                        dynamicPrompt += `\n【系统提示(记忆检索触发)】：用户似乎在试图唤醒你的某段记忆。以下是你的扩展记忆库，请检索是否有相关内容，并以你的口吻作出回应：\n${extendedVault}\n`;
                     }
                 }
             }
@@ -656,42 +672,80 @@ export const PhoneEngine = {
                 const novelItems = Config.phoneData[roleId]?.novel?.items || [];
                 if (novelItems.length > 0) {
                     const recentNovel = novelItems.slice(-8).map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
-                    formatRule += `\n【跨频道记忆联动】：以下是你们最近在[线下故事]中发生的剧情，请在当前的微信回复中自然体现出你记得这些事：\n${recentNovel}\n`;
+                    dynamicPrompt += `\n【跨频道记忆联动】：以下是你们最近在[线下故事]中发生的剧情，请在当前的微信回复中自然体现出你记得这些事：\n${recentNovel}\n`;
                 }
             }
 
-            fullPrompt += `当前正在和你聊天的人是：【${myName}】。\n${formatRule}`;
+            // 🌟 3. 组装 Cove Prompt Cache 格式的 System Message
+            let systemContent = [];
+            if (stablePrompt) {
+                systemContent.push({
+                    type: "text",
+                    text: stablePrompt,
+                    cache_control: { type: "ephemeral" } // Anthropic 专属缓存标签
+                });
+            }
+            if (dynamicPrompt) {
+                systemContent.push({
+                    type: "text",
+                    text: dynamicPrompt
+                });
+            }
 
-            let messages = [{ role: "system", content: fullPrompt }];
-            const MAX_CONTEXT = 20; const recentItems = chatItems.slice(-MAX_CONTEXT);
+            let messages = [{ role: "system", content: systemContent.length > 0 ? systemContent : "You are a helpful assistant." }];
+
+            const MAX_CONTEXT = 20;
+            const recentItems = chatItems.slice(-MAX_CONTEXT);
+            
             let hasImage = false;
 
             recentItems.forEach((item) => {
                 if (item.sender !== 'typing') { 
                     let text = item.content;
                     const imgMatch = text.match(/^!\[.*?\]\((.*?)\)$/);
+                    
                     if (item.sender === 'me' && imgMatch) {
                         hasImage = true;
-                        messages.push({ role: 'user', content: [ { type: "image_url", image_url: { url: imgMatch[1] } } ] });
+                        messages.push({
+                            role: 'user',
+                            content: [
+                                { type: "image_url", image_url: { url: imgMatch[1] } }
+                            ]
+                        });
                     } else {
-                        messages.push({ role: item.sender === 'me' ? 'user' : 'assistant', content: text });
+                        messages.push({
+                            role: item.sender === 'me' ? 'user' : 'assistant',
+                            content: text
+                        });
                     }
                 }
             });
 
             if (!isRegen && !hasNewUserMsg) {
-                messages.push({ role: "user", content: "【系统指令】：我没有说话。请你顺着刚才的话题继续连发微信补充，或者开启一个新话题。" });
+                messages.push({
+                    role: "user",
+                    content: "【系统指令】：我没有说话。请你顺着刚才的话题继续连发微信补充，或者开启一个新话题。"
+                });
             }
 
             let rawReply = "";
             try {
                 rawReply = await PhoneAPI.chatWithAI(messages, false);
             } catch (err) {
-                if (hasImage && err.message.includes('INVALID_ARGUMENT')) {
-                    console.warn("模型不支持视觉，自动降级为纯文本重试...");
-                    messages = messages.map(m => { if (Array.isArray(m.content)) { return { role: m.role, content: "[用户发送了一张图片，但系统无法解析]" }; } return m; });
+                // 如果因为加了 cache_control 导致普通 OpenAI 接口报错，自动降级为纯文本重试
+                if (err.message.includes('content must be a string') || err.message.includes('cache_control') || (hasImage && err.message.includes('INVALID_ARGUMENT'))) {
+                    console.warn("模型不支持高级数组结构或视觉，自动降级为纯文本重试...");
+                    messages[0].content = stablePrompt + dynamicPrompt; // 降级为普通字符串
+                    messages = messages.map(m => {
+                        if (Array.isArray(m.content)) {
+                            return { role: m.role, content: "[用户发送了一张图片，但系统无法解析]" };
+                        }
+                        return m;
+                    });
                     rawReply = await PhoneAPI.chatWithAI(messages, false);
-                } else { throw err; }
+                } else {
+                    throw err;
+                }
             }
 
             let photoPrompt = null;
@@ -704,12 +758,15 @@ export const PhoneEngine = {
             const innerMatch = rawReply.match(/<inner>([\s\S]*?)<\/inner>/i);
             const innerThought = innerMatch ? innerMatch[1].trim() : "（TA的心思藏得很深，什么也没看出来...）";
 
-            let finalReply = rawReply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<inner>[\s\S]*?<\/inner>/gi, '').trim();
+            let finalReply = rawReply.replace(/<think>[\s\S]*?<\/think>/gi, '')
+                                     .replace(/<inner>[\s\S]*?<\/inner>/gi, '')
+                                     .trim();
             if (!finalReply) finalReply = rawReply.trim();
 
             chatItems.pop(); 
             
             const replyParts = finalReply.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+            
             replyParts.forEach((part, idx) => {
                 let thought = (idx === 0) ? innerThought : "（连发消息，心声已在上一条显示）";
                 chatItems.push({ sender: 'other', content: part, time: timeStr, date: dateStr, innerThought: thought });
@@ -721,20 +778,33 @@ export const PhoneEngine = {
             if (photoPrompt) {
                 chatItems.push({ sender: 'typing' });
                 PhoneUI.renderAppContent('wechat'); 
+                
                 try {
                     PhoneAPI.showToast("📸 他正在拍照，请稍候...");
                     const b64Json = await PhoneAPI.generateImageAPI(photoPrompt);
                     const finalB64 = await this.compressImage(b64Json);
                     
                     chatItems.pop(); 
-                    chatItems.push({ sender: 'other', content: `![图片](${finalB64})`, time: timeStr, date: dateStr, innerThought: "（拍张照给她看看吧...）" });
+                    
+                    chatItems.push({ 
+                        sender: 'other', 
+                        content: `![图片](${finalB64})`, 
+                        time: timeStr, 
+                        date: dateStr,
+                        innerThought: "（拍张照给她看看吧...）"
+                    });
                     
                     if (!Config.phoneData[roleId].gallery) Config.phoneData[roleId].gallery = { items: [] };
-                    Config.phoneData[roleId].gallery.items.push({ id: 'img_' + Date.now(), content: finalB64, date: dateStr });
+                    Config.phoneData[roleId].gallery.items.push({
+                        id: 'img_' + Date.now(),
+                        content: finalB64,
+                        date: dateStr
+                    });
 
                     localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
                     PhoneUI.renderAppContent('wechat');
                     PhoneAPI.showToast("📸 照片已发送并存入相册！");
+                    
                 } catch (e) {
                     chatItems.pop(); 
                     PhoneUI.renderAppContent('wechat');
@@ -759,11 +829,20 @@ export const PhoneEngine = {
         const chatItems = Config.phoneData[roleId].novel.items;
 
         let hasNewUserMsg = false;
-        const now = new Date(); const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`; const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 
         if (!isRegen) {
             const inputEl = document.getElementById('novel-input');
-            if(inputEl) { const text = inputEl.value.trim(); if (text) { chatItems.push({ sender: 'me', content: text, time: timeStr, date: dateStr }); inputEl.value = ''; hasNewUserMsg = true; } }
+            if(inputEl) {
+                const text = inputEl.value.trim();
+                if (text) {
+                    chatItems.push({ sender: 'me', content: text, time: timeStr, date: dateStr });
+                    inputEl.value = '';
+                    hasNewUserMsg = true;
+                }
+            }
         }
 
         if (!isRegen && !hasNewUserMsg && chatItems.length === 0) return;
@@ -776,14 +855,16 @@ export const PhoneEngine = {
             const myName = localStorage.getItem('my_name') || '我';
             const banEmoji = localStorage.getItem('ban_emoji') === 'true';
             const shareMemory = localStorage.getItem('share_memory') === 'true'; 
+            
             const systemPrompt = localStorage.getItem('system_prompt') || '';
             const charPersona = localStorage.getItem('char_persona') || '';
             const novelStyle = localStorage.getItem('novel_style') || '';
             
-            let fullPrompt = "";
-            if (systemPrompt) fullPrompt += `【系统核心指令】：\n${systemPrompt}\n\n`;
-            if (charPersona) fullPrompt += `【角色设定】：\n${charPersona}\n\n`;
-            if (novelStyle) fullPrompt += `【文风要求】：\n${novelStyle}\n\n`;
+            // 🌟 1. 拆分：构建【稳定】的系统提示词部分
+            let stablePrompt = "";
+            if (systemPrompt) stablePrompt += `【系统核心指令】：\n${systemPrompt}\n\n`;
+            if (charPersona) stablePrompt += `【角色设定】：\n${charPersona}\n\n`;
+            if (novelStyle) stablePrompt += `【文风要求】：\n${novelStyle}\n\n`;
 
             const minWords = localStorage.getItem('novel_min_words') || '150';
 
@@ -795,15 +876,23 @@ export const PhoneEngine = {
 
             const wbData = PhoneAPI.getWorldbookData();
             const activeOfflineWb = wbData.filter(w => w.offline).map(w => w.content).join('\n');
-            if (activeOfflineWb) { formatRule += `\n【当前生效的世界书/规则插件】：\n${activeOfflineWb}\n`; }
+            if (activeOfflineWb) {
+                formatRule += `\n【当前生效的世界书/规则插件】：\n${activeOfflineWb}\n`;
+            }
+            stablePrompt += formatRule;
+            stablePrompt += `\n当前正在和你面对面互动的人是：【${myName}】。\n`;
 
+            // 🌟 2. 拆分：构建【动态】的系统提示词部分
+            let dynamicPrompt = "";
             const allVault = PhoneAPI.getMemoryVault();
             let accessibleVault = allVault;
-            if (!shareMemory) { accessibleVault = allVault.filter(v => v.isCore || v.source === '线下故事'); }
+            if (!shareMemory) {
+                accessibleVault = allVault.filter(v => v.isCore || v.source === '线下故事');
+            }
 
             if (accessibleVault.length > 0) {
                 const recentVault = accessibleVault.slice(-5).map(v => `[${v.date}] ${v.source}: ${v.content}`).join('\n');
-                formatRule += `\n【长期记忆档案】：以下是你脑海中深刻的长期记忆，请在对话中自然地保持连贯：\n${recentVault}\n`;
+                dynamicPrompt += `\n【长期记忆档案】：以下是你脑海中深刻的长期记忆，请在对话中自然地保持连贯：\n${recentVault}\n`;
                 
                 if (hasNewUserMsg) {
                     const userText = chatItems[chatItems.length - 2].content; 
@@ -812,7 +901,7 @@ export const PhoneEngine = {
                     
                     if (needsRecall && accessibleVault.length > 5) {
                         const extendedVault = accessibleVault.slice(-20).map(v => `[${v.date}] ${v.source}: ${v.content}`).join('\n');
-                        formatRule += `\n【系统提示(记忆检索触发)】：用户似乎在试图唤醒你的某段记忆。以下是你的扩展记忆库，请检索是否有相关内容，并以你的口吻作出回应：\n${extendedVault}\n`;
+                        dynamicPrompt += `\n【系统提示(记忆检索触发)】：用户似乎在试图唤醒你的某段记忆。以下是你的扩展记忆库，请检索是否有相关内容，并以你的口吻作出回应：\n${extendedVault}\n`;
                     }
                 }
             }
@@ -821,32 +910,68 @@ export const PhoneEngine = {
                 const wechatItems = Config.phoneData[roleId]?.wechat?.items || [];
                 if (wechatItems.length > 0) {
                     const recentWechat = wechatItems.slice(-8).map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
-                    formatRule += `\n【跨频道记忆联动】：以下是你们最近在[线上微信]中的聊天记录，请在当前的线下剧情中自然体现出你记得这些对话：\n${recentWechat}\n`;
+                    dynamicPrompt += `\n【跨频道记忆联动】：以下是你们最近在[线上微信]中的聊天记录，请在当前的线下剧情中自然体现出你记得这些对话：\n${recentWechat}\n`;
                 }
             }
 
-            fullPrompt += `当前正在和你面对面互动的人是：【${myName}】。\n${formatRule}`;
+            // 🌟 3. 组装 Cove Prompt Cache 格式
+            let systemContent = [];
+            if (stablePrompt) {
+                systemContent.push({
+                    type: "text",
+                    text: stablePrompt,
+                    cache_control: { type: "ephemeral" }
+                });
+            }
+            if (dynamicPrompt) {
+                systemContent.push({
+                    type: "text",
+                    text: dynamicPrompt
+                });
+            }
 
-            let messages = [{ role: "system", content: fullPrompt }];
-            const MAX_CONTEXT = 20; const recentItems = chatItems.slice(-MAX_CONTEXT);
+            let messages = [{ role: "system", content: systemContent.length > 0 ? systemContent : "You are a helpful assistant." }];
+
+            const MAX_CONTEXT = 20;
+            const recentItems = chatItems.slice(-MAX_CONTEXT);
             
             recentItems.forEach(item => {
-                if (item.sender !== 'typing') { messages.push({ role: item.sender === 'me' ? 'user' : 'assistant', content: item.content }); }
+                if (item.sender !== 'typing') { 
+                    messages.push({ role: item.sender === 'me' ? 'user' : 'assistant', content: item.content });
+                }
             });
 
             if (!isRegen && !hasNewUserMsg) {
-                messages.push({ role: "user", content: "【系统强制指令】：我（用户）当前没有任何动作或对话，可能正在安静等待，也可能已经离开了当前场景。请你完全以你的视角，顺着刚才的剧情继续往下描写（比如你接下来的行动、独自一人的状态、或是场景的过渡）。必须严格保持字数底线和小说画面感，不要向我提问，不要等待我回复！" });
+                messages.push({
+                    role: "user",
+                    content: "【系统强制指令】：我（用户）当前没有任何动作或对话，可能正在安静等待，也可能已经离开了当前场景。请你完全以你的视角，顺着刚才的剧情继续往下描写（比如你接下来的行动、独自一人的状态、或是场景的过渡）。必须严格保持字数底线和小说画面感，不要向我提问，不要等待我回复！"
+                });
             }
 
-            const rawReply = await PhoneAPI.chatWithAI(messages, false);
+            let rawReply = "";
+            try {
+                rawReply = await PhoneAPI.chatWithAI(messages, false);
+            } catch (err) {
+                // 自动降级机制
+                if (err.message.includes('content must be a string') || err.message.includes('cache_control')) {
+                    console.warn("模型不支持高级数组结构，自动降级为纯文本重试...");
+                    messages[0].content = stablePrompt + dynamicPrompt;
+                    rawReply = await PhoneAPI.chatWithAI(messages, false);
+                } else {
+                    throw err;
+                }
+            }
             
             const innerMatch = rawReply.match(/<inner>([\s\S]*?)<\/inner>/i);
             const innerThought = innerMatch ? innerMatch[1].trim() : "（TA的心思藏得很深，什么也没看出来...）";
             
-            let finalReply = rawReply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<inner>[\s\S]*?<\/inner>/gi, '').trim();
+            let finalReply = rawReply.replace(/<think>[\s\S]*?<\/think>/gi, '')
+                                     .replace(/<inner>[\s\S]*?<\/inner>/gi, '')
+                                     .trim();
             if (!finalReply) finalReply = rawReply.trim();
 
             chatItems.pop(); 
+            
             chatItems.push({ sender: 'other', content: finalReply, time: timeStr, date: dateStr, innerThought: innerThought });
 
             PhoneUI.renderNovelContent();
@@ -865,10 +990,16 @@ export const PhoneEngine = {
         const contentAreaEl = document.getElementById('diary-content-area');
         if (!contentAreaEl) return;
 
-        contentAreaEl.innerHTML = `<div class="notebook-empty"><i class="ph-fill ph-spinner spin-anim" style="font-size: 48px; color: rgba(0,0,0,0.5); margin-bottom: 15px;"></i><p>正在偷看他的内心世界...</p></div>`;
+        contentAreaEl.innerHTML = `
+            <div class="notebook-empty">
+                <i class="ph-fill ph-spinner spin-anim" style="font-size: 48px; color: rgba(0,0,0,0.5); margin-bottom: 15px;"></i>
+                <p>正在偷看他的内心世界...</p>
+            </div>
+        `;
 
         try {
             const roleId = Config.currentContactId;
+            
             const wechatItems = (Config.phoneData[roleId]?.wechat?.items || []).map(i => ({ ...i, source: '线上微信' }));
             const novelItems = (Config.phoneData[roleId]?.novel?.items || []).map(i => ({ ...i, source: '线下故事' }));
             
@@ -887,9 +1018,29 @@ export const PhoneEngine = {
             if (systemPrompt) contextSetup += `【系统核心指令】：\n${systemPrompt}\n\n`;
             if (charPersona) contextSetup += `【角色设定】：\n${charPersona}\n\n`;
 
-            const prompt = `你现在完全进入角色。以下是你的底层设定：\n${contextSetup}\n【重要时间设定】：今天是 ${dateStr}。\n请根据以下你和“我”在今天的【全局记忆库（包含线上微信和线下故事）】，用【第一人称（你的视角）】写一篇今天的深夜日记。\n要求：\n1. 字数在 150-300 字之间。\n2. 绝对符合你的人设（比如傲娇、毒舌、表面嫌弃实际在意等）。\n3. 必须是一篇真实的日记，不要提及“AI”、“用户”等词汇。\n4. 综合线上线下的事情来写，让日记显得连贯真实。\n5. 直接输出日记正文，不要输出标题、日期或多余的解释。\n\n今天的全局记忆库记录：\n${historyText}`;
+            // 🌟 日记生成同样应用 Prompt Cache
+            let stablePrompt = `你现在完全进入角色。以下是你的底层设定：\n${contextSetup}`;
+            let dynamicPrompt = `【重要时间设定】：今天是 ${dateStr}。\n请根据以下你和“我”在今天的【全局记忆库（包含线上微信和线下故事）】，用【第一人称（你的视角）】写一篇今天的深夜日记。\n要求：\n1. 字数在 150-300 字之间。\n2. 绝对符合你的人设（比如傲娇、毒舌、表面嫌弃实际在意等）。\n3. 必须是一篇真实的日记，不要提及“AI”、“用户”等词汇。\n4. 综合线上线下的事情来写，让日记显得连贯真实。\n5. 直接输出日记正文，不要输出标题、日期或多余的解释。\n\n今天的全局记忆库记录：\n${historyText}`;
 
-            const reply = await PhoneAPI.chatWithAI([{ role: "user", content: prompt }], true); 
+            let messages = [{
+                role: "user",
+                content: [
+                    { type: "text", text: stablePrompt, cache_control: { type: "ephemeral" } },
+                    { type: "text", text: dynamicPrompt }
+                ]
+            }];
+
+            let reply = "";
+            try {
+                reply = await PhoneAPI.chatWithAI(messages, true); 
+            } catch (err) {
+                if (err.message.includes('content must be a string') || err.message.includes('cache_control')) {
+                    messages = [{ role: "user", content: stablePrompt + "\n" + dynamicPrompt }];
+                    reply = await PhoneAPI.chatWithAI(messages, true);
+                } else {
+                    throw err;
+                }
+            }
 
             let finalDiary = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
             finalDiary = finalDiary.replace(/```.*?/g, '').replace(/```/g, '').trim();
@@ -897,8 +1048,15 @@ export const PhoneEngine = {
             PhoneAPI.saveDiary(dateStr, finalDiary);
             PhoneUI.renderDiaryPage();
             PhoneAPI.showToast('✨ 日记生成成功！');
+
         } catch (error) {
-            contentAreaEl.innerHTML = `<div class="notebook-empty"><i class="ph-fill ph-warning-circle" style="font-size: 48px; color: var(--danger-color); margin-bottom: 15px;"></i><p style="color: var(--danger-color);">偷看失败：${error.message}</p><button class="btn-refresh" onclick="window.PhoneUI.renderDiaryPage()" style="width: auto; padding: 10px 20px; margin-top: 15px;">返回重试</button></div>`;
+            contentAreaEl.innerHTML = `
+                <div class="notebook-empty">
+                    <i class="ph-fill ph-warning-circle" style="font-size: 48px; color: var(--danger-color); margin-bottom: 15px;"></i>
+                    <p style="color: var(--danger-color);">偷看失败：${error.message}</p>
+                    <button class="btn-refresh" onclick="window.PhoneUI.renderDiaryPage()" style="width: auto; padding: 10px 20px; margin-top: 15px;">返回重试</button>
+                </div>
+            `;
         }
     }
 };

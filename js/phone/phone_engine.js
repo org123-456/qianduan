@@ -447,20 +447,30 @@ export const PhoneEngine = {
         } catch (e) { alert("提炼失败：" + e.message); }
     },
 
-    // 🌟 核心修复：解除 30 条限制，读取全部聊天记录提取记忆！
+    // 🌟 核心修复：提取记忆时，强制 AI 关注最新的 80 条对话！
     async extractMemory(sourceApp) {
         PhoneAPI.showToast("🧠 正在提取并拆解记忆，请稍候...");
         try {
             const roleId = Config.currentContactId;
             const items = Config.phoneData[roleId]?.[sourceApp]?.items || [];
             
-            // 🌟 修复：不再使用 slice(-30)，而是读取所有非 typing 的记录！
-            const recentItems = items.filter(i => i.sender !== 'typing');
+            // 截取最近 80 条，覆盖屏幕可视范围，防止 AI 丢失注意力
+            const recentItems = items.filter(i => i.sender !== 'typing').slice(-80);
             
             if (recentItems.length === 0) return alert("没有足够的聊天记录来提取记忆！");
             let historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
             
-            const aiPrompt = `你是一个专门负责提取“角色扮演记忆锚点”的AI。请分析以下聊天记录，提取出其中所有具体的、有价值的细节，生成【多条独立的记忆碎片】。提取规则：1. 必须具体。2. 独立成条(第三人称)。3. 去敏。4. 强制用 "|||" 隔开！\n\n聊天记录：\n${historyText}`;
+            const aiPrompt = `你是一个专门负责提取“角色扮演记忆锚点”的AI。请分析以下聊天记录，提取出其中所有具体的、有价值的细节，生成【多条独立的记忆碎片】。
+提取规则：
+1. 必须具体。
+2. 独立成条(第三人称)。
+3. 去敏。
+4. 强制用 "|||" 隔开！
+【最高指令】：聊天记录越靠后越新！你必须优先、重点提取最后面的最新事件！如果漏掉最新剧情将被抹杀！
+
+聊天记录：
+${historyText}`;
+            
             const reply = await PhoneAPI.chatWithAI([{ role: "user", content: aiPrompt }], true); 
             let rawText = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```.*?/g, '').replace(/```/g, '').trim();
             let summaryList = rawText.split('|||').map(s => s.trim()).filter(s => s.length > 0);
@@ -473,7 +483,7 @@ export const PhoneEngine = {
         } catch (e) { alert("记忆提取失败：" + e.message); }
     },
 
-    // 🌟 核心修复：解除 50 条限制，读取全部聊天记录洗地！
+    // 🌟 核心修复：洗地时，强制 AI 关注最新的 80 条对话！
     async washMemory(sourceApp) {
         this.closeMsgMenu();
         if (!confirm("⚠️ 确定要进行【记忆洗地】吗？\nAI将把当前所有聊天记录拆解成多段长期记忆，随后【清空】当前聊天界面！")) return;
@@ -483,11 +493,17 @@ export const PhoneEngine = {
             const items = Config.phoneData[roleId]?.[sourceApp]?.items || [];
             if (items.length === 0) return alert("当前没有聊天记录可以洗地！");
             
-            // 🌟 修复：不再使用 slice(-50)，而是读取所有非 typing 的记录！
-            const recentItems = items.filter(i => i.sender !== 'typing');
+            // 截取最近 80 条
+            const recentItems = items.filter(i => i.sender !== 'typing').slice(-80);
             
             let historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
-            const aiPrompt = `分析聊天记录，提取具体的记忆碎片。独立成条(第三人称)，用 "|||" 隔开！\n\n记录：\n${historyText}`;
+            
+            const aiPrompt = `分析聊天记录，提取具体的记忆碎片。独立成条(第三人称)，用 "|||" 隔开！
+【最高指令】：聊天记录越靠后越新！你必须优先、重点提取最后面的最新事件！如果漏掉最新剧情将被抹杀！
+
+记录：
+${historyText}`;
+            
             const reply = await PhoneAPI.chatWithAI([{ role: "user", content: aiPrompt }], true); 
             let rawText = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```.*?/g, '').replace(/```/g, '').trim();
             let summaryList = rawText.split('|||').map(s => s.trim()).filter(s => s.length > 0);

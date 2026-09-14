@@ -226,9 +226,10 @@ export const PhoneEngine = {
         const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 
         if (isHusbandPay) {
-            let orderHtml = `<div class="chat-order-card"><div class="chat-order-header"><span>🛍️ 赛博杂货铺 购物车清单</span><span>¥${total}</span></div>`;
+            // 🌟 修复：使用 div 替代 span，防止挤压
+            let orderHtml = `<div class="chat-order-card"><div class="chat-order-header"><div>🛍️ 赛博杂货铺 购物车清单</div><div>¥${total}</div></div>`;
             cart.forEach(item => {
-                orderHtml += `<div class="chat-order-item"><span class="chat-order-item-name"><i class="${item.icon}" style="color:var(--primary-color);"></i> ${item.name}</span><span>x1</span></div>`;
+                orderHtml += `<div class="chat-order-item"><div class="chat-order-item-name"><i class="${item.icon}" style="color:var(--primary-color);"></i> ${item.name}</div><div>x1</div></div>`;
             });
             orderHtml += `<div class="chat-order-meta"><div>📍 配送地址：[待填写]</div><div>⏱️ 预计送达：付款后 30 分钟内</div></div></div>`;
 
@@ -259,9 +260,10 @@ export const PhoneEngine = {
                 localStorage.setItem('my_coins', coins);
                 localStorage.setItem('shopping_cart', '[]');
                 
-                let orderHtml = `<div class="chat-order-card"><div class="chat-order-header"><span>🛍️ 赛博杂货铺 已购订单</span><span>¥${total}</span></div>`;
+                // 🌟 修复：使用 div 替代 span，防止挤压
+                let orderHtml = `<div class="chat-order-card"><div class="chat-order-header"><div>🛍️ 赛博杂货铺 已购订单</div><div>¥${total}</div></div>`;
                 cart.forEach(item => {
-                    orderHtml += `<div class="chat-order-item"><span class="chat-order-item-name"><i class="${item.icon}" style="color:var(--primary-color);"></i> ${item.name}</span><span>x1</span></div>`;
+                    orderHtml += `<div class="chat-order-item"><div class="chat-order-item-name"><i class="${item.icon}" style="color:var(--primary-color);"></i> ${item.name}</div><div>x1</div></div>`;
                 });
                 orderHtml += `<div class="chat-order-meta"><div>✅ 支付状态：已付款</div><div>📍 配送目标：大侦探不死途</div></div></div>`;
 
@@ -769,7 +771,7 @@ export const PhoneEngine = {
                 rawReply = rawReply.replace(/<photo>[\s\S]*?<\/photo>/gi, '').trim();
             }
 
-            // 🌟 核心：解析动态交易标签！
+            // 🌟 核心：解析动态交易标签并生成【防挤压版】订单卡片！
             let purchaseHtml = null;
             const purchaseMatch = rawReply.match(/<purchase>(.*)\|(\d+)<\/purchase>/i);
             if (purchaseMatch) {
@@ -780,9 +782,9 @@ export const PhoneEngine = {
                 if (coins >= itemPrice) {
                     coins -= itemPrice;
                     localStorage.setItem('my_coins', coins);
-                    purchaseHtml = `<div class="chat-order-card"><div class="chat-order-header"><span>🛍️ 赛博订单自动生成</span><span>¥${itemPrice}</span></div><div class="chat-order-item"><span class="chat-order-item-name"><i class="ph-fill ph-package" style="color:var(--primary-color);"></i> ${itemName}</span><span>x1</span></div><div class="chat-order-meta"><div>✅ 支付状态：已自动扣款</div><div>💰 小金库剩余：${coins} 金币</div></div></div>`;
+                    purchaseHtml = `<div class="chat-order-card"><div class="chat-order-header"><div>🛍️ 赛博订单自动生成</div><div>¥${itemPrice}</div></div><div class="chat-order-item"><div class="chat-order-item-name"><i class="ph-fill ph-package" style="color:var(--primary-color);"></i> ${itemName}</div><div>x1</div></div><div class="chat-order-meta"><div>✅ 支付状态：已自动扣款</div><div>💰 小金库剩余：${coins} 金币</div></div></div>`;
                 } else {
-                    purchaseHtml = `<div class="chat-order-card" style="border-color:var(--danger-color);"><div class="chat-order-header" style="color:var(--danger-color);"><span>❌ 支付失败</span><span>¥${itemPrice}</span></div><div class="chat-order-item"><span class="chat-order-item-name">${itemName}</span></div><div class="chat-order-meta"><div>⚠️ 余额不足，当前仅剩 ${coins} 金币，请去打工赚钱！</div></div></div>`;
+                    purchaseHtml = `<div class="chat-order-card" style="border-color:var(--danger-color);"><div class="chat-order-header" style="color:var(--danger-color);"><div>❌ 支付失败</div><div>¥${itemPrice}</div></div><div class="chat-order-item"><div class="chat-order-item-name">${itemName}</div></div><div class="chat-order-meta"><div>⚠️ 余额不足，当前仅剩 ${coins} 金币，请去打工赚钱！</div></div></div>`;
                 }
                 rawReply = rawReply.replace(/<purchase>[\s\S]*?<\/purchase>/gi, '').trim();
             }
@@ -998,7 +1000,7 @@ export const PhoneEngine = {
                 }
             }
             
-            // 🌟 核心：解析动态交易标签！
+            // 🌟 核心：解析动态交易标签并生成【防挤压版】订单卡片！
             let purchaseHtml = null;
             const purchaseMatch = rawReply.match(/<purchase>(.*)\|(\d+)<\/purchase>/i);
             if (purchaseMatch) {
@@ -1009,9 +1011,9 @@ export const PhoneEngine = {
                 if (coins >= itemPrice) {
                     coins -= itemPrice;
                     localStorage.setItem('my_coins', coins);
-                    purchaseHtml = `<div class="chat-order-card"><div class="chat-order-header"><span>🛍️ 赛博订单自动生成</span><span>¥${itemPrice}</span></div><div class="chat-order-item"><span class="chat-order-item-name"><i class="ph-fill ph-package" style="color:var(--primary-color);"></i> ${itemName}</span><span>x1</span></div><div class="chat-order-meta"><div>✅ 支付状态：已自动扣款</div><div>💰 小金库剩余：${coins} 金币</div></div></div>`;
+                    purchaseHtml = `<div class="chat-order-card"><div class="chat-order-header"><div>🛍️ 赛博订单自动生成</div><div>¥${itemPrice}</div></div><div class="chat-order-item"><div class="chat-order-item-name"><i class="ph-fill ph-package" style="color:var(--primary-color);"></i> ${itemName}</div><div>x1</div></div><div class="chat-order-meta"><div>✅ 支付状态：已自动扣款</div><div>💰 小金库剩余：${coins} 金币</div></div></div>`;
                 } else {
-                    purchaseHtml = `<div class="chat-order-card" style="border-color:var(--danger-color);"><div class="chat-order-header" style="color:var(--danger-color);"><span>❌ 支付失败</span><span>¥${itemPrice}</span></div><div class="chat-order-item"><span class="chat-order-item-name">${itemName}</span></div><div class="chat-order-meta"><div>⚠️ 余额不足，当前仅剩 ${coins} 金币，请去打工赚钱！</div></div></div>`;
+                    purchaseHtml = `<div class="chat-order-card" style="border-color:var(--danger-color);"><div class="chat-order-header" style="color:var(--danger-color);"><div>❌ 支付失败</div><div>¥${itemPrice}</div></div><div class="chat-order-item"><div class="chat-order-item-name">${itemName}</div></div><div class="chat-order-meta"><div>⚠️ 余额不足，当前仅剩 ${coins} 金币，请去打工赚钱！</div></div></div>`;
                 }
                 rawReply = rawReply.replace(/<purchase>[\s\S]*?<\/purchase>/gi, '').trim();
             }

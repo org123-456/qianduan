@@ -1,3 +1,4 @@
+
 export const PhoneAPI = {
     showToast(msg) {
         const toast = document.getElementById('toast');
@@ -5,7 +6,7 @@ export const PhoneAPI = {
         if (toast && toastMsg) {
             toastMsg.innerText = msg;
             toast.classList.add('show');
-            setTimeout(() => { toast.classList.remove('show'); }, 3000); 
+            setTimeout(() => { toast.classList.remove('show'); }, 3000);
         } else { alert(msg); }
     },
 
@@ -18,18 +19,18 @@ export const PhoneAPI = {
         saveIfExist('my-name', 'my_name'); saveIfExist('char-name', 'char_name');
         saveIfExist('my-avatar', 'my_avatar'); saveIfExist('ta-avatar', 'ta_avatar');
         saveIfExist('bg-global', 'bg_global'); saveIfExist('bg-chat', 'bg_chat');
-        saveIfExist('bg-diary-cover', 'bg_diary_cover'); saveIfExist('bg-diary-page', 'bg_diary_page'); 
-        saveIfExist('diary-title', 'diary_title'); saveIfExist('diary-quote', 'diary_quote'); saveIfExist('diary-start-date', 'diary_start_date'); 
+        saveIfExist('bg-diary-cover', 'bg_diary_cover'); saveIfExist('bg-diary-page', 'bg_diary_page');
+        saveIfExist('diary-title', 'diary_title'); saveIfExist('diary-quote', 'diary_quote'); saveIfExist('diary-start-date', 'diary_start_date');
         saveIfExist('ui-icon-novel', 'ui_icon_novel'); saveIfExist('ui-icon-worldbook', 'ui_icon_worldbook');
         saveIfExist('ui-icon-settings', 'ui_icon_settings'); saveIfExist('ui-icon-shop', 'ui_icon_shop'); saveIfExist('ui-icon-task', 'ui_icon_task');
-        
-        this.applyUITheme(); 
-        
+
+        this.applyUITheme();
+
         saveIfExist('system-prompt', 'system_prompt'); saveIfExist('char-persona', 'char_persona'); saveIfExist('novel-style', 'novel_style');
         saveIfExist('ban-emoji', 'ban_emoji', true); saveIfExist('share-memory', 'share_memory', true);
-        
-        saveIfExist('img-api-url', 'img_api_url'); 
-        saveIfExist('img-api-key', 'img_api_key'); 
+
+        saveIfExist('img-api-url', 'img_api_url');
+        saveIfExist('img-api-key', 'img_api_key');
         saveIfExist('img-api-model', 'img_api_model');
         saveIfExist('img-base-prompt', 'img_base_prompt');
         saveIfExist('img-negative-prompt', 'img_negative_prompt');
@@ -48,24 +49,24 @@ export const PhoneAPI = {
             setVal('my-name', localStorage.getItem('my_name') || ''); setVal('char-name', localStorage.getItem('char_name') || '');
             setVal('my-avatar', localStorage.getItem('my_avatar') || ''); setVal('ta-avatar', localStorage.getItem('ta_avatar') || '');
             setVal('bg-global', localStorage.getItem('bg_global') || ''); setVal('bg-chat', localStorage.getItem('bg_chat') || '');
-            setVal('bg-diary-cover', localStorage.getItem('bg_diary_cover') || ''); setVal('bg-diary-page', localStorage.getItem('bg_diary_page') || ''); 
-            setVal('diary-title', localStorage.getItem('diary_title') || 'His Diary'); 
-            setVal('diary-quote', localStorage.getItem('diary_quote') || '“时间会磨平一切痕迹，\n除了我为你写下的字。”'); 
+            setVal('bg-diary-cover', localStorage.getItem('bg_diary_cover') || ''); setVal('bg-diary-page', localStorage.getItem('bg_diary_page') || '');
+            setVal('diary-title', localStorage.getItem('diary_title') || 'His Diary');
+            setVal('diary-quote', localStorage.getItem('diary_quote') || '“时间会磨平一切痕迹，\n除了我为你写下的字。”');
             const today = new Date(); const defaultDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-            setVal('diary-start-date', localStorage.getItem('diary_start_date') || defaultDate); 
+            setVal('diary-start-date', localStorage.getItem('diary_start_date') || defaultDate);
             setVal('ui-icon-novel', localStorage.getItem('ui_icon_novel') || ''); setVal('ui-icon-worldbook', localStorage.getItem('ui_icon_worldbook') || '');
             setVal('ui-icon-settings', localStorage.getItem('ui_icon_settings') || ''); setVal('ui-icon-shop', localStorage.getItem('ui_icon_shop') || ''); setVal('ui-icon-task', localStorage.getItem('ui_icon_task') || '');
-            
-            this.applyUITheme(); 
+
+            this.applyUITheme();
 
             setVal('system-prompt', localStorage.getItem('system_prompt') || ''); setVal('char-persona', localStorage.getItem('char_persona') || ''); setVal('novel-style', localStorage.getItem('novel_style') || '');
             const banEmojiEl = document.getElementById('ban-emoji'); if(banEmojiEl) banEmojiEl.checked = localStorage.getItem('ban_emoji') === 'true';
             const shareMemoryEl = document.getElementById('share-memory'); if(shareMemoryEl) shareMemoryEl.checked = localStorage.getItem('share_memory') === 'true';
 
-            setVal('img-api-url', localStorage.getItem('img_api_url') || 'https://api.openai.com/v1/images/generations'); 
-            setVal('img-api-key', localStorage.getItem('img_api_key') || ''); 
+            setVal('img-api-url', localStorage.getItem('img_api_url') || 'https://api.openai.com/v1/images/generations');
+            setVal('img-api-key', localStorage.getItem('img_api_key') || '');
             setVal('img-api-model', localStorage.getItem('img_api_model') || 'dall-e-3');
-            
+
             setVal('img-base-prompt', localStorage.getItem('img_base_prompt') || '');
             setVal('img-negative-prompt', localStorage.getItem('img_negative_prompt') || '');
             const autoPhotoEl = document.getElementById('auto-photo'); if(autoPhotoEl) autoPhotoEl.checked = localStorage.getItem('auto_photo') === 'true';
@@ -87,8 +88,8 @@ export const PhoneAPI = {
 
     applyUITheme() {
         const globalBg = localStorage.getItem('bg_global'); const chatBg = localStorage.getItem('bg_chat');
-        const diaryCover = localStorage.getItem('bg_diary_cover'); const diaryPage = localStorage.getItem('bg_diary_page'); 
-        
+        const diaryCover = localStorage.getItem('bg_diary_cover'); const diaryPage = localStorage.getItem('bg_diary_page');
+
         if (globalBg) { document.documentElement.style.setProperty('--bg-image-global', `url('${globalBg}')`); } else { document.documentElement.style.removeProperty('--bg-image-global'); }
         if (chatBg) { document.documentElement.style.setProperty('--bg-image-chat', `url('${chatBg}')`); } else { document.documentElement.style.removeProperty('--bg-image-chat'); }
         if (diaryCover) { document.documentElement.style.setProperty('--bg-image-diary-cover', `url('${diaryCover}')`); } else { document.documentElement.style.removeProperty('--bg-image-diary-cover'); }
@@ -160,14 +161,51 @@ export const PhoneAPI = {
     refreshImgDropdowns() { const selectEl = document.getElementById('img-preset-select'); if (!selectEl) return; let optionsHtml = '<option value="">-- 切换画风预设 --</option>'; this.getImgPresets().forEach(p => { optionsHtml += `<option value="${p.id}">${p.name}</option>`; }); selectEl.innerHTML = optionsHtml; },
 
     getPresets() { return JSON.parse(localStorage.getItem('ai_api_presets') || '[]'); },
+
+    // 🌟 核心修改：支持覆盖更新的 savePreset 函数
     savePreset() {
-        const nameEl = document.getElementById('preset-name'); const urlEl = document.getElementById('preset-url'); const keyEl = document.getElementById('preset-key'); const modelEl = document.getElementById('preset-model');
-        const name = nameEl.value.trim(); if (!name) return alert("请给预设起个名字！");
-        const preset = { id: 'p_' + Date.now(), name: name, url: urlEl.value.trim(), key: keyEl.value.trim(), model: modelEl.value.trim() };
-        let presets = this.getPresets(); presets.push(preset); localStorage.setItem('ai_api_presets', JSON.stringify(presets));
-        nameEl.value = ''; urlEl.value = ''; keyEl.value = ''; modelEl.value = ''; this.refreshPresetDropdowns(); this.showToast('💾 预设已存入库中！');
+        const nameEl = document.getElementById('preset-name');
+        const urlEl = document.getElementById('preset-url');
+        const keyEl = document.getElementById('preset-key');
+        const modelEl = document.getElementById('preset-model');
+
+        const name = nameEl.value.trim();
+        if (!name) return alert("请给预设起个名字！");
+
+        const url = urlEl.value.trim();
+        const key = keyEl.value.trim();
+        const model = modelEl.value.trim();
+
+        if (!url || !key || !model) {
+            return alert("请填写完整接口地址、API Key 和模型名称！");
+        }
+
+        let presets = this.getPresets();
+
+        // 查找是否已经存在同名的预设
+        const existingIndex = presets.findIndex(p => p.name === name);
+
+        if (existingIndex >= 0) {
+            // 如果存在，直接覆盖更新
+            presets[existingIndex].url = url;
+            presets[existingIndex].key = key;
+            presets[existingIndex].model = model;
+            this.showToast('✅ 预设 [' + name + '] 已更新覆盖！');
+        } else {
+            // 如果不存在，添加为新预设
+            const preset = { id: 'p_' + Date.now(), name: name, url: url, key: key, model: model };
+            presets.push(preset);
+            this.showToast('💾 新预设 [' + name + '] 已存入库中！');
+        }
+
+        localStorage.setItem('ai_api_presets', JSON.stringify(presets));
+
+        // 刷新下拉框
+        this.refreshPresetDropdowns();
     },
+
     deletePreset() { const id = document.getElementById('preset-delete-select').value; if (!id) return alert('请先选择预设！'); if (!confirm('确定删除吗？')) return; let presets = this.getPresets(); presets = presets.filter(p => p.id !== id); localStorage.setItem('ai_api_presets', JSON.stringify(presets)); if (localStorage.getItem('main_engine_id') === id) localStorage.removeItem('main_engine_id'); if (localStorage.getItem('sub_engine_id') === id) localStorage.removeItem('sub_engine_id'); this.refreshPresetDropdowns(); this.showToast('🗑️ 预设已删除'); },
+
     refreshPresetDropdowns() {
         const presets = this.getPresets(); const delSelect = document.getElementById('preset-delete-select'); const mainSelect = document.getElementById('main-engine-select'); const subSelect = document.getElementById('sub-engine-select');
         if (!delSelect || !mainSelect || !subSelect) return;
@@ -176,6 +214,7 @@ export const PhoneAPI = {
         mainSelect.value = localStorage.getItem('main_engine_id') || ''; subSelect.value = localStorage.getItem('sub_engine_id') || '';
         const quickSelect = document.getElementById('quick-main-engine'); if (quickSelect) { quickSelect.innerHTML = optionsHtml; quickSelect.value = localStorage.getItem('main_engine_id') || ''; }
     },
+
     assignEngine(type, presetId) { if (type === 'main') { localStorage.setItem('main_engine_id', presetId); this.showToast('✅ 主引擎切换成功！'); this.refreshPresetDropdowns(); } else if (type === 'sub') { localStorage.setItem('sub_engine_id', presetId); this.showToast('✅ 副引擎分配成功！'); } },
     getEngineConfig(isSub) { let presetId = isSub ? localStorage.getItem('sub_engine_id') : localStorage.getItem('main_engine_id'); if (isSub && !presetId) presetId = localStorage.getItem('main_engine_id'); if (!presetId) return null; return this.getPresets().find(p => p.id === presetId); },
 
@@ -212,7 +251,7 @@ export const PhoneAPI = {
     async chatWithAI(messages, useSubEngine = false) {
         const config = this.getEngineConfig(useSubEngine);
         if (!config) throw new Error("请先去【系统设置】里分配引擎配置！");
-        
+
         const fab = document.getElementById('api-fab'); const statusText = document.getElementById('api-status-text');
         if (fab) { fab.classList.add('loading'); fab.classList.remove('error'); }
         if (statusText) { statusText.innerText = '正在思考中...'; statusText.style.color = 'var(--primary-color)'; }
@@ -221,11 +260,11 @@ export const PhoneAPI = {
         try {
             const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.key}` }, body: JSON.stringify({ model: config.model, messages: messages, temperature: 0.7 }) });
             if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(`API 报错: ${response.status} ${errData.error?.message || ''}`); }
-            const data = await response.json(); 
-            
+            const data = await response.json();
+
             // 🌟 解析并展示缓存命中率！
-            if (data.usage) { 
-                const tokenText = document.getElementById('api-token-text'); 
+            if (data.usage) {
+                const tokenText = document.getElementById('api-token-text');
                 if (tokenText) {
                     let uStr = `提示词: ${data.usage.prompt_tokens || 0} | 回复: ${data.usage.completion_tokens || 0}`;
                     if (data.usage.cache_creation_input_tokens || data.usage.cache_read_input_tokens) {
@@ -234,13 +273,13 @@ export const PhoneAPI = {
                     }
                     uStr += `\n📊 总计消耗: ${data.usage.total_tokens || 0}`;
                     tokenText.innerText = uStr;
-                } 
+                }
             }
-            
+
             if (fab) fab.classList.remove('loading'); if (statusText) { statusText.innerText = '请求成功'; statusText.style.color = '#4ade80'; }
             return data.choices[0].message.content;
-        } catch (error) { 
-            console.error(error); if (fab) { fab.classList.remove('loading'); fab.classList.add('error'); } if (statusText) { statusText.innerText = '请求失败'; statusText.style.color = 'var(--danger-color)'; } throw new Error(error.message || "网络错误或 API 配置不正确，请检查。"); 
+        } catch (error) {
+            console.error(error); if (fab) { fab.classList.remove('loading'); fab.classList.add('error'); } if (statusText) { statusText.innerText = '请求失败'; statusText.style.color = 'var(--danger-color)'; } throw new Error(error.message || "网络错误或 API 配置不正确，请检查。");
         }
     },
 
@@ -251,7 +290,7 @@ export const PhoneAPI = {
         const negPrompt = localStorage.getItem('img_negative_prompt') || '';
         const refBase64 = localStorage.getItem('img_ref_base64') || '';
         const persona = localStorage.getItem('char_persona') || '';
-        
+
         if (!url || !key) throw new Error("请先在【系统设置】中配置绘画引擎 API！");
 
         if (!url.endsWith('/images/generations')) {
@@ -267,7 +306,7 @@ export const PhoneAPI = {
             let finalPrompt = prompt;
             if (persona) finalPrompt += `\n\n【角色外貌特征参考】：${persona}`;
             if (negPrompt) finalPrompt += `\n\n【绝对禁止出现的元素(Negative Prompt)】：${negPrompt}`;
-            
+
             if (refBase64) {
                 finalPrompt = `${refBase64} ${finalPrompt}`;
             }
@@ -279,13 +318,13 @@ export const PhoneAPI = {
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
                 body: JSON.stringify(payload)
             });
-            
-            if (!response.ok) { 
-                const errData = await response.json().catch(() => ({})); 
-                throw new Error(`[${response.status}] ${errData.error?.message || '未知服务器错误'}`); 
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(`[${response.status}] ${errData.error?.message || '未知服务器错误'}`);
             }
             const data = await response.json();
-            
+
             if (fab) fab.classList.remove('loading');
             if (statusText) { statusText.innerText = '绘制成功'; statusText.style.color = '#4ade80'; }
 
@@ -316,9 +355,9 @@ export const PhoneAPI = {
         } catch (error) {
             console.error(error);
             if (fab) { fab.classList.remove('loading'); fab.classList.add('error'); }
-            if (statusText) { 
-                statusText.innerText = '绘制失败: ' + error.message; 
-                statusText.style.color = 'var(--danger-color)'; 
+            if (statusText) {
+                statusText.innerText = '绘制失败: ' + error.message;
+                statusText.style.color = 'var(--danger-color)';
                 statusText.style.fontSize = '11px';
                 statusText.style.lineHeight = '1.4';
             }

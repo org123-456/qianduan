@@ -11,13 +11,13 @@ export const PhoneUI = {
 
         const listEl = document.getElementById('app-content-list');
         if (listEl && window.Apps && window.Apps[appId]) {
-            // 🌟 修复 6: 拦截表情包，渲染成透明无框的 img
+            // 🌟 修复：精准拦截表情包，渲染成透明无框的 img
             let renderData = JSON.parse(JSON.stringify(data));
             renderData.items.forEach(item => {
                 if (item.content) {
-                    const stickerMatch = item.content.match(/^\[发送了表情包：.*?\]\n!\[.*?\]\((.*?)\)$/);
+                    // 放宽正则匹配，防止 Markdown 换行符干扰
+                    const stickerMatch = item.content.match(/\[发送了表情包：.*?\]\s*!\[.*?\]\((.*?)\)/);
                     if (stickerMatch) {
-                        item.isSticker = true;
                         item.content = `<img src="${stickerMatch[1]}" class="chat-sticker">`;
                     }
                 }
@@ -28,7 +28,11 @@ export const PhoneUI = {
             setTimeout(() => {
                 document.querySelectorAll('.chat-sticker').forEach(img => {
                     const bubble = img.closest('.chat-bubble');
-                    if (bubble) bubble.classList.add('sticker-bubble');
+                    if (bubble) {
+                        bubble.style.background = 'transparent';
+                        bubble.style.boxShadow = 'none';
+                        bubble.style.padding = '0';
+                    }
                 });
                 listEl.scrollTop = listEl.scrollHeight;
             }, 100);
@@ -65,7 +69,6 @@ export const PhoneUI = {
         if (menu) menu.classList.remove('show'); if (btn) btn.style.transform = 'rotate(0deg)';
     },
 
-    // 🌟 修复 4: 钱包弹窗
     openWalletModal() {
         const input = document.getElementById('wallet-input');
         if (input) input.value = localStorage.getItem('my_coins') || '500';
@@ -87,7 +90,6 @@ export const PhoneUI = {
         this.closeWalletModal();
     },
 
-    // 🌟 修复 2: 世界书挂载弹窗
     openWbToggleModal(mode) {
         const listEl = document.getElementById('wb-toggle-list');
         const titleEl = document.getElementById('wb-toggle-title');
@@ -123,7 +125,6 @@ export const PhoneUI = {
         document.getElementById('wb-toggle-modal').classList.remove('show');
     },
 
-    // 🌟 修复 6: 表情包面板控制
     toggleStickerPanel() {
         const panel = document.getElementById('sticker-panel');
         if (!panel) return;
@@ -221,6 +222,7 @@ export const PhoneUI = {
 
             titleEl.innerText = title;
             inputEl.value = defaultValue;
+
             bg.classList.add('show');
             modal.classList.add('show');
 
@@ -288,7 +290,6 @@ export const PhoneUI = {
             `;
             footerEl.innerHTML = `
                 <div id="story-plus-menu" class="story-menu">
-                    <!-- 🌟 修复 2: 线下故事也加入规则挂载按钮 -->
                     <div class="story-menu-item" onclick="window.PhoneUI.openWbToggleModal('offline'); window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-puzzle-piece" style="color: #2a9d8f;"></i></div><div class="text">规则挂载</div></div>
                     <div class="story-menu-item" onclick="window.PhoneEngine.extractMemory('novel'); window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-brain"></i></div><div class="text">提取记忆</div></div>
                     <div class="story-menu-item" onclick="window.PhoneEngine.washMemory('novel'); window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-broom" style="color: #f4a261;"></i></div><div class="text">记忆洗地</div></div>
@@ -314,12 +315,8 @@ export const PhoneUI = {
                     <div class="diary-back-btn" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div>
                 </div>
                 <div id="diary-inside-view" class="diary-inside-view">
-                    <div class="diary-back-btn" onclick="window.PhoneUI.closeApp()" style="top: 20px; left: 15px; background: rgba(0,0,0,0.1); color: #333;"><i class="ph ph-caret-left"></i></div>
-                    <div class="notebook-page" id="diary-content-area"></div>
-                    <div class="page-turner">
-                        <div class="page-btn" onclick="window.PhoneUI.turnDiaryPage(-1)"><i class="ph ph-caret-left"></i></div>
-                        <div class="page-btn" onclick="window.PhoneUI.turnDiaryPage(1)"><i class="ph ph-caret-right"></i></div>
-                    </div>
+                    <div class="diary-back-btn" onclick="window.PhoneUI.closeApp()" style="top: 20px; left: 15px; background: rgba(0,0,0,0.1); color: #333; z-index: 50;"><i class="ph ph-caret-left"></i></div>
+                    <div id="diary-content-area" style="display: flex; flex-direction: column; height: 100%;"></div>
                 </div>
             `;
             window.Config.diaryPageIndex = -1; 
@@ -537,7 +534,6 @@ export const PhoneUI = {
         }, 50);
     },
 
-    // 🌟 修复 2: 世界书挂载改为纯展示
     renderWorldbook() {
         const contentEl = document.getElementById('app-window-content');
         if (!contentEl) return;
@@ -568,7 +564,6 @@ export const PhoneUI = {
         `;
     },
 
-    // 🌟 修复 3: 商店极简单列 UI
     renderShop() {
         const contentEl = document.getElementById('app-window-content');
         if (!contentEl) return;
@@ -894,108 +889,7 @@ export const PhoneUI = {
         }
     },
 
-    renderNovelContent() {
-        const roleId = window.Config.currentContactId;
-        const allItems = window.Config.phoneData[roleId]?.novel?.items || [];
-        const items = allItems.slice(-50);
-        
-        const listEl = document.getElementById('novel-content-list');
-        if (!listEl) return;
-
-        const myName = localStorage.getItem('my_name') || '我';
-        const charName = localStorage.getItem('char_name') || 'TA';
-        const avatarMe = localStorage.getItem('my_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa';
-        const avatarOther = localStorage.getItem('ta_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=You&backgroundColor=dbe9f6';
-
-        let html = '';
-        items.forEach((item, index) => {
-            if (item.sender === 'typing') {
-                html += `<div style="text-align:center; padding: 20px; color: var(--primary-color);"><i class="ph ph-spinner spin-anim" style="font-size: 24px;"></i></div>`;
-                return;
-            }
-
-            const isMe = item.sender === 'me';
-            const avatar = isMe ? avatarMe : avatarOther;
-            const name = isMe ? myName : charName;
-            
-            let content = item.content;
-            let isSticker = false;
-            
-            if (!content || content.trim() === '') {
-                content = '<span style="color:var(--danger-color); font-size:12px; font-style:italic;">[内容为空，请点击此处删除或重骰]</span>';
-            } else {
-                const stickerMatch = content.match(/^\[发送了表情包：.*?\]\n!\[.*?\]\((.*?)\)$/);
-                if (stickerMatch) {
-                    isSticker = true;
-                    content = `<img src="${stickerMatch[1]}" class="chat-sticker">`;
-                } else if (window.marked) {
-                    content = window.marked.parse(content);
-                }
-            }
-
-            const realIndex = allItems.length - items.length + index;
-            const avatarHtml = isMe ? `<img src="${avatar}" class="story-avatar">` : `<img src="${avatar}" class="story-avatar" onclick="window.PhoneUI.showThought(${realIndex}, 'novel')">`;
-            const bubbleClass = isSticker ? 'story-content markdown-body sticker-bubble' : 'story-content markdown-body';
-
-            html += `
-                <div class="story-card">
-                    <div class="story-header">${avatarHtml}<div class="story-name">${name}</div><div class="story-time">${item.time || '12:00 PM'}</div></div>
-                    <div class="${bubbleClass}" onclick="window.PhoneEngine.openMsgMenu(${realIndex}, '${item.sender}')">${content}</div>
-                </div>
-            `;
-        });
-        listEl.innerHTML = html;
-        setTimeout(() => { const scrollContainer = document.getElementById('app-window-content'); if(scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight; }, 100);
-    },
-
-    showThought(index) {
-        const roleId = window.Config?.currentContactId;
-        const targetApp = window.Config.currentAppId === 'novel' ? 'novel' : 'wechat';
-        
-        const realIndex = window.PhoneEngine.getRealIndex(targetApp, index);
-        const item = window.Config.phoneData[roleId]?.[targetApp]?.items[realIndex];
-        if(!item) return;
-        
-        let thought = item.innerThought;
-        if (thought && thought.includes('连发消息')) {
-            for (let i = realIndex - 1; i >= 0; i--) {
-                const prevItem = window.Config.phoneData[roleId][targetApp].items[i];
-                if (prevItem.sender === 'other' && prevItem.time === item.time && prevItem.innerThought && !prevItem.innerThought.includes('连发消息')) {
-                    thought = prevItem.innerThought;
-                    break;
-                }
-            }
-        }
-        
-        document.getElementById('thought-content').innerText = thought || "（TA的心思藏得很深，什么也没看出来...）";
-        document.getElementById('thought-bg').classList.add('show');
-        document.getElementById('thought-modal').classList.add('show');
-    },
-
-    closeThought() { document.getElementById('thought-bg').classList.remove('show'); document.getElementById('thought-modal').classList.remove('show'); },
-    openWbModal() { document.getElementById('wb-modal-bg').classList.add('show'); document.getElementById('wb-modal').classList.add('show'); },
-    closeWbModal() { document.getElementById('wb-modal-bg').classList.remove('show'); document.getElementById('wb-modal').classList.remove('show'); },
-    
-    renderArchiveList() {
-        const archives = window.PhoneAPI.getArchives();
-        const listEl = document.getElementById('archive-list');
-        if (!listEl) return;
-        if (archives.length === 0) { listEl.innerHTML = '<div style="text-align:center; color:var(--text-sub); padding: 20px 0;">暂无存档</div>'; return; }
-        
-        let html = '';
-        [...archives].reverse().forEach(arc => {
-            html += `
-                <div class="archive-item">
-                    <div class="archive-info"><div class="archive-name">${arc.name}</div><div class="archive-meta">${arc.date} · 共 ${arc.count} 条记录</div></div>
-                    <div class="archive-actions"><button class="archive-btn load" onclick="window.PhoneAPI.loadArchive('${arc.id}')">读取</button><button class="archive-btn del" onclick="window.PhoneAPI.deleteArchive('${arc.id}')"><i class="ph ph-trash"></i></button></div>
-                </div>
-            `;
-        });
-        listEl.innerHTML = html;
-    },
-    openArchiveModal() { this.renderArchiveList(); document.getElementById('archive-modal-bg').classList.add('show'); document.getElementById('archive-modal').classList.add('show'); },
-    closeArchiveModal() { document.getElementById('archive-modal-bg').classList.remove('show'); document.getElementById('archive-modal').classList.remove('show'); },
-
+    // 🌟 修复 7: 日记本 Flex 布局重构，彻底解决文字被遮挡和滑出边界的问题
     renderDiaryPage() {
         const contentAreaEl = document.getElementById('diary-content-area');
         if (!contentAreaEl) return;
@@ -1007,10 +901,12 @@ export const PhoneUI = {
             const formattedQuote = quote.replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
             
             contentAreaEl.innerHTML = `
-                <div class="notebook-empty">
-                    <i class="ph-fill ph-feather" style="font-size: 48px; color: rgba(0,0,0,0.3); margin-bottom: 30px;"></i>
-                    <div style="font-family: 'Long Cang', 'Kaiti', 'STKaiti', cursive; font-size: 32px; color: rgba(0,0,0,0.6); text-shadow: 1px 1px 2px rgba(255,255,255,0.5); line-height: 1.8;">
-                        ${formattedQuote}
+                <div class="notebook-scroll-area" style="display:flex; justify-content:center; align-items:center; height:100%;">
+                    <div class="notebook-empty">
+                        <i class="ph-fill ph-feather" style="font-size: 48px; color: rgba(0,0,0,0.3); margin-bottom: 30px;"></i>
+                        <div style="font-family: 'Long Cang', 'Kaiti', 'STKaiti', cursive; font-size: 32px; color: rgba(0,0,0,0.6); text-shadow: 1px 1px 2px rgba(255,255,255,0.5); line-height: 1.8;">
+                            ${formattedQuote}
+                        </div>
                     </div>
                 </div>
             `;
@@ -1042,28 +938,29 @@ export const PhoneUI = {
         const content = diaries[dateStr];
 
         let html = `
-            <div class="notebook-header">
-                <div class="notebook-date-wrap">
-                    <span class="notebook-date">${displayDate}</span>
-                    <span class="notebook-week">${weekStr}</span>
+            <div class="notebook-scroll-area">
+                <div class="notebook-header">
+                    <div class="notebook-date-wrap">
+                        <span class="notebook-date">${displayDate}</span>
+                        <span class="notebook-week">${weekStr}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        ${content ? `<i class="ph ph-arrows-clockwise" onclick="if(confirm('确定要撕掉这页日记重新写吗？')) window.PhoneEngine.generateDiary('${dateStr}')" style="font-size: 20px; color: var(--text-sub); cursor: pointer; transition: 0.2s;" onactive="this.style.transform='scale(0.8)'"></i>` : ''}
+                        <div class="notebook-mood">☁️</div>
+                    </div>
                 </div>
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    ${content ? `<i class="ph ph-arrows-clockwise" onclick="if(confirm('确定要撕掉这页日记重新写吗？')) window.PhoneEngine.generateDiary('${dateStr}')" style="font-size: 20px; color: var(--text-sub); cursor: pointer; transition: 0.2s;" onactive="this.style.transform='scale(0.8)'"></i>` : ''}
-                    <div class="notebook-mood">☁️</div>
-                </div>
-            </div>
         `;
 
         if (content) {
             let parsedContent = window.marked ? window.marked.parse(content) : content;
-            html += `<div class="notebook-content">${parsedContent}</div>`;
+            html += `<div class="notebook-content">${parsedContent}</div></div>`;
         } else {
             html += `
-                <div class="notebook-empty">
+                <div class="notebook-empty" style="height: 60vh;">
                     <p style="margin-bottom: 20px;">这一页还是空白的...</p>
                     <button class="btn-refresh" onclick="window.PhoneEngine.generateDiary('${dateStr}')" style="width: auto; padding: 10px 20px; background: rgba(0,0,0,0.6); border-radius: 8px; font-family: sans-serif; font-size: 14px;"><i class="ph-fill ph-magic-wand"></i> 偷偷写日记</button>
                 </div>
-            `;
+            </div>`;
         }
 
         contentAreaEl.innerHTML = html;

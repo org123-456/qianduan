@@ -4,6 +4,7 @@ export const PhoneUI = {
         if(!roleId) return;
         
         let data = window.Config.phoneData[roleId]?.[appId];
+        
         if (appId !== 'gallery' && data && data.items && data.items.length > 50) {
             data = { ...data, items: data.items.slice(-50) };
         }
@@ -18,6 +19,10 @@ export const PhoneUI = {
             this.renderShop();
         } else if (appId === 'task') {
             this.renderTask();
+        } else if (appId === 'settings') {
+            this.renderSettings();
+        } else if (appId === 'worldbook') {
+            this.renderWorldbook();
         }
     },
 
@@ -63,6 +68,7 @@ export const PhoneUI = {
 
             titleEl.innerText = title;
             inputEl.value = defaultValue;
+
             bg.classList.add('show');
             modal.classList.add('show');
 
@@ -73,8 +79,15 @@ export const PhoneUI = {
                 btnCancel.onclick = null;
             };
 
-            btnConfirm.onclick = () => { cleanup(); resolve(inputEl.value); };
-            btnCancel.onclick = () => { cleanup(); resolve(null); };
+            btnConfirm.onclick = () => {
+                cleanup();
+                resolve(inputEl.value);
+            };
+
+            btnCancel.onclick = () => {
+                cleanup();
+                resolve(null);
+            };
         });
     },
 
@@ -124,7 +137,9 @@ export const PhoneUI = {
         
         if (appId === 'novel') {
             contentEl.style.padding = '0';
-            contentEl.innerHTML = `<div id="novel-content-list" class="story-bg" onclick="window.PhoneUI.closeStoryMenu()"></div>`;
+            contentEl.innerHTML = `
+                <div id="novel-content-list" class="story-bg" onclick="window.PhoneUI.closeStoryMenu()"></div>
+            `;
             footerEl.innerHTML = `
                 <div id="story-plus-menu" class="story-menu">
                     <div class="story-menu-item" onclick="window.PhoneEngine.extractMemory('novel'); window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-brain"></i></div><div class="text">提取记忆</div></div>
@@ -205,7 +220,6 @@ export const PhoneUI = {
         }
     },
 
-    // 🌟 修复：独立出设置界面的渲染方法，结构清晰防截断！
     renderSettings() {
         const contentEl = document.getElementById('app-window-content');
         if (!contentEl) return;
@@ -377,7 +391,6 @@ export const PhoneUI = {
         }, 50);
     },
 
-    // 🌟 修复：独立出世界书的渲染方法
     renderWorldbook() {
         const contentEl = document.getElementById('app-window-content');
         if (!contentEl) return;
@@ -871,6 +884,7 @@ export const PhoneUI = {
     openArchiveModal() { this.renderArchiveList(); document.getElementById('archive-modal-bg').classList.add('show'); document.getElementById('archive-modal').classList.add('show'); },
     closeArchiveModal() { document.getElementById('archive-modal-bg').classList.remove('show'); document.getElementById('archive-modal').classList.remove('show'); },
 
+    // 🌟 核心：为日记本添加了“撕掉重写（重新生成）”的按钮！
     renderDiaryPage() {
         const contentAreaEl = document.getElementById('diary-content-area');
         if (!contentAreaEl) return;
@@ -922,7 +936,10 @@ export const PhoneUI = {
                     <span class="notebook-date">${displayDate}</span>
                     <span class="notebook-week">${weekStr}</span>
                 </div>
-                <div class="notebook-mood">☁️</div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    ${content ? `<i class="ph ph-arrows-clockwise" onclick="if(confirm('确定要撕掉这页日记重新写吗？')) window.PhoneEngine.generateDiary('${dateStr}')" style="font-size: 20px; color: var(--text-sub); cursor: pointer; transition: 0.2s;" onactive="this.style.transform='scale(0.8)'"></i>` : ''}
+                    <div class="notebook-mood">☁️</div>
+                </div>
             </div>
         `;
 

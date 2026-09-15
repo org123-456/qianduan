@@ -3842,20 +3842,6 @@ export const PhoneUI = {
      * ============================================================
      * 心声系统
      * ============================================================
-     *
-     * 重点修复：
-     *
-     * WechatApp.renderList() 已经计算：
-     *
-     *     const realIndex = offset + idx;
-     *
-     * 所以这里收到的 index 就是真实数据库下标。
-     *
-     * 不允许再次调用：
-     *
-     *     PhoneEngine.getRealIndex()
-     *
-     * 否则超过 50 条以后会发生二次偏移。
      */
     showThought(index, forceApp) {
 
@@ -3925,10 +3911,6 @@ export const PhoneUI = {
         let thought =
             item.innerThought;
 
-        /*
-         * 如果当前消息是“连发消息”，
-         * 尝试找到这一组连续消息真正的第一条心声。
-         */
         if (
             thought &&
             typeof thought === 'string' &&
@@ -3961,13 +3943,6 @@ export const PhoneUI = {
             }
         }
 
-        /*
-         * 当前消息没有心声时，
-         * 向前找最近的一条有效心声。
-         *
-         * 这样点击没有独立 innerThought 的消息，
-         * 也不会直接失效。
-         */
         if (
             !thought ||
             !String(thought).trim()
@@ -4033,5 +4008,13 @@ export const PhoneUI = {
 
         bgEl.classList.add('show');
         modalEl.classList.add('show');
+    }, // <--- 重点：这里加了逗号
+
+    // 新增的关闭心声函数
+    closeThought() {
+        const bgEl = document.getElementById('thought-bg');
+        const modalEl = document.getElementById('thought-modal');
+        if (bgEl) bgEl.classList.remove('show');
+        if (modalEl) modalEl.classList.remove('show');
     }
 };

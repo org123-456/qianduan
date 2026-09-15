@@ -47,6 +47,88 @@ export const PhoneUI = {
         const menu = document.getElementById('chat-plus-menu'); const btn = document.getElementById('btn-plus');
         if (menu) menu.classList.remove('show'); if (btn) btn.style.transform = 'rotate(0deg)';
     },
+
+    // 🌟 新增：表情包面板控制
+    toggleStickerPanel() {
+        const panel = document.getElementById('sticker-panel');
+        if (!panel) return;
+        if (panel.classList.contains('show')) {
+            this.closeStickerPanel();
+        } else {
+            this.closeChatMenu(); 
+            this.renderStickers();
+            panel.classList.add('show');
+        }
+    },
+    closeStickerPanel() {
+        const panel = document.getElementById('sticker-panel');
+        if (panel) panel.classList.remove('show');
+    },
+
+    // 🌟 新增：批量导入表情包逻辑
+    async importStickers() {
+        const text = await this.showCustomPrompt("📦 批量导入表情包", "请直接粘贴你的文档内容，格式如：\n让我摸摸:\nhttps://...gif\n害羞了:\nhttps://...gif\n（清空所有表情包请输入：CLEAR）");
+        if (!text) return;
+
+        if (text.trim() === 'CLEAR') {
+            if (confirm("确定要清空所有表情包吗？")) {
+                localStorage.removeItem('custom_stickers');
+                this.renderStickers();
+                window.PhoneAPI.showToast("🗑️ 表情包已清空");
+            }
+            return;
+        }
+        
+        const lines = text.split('\n');
+        let newStickers = [];
+        let currentName = "未命名表情";
+        const urlRegex = /(https?:\/\/[^\s]+)/;
+        
+        lines.forEach(line => {
+            const str = line.trim();
+            if (!str) return;
+            const urlMatch = str.match(urlRegex);
+            if (urlMatch) {
+                const url = urlMatch[1];
+                let name = str.replace(url, '').replace(/[:：]/g, '').trim();
+                if (!name && currentName !== "未命名表情") {
+                    name = currentName;
+                    currentName = "未命名表情";
+                } else if (!name) {
+                    name = "表情" + Math.floor(Math.random()*1000);
+                }
+                newStickers.push({ name, url });
+            } else {
+                currentName = str.replace(/[:：]/g, '').trim();
+            }
+        });
+
+        if (newStickers.length > 0) {
+            let existing = JSON.parse(localStorage.getItem('custom_stickers') || '[]');
+            existing = [...existing, ...newStickers];
+            localStorage.setItem('custom_stickers', JSON.stringify(existing));
+            this.renderStickers();
+            window.PhoneAPI.showToast(`✅ 成功解析并导入 ${newStickers.length} 个表情包！`);
+        } else {
+            window.PhoneAPI.showToast(`❌ 未识别到任何有效链接`);
+        }
+    },
+
+    // 🌟 新增：渲染表情包面板
+    renderStickers() {
+        const panel = document.getElementById('sticker-panel');
+        if (!panel) return;
+        const stickers = JSON.parse(localStorage.getItem('custom_stickers') || '[]');
+        let html = `<div class="sticker-add-btn" onclick="window.PhoneUI.importStickers()"><i class="ph ph-plus" style="font-size: 24px;"></i><span style="font-size:10px; margin-top:4px;">导入</span></div>`;
+        
+        stickers.forEach((st) => {
+            html += `<div class="sticker-item" onclick="window.PhoneEngine.sendSticker('${st.name}', '${st.url}')" title="${st.name}">
+                        <img src="${st.url}" alt="${st.name}">
+                     </div>`;
+        });
+        panel.innerHTML = html;
+    },
+
     toggleStoryMenu() {
         const menu = document.getElementById('story-plus-menu'); const btn = document.getElementById('btn-story-plus');
         if (!menu || !btn) return; 
@@ -138,7 +220,8 @@ export const PhoneUI = {
         if (appId === 'novel') {
             contentEl.style.padding = '0';
             contentEl.innerHTML = `
-                <div id="novel-content-list" class="story-bg" onclick="window.PhoneUI.closeStoryMenu()"></div>
+                <div id="novel-content-list" class="story-bg" onclick="window.PhoneUI.closeStoryMenu(); window.PhoneUI.closeStickerPanel();"></div>
+                <div id="sticker-panel" class="chat-plus-menu" style="display: flex; flex-wrap: wrap; justify-content: flex-start; align-content: flex-start; padding: 15px; gap: 12px; overflow-y: auto; max-height: 280px; z-index: 11; bottom: 100%; margin-bottom: 10px; left: 15px; right: 15px; transform-origin: bottom left;"></div>
             `;
             footerEl.innerHTML = `
                 <div id="story-plus-menu" class="story-menu">
@@ -148,9 +231,10 @@ export const PhoneUI = {
                     <div class="story-menu-item" onclick="alert('掷骰子功能开发中！'); window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-dice-five"></i></div><div class="text">掷骰子</div></div>
                 </div>
                 <div class="story-input-bar">
-                    <div class="icon-btn" id="btn-story-plus" onclick="window.PhoneUI.toggleStoryMenu()"><i class="ph ph-plus-circle"></i></div>
-                    <textarea id="novel-input" class="story-textarea" placeholder="书写你们的故事..." onclick="window.PhoneUI.closeStoryMenu()"></textarea>
-                    <button class="story-send-btn" onclick="window.PhoneEngine.sendNovelMessage(); window.PhoneUI.closeStoryMenu();"><i class="ph-fill ph-paper-plane-right"></i></button>
+                    <div class="icon-btn" id="btn-story-plus" onclick="window.PhoneUI.toggleStoryMenu(); window.PhoneUI.closeStickerPanel();"><i class="ph ph-plus-circle"></i></div>
+                    <textarea id="novel-input" class="story-textarea" placeholder="书写你们的故事..." onclick="window.PhoneUI.closeStoryMenu(); window.PhoneUI.closeStickerPanel();"></textarea>
+                    <div class="icon-btn" style="font-size: 26px; padding-bottom: 4px; margin-right: 5px;" onclick="window.PhoneUI.toggleStickerPanel(); window.PhoneUI.closeStoryMenu();"><i class="ph ph-smiley"></i></div>
+                    <button class="story-send-btn" onclick="window.PhoneEngine.sendNovelMessage(); window.PhoneUI.closeStoryMenu(); window.PhoneUI.closeStickerPanel();"><i class="ph-fill ph-paper-plane-right"></i></button>
                 </div>
             `;
             this.renderNovelContent();
@@ -884,7 +968,6 @@ export const PhoneUI = {
     openArchiveModal() { this.renderArchiveList(); document.getElementById('archive-modal-bg').classList.add('show'); document.getElementById('archive-modal').classList.add('show'); },
     closeArchiveModal() { document.getElementById('archive-modal-bg').classList.remove('show'); document.getElementById('archive-modal').classList.remove('show'); },
 
-    // 🌟 核心：为日记本添加了“撕掉重写（重新生成）”的按钮！
     renderDiaryPage() {
         const contentAreaEl = document.getElementById('diary-content-area');
         if (!contentAreaEl) return;

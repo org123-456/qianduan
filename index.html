@@ -108,8 +108,8 @@
         .chat-msg.consecutive { margin-top: -14px; } 
         .chat-msg.consecutive .chat-bubble { border-radius: 18px; } 
 
-        /* 🌟 修复：表情包专属样式，透明背景、无阴影、限制大小 */
-        .chat-bubble.sticker-bubble { background: transparent !important; box-shadow: none !important; padding: 0 !important; }
+        /* 🌟 终极修复：表情包气泡强制透明，去除所有边距和阴影 */
+        .chat-bubble:has(.chat-sticker) { background: transparent !important; box-shadow: none !important; padding: 0 !important; }
         .chat-sticker { max-width: 130px; border-radius: 8px; display: block; }
 
         .markdown-body p { margin: 0; padding: 0; }
@@ -129,7 +129,6 @@
         .chat-plus-menu.show { transform: translateY(0) scale(1); opacity: 1; pointer-events: auto; }
         .chat-plus-menu .app-icon .icon { width: 50px; height: 50px; font-size: 24px; border-radius: 14px; }
 
-        /* 🌟 表情包面板样式 */
         .sticker-item { width: calc(25% - 9px); aspect-ratio: 1; border-radius: 12px; overflow: hidden; cursor: pointer; background: var(--icon-bg); box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: 0.2s; display: flex; justify-content: center; align-items: center; padding: 4px; }
         .sticker-item:active { transform: scale(0.9); }
         .sticker-item img { width: 100%; height: 100%; object-fit: contain; }
@@ -307,10 +306,9 @@
         .diary-hint { font-size: 12px; opacity: 0.8; letter-spacing: 1px; animation: pulseGlow 2s infinite alternate; }
         .diary-back-btn { position: absolute; top: 40px; left: 20px; width: 40px; height: 40px; background: rgba(0,0,0,0.3); backdrop-filter: blur(5px); border-radius: 50%; display: flex; justify-content: center; align-items: center; color: #fff; font-size: 24px; cursor: pointer; z-index: 30; }
 
+        /* 🌟 修复：日记本加入 ontouchstart 和 ontouchend 绑定滑动事件 */
         .diary-inside-view { position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0; transition: opacity 0.8s 0.5s; pointer-events: none; background-image: var(--bg-image-diary-page); background-size: cover; background-position: center; display: flex; flex-direction: column; }
         .diary-inside-view.opened { opacity: 1; pointer-events: auto; }
-        
-        /* 🌟 修复 7: 日记本布局重构，彻底解决文字被遮挡和滑出边界的问题 */
         .notebook-scroll-area { flex: 1; overflow-y: auto; padding: 60px 30px 20px 30px; }
         .notebook-scroll-area::-webkit-scrollbar { display: none; }
         .notebook-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid rgba(0,0,0,0.4); padding-bottom: 10px; margin-bottom: 20px; color: #333; }
@@ -320,8 +318,10 @@
         .notebook-mood { font-size: 24px; }
         .notebook-content { font-family: 'Long Cang', 'Kaiti', 'STKaiti', cursive; font-size: 24px; line-height: 2.2rem; color: #2c3e50; text-align: justify; background: repeating-linear-gradient(transparent, transparent calc(2.2rem - 1px), rgba(0,0,0,0.15) calc(2.2rem - 1px), rgba(0,0,0,0.15) 2.2rem); padding-top: 5px; min-height: 100%; }
         .notebook-empty { height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: 'Long Cang', 'Kaiti', 'STKaiti', cursive; font-size: 26px; color: rgba(0,0,0,0.4); text-align: center; }
-        .notebook-footer { flex-shrink: 0; display: flex; justify-content: space-between; padding: 10px 30px 30px 30px; z-index: 10; }
-        .page-btn { background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.1); width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; color: #333; cursor: pointer; transition: 0.2s; backdrop-filter: blur(5px); }
+        
+        /* 🌟 修复：把翻页按钮加回来，放在底部固定位置 */
+        .page-turner { position: absolute; bottom: 20px; left: 30px; right: 30px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; z-index: 10; }
+        .page-btn { pointer-events: auto; background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.1); width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; color: #333; cursor: pointer; transition: 0.2s; backdrop-filter: blur(5px); }
         .page-btn:active { transform: scale(0.9); background: rgba(0,0,0,0.1); }
 
         .gallery-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
@@ -514,6 +514,7 @@
             <div id="page-chat" class="page" style="position: relative; padding-bottom: 0;">
                 <div id="app-content-list" style="flex: 1; overflow-y: auto; padding-bottom: 140px;"></div>
                 
+                <!-- 🌟 新增：表情包面板 -->
                 <div id="sticker-panel" class="chat-plus-menu" style="display: flex; flex-wrap: wrap; justify-content: flex-start; align-content: flex-start; padding: 15px; gap: 12px; overflow-y: auto; max-height: 280px; z-index: 11;"></div>
 
                 <div id="chat-plus-menu" class="chat-plus-menu" style="grid-template-columns: repeat(4, 1fr);">
@@ -525,10 +526,12 @@
                         <div class="icon"><i class="ph-fill ph-file-text" style="color: #60a5fa;"></i></div>
                         <div class="name">发文件</div>
                     </div>
+                    <!-- 🌟 修复 5: 增加转账按钮 -->
                     <div class="app-icon" onclick="window.PhoneEngine.transferMoney(); window.PhoneUI.closeChatMenu();">
                         <div class="icon"><i class="ph-fill ph-currency-cny" style="color: #f6d365;"></i></div>
                         <div class="name">转账给TA</div>
                     </div>
+                    <!-- 🌟 修复 2: 增加规则挂载开关 -->
                     <div class="app-icon" onclick="window.PhoneUI.openWbToggleModal('online'); window.PhoneUI.closeChatMenu();">
                         <div class="icon"><i class="ph-fill ph-puzzle-piece" style="color: #2a9d8f;"></i></div>
                         <div class="name">规则挂载</div>
@@ -546,11 +549,13 @@
                 <form class="chat-input-bar" onsubmit="event.preventDefault(); window.PhoneEngine.sendUserMsgOnly(); window.PhoneUI.closeChatMenu(); window.PhoneUI.closeStickerPanel();">
                     <div class="icon-btn" onclick="window.PhoneUI.toggleChatMenu()" id="btn-plus"><i class="ph ph-plus-circle"></i></div>
                     <input type="text" id="chat-input" enterkeyhint="send" placeholder="宝宝，说话..." onclick="window.PhoneUI.closeChatMenu(); window.PhoneUI.closeStickerPanel();">
+                    <!-- 🌟 绑定笑脸按钮事件 -->
                     <div class="icon-btn" style="font-size: 22px;" onclick="window.PhoneUI.toggleStickerPanel()"><i class="ph ph-smiley"></i></div>
                     <div class="icon-btn send-btn" onclick="window.PhoneEngine.sendChatMessage(); window.PhoneUI.closeChatMenu(); window.PhoneUI.closeStickerPanel();"><i class="ph-fill ph-paper-plane-right"></i></div>
                 </form>
             </div>
 
+            <!-- 🌟 修复 4: Together 页面，展示他的钱包 -->
             <div id="page-together" class="page">
                 <div class="gold-card" style="margin-bottom: 15px; background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%); box-shadow: 0 10px 20px rgba(139, 92, 246, 0.3);">
                     <div class="gold-title">他的小金库余额</div>
@@ -558,6 +563,7 @@
                 </div>
             </div>
 
+            <!-- 🌟 修复 4: Mine 页面，展示我的钱包，可点击修改 -->
             <div id="page-mine" class="page">
                 <div class="card" style="text-align: center; padding: 40px 20px; color: var(--text-main); position: relative;">
                     <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa" id="mine-avatar-display" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 15px; border: 3px solid var(--primary-color); object-fit: cover;">

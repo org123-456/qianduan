@@ -11,14 +11,31 @@ export const PhoneUI = {
 
         const listEl = document.getElementById('app-content-list');
         if (listEl && window.Apps && window.Apps[appId]) {
-            listEl.innerHTML = window.Apps[appId].renderList(data);
-            setTimeout(() => { listEl.scrollTop = listEl.scrollHeight; }, 100);
+            // 🌟 修复 6: 拦截表情包，渲染成透明无框的 img
+            let renderData = JSON.parse(JSON.stringify(data));
+            renderData.items.forEach(item => {
+                if (item.content) {
+                    const stickerMatch = item.content.match(/^\[发送了表情包：.*?\]\n!\[.*?\]\((.*?)\)$/);
+                    if (stickerMatch) {
+                        item.isSticker = true;
+                        item.content = `<img src="${stickerMatch[1]}" class="chat-sticker">`;
+                    }
+                }
+            });
+            listEl.innerHTML = window.Apps[appId].renderList(renderData);
+            
+            // 给表情包的父级气泡加上透明专属 class
+            setTimeout(() => {
+                document.querySelectorAll('.chat-sticker').forEach(img => {
+                    const bubble = img.closest('.chat-bubble');
+                    if (bubble) bubble.classList.add('sticker-bubble');
+                });
+                listEl.scrollTop = listEl.scrollHeight;
+            }, 100);
         } else if (appId === 'gallery') {
             this.renderGallery();
         } else if (appId === 'shop') {
             this.renderShop();
-        } else if (appId === 'task') {
-            this.renderTask();
         } else if (appId === 'settings') {
             this.renderSettings();
         } else if (appId === 'worldbook') {
@@ -48,7 +65,65 @@ export const PhoneUI = {
         if (menu) menu.classList.remove('show'); if (btn) btn.style.transform = 'rotate(0deg)';
     },
 
-    // 🌟 新增：表情包面板控制
+    // 🌟 修复 4: 钱包弹窗
+    openWalletModal() {
+        const input = document.getElementById('wallet-input');
+        if (input) input.value = localStorage.getItem('my_coins') || '500';
+        document.getElementById('wallet-modal-bg').classList.add('show');
+        document.getElementById('wallet-modal').classList.add('show');
+    },
+    closeWalletModal() {
+        document.getElementById('wallet-modal-bg').classList.remove('show');
+        document.getElementById('wallet-modal').classList.remove('show');
+    },
+    saveWalletBalance() {
+        const input = document.getElementById('wallet-input');
+        if (input && input.value !== '') {
+            localStorage.setItem('my_coins', parseInt(input.value));
+            const coinEl = document.getElementById('mine-coin-display');
+            if (coinEl) coinEl.innerText = parseInt(input.value);
+            window.PhoneAPI.showToast("💰 余额修改成功！");
+        }
+        this.closeWalletModal();
+    },
+
+    // 🌟 修复 2: 世界书挂载弹窗
+    openWbToggleModal(mode) {
+        const listEl = document.getElementById('wb-toggle-list');
+        const titleEl = document.getElementById('wb-toggle-title');
+        if (!listEl || !titleEl) return;
+        
+        titleEl.innerHTML = `<i class="ph-fill ph-puzzle-piece"></i> 规则插件挂载 (${mode === 'online' ? '线上微信' : '线下故事'})`;
+        
+        const wbData = window.PhoneAPI.getWorldbookData();
+        let html = '';
+        wbData.forEach(wb => {
+            const isChecked = mode === 'online' ? wb.online : wb.offline;
+            html += `
+                <div style="display: flex; justify-content: space-between; align-items: center; background: var(--icon-bg); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <div style="font-size: 13px; font-weight: bold; color: var(--text-main);">${wb.title}</div>
+                    <label class="switch">
+                        <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="window.PhoneAPI.toggleWorldbook('${wb.id}', '${mode}', this.checked)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            `;
+        });
+        
+        if (wbData.length === 0) {
+            html = `<div style="text-align:center; color:var(--text-sub); padding: 20px 0;">暂无规则，请去 Home 页【世界书】添加！</div>`;
+        }
+        
+        listEl.innerHTML = html;
+        document.getElementById('wb-toggle-modal-bg').classList.add('show');
+        document.getElementById('wb-toggle-modal').classList.add('show');
+    },
+    closeWbToggleModal() {
+        document.getElementById('wb-toggle-modal-bg').classList.remove('show');
+        document.getElementById('wb-toggle-modal').classList.remove('show');
+    },
+
+    // 🌟 修复 6: 表情包面板控制
     toggleStickerPanel() {
         const panel = document.getElementById('sticker-panel');
         if (!panel) return;
@@ -64,8 +139,6 @@ export const PhoneUI = {
         const panel = document.getElementById('sticker-panel');
         if (panel) panel.classList.remove('show');
     },
-
-    // 🌟 新增：批量导入表情包逻辑
     async importStickers() {
         const text = await this.showCustomPrompt("📦 批量导入表情包", "请直接粘贴你的文档内容，格式如：\n让我摸摸:\nhttps://...gif\n害羞了:\nhttps://...gif\n（清空所有表情包请输入：CLEAR）");
         if (!text) return;
@@ -113,8 +186,6 @@ export const PhoneUI = {
             window.PhoneAPI.showToast(`❌ 未识别到任何有效链接`);
         }
     },
-
-    // 🌟 新增：渲染表情包面板
     renderStickers() {
         const panel = document.getElementById('sticker-panel');
         if (!panel) return;
@@ -150,7 +221,6 @@ export const PhoneUI = {
 
             titleEl.innerText = title;
             inputEl.value = defaultValue;
-
             bg.classList.add('show');
             modal.classList.add('show');
 
@@ -161,15 +231,8 @@ export const PhoneUI = {
                 btnCancel.onclick = null;
             };
 
-            btnConfirm.onclick = () => {
-                cleanup();
-                resolve(inputEl.value);
-            };
-
-            btnCancel.onclick = () => {
-                cleanup();
-                resolve(null);
-            };
+            btnConfirm.onclick = () => { cleanup(); resolve(inputEl.value); };
+            btnCancel.onclick = () => { cleanup(); resolve(null); };
         });
     },
 
@@ -225,10 +288,11 @@ export const PhoneUI = {
             `;
             footerEl.innerHTML = `
                 <div id="story-plus-menu" class="story-menu">
+                    <!-- 🌟 修复 2: 线下故事也加入规则挂载按钮 -->
+                    <div class="story-menu-item" onclick="window.PhoneUI.openWbToggleModal('offline'); window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-puzzle-piece" style="color: #2a9d8f;"></i></div><div class="text">规则挂载</div></div>
                     <div class="story-menu-item" onclick="window.PhoneEngine.extractMemory('novel'); window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-brain"></i></div><div class="text">提取记忆</div></div>
                     <div class="story-menu-item" onclick="window.PhoneEngine.washMemory('novel'); window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-broom" style="color: #f4a261;"></i></div><div class="text">记忆洗地</div></div>
                     <div class="story-menu-item" onclick="window.PhoneUI.openArchiveModal(); window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-floppy-disk"></i></div><div class="text">存档室</div></div>
-                    <div class="story-menu-item" onclick="alert('掷骰子功能开发中！'); window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-dice-five"></i></div><div class="text">掷骰子</div></div>
                 </div>
                 <div class="story-input-bar">
                     <div class="icon-btn" id="btn-story-plus" onclick="window.PhoneUI.toggleStoryMenu(); window.PhoneUI.closeStickerPanel();"><i class="ph ph-plus-circle"></i></div>
@@ -295,8 +359,6 @@ export const PhoneUI = {
 
         } else if (appId === 'shop') {
             this.renderShop();
-        } else if (appId === 'task') {
-            this.renderTask();
         } else if (appId === 'settings') {
             this.renderSettings();
         } else if (appId === 'worldbook') {
@@ -475,13 +537,12 @@ export const PhoneUI = {
         }, 50);
     },
 
+    // 🌟 修复 2: 世界书挂载改为纯展示
     renderWorldbook() {
         const contentEl = document.getElementById('app-window-content');
         if (!contentEl) return;
         
-        const minWords = localStorage.getItem('novel_min_words') || '150';
         const wbData = window.PhoneAPI.getWorldbookData();
-        
         let wbHtml = '';
         wbData.forEach(wb => {
             const deleteBtn = wb.isCustom ? `<div class="wb-delete-btn" onclick="window.PhoneAPI.deleteWorldbook('${wb.id}')"><i class="ph ph-trash"></i></div>` : '';
@@ -489,10 +550,6 @@ export const PhoneUI = {
                 <div class="wb-card">
                     <div class="wb-header"><span class="wb-title">${wb.title}</span>${deleteBtn}</div>
                     <div class="wb-content">${wb.content}</div>
-                    <div class="wb-toggles">
-                        <div class="wb-toggle-item"><label class="switch"><input type="checkbox" ${wb.online ? 'checked' : ''} onchange="window.PhoneAPI.toggleWorldbook('${wb.id}', 'online', this.checked)"><span class="slider"></span></label>线上</div>
-                        <div class="wb-toggle-item"><label class="switch"><input type="checkbox" ${wb.offline ? 'checked' : ''} onchange="window.PhoneAPI.toggleWorldbook('${wb.id}', 'offline', this.checked)"><span class="slider"></span></label>线下</div>
-                    </div>
                 </div>
             `;
         });
@@ -501,16 +558,17 @@ export const PhoneUI = {
             <div class="card" style="margin-bottom: 20px;">
                 <h3 style="font-size: 14px; color: var(--primary-color); margin-bottom: 10px;"><i class="ph-fill ph-text-aa"></i> 线下小说字数底线</h3>
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <input type="number" id="novel-min-words" value="${minWords}" oninput="window.PhoneAPI.saveNovelWords()" style="width: 80px; padding: 8px; border: 1px solid var(--border-color); border-radius: 8px; text-align: center; background: var(--icon-bg); color: var(--text-main);">
+                    <input type="number" id="novel-min-words" value="${localStorage.getItem('novel_min_words') || '150'}" oninput="window.PhoneAPI.saveNovelWords()" style="width: 80px; padding: 8px; border: 1px solid var(--border-color); border-radius: 8px; text-align: center; background: var(--icon-bg); color: var(--text-main);">
                     <span style="font-size: 12px; color: var(--text-sub);">字 (打字自动保存)</span>
                 </div>
             </div>
-            <h3 style="font-size: 14px; color: var(--primary-color); margin-bottom: 10px; margin-left: 5px;"><i class="ph-fill ph-puzzle-piece"></i> 规则插件挂载</h3>
+            <h3 style="font-size: 14px; color: var(--primary-color); margin-bottom: 10px; margin-left: 5px;"><i class="ph-fill ph-puzzle-piece"></i> 规则插件库</h3>
             ${wbHtml}
             <button class="btn-refresh" onclick="window.PhoneUI.openWbModal()" style="margin-top: 10px; margin-bottom: 30px; background: transparent; color: var(--primary-color); border: 1px dashed var(--primary-color);"><i class="ph ph-plus"></i> 添加自定义规则</button>
         `;
     },
 
+    // 🌟 修复 3: 商店极简单列 UI
     renderShop() {
         const contentEl = document.getElementById('app-window-content');
         if (!contentEl) return;
@@ -533,17 +591,19 @@ export const PhoneUI = {
         
         let gridHtml = '';
         if (shopItems.length === 0) {
-            gridHtml = `<div style="grid-column: span 2; text-align:center; padding: 40px 0; color: var(--text-sub);">货架空空如也，点击右上角进货吧！</div>`;
+            gridHtml = `<div style="text-align:center; padding: 40px 0; color: var(--text-sub);">货架空空如也，点击右上角进货吧！</div>`;
         } else {
             shopItems.forEach((item, idx) => {
                 gridHtml += `
                     <div class="shop-item" onclick="window.PhoneUI.openShopDetail(${idx})">
                         <div class="shop-item-icon"><i class="${item.icon || 'ph-fill ph-package'}"></i></div>
-                        <div class="shop-item-name">${item.name}</div>
-                        <div class="shop-item-desc">${item.desc}</div>
-                        <div class="shop-item-bottom">
-                            <div class="shop-item-price"><i class="ph-fill ph-coin"></i> ${item.price}</div>
-                            <button class="shop-item-add" onclick="event.stopPropagation(); window.PhoneEngine.addToCart(${idx})"><i class="ph ph-plus"></i></button>
+                        <div class="shop-item-info">
+                            <div class="shop-item-name">${item.name}</div>
+                            <div class="shop-item-desc">${item.desc}</div>
+                            <div class="shop-item-bottom">
+                                <div class="shop-item-price"><i class="ph-fill ph-coin"></i> ${item.price}</div>
+                                <button class="shop-item-add" onclick="event.stopPropagation(); window.PhoneEngine.addToCart(${idx})"><i class="ph ph-plus"></i></button>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -606,7 +666,7 @@ export const PhoneUI = {
                 <div style="padding: 25px 20px;">
                     <h2 style="color: var(--text-main); margin-bottom: 10px;" id="detail-name">商品名称</h2>
                     <div style="color: #e76f51; font-size: 24px; font-weight: bold; margin-bottom: 15px;"><i class="ph-fill ph-coin"></i> <span id="detail-price">0</span></div>
-                    <p style="color: var(--text-sub); font-size: 14px; line-height: 1.6; margin-bottom: 25px;" id="detail-desc">商品描述详情</p>
+                    <p style="color: var(--text-sub); font-size: 14px; line-height: 1.6; margin-bottom: 25px; text-align: left;" id="detail-desc">商品描述详情</p>
                     <button class="btn-refresh" id="detail-add-btn" style="margin-top: 0; border-radius: 16px; padding: 15px;"><i class="ph ph-shopping-cart"></i> 加入购物车</button>
                 </div>
             </div>
@@ -680,47 +740,6 @@ export const PhoneUI = {
         });
         listEl.innerHTML = html;
         totalEl.innerText = total;
-    },
-
-    renderTask() {
-        const contentEl = document.getElementById('app-window-content');
-        if (!contentEl) return;
-        
-        let currentTasks = JSON.parse(localStorage.getItem('task_current_items') || '[]');
-        if (currentTasks.length === 0) {
-            currentTasks = [
-                { name: '帮大侦探整理案卷', reward: 50, icon: 'ph-fill ph-keyboard', isStory: false },
-                { name: '去楼下便利店跑腿买咖啡', reward: 30, icon: 'ph-fill ph-coffee', isStory: false },
-                { name: '跟大侦探一起去现场勘查', reward: 200, icon: 'ph-fill ph-magnifying-glass', isStory: true }
-            ];
-            localStorage.setItem('task_current_items', JSON.stringify(currentTasks));
-        }
-        
-        let taskHtml = '';
-        currentTasks.forEach((task, idx) => {
-            const btnClass = task.isStory ? 'task-btn story' : 'task-btn';
-            const btnText = task.isStory ? '触发剧情' : '去打工';
-            taskHtml += `
-                <div class="task-item">
-                    <div class="task-icon"><i class="${task.icon}"></i></div>
-                    <div class="task-info">
-                        <div class="task-name">${task.name}</div>
-                        <div class="task-reward"><i class="ph-fill ph-coin"></i> +${task.reward} 金币</div>
-                    </div>
-                    <button class="${btnClass}" onclick="window.PhoneEngine.doTask(${idx})">${btnText}</button>
-                </div>
-            `;
-        });
-        
-        contentEl.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px; margin-left: 5px;">
-                <h3 style="font-size: 14px; color: var(--primary-color); margin: 0;"><i class="ph-fill ph-briefcase"></i> 悬赏打工板</h3>
-                <div onclick="window.PhoneEngine.refreshTasks()" style="color: var(--primary-color); cursor: pointer; padding: 5px; font-size: 12px; font-weight: bold;"><i class="ph ph-arrows-clockwise"></i> 刷新委托</div>
-            </div>
-            <div class="task-list" id="task-list-container">
-                ${taskHtml}
-            </div>
-        `;
     },
 
     renderGallery() {
@@ -900,19 +919,28 @@ export const PhoneUI = {
             const name = isMe ? myName : charName;
             
             let content = item.content;
+            let isSticker = false;
+            
             if (!content || content.trim() === '') {
                 content = '<span style="color:var(--danger-color); font-size:12px; font-style:italic;">[内容为空，请点击此处删除或重骰]</span>';
-            } else if (window.marked) {
-                content = window.marked.parse(content);
+            } else {
+                const stickerMatch = content.match(/^\[发送了表情包：.*?\]\n!\[.*?\]\((.*?)\)$/);
+                if (stickerMatch) {
+                    isSticker = true;
+                    content = `<img src="${stickerMatch[1]}" class="chat-sticker">`;
+                } else if (window.marked) {
+                    content = window.marked.parse(content);
+                }
             }
 
             const realIndex = allItems.length - items.length + index;
             const avatarHtml = isMe ? `<img src="${avatar}" class="story-avatar">` : `<img src="${avatar}" class="story-avatar" onclick="window.PhoneUI.showThought(${realIndex}, 'novel')">`;
+            const bubbleClass = isSticker ? 'story-content markdown-body sticker-bubble' : 'story-content markdown-body';
 
             html += `
                 <div class="story-card">
                     <div class="story-header">${avatarHtml}<div class="story-name">${name}</div><div class="story-time">${item.time || '12:00 PM'}</div></div>
-                    <div class="story-content markdown-body" onclick="window.PhoneEngine.openMsgMenu(${realIndex}, '${item.sender}')">${content}</div>
+                    <div class="${bubbleClass}" onclick="window.PhoneEngine.openMsgMenu(${realIndex}, '${item.sender}')">${content}</div>
                 </div>
             `;
         });

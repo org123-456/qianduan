@@ -11,31 +11,19 @@ export const PhoneUI = {
 
         const listEl = document.getElementById('app-content-list');
         if (listEl && window.Apps && window.Apps[appId]) {
-            // 🌟 修复：精准拦截表情包，渲染成透明无框的 img
+            // 🌟 终极修复：彻底清洗表情包文字，只保留图片！
             let renderData = JSON.parse(JSON.stringify(data));
             renderData.items.forEach(item => {
-                if (item.content) {
-                    // 放宽正则匹配，防止 Markdown 换行符干扰
-                    const stickerMatch = item.content.match(/\[发送了表情包：.*?\]\s*!\[.*?\]\((.*?)\)/);
-                    if (stickerMatch) {
-                        item.content = `<img src="${stickerMatch[1]}" class="chat-sticker">`;
+                if (item.content && item.content.includes('[发送了表情包：')) {
+                    const urlMatch = item.content.match(/(https?:\/\/[^\s\)]+)/);
+                    if (urlMatch) {
+                        item.content = `<img src="${urlMatch[1]}" class="chat-sticker">`;
                     }
                 }
             });
             listEl.innerHTML = window.Apps[appId].renderList(renderData);
             
-            // 给表情包的父级气泡加上透明专属 class
-            setTimeout(() => {
-                document.querySelectorAll('.chat-sticker').forEach(img => {
-                    const bubble = img.closest('.chat-bubble');
-                    if (bubble) {
-                        bubble.style.background = 'transparent';
-                        bubble.style.boxShadow = 'none';
-                        bubble.style.padding = '0';
-                    }
-                });
-                listEl.scrollTop = listEl.scrollHeight;
-            }, 100);
+            setTimeout(() => { listEl.scrollTop = listEl.scrollHeight; }, 100);
         } else if (appId === 'gallery') {
             this.renderGallery();
         } else if (appId === 'shop') {
@@ -222,7 +210,6 @@ export const PhoneUI = {
 
             titleEl.innerText = title;
             inputEl.value = defaultValue;
-
             bg.classList.add('show');
             modal.classList.add('show');
 
@@ -314,7 +301,7 @@ export const PhoneUI = {
                     </div>
                     <div class="diary-back-btn" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div>
                 </div>
-                <div id="diary-inside-view" class="diary-inside-view">
+                <div id="diary-inside-view" class="diary-inside-view" ontouchstart="window.PhoneUI.handleSwipeStart(event)" ontouchend="window.PhoneUI.handleSwipeEnd(event)">
                     <div class="diary-back-btn" onclick="window.PhoneUI.closeApp()" style="top: 20px; left: 15px; background: rgba(0,0,0,0.1); color: #333; z-index: 50;"><i class="ph ph-caret-left"></i></div>
                     <div id="diary-content-area" style="display: flex; flex-direction: column; height: 100%;"></div>
                 </div>
@@ -889,7 +876,21 @@ export const PhoneUI = {
         }
     },
 
-    // 🌟 修复 7: 日记本 Flex 布局重构，彻底解决文字被遮挡和滑出边界的问题
+    // 🌟 修复 7: 日记本加入滑动翻页逻辑
+    touchStartX: 0,
+    handleSwipeStart(e) {
+        this.touchStartX = e.changedTouches[0].screenX;
+    },
+    handleSwipeEnd(e) {
+        const touchEndX = e.changedTouches[0].screenX;
+        const diff = touchEndX - this.touchStartX;
+        if (diff > 50) { // 向右滑，上一页
+            this.turnDiaryPage(-1);
+        } else if (diff < -50) { // 向左滑，下一页
+            this.turnDiaryPage(1);
+        }
+    },
+
     renderDiaryPage() {
         const contentAreaEl = document.getElementById('diary-content-area');
         if (!contentAreaEl) return;
@@ -962,6 +963,14 @@ export const PhoneUI = {
                 </div>
             </div>`;
         }
+        
+        // 🌟 修复 7: 把按钮加回来
+        html += `
+            <div class="page-turner">
+                <div class="page-btn" onclick="window.PhoneUI.turnDiaryPage(-1)"><i class="ph ph-caret-left"></i></div>
+                <div class="page-btn" onclick="window.PhoneUI.turnDiaryPage(1)"><i class="ph ph-caret-right"></i></div>
+            </div>
+        `;
 
         contentAreaEl.innerHTML = html;
     },
@@ -1050,5 +1059,35 @@ export const PhoneUI = {
     closeBlindBox() {
         document.getElementById('blindbox-bg').classList.remove('show');
         document.getElementById('blindbox-modal').classList.remove('show');
+    },
+    
+    // 🌟 修复 3: 修复心声索引报错
+    showThought(index, forceApp) {
+        const roleId = window.Config?.currentContactId;
+        const targetApp = forceApp || (window.Config.currentAppId === 'novel' ? 'novel' : 'wechat');
+        
+        let item = window.Config.phoneData[roleId]?.[targetApp]?.items[index];
+        if (!item) {
+            const realIndex = window.PhoneEngine.getRealIndex(targetApp, index);
+            item = window.Config.phoneData[roleId]?.[targetApp]?.items[realIndex];
+        }
+        
+        if(!item) return;
+        
+        let thought = item.innerThought;
+        if (thought && thought.includes('连发消息')) {
+            const realIndex = window.PhoneEngine.getRealIndex(targetApp, index);
+            for (let i = realIndex - 1; i >= 0; i--) {
+                const prevItem = window.Config.phoneData[roleId][targetApp].items[i];
+                if (prevItem.sender === 'other' && prevItem.time === item.time && prevItem.innerThought && !prevItem.innerThought.includes('连发消息')) {
+                    thought = prevItem.innerThought;
+                    break;
+                }
+            }
+        }
+        
+        document.getElementById('thought-content').innerText = thought || "（TA的心思藏得很深，什么也没看出来...）";
+        document.getElementById('thought-bg').classList.add('show');
+        document.getElementById('thought-modal').classList.add('show');
     }
 };

@@ -309,9 +309,10 @@
 
         .diary-inside-view { position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0; transition: opacity 0.8s 0.5s; pointer-events: none; background-image: var(--bg-image-diary-page); background-size: cover; background-position: center; display: flex; flex-direction: column; }
         .diary-inside-view.opened { opacity: 1; pointer-events: auto; }
-        /* 🌟 修复 7: 日记本底部增加 padding，防止文字被按钮挡住 */
-        .notebook-page { flex: 1; display: flex; flex-direction: column; padding: 60px 30px 120px 30px; position: relative; overflow-y: auto; overflow-x: hidden; }
-        .notebook-page::-webkit-scrollbar { display: none; }
+        
+        /* 🌟 修复 7: 日记本布局重构，彻底解决文字被遮挡和滑出边界的问题 */
+        .notebook-scroll-area { flex: 1; overflow-y: auto; padding: 60px 30px 20px 30px; }
+        .notebook-scroll-area::-webkit-scrollbar { display: none; }
         .notebook-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid rgba(0,0,0,0.4); padding-bottom: 10px; margin-bottom: 20px; color: #333; }
         .notebook-date-wrap { display: flex; flex-direction: column; gap: 5px; }
         .notebook-date { font-size: 24px; font-weight: bold; font-family: 'Georgia', serif; letter-spacing: 1px;}
@@ -319,8 +320,8 @@
         .notebook-mood { font-size: 24px; }
         .notebook-content { font-family: 'Long Cang', 'Kaiti', 'STKaiti', cursive; font-size: 24px; line-height: 2.2rem; color: #2c3e50; text-align: justify; background: repeating-linear-gradient(transparent, transparent calc(2.2rem - 1px), rgba(0,0,0,0.15) calc(2.2rem - 1px), rgba(0,0,0,0.15) 2.2rem); padding-top: 5px; min-height: 100%; }
         .notebook-empty { height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: 'Long Cang', 'Kaiti', 'STKaiti', cursive; font-size: 26px; color: rgba(0,0,0,0.4); text-align: center; }
-        .page-turner { position: absolute; bottom: 20px; left: 30px; right: 30px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; z-index: 10; }
-        .page-btn { pointer-events: auto; background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.1); width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; color: #333; cursor: pointer; transition: 0.2s; backdrop-filter: blur(5px); }
+        .notebook-footer { flex-shrink: 0; display: flex; justify-content: space-between; padding: 10px 30px 30px 30px; z-index: 10; }
+        .page-btn { background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.1); width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; color: #333; cursor: pointer; transition: 0.2s; backdrop-filter: blur(5px); }
         .page-btn:active { transform: scale(0.9); background: rgba(0,0,0,0.1); }
 
         .gallery-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
@@ -345,7 +346,6 @@
         .api-modal { position: fixed !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -40%) scale(0.9) !important; width: 85% !important; background: var(--input-bg) !important; backdrop-filter: blur(20px) !important; border-radius: 24px !important; padding: 25px !important; box-shadow: 0 10px 40px rgba(0,0,0,0.2) !important; z-index: 10001 !important; opacity: 0 !important; visibility: hidden !important; transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1) !important; }
         .api-modal.show { transform: translate(-50%, -50%) scale(1) !important; opacity: 1 !important; visibility: visible !important; }
 
-        /* 🌟 修复 3: 商店与订单卡片高级感 UI */
         .shop-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 0 5px; }
         .shop-title { font-size: 18px; font-weight: bold; color: var(--primary-color); }
         .shop-actions { display: flex; gap: 10px; }
@@ -358,8 +358,6 @@
         .shop-tag { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; color: var(--text-sub); background: var(--icon-bg); border: 1px solid var(--border-color); cursor: pointer; white-space: nowrap; transition: 0.2s; }
         .shop-tag.active { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
         .shop-tag-add { width: 30px; height: 30px; border-radius: 50%; background: var(--icon-bg); border: 1px dashed var(--border-color); display: flex; justify-content: center; align-items: center; color: var(--text-sub); cursor: pointer; flex-shrink: 0; }
-        
-        /* 🌟 修复 3: 商店列表改为单列，更清晰 */
         .shop-grid { display: flex; flex-direction: column; gap: 12px; }
         .shop-item { background: var(--icon-bg); border-radius: 16px; padding: 15px; display: flex; flex-direction: row; align-items: flex-start; gap: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); position: relative; cursor: pointer; text-align: left; }
         .shop-item:active { transform: scale(0.98); }
@@ -527,12 +525,10 @@
                         <div class="icon"><i class="ph-fill ph-file-text" style="color: #60a5fa;"></i></div>
                         <div class="name">发文件</div>
                     </div>
-                    <!-- 🌟 修复 5: 增加转账按钮 -->
                     <div class="app-icon" onclick="window.PhoneEngine.transferMoney(); window.PhoneUI.closeChatMenu();">
                         <div class="icon"><i class="ph-fill ph-currency-cny" style="color: #f6d365;"></i></div>
                         <div class="name">转账给TA</div>
                     </div>
-                    <!-- 🌟 修复 2: 增加规则挂载开关 -->
                     <div class="app-icon" onclick="window.PhoneUI.openWbToggleModal('online'); window.PhoneUI.closeChatMenu();">
                         <div class="icon"><i class="ph-fill ph-puzzle-piece" style="color: #2a9d8f;"></i></div>
                         <div class="name">规则挂载</div>
@@ -555,7 +551,6 @@
                 </form>
             </div>
 
-            <!-- 🌟 修复 4: Together 页面，展示他的钱包 -->
             <div id="page-together" class="page">
                 <div class="gold-card" style="margin-bottom: 15px; background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%); box-shadow: 0 10px 20px rgba(139, 92, 246, 0.3);">
                     <div class="gold-title">他的小金库余额</div>
@@ -563,7 +558,6 @@
                 </div>
             </div>
 
-            <!-- 🌟 修复 4: Mine 页面，展示我的钱包，可点击修改 -->
             <div id="page-mine" class="page">
                 <div class="card" style="text-align: center; padding: 40px 20px; color: var(--text-main); position: relative;">
                     <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa" id="mine-avatar-display" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 15px; border: 3px solid var(--primary-color); object-fit: cover;">
@@ -755,6 +749,6 @@
                 .catch(err => console.error('Service Worker 注册失败:', err));
         }
     </script>
-    <script type="module" src="js/main.js?t=99999"></script>
+    <script type="module" src="js/main.js?t=40000"></script>
 </body>
 </html>

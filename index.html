@@ -108,9 +108,9 @@
         .chat-msg.consecutive { margin-top: -14px; } 
         .chat-msg.consecutive .chat-bubble { border-radius: 18px; } 
 
-        /* 🌟 终极修复：表情包气泡强制透明，去除所有边距和阴影 */
-        .chat-bubble:has(.chat-sticker) { background: transparent !important; box-shadow: none !important; padding: 0 !important; }
-        .chat-sticker { max-width: 130px; border-radius: 8px; display: block; }
+        /* 🌟 终极修复：表情包气泡强制透明，去除所有边距和阴影，并隐藏提示文字 */
+        .chat-bubble:has(.chat-sticker) { background: transparent !important; box-shadow: none !important; padding: 0 !important; font-size: 0 !important; color: transparent !important; }
+        .chat-sticker { max-width: 130px; border-radius: 8px; display: block; margin-top: 0 !important; }
 
         .markdown-body p { margin: 0; padding: 0; }
         .markdown-body em { color: var(--primary-color); font-style: italic; background: rgba(107, 139, 189, 0.1); padding: 0 4px; border-radius: 4px; }
@@ -319,8 +319,8 @@
         .notebook-content { font-family: 'Long Cang', 'Kaiti', 'STKaiti', cursive; font-size: 24px; line-height: 2.2rem; color: #2c3e50; text-align: justify; background: repeating-linear-gradient(transparent, transparent calc(2.2rem - 1px), rgba(0,0,0,0.15) calc(2.2rem - 1px), rgba(0,0,0,0.15) 2.2rem); padding-top: 5px; min-height: 100%; }
         .notebook-empty { height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: 'Long Cang', 'Kaiti', 'STKaiti', cursive; font-size: 26px; color: rgba(0,0,0,0.4); text-align: center; }
         
-        /* 🌟 修复：把翻页按钮加回来，放在底部固定位置 */
-        .page-turner { position: absolute; bottom: 20px; left: 30px; right: 30px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; z-index: 10; }
+        /* 🌟 隐藏原本的翻页按钮，改为滑动触发 */
+        .page-turner { display: none !important; }
         .page-btn { pointer-events: auto; background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.1); width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; color: #333; cursor: pointer; transition: 0.2s; backdrop-filter: blur(5px); }
         .page-btn:active { transform: scale(0.9); background: rgba(0,0,0,0.1); }
 
@@ -754,6 +754,46 @@
                 .then(() => console.log('Service Worker 注册成功！'))
                 .catch(err => console.error('Service Worker 注册失败:', err));
         }
+
+        // --- 新增：日记本左右滑动翻页逻辑 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            let startX = 0;
+            let startY = 0;
+
+            document.body.addEventListener('touchstart', (e) => {
+                // 只有在日记本打开时才记录触摸点
+                if(document.querySelector('.diary-inside-view.opened')) {
+                    startX = e.touches[0].clientX;
+                    startY = e.touches[0].clientY;
+                }
+            }, {passive: true});
+
+            document.body.addEventListener('touchend', (e) => {
+                if(!document.querySelector('.diary-inside-view.opened')) return;
+
+                let endX = e.changedTouches[0].clientX;
+                let endY = e.changedTouches[0].clientY;
+                
+                let diffX = startX - endX;
+                let diffY = startY - endY;
+
+                // 判断：如果是水平滑动（左右滑），且滑动距离大于 50，且不是在上下滚动
+                if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+                    // 获取被隐藏的翻页按钮
+                    let btns = document.querySelectorAll('.page-btn');
+                    if(btns.length >= 2) {
+                        if (diffX > 0) {
+                            // 向左滑 -> 触发下一页 (模拟点击右边的按钮)
+                            btns[1].click();
+                        } else {
+                            // 向右滑 -> 触发上一页 (模拟点击左边的按钮)
+                            btns[0].click();
+                        }
+                    }
+                }
+            }, {passive: true});
+        });
+        // --- 新增逻辑结束 ---
     </script>
     <script type="module" src="js/main.js?t=40000"></script>
 </body>

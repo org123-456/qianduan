@@ -415,6 +415,34 @@ export const PhoneEngine = {
         input.click();
     },
 
+    // 🌟 核心：发送表情包
+    sendSticker(name, url) {
+        const panel = document.getElementById('sticker-panel');
+        if (panel) panel.classList.remove('show');
+        
+        const roleId = Config.currentContactId;
+        const targetApp = Config.currentAppId === 'novel' ? 'novel' : 'wechat';
+        if (!Config.phoneData[roleId][targetApp]) Config.phoneData[roleId][targetApp] = { items: [] };
+        
+        const chatItems = Config.phoneData[roleId][targetApp].items;
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        
+        const content = `[发送了表情包：${name}]\n![${name}](${url})`;
+        chatItems.push({ sender: 'me', content: content, time: timeStr, date: dateStr });
+        
+        localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+        
+        if (targetApp === 'novel') {
+            PhoneUI.renderNovelContent();
+            this.sendNovelMessage(false);
+        } else {
+            PhoneUI.renderAppContent('wechat');
+            this.sendChatMessage(false);
+        }
+    },
+
     async favoriteMsg() {
         this.closeMsgMenu();
         if (this.currentMsgIndex < 0) return;
@@ -454,7 +482,6 @@ export const PhoneEngine = {
             const roleId = Config.currentContactId;
             const items = Config.phoneData[roleId]?.[sourceApp]?.items || [];
             
-            // 截取最近 80 条，覆盖屏幕可视范围
             const recentItems = items.filter(i => i.sender !== 'typing').slice(-80);
             
             if (recentItems.length === 0) return alert("没有足够的聊天记录来提取记忆！");
@@ -493,7 +520,6 @@ ${historyText}`;
             const items = Config.phoneData[roleId]?.[sourceApp]?.items || [];
             if (items.length === 0) return alert("当前没有聊天记录可以洗地！");
             
-            // 截取最近 80 条
             const recentItems = items.filter(i => i.sender !== 'typing').slice(-80);
             
             let historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
@@ -1064,7 +1090,6 @@ ${historyText}`;
         }
     },
 
-    // 🌟 核心修复：日记生成强制过滤思维链，并精准提取当天数据！
     async generateDiary(dateStr) {
         const contentAreaEl = document.getElementById('diary-content-area');
         if (!contentAreaEl) return;
@@ -1079,14 +1104,12 @@ ${historyText}`;
         try {
             const roleId = Config.currentContactId;
             
-            // 🌟 精准匹配传入的 dateStr
             const wechatItems = (Config.phoneData[roleId]?.wechat?.items || []).filter(i => i.date === dateStr).map(i => ({ ...i, source: '线上微信' }));
             const novelItems = (Config.phoneData[roleId]?.novel?.items || []).filter(i => i.date === dateStr).map(i => ({ ...i, source: '线下故事' }));
             
             let combinedItems = [...wechatItems, ...novelItems];
             combinedItems.sort((a, b) => (a.time || "").localeCompare(b.time || ""));
             
-            // 提取最多 80 条当天的记录
             const recentItems = combinedItems.slice(-80);
             let historyText = recentItems.map(item => `[${item.source}] ${item.time || ''} ${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
             

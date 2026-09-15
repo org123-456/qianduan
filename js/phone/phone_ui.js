@@ -1648,114 +1648,55 @@ export const PhoneUI = {
                 </div>
 
                 <div class="card">
-                    <h3
-                        style="
-                            color:var(--primary-color);
-                            margin-bottom:10px;
-                        "
-                    >
+                    <h3 style="color:var(--primary-color); margin-bottom:10px;">
                         <i class="ph-fill ph-database"></i>
                         语言引擎预设库 (文本模型)
                     </h3>
 
-                    <div style="margin-bottom:10px;">
-                        <input
-                            type="text"
-                            id="preset-name"
-                            placeholder="起个名字 (如: 硅基-DeepSeek)"
-                            style="
-                                width:100%;
-                                padding:8px;
-                                border-radius:8px;
-                            "
-                        >
-                    </div>
-
-                    <div style="margin-bottom:10px;">
-                        <input
-                            type="text"
-                            id="preset-url"
-                            placeholder="接口地址 (Base URL)"
-                            style="
-                                width:100%;
-                                padding:8px;
-                                border-radius:8px;
-                            "
-                        >
-                    </div>
-
-                    <div style="margin-bottom:10px;">
-                        <input
-                            type="password"
-                            id="preset-key"
-                            placeholder="API Key (密钥)"
-                            style="
-                                width:100%;
-                                padding:8px;
-                                border-radius:8px;
-                            "
-                        >
-                    </div>
-
-                    <div style="margin-bottom:15px;">
-                        <input
-                            type="text"
-                            id="preset-model"
-                            placeholder="模型名称 (Model)"
-                            style="
-                                width:100%;
-                                padding:8px;
-                                border-radius:8px;
-                            "
-                        >
-                    </div>
-
-                    <button
-                        class="btn-refresh"
-                        onclick="window.PhoneAPI.savePreset()"
-                        style="
-                            margin-top:0;
-                            margin-bottom:15px;
-                        "
-                    >
-                        <i class="ph ph-plus"></i>
-                        添加到预设库
-                    </button>
-
-                    <div
-                        style="
-                            display:flex;
-                            gap:8px;
-                            align-items:center;
-                            border-top:1px dashed var(--border-color);
-                            padding-top:15px;
-                        "
-                    >
+                    <!-- 🌟 新增：把选择框放最上面，加上 onchange 自动填充事件 -->
+                    <div style="display:flex; gap:8px; align-items:center; margin-bottom:15px; padding-bottom:15px; border-bottom:1px dashed var(--border-color);">
                         <select
                             id="preset-delete-select"
-                            style="
-                                flex:1;
-                                padding:8px;
-                                border-radius:8px;
-                            "
-                        ></select>
+                            onchange="window.PhoneUI.fillPresetData()"
+                            style="flex:1; padding:8px; border-radius:8px; border: 1px solid var(--primary-color);"
+                        >
+                            <option value="">-- 选择预设以编辑或删除 --</option>
+                        </select>
 
                         <button
                             class="btn-refresh"
                             onclick="window.PhoneAPI.deletePreset()"
-                            style="
-                                width:auto;
-                                margin-top:0;
-                                background:transparent;
-                                color:var(--danger-color);
-                                border:1px solid var(--danger-color);
-                                padding:8px 12px;
-                            "
+                            style="width:auto; margin:0; background:transparent; color:var(--danger-color); border:1px solid var(--danger-color); padding:8px 12px;"
                         >
                             <i class="ph ph-trash"></i>
-                            删除
                         </button>
                     </div>
+
+                    <div style="margin-bottom:10px;">
+                        <input type="text" id="preset-name" placeholder="起个名字 (如: 硅基-DeepSeek)" style="width:100%; padding:8px; border-radius:8px;">
+                    </div>
+
+                    <div style="margin-bottom:10px;">
+                        <input type="text" id="preset-url" placeholder="接口地址 (Base URL)" style="width:100%; padding:8px; border-radius:8px;">
+                    </div>
+
+                    <div style="margin-bottom:10px;">
+                        <input type="password" id="preset-key" placeholder="API Key (密钥)" style="width:100%; padding:8px; border-radius:8px;">
+                    </div>
+
+                    <div style="margin-bottom:15px;">
+                        <input type="text" id="preset-model" placeholder="模型名称 (Model)" style="width:100%; padding:8px; border-radius:8px;">
+                    </div>
+
+                    <!-- 🌟 按钮文案改成 保存/更新 -->
+                    <button
+                        class="btn-refresh"
+                        onclick="window.PhoneAPI.savePreset()"
+                        style="margin-top:0; margin-bottom:5px;"
+                    >
+                        <i class="ph ph-floppy-disk"></i>
+                        保存 / 更新当前预设
+                    </button>
                 </div>
 
                 <div class="card">
@@ -4008,7 +3949,7 @@ export const PhoneUI = {
 
         bgEl.classList.add('show');
         modalEl.classList.add('show');
-    }, // <--- 重点：这里加了逗号
+    },
 
     // 新增的关闭心声函数
     closeThought() {
@@ -4016,5 +3957,28 @@ export const PhoneUI = {
         const modalEl = document.getElementById('thought-modal');
         if (bgEl) bgEl.classList.remove('show');
         if (modalEl) modalEl.classList.remove('show');
+    },
+
+    // 🌟 新增：自动填充预设数据到输入框
+    fillPresetData() {
+        const select = document.getElementById('preset-delete-select');
+        if (!select || !select.value) return;
+
+        // 注意：这里的 select.value 是预设的 id (例如 p_1712345678)
+        const presetId = select.value;
+
+        // 读取本地存储的预设列表
+        const presets = JSON.parse(localStorage.getItem('ai_api_presets') || '[]');
+
+        // 通过 id 查找对应的预设
+        const preset = presets.find(p => p.id === presetId);
+
+        if (preset) {
+            document.getElementById('preset-name').value = preset.name || '';
+            document.getElementById('preset-url').value = preset.url || '';
+            document.getElementById('preset-key').value = preset.key || '';
+            document.getElementById('preset-model').value = preset.model || '';
+            window.PhoneAPI?.showToast('✏️ 已加载预设，修改后点击保存即可覆盖');
+        }
     }
 };

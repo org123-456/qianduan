@@ -415,6 +415,47 @@ export const PhoneEngine = {
         input.click();
     },
 
+    // 🌟 修复 5: 增加转账功能
+    async transferMoney() {
+        const amountStr = await PhoneUI.showCustomPrompt("💸 转账给TA", "请输入你要转给他的金币数量（例如：520）");
+        if (!amountStr) return;
+        const amount = parseInt(amountStr);
+        if (isNaN(amount) || amount <= 0) return alert("请输入正确的数字！");
+        
+        let myCoins = parseInt(localStorage.getItem('my_coins') || '500');
+        if (myCoins < amount) return alert("你的小金库余额不足啦！");
+        
+        myCoins -= amount;
+        localStorage.setItem('my_coins', myCoins);
+        
+        let hisCoins = parseInt(localStorage.getItem('his_coins') || '0');
+        hisCoins += amount;
+        localStorage.setItem('his_coins', hisCoins);
+        
+        const roleId = Config.currentContactId;
+        const targetApp = Config.currentAppId === 'novel' ? 'novel' : 'wechat';
+        if (!Config.phoneData[roleId][targetApp]) Config.phoneData[roleId][targetApp] = { items: [] };
+        
+        const chatItems = Config.phoneData[roleId][targetApp].items;
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        
+        const content = `【系统提示】：我向你转账了 ${amount} 金币。`;
+        chatItems.push({ sender: 'me', content: content, time: timeStr, date: dateStr });
+        
+        localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+        
+        if (targetApp === 'novel') {
+            PhoneUI.renderNovelContent();
+            this.sendNovelMessage(false);
+        } else {
+            PhoneUI.renderAppContent('wechat');
+            this.sendChatMessage(false);
+        }
+    },
+
+    // 🌟 修复 6: 发送表情包
     sendSticker(name, url) {
         const panel = document.getElementById('sticker-panel');
         if (panel) panel.classList.remove('show');
@@ -474,6 +515,7 @@ export const PhoneEngine = {
         } catch (e) { alert("提炼失败：" + e.message); }
     },
 
+    // 🌟 提取记忆：强制读取最新 80 条对话
     async extractMemory(sourceApp) {
         PhoneAPI.showToast("🧠 正在提取并拆解记忆，请稍候...");
         try {
@@ -508,6 +550,7 @@ ${historyText}`;
         } catch (e) { alert("记忆提取失败：" + e.message); }
     },
 
+    // 🌟 记忆洗地：强制读取最新 80 条对话
     async washMemory(sourceApp) {
         this.closeMsgMenu();
         if (!confirm("⚠️ 确定要进行【记忆洗地】吗？\nAI将把当前所有聊天记录拆解成多段长期记忆，随后【清空】当前聊天界面！")) return;
@@ -677,7 +720,6 @@ ${historyText}`;
             const systemPrompt = localStorage.getItem('system_prompt') || '';
             const charPersona = localStorage.getItem('char_persona') || '';
             
-            // 🌟 1. 拆分：构建【稳定】的系统提示词部分
             let stablePrompt = "";
             if (systemPrompt) stablePrompt += `【系统核心指令】：\n${systemPrompt}\n\n`;
             if (charPersona) stablePrompt += `【角色设定】：\n${charPersona}\n\n`;
@@ -702,10 +744,7 @@ ${historyText}`;
             stablePrompt += formatRule;
             stablePrompt += `\n当前正在和你聊天的人是：【${myName}】。\n`;
 
-            // 🌟 2. 拆分：构建【动态】的系统提示词部分
             let dynamicPrompt = "";
-            
-            // 🌟 核心修复：全面开放记忆库缓存！直接打包最近 50 条记忆！
             const allVault = PhoneAPI.getMemoryVault();
             let accessibleVault = allVault;
             if (!shareMemory) {
@@ -713,9 +752,26 @@ ${historyText}`;
             }
 
             if (accessibleVault.length > 0) {
-                // 不再受触发词限制，直接喂给他最近的 50 条记忆！
-                const recentVault = accessibleVault.slice(-50).map(v => `[${v.date}] ${v.source}: ${v.content}`).join('\n');
-                dynamicPrompt += `\n【全局记忆档案】：以下是你脑海中深刻的长期记忆，请在对话中自然地保持连贯：\n${recentVault}\n`;
+                const recentVault = accessibleVault.slice(-5).map(v => `[${v.date}] ${v.source}: ${v.content}`).join('\n');
+                dynamicPrompt += `\n【长期记忆档案】：以下是你脑海中深刻的长期记忆，请在对话中自然地保持连贯：\n${recentVault}\n`;
+                
+                if (hasNewUserMsg) {
+                    let userText = "";
+                    for (let i = chatItems.length - 2; i >= 0; i--) {
+                        if (chatItems[i].sender === 'me' && !chatItems[i].content.includes('![图片]')) {
+                            userText = chatItems[i].content;
+                            break;
+                        }
+                    }
+                    
+                    const recallTriggers = ['你还记得', '昨天', '上次', '之前', '那个事', '还记得', '那次'];
+                    const needsRecall = recallTriggers.some(t => userText.includes(t));
+                    
+                    if (needsRecall && accessibleVault.length > 5) {
+                        const extendedVault = accessibleVault.slice(-20).map(v => `[${v.date}] ${v.source}: ${v.content}`).join('\n');
+                        dynamicPrompt += `\n【系统提示(记忆检索触发)】：用户似乎在试图唤醒你的某段记忆。以下是你的扩展记忆库，请检索是否有相关内容，并以你的口吻作出回应：\n${extendedVault}\n`;
+                    }
+                }
             }
 
             if (shareMemory) {
@@ -726,7 +782,6 @@ ${historyText}`;
                 }
             }
 
-            // 🌟 3. 组装 Cove Prompt Cache 格式
             let systemContent = [];
             if (stablePrompt) {
                 systemContent.push({
@@ -954,8 +1009,6 @@ ${historyText}`;
             stablePrompt += `\n当前正在和你面对面互动的人是：【${myName}】。\n`;
 
             let dynamicPrompt = "";
-            
-            // 🌟 核心修复：全面开放记忆库缓存！直接打包最近 50 条记忆！
             const allVault = PhoneAPI.getMemoryVault();
             let accessibleVault = allVault;
             if (!shareMemory) {
@@ -963,8 +1016,19 @@ ${historyText}`;
             }
 
             if (accessibleVault.length > 0) {
-                const recentVault = accessibleVault.slice(-50).map(v => `[${v.date}] ${v.source}: ${v.content}`).join('\n');
-                dynamicPrompt += `\n【全局记忆档案】：以下是你脑海中深刻的长期记忆，请在对话中自然地保持连贯：\n${recentVault}\n`;
+                const recentVault = accessibleVault.slice(-5).map(v => `[${v.date}] ${v.source}: ${v.content}`).join('\n');
+                dynamicPrompt += `\n【长期记忆档案】：以下是你脑海中深刻的长期记忆，请在对话中自然地保持连贯：\n${recentVault}\n`;
+                
+                if (hasNewUserMsg) {
+                    const userText = chatItems[chatItems.length - 2].content; 
+                    const recallTriggers = ['你还记得', '昨天', '上次', '之前', '那个事', '还记得', '那次'];
+                    const needsRecall = recallTriggers.some(t => userText.includes(t));
+                    
+                    if (needsRecall && accessibleVault.length > 5) {
+                        const extendedVault = accessibleVault.slice(-20).map(v => `[${v.date}] ${v.source}: ${v.content}`).join('\n');
+                        dynamicPrompt += `\n【系统提示(记忆检索触发)】：用户似乎在试图唤醒你的某段记忆。以下是你的扩展记忆库，请检索是否有相关内容，并以你的口吻作出回应：\n${extendedVault}\n`;
+                    }
+                }
             }
 
             if (shareMemory) {

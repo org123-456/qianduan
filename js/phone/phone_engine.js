@@ -447,14 +447,14 @@ export const PhoneEngine = {
         } catch (e) { alert("提炼失败：" + e.message); }
     },
 
-    // 🌟 核心修复：提取记忆时，强制 AI 关注最新的 80 条对话！
+    // 🌟 提取记忆：强制读取最新 80 条对话
     async extractMemory(sourceApp) {
         PhoneAPI.showToast("🧠 正在提取并拆解记忆，请稍候...");
         try {
             const roleId = Config.currentContactId;
             const items = Config.phoneData[roleId]?.[sourceApp]?.items || [];
             
-            // 截取最近 80 条，覆盖屏幕可视范围，防止 AI 丢失注意力
+            // 截取最近 80 条，覆盖屏幕可视范围
             const recentItems = items.filter(i => i.sender !== 'typing').slice(-80);
             
             if (recentItems.length === 0) return alert("没有足够的聊天记录来提取记忆！");
@@ -483,7 +483,7 @@ ${historyText}`;
         } catch (e) { alert("记忆提取失败：" + e.message); }
     },
 
-    // 🌟 核心修复：洗地时，强制 AI 关注最新的 80 条对话！
+    // 🌟 记忆洗地：强制读取最新 80 条对话
     async washMemory(sourceApp) {
         this.closeMsgMenu();
         if (!confirm("⚠️ 确定要进行【记忆洗地】吗？\nAI将把当前所有聊天记录拆解成多段长期记忆，随后【清空】当前聊天界面！")) return;
@@ -1064,6 +1064,7 @@ ${historyText}`;
         }
     },
 
+    // 🌟 核心修复：日记生成强制过滤思维链，并精准提取当天数据！
     async generateDiary(dateStr) {
         const contentAreaEl = document.getElementById('diary-content-area');
         if (!contentAreaEl) return;
@@ -1078,16 +1079,18 @@ ${historyText}`;
         try {
             const roleId = Config.currentContactId;
             
-            const wechatItems = (Config.phoneData[roleId]?.wechat?.items || []).map(i => ({ ...i, source: '线上微信' }));
-            const novelItems = (Config.phoneData[roleId]?.novel?.items || []).map(i => ({ ...i, source: '线下故事' }));
+            // 🌟 精准匹配传入的 dateStr
+            const wechatItems = (Config.phoneData[roleId]?.wechat?.items || []).filter(i => i.date === dateStr).map(i => ({ ...i, source: '线上微信' }));
+            const novelItems = (Config.phoneData[roleId]?.novel?.items || []).filter(i => i.date === dateStr).map(i => ({ ...i, source: '线下故事' }));
             
             let combinedItems = [...wechatItems, ...novelItems];
             combinedItems.sort((a, b) => (a.time || "").localeCompare(b.time || ""));
             
-            const recentItems = combinedItems.slice(-25);
+            // 提取最多 80 条当天的记录
+            const recentItems = combinedItems.slice(-80);
             let historyText = recentItems.map(item => `[${item.source}] ${item.time || ''} ${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
             
-            if(!historyText) historyText = "(今天你们没怎么互动)";
+            if(!historyText) historyText = "(今天你们没有聊天或互动，请根据你的人设，写一篇平淡但符合你性格的日常日记。)";
 
             const systemPrompt = localStorage.getItem('system_prompt') || '';
             const charPersona = localStorage.getItem('char_persona') || '';
@@ -1097,7 +1100,17 @@ ${historyText}`;
             if (charPersona) contextSetup += `【角色设定】：\n${charPersona}\n\n`;
 
             let stablePrompt = `你现在完全进入角色。以下是你的底层设定：\n${contextSetup}`;
-            let dynamicPrompt = `【重要时间设定】：今天是 ${dateStr}。\n请根据以下你和“我”在今天的【全局记忆库（包含线上微信和线下故事）】，用【第一人称（你的视角）】写一篇今天的深夜日记。\n要求：\n1. 字数在 150-300 字之间。\n2. 绝对符合你的人设（比如傲娇、毒舌、表面嫌弃实际在意等）。\n3. 必须是一篇真实的日记，不要提及“AI”、“用户”等词汇。\n4. 综合线上线下的事情来写，让日记显得连贯真实。\n5. 直接输出日记正文，不要输出标题、日期或多余的解释。\n\n今天的全局记忆库记录：\n${historyText}`;
+            let dynamicPrompt = `【重要时间设定】：今天是 ${dateStr}。
+请根据以下你和“我”在【今天的实际聊天与互动记录】，用【第一人称（你的视角）】写一篇今天的深夜日记。
+要求：
+1. 字数在 150-300 字之间。
+2. 绝对符合你的人设（比如傲娇、毒舌、表面嫌弃实际在意等）。
+3. 必须是一篇真实的日记，不要提及“AI”、“用户”等词汇。
+4. 综合线上线下的事情来写，让日记显得连贯真实。
+【最高禁令】：绝对禁止输出任何分析过程、思考步骤、任务拆解！不要出现“分析任务”、“思考”等字眼！直接以日记的正文开头！
+
+今天的互动记录：
+${historyText}`;
 
             let messages = [{
                 role: "user",

@@ -8,19 +8,24 @@ export const WechatApp = {
         const totalItems = window.Config.phoneData[roleId]?.wechat?.items || [];
         const totalLen = totalItems.length;
 
-        // 如果总数超过 50，截取最后 50 条渲染
+        // 最多显示最后 50 条
         const renderItems = totalLen > 50 ? totalItems.slice(-50) : totalItems;
         const offset = totalLen > 50 ? totalLen - 50 : 0;
 
-        const myAvatar = localStorage.getItem('my_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa';
-        const taAvatar = localStorage.getItem('ta_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=You&backgroundColor=dbe9f6';
+        const myAvatar = localStorage.getItem('my_avatar') ||
+            'https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa';
+
+        const taAvatar = localStorage.getItem('ta_avatar') ||
+            'https://api.dicebear.com/7.x/notionists/svg?seed=You&backgroundColor=dbe9f6';
 
         let html = '<div class="chat-container">';
-        
+
         renderItems.forEach((item, idx) => {
-            // 🌟 核心修复：算出这条消息在真实总数据库里的真实下标！
+
+            // 这条消息在完整数据库中的真实下标
             const realIndex = offset + idx;
 
+            // 正在输入
             if (item.sender === 'typing') {
                 html += `
                     <div class="chat-msg left">
@@ -28,7 +33,9 @@ export const WechatApp = {
                         <div class="chat-content-box">
                             <div class="chat-bubble">
                                 <div class="typing-indicator">
-                                    <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+                                    <div class="typing-dot"></div>
+                                    <div class="typing-dot"></div>
+                                    <div class="typing-dot"></div>
                                 </div>
                             </div>
                         </div>
@@ -41,35 +48,95 @@ export const WechatApp = {
             const avatar = isMe ? myAvatar : taAvatar;
             const sideClass = isMe ? 'right' : 'left';
 
-            // 判断是否为同一人连发
+            // 判断是不是同一个人连续发消息
             const prevItem = idx > 0 ? renderItems[idx - 1] : null;
-            const isConsecutive = prevItem && prevItem.sender === item.sender && prevItem.sender !== 'typing';
+
+            const isConsecutive =
+                prevItem &&
+                prevItem.sender === item.sender &&
+                prevItem.sender !== 'typing';
+
             const consecutiveClass = isConsecutive ? 'consecutive' : '';
 
-            let contentHtml = item.content;
+            // Markdown
+            let contentHtml = item.content || '';
+
             if (window.marked) {
-                contentHtml = window.marked.parse(item.content);
+                contentHtml = window.marked.parse(contentHtml);
             }
 
-            // 头像点击绑定真实索引！
-            const avatarHtml = isMe 
-                ? (isConsecutive ? '<div class="chat-avatar-placeholder"></div>' : `<img src="${avatar}" class="chat-avatar">`)
-                : (isConsecutive ? '<div class="chat-avatar-placeholder"></div>' : `<img src="${avatar}" class="chat-avatar" onclick="window.PhoneUI.showThought(${realIndex}, 'wechat')">`);
+            /*
+             * 重点：
+             * realIndex 已经是真实数据库下标，
+             * 不要再让 showThought() 二次计算。
+             *
+             * 同时给连续消息也提供心声入口：
+             * - 第一条：头像可点击
+             * - 后续连续消息：左侧 placeholder 也可以点击
+             */
+
+            let avatarHtml = '';
+
+            if (isMe) {
+
+                // 我自己的消息不显示心声
+                avatarHtml = isConsecutive
+                    ? '<div class="chat-avatar-placeholder"></div>'
+                    : `<img src="${avatar}" class="chat-avatar">`;
+
+            } else {
+
+                if (isConsecutive) {
+
+                    // 连续消息也可以点心声
+                    avatarHtml = `
+                        <div
+                            class="chat-avatar-placeholder thought-click-target"
+                            onclick="window.PhoneUI.showThought(${realIndex}, 'wechat')"
+                            title="查看TA的心声"
+                            style="cursor:pointer;"
+                        ></div>
+                    `;
+
+                } else {
+
+                    avatarHtml = `
+                        <img
+                            src="${avatar}"
+                            class="chat-avatar"
+                            onclick="window.PhoneUI.showThought(${realIndex}, 'wechat')"
+                            title="查看TA的心声"
+                            style="cursor:pointer;"
+                        >
+                    `;
+                }
+            }
 
             html += `
                 <div class="chat-msg ${sideClass} ${consecutiveClass}">
+
                     ${avatarHtml}
+
                     <div class="chat-content-box">
-                        <div class="chat-bubble markdown-body" onclick="window.PhoneEngine.openMsgMenu(${realIndex}, '${item.sender}')">
+
+                        <div
+                            class="chat-bubble markdown-body"
+                            onclick="window.PhoneEngine.openMsgMenu(${realIndex}, '${item.sender}')"
+                        >
                             ${contentHtml}
                         </div>
-                        <div class="chat-time">${item.time || ''}</div>
+
+                        <div class="chat-time">
+                            ${item.time || ''}
+                        </div>
+
                     </div>
                 </div>
             `;
         });
 
         html += '</div>';
+
         return html;
     }
 };

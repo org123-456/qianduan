@@ -462,20 +462,17 @@ export const PhoneAPI = {
                 'Content-Type': 'application/json'
             };
 
-            // 先检查第 1 号存档是否存在
             const checkRes = await fetch(`${this.SUPABASE_URL}/rest/v1/phone_sync?id=eq.1&select=id`, { headers });
             const checkData = await checkRes.json();
 
             let saveRes;
             if (checkData && checkData.length > 0) {
-                // 已存在，直接更新内容
                 saveRes = await fetch(`${this.SUPABASE_URL}/rest/v1/phone_sync?id=eq.1`, {
                     method: 'PATCH',
                     headers: headers,
                     body: JSON.stringify({ content: JSON.stringify(data) })
                 });
             } else {
-                // 不存在，插入第一条
                 saveRes = await fetch(`${this.SUPABASE_URL}/rest/v1/phone_sync`, {
                     method: 'POST',
                     headers: { ...headers, 'Prefer': 'return=representation' },
@@ -491,10 +488,11 @@ export const PhoneAPI = {
             this.showToast("🎉 成功同步至 Supabase！云端已安全归档！");
         } catch (err) {
             console.error(err);
-            alert("Supabase 同步失败: " + err.message + "\n\n💡 提示：如果报 401/403，请确保在 Supabase 的 phone_sync 表上已关闭 RLS (Disable RLS)！");
+            alert("Supabase 同步失败: " + err.message);
         }
     },
 
+    // 🌟 修复版云端拉取：自动纠正对象序列化，杜绝 [object Object] 导致的空白
     async restoreFromCloud() {
         if (!confirm("⚠️ 确定要从 Supabase 恢复存档吗？这会覆盖本地当前的数据！")) return;
         this.showToast("📥 正在从 Supabase 拉取最新存档...");
@@ -515,9 +513,24 @@ export const PhoneAPI = {
                 return alert("Supabase 云端还没有备份数据哦，请先在旧设备上点击【备份到云端】！");
             }
 
-            const data = JSON.parse(rows[0].content);
-            for (const key in data) {
-                localStorage.setItem(key, data[key]);
+            let data = rows[0].content;
+            if (typeof data === 'string') {
+                try {
+                    data = JSON.parse(data);
+                } catch (e) {
+                    console.error("解析数据失败", e);
+                }
+            }
+
+            if (typeof data === 'object' && data !== null) {
+                for (const key in data) {
+                    let val = data[key];
+                    if (typeof val === 'object' && val !== null) {
+                        localStorage.setItem(key, JSON.stringify(val));
+                    } else {
+                        localStorage.setItem(key, String(val));
+                    }
+                }
             }
 
             this.showToast("✨ 云端恢复成功！正在重新载入...");
@@ -570,7 +583,12 @@ export const PhoneAPI = {
                     return;
                 }
                 for (const key in data) {
-                    localStorage.setItem(key, data[key]);
+                    let val = data[key];
+                    if (typeof val === 'object' && val !== null) {
+                        localStorage.setItem(key, JSON.stringify(val));
+                    } else {
+                        localStorage.setItem(key, String(val));
+                    }
                 }
                 this.showToast("✨ 导入成功！正在重启...");
                 setTimeout(() => { window.location.reload(); }, 1500);
@@ -624,7 +642,11 @@ export const PhoneAPI = {
             }
 
             if (fab) fab.classList.remove('loading'); if (statusText) { statusText.innerText = '请求成功'; statusText.style.color = '#4ade80'; }
-            return data.choices[0].message.content;
+
+            let reply = data.choices[0].message.content || '';
+            // 自动剔除思维链
+            reply = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<思维链>[\s\S]*?<\/思维链>/gi, '').trim();
+            return reply;
         } catch (error) {
             console.error(error); if (fab) { fab.classList.remove('loading'); fab.classList.add('error'); } if (statusText) { statusText.innerText = '请求失败'; statusText.style.color = 'var(--danger-color)'; } throw new Error(error.message || "网络错误或 API 配置不正确，请检查。");
         }

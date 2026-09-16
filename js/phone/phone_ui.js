@@ -1,3 +1,4 @@
+
 export const PhoneUI = {
     renderAppContent(appId) {
         const roleId = window.Config?.currentContactId;
@@ -61,7 +62,7 @@ export const PhoneUI = {
         }
     },
 
-    // 🌟 补齐漏掉的核心渲染函数：线下故事 (Novel)
+    // 🌟 核心渲染函数：线下故事 (Novel)
     renderNovelContent() {
         const listEl = document.getElementById('novel-content-list');
         if (!listEl) return;
@@ -449,7 +450,6 @@ export const PhoneUI = {
                     <div id="diary-content-area" style="display:flex;flex-direction:column;height:100%;"></div>
                 </div>
             `;
-            if (window.Config) window.Config.diaryPageIndex = -1;
             this.renderDiaryPage();
         } else if (appId === 'memory_vault') {
             if (window.Config) window.Config.memoryVaultTab = 'wechat';
@@ -1017,6 +1017,7 @@ export const PhoneUI = {
         contentArea.innerHTML = html;
     },
 
+    // ================= 🌟 日记系统核心（防闪烁 + 自动定位） =================
     unlockDiary() {
         const cover = document.getElementById('diary-book-cover');
         const coverView = document.getElementById('diary-cover-view');
@@ -1026,6 +1027,25 @@ export const PhoneUI = {
             coverView.classList.add('opened');
             insideView.classList.add('opened');
         }
+
+        // 核心优化：打开日记本时，自动翻到【最新有日记的那一页】
+        const diaries = window.PhoneAPI?.getDiaries?.() || {};
+        const dates = Object.keys(diaries).sort();
+        const startDateStr = localStorage.getItem('diary_start_date') || '2026-09-15';
+
+        let targetIndex = 0;
+        if (dates.length > 0) {
+            const latestDate = dates[dates.length - 1];
+            const d1 = new Date(startDateStr.replace(/-/g, '/'));
+            const d2 = new Date(latestDate.replace(/-/g, '/'));
+            const diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+            targetIndex = diff >= 0 ? diff : 0;
+        }
+
+        if (window.Config) {
+            window.Config.diaryPageIndex = targetIndex;
+        }
+        this.renderDiaryPage();
     },
 
     touchStartX: 0,
@@ -1049,21 +1069,25 @@ export const PhoneUI = {
             const quote = localStorage.getItem('diary_quote') || '“时间会磨平一切痕迹，\\n除了我为你写下的字。”';
             const formattedQuote = quote.replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
             contentAreaEl.innerHTML = `
-                <div class="notebook-scroll-area" style="display:flex;justify-content:center;align-items:center;height:100%;">
-                    <div class="notebook-empty">
-                        <i class="ph-fill ph-feather" style="font-size:48px;color:rgba(0,0,0,0.3);margin-bottom:30px;"></i>
-                        <div style="font-family:'Long Cang','Kaiti','STKaiti',cursive;font-size:32px;color:rgba(0,0,0,0.6);text-shadow:1px 1px 2px rgba(255,255,255,0.5);line-height:1.8;">${formattedQuote}</div>
+                <div class="notebook-scroll-area" style="display:flex;justify-content:center;align-items:center;height:100%;min-height:300px;">
+                    <div class="notebook-empty" style="text-align:center;">
+                        <i class="ph-fill ph-feather" style="font-size:48px;color:rgba(0,0,0,0.3);margin-bottom:30px;display:inline-block;"></i>
+                        <div style="font-family:'Long Cang','Kaiti','STKaiti',cursive;font-size:32px;color:rgba(0,0,0,0.6);text-shadow:1px 1px 2px rgba(255,255,255,0.5);line-height:1.8;padding:0 20px;">${formattedQuote}</div>
                     </div>
+                </div>
+                <div class="page-turner">
+                    <div class="page-btn" style="opacity:0.3;pointer-events:none;"><i class="ph ph-caret-left"></i></div>
+                    <div class="page-btn" onclick="window.PhoneUI.turnDiaryPage(1)"><i class="ph ph-caret-right"></i></div>
                 </div>
             `;
             return;
         }
 
-        const startDateStr = localStorage.getItem('diary_start_date');
+        const startDateStr = localStorage.getItem('diary_start_date') || '2026-09-15';
         let startDate;
         if (startDateStr) {
             const parts = startDateStr.split('-');
-            startDate = new Date(parts[0], parts[1] - 1, parts[2]);
+            startDate = new Date(parts[0], parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
         } else {
             startDate = new Date();
         }
@@ -1079,38 +1103,39 @@ export const PhoneUI = {
         const weekStr = '星期' + weekDays[targetDate.getDay()];
         const displayDate = `${y}年${m}月${d}日`;
         const diaries = window.PhoneAPI?.getDiaries?.() || {};
-        const content = diaries[dateStr];
+        let content = diaries[dateStr];
 
         let html = `
-            <div class="notebook-scroll-area">
-                <div class="notebook-header">
+            <div class="notebook-scroll-area" style="overflow-y:auto;max-height:calc(100vh - 220px);padding:10px 5px 60px 5px;">
+                <div class="notebook-header" style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(0,0,0,0.1);padding-bottom:10px;margin-bottom:15px;">
                     <div class="notebook-date-wrap">
-                        <span class="notebook-date">${displayDate}</span>
-                        <span class="notebook-week">${weekStr}</span>
+                        <span class="notebook-date" style="font-weight:bold;font-size:18px;">${displayDate}</span>
+                        <span class="notebook-week" style="margin-left:8px;font-size:13px;color:var(--text-sub);">${weekStr}</span>
                     </div>
                     <div style="display:flex;align-items:center;gap:12px;">
-                        ${content ? `<i class="ph ph-arrows-clockwise" onclick="if(confirm('确定要撕掉这页日记重新写吗？'))window.PhoneEngine?.generateDiary?.('${dateStr}')" style="font-size:20px;color:var(--text-sub);cursor:pointer;transition:0.2s;"></i>` : ''}
+                        ${content ? `<i class="ph ph-arrows-clockwise" onclick="if(confirm('确定要让大侦探重写这页日记吗？')){ (window.PhoneAPI?.generateDiary || window.PhoneEngine?.generateDiary)?.('${dateStr}'); }" style="font-size:20px;color:var(--text-sub);cursor:pointer;transition:0.2s;"></i>` : ''}
                         <div class="notebook-mood">☁️</div>
                     </div>
                 </div>
         `;
 
         if (content) {
-            const parsedContent = window.marked ? window.marked.parse(content) : content;
-            html += `<div class="notebook-content">${parsedContent}</div></div>`;
+            content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<思维链>[\s\S]*?<\/思维链>/gi, '').trim();
+            const parsedContent = window.marked ? window.marked.parse(content) : content.replace(/\n/g, '<br>');
+            html += `<div class="notebook-content" style="font-family:'Long Cang','Kaiti','STKaiti',cursive;font-size:22px;line-height:1.9;color:#2c2c2c;white-space:pre-wrap;word-break:break-word;">${parsedContent}</div></div>`;
         } else {
             html += `
-                <div class="notebook-empty" style="height:60vh;">
-                    <p style="margin-bottom:20px;">这一页还是空白的...</p>
-                    <button class="btn-refresh" onclick="window.PhoneEngine?.generateDiary?.('${dateStr}')" style="width:auto;padding:10px 20px;background:rgba(0,0,0,0.6);border-radius:8px;font-family:sans-serif;font-size:14px;"><i class="ph-fill ph-magic-wand"></i> 偷偷写日记</button>
+                <div class="notebook-empty" style="height:60vh;text-align:center;padding:60px 0;">
+                    <p style="margin-bottom:20px;color:var(--text-sub);font-size:14px;">这一页还是空白的...</p>
+                    <button class="btn-refresh" onclick="(window.PhoneAPI?.generateDiary || window.PhoneEngine?.generateDiary)?.('${dateStr}')" style="width:auto;padding:10px 20px;background:rgba(0,0,0,0.6);border-radius:8px;font-family:sans-serif;font-size:14px;color:#fff;border:none;cursor:pointer;"><i class="ph-fill ph-magic-wand"></i> 偷偷写日记</button>
                 </div></div>
             `;
         }
 
         html += `
-            <div class="page-turner">
-                <div class="page-btn" onclick="window.PhoneUI.turnDiaryPage(-1)"><i class="ph ph-caret-left"></i></div>
-                <div class="page-btn" onclick="window.PhoneUI.turnDiaryPage(1)"><i class="ph ph-caret-right"></i></div>
+            <div class="page-turner" style="position:absolute;bottom:15px;left:0;right:0;display:flex;justify-content:space-between;padding:0 25px;pointer-events:none;">
+                <div class="page-btn" onclick="window.PhoneUI.turnDiaryPage(-1)" style="pointer-events:auto;cursor:pointer;background:rgba(255,255,255,0.8);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.1);"><i class="ph ph-caret-left"></i></div>
+                <div class="page-btn" onclick="window.PhoneUI.turnDiaryPage(1)" style="pointer-events:auto;cursor:pointer;background:rgba(255,255,255,0.8);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.1);"><i class="ph ph-caret-right"></i></div>
             </div>
         `;
         contentAreaEl.innerHTML = html;

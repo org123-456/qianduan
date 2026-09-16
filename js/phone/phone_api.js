@@ -1,7 +1,7 @@
-
 export const PhoneAPI = {
-    // 🌟 你的 Cloudflare 专属云端后端地址
-    CLOUD_BACKEND_URL: 'https://houduan.1613764019.workers.dev',
+    // 🌟 你的专属 Supabase 云端数据库凭证
+    SUPABASE_URL: 'https://kkzztqbxjzskrsapiils.supabase.co',
+    SUPABASE_KEY: 'sb_publishable_h1SIixE2PCM2hrjXvt1I4w_eKYSQCE0',
 
     showToast(msg) {
         const toast = document.getElementById('toast');
@@ -446,49 +446,87 @@ export const PhoneAPI = {
         this.showToast('🚀 已开启全新时间线！');
     },
 
-    // ================= 云端备份与同步系统 (Cloudflare KV) =================
+    // ================= 云端备份与同步系统 (Supabase 原生驱动) =================
     async syncToCloud() {
-        this.showToast("☁️ 正在打包数据并上传云端...");
+        this.showToast("☁️ 正在上传存档至 Supabase 数据库...");
         try {
             const data = {};
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
                 data[key] = localStorage.getItem(key);
             }
-            const res = await fetch(`${this.CLOUD_BACKEND_URL}/save_data`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            if (!res.ok) throw new Error(`云端响应错误: ${res.status}`);
-            this.showToast("🎉 云端备份成功！所有数据已安全存入数据库！");
+
+            const headers = {
+                'apikey': this.SUPABASE_KEY,
+                'Authorization': `Bearer ${this.SUPABASE_KEY}`,
+                'Content-Type': 'application/json'
+            };
+
+            // 先检查第 1 号存档是否存在
+            const checkRes = await fetch(`${this.SUPABASE_URL}/rest/v1/phone_sync?id=eq.1&select=id`, { headers });
+            const checkData = await checkRes.json();
+
+            let saveRes;
+            if (checkData && checkData.length > 0) {
+                // 已存在，直接更新内容
+                saveRes = await fetch(`${this.SUPABASE_URL}/rest/v1/phone_sync?id=eq.1`, {
+                    method: 'PATCH',
+                    headers: headers,
+                    body: JSON.stringify({ content: JSON.stringify(data) })
+                });
+            } else {
+                // 不存在，插入第一条
+                saveRes = await fetch(`${this.SUPABASE_URL}/rest/v1/phone_sync`, {
+                    method: 'POST',
+                    headers: { ...headers, 'Prefer': 'return=representation' },
+                    body: JSON.stringify({ id: 1, content: JSON.stringify(data) })
+                });
+            }
+
+            if (!saveRes.ok) {
+                const errBody = await saveRes.text();
+                throw new Error(`[${saveRes.status}] ${errBody}`);
+            }
+
+            this.showToast("🎉 成功同步至 Supabase！云端已安全归档！");
         } catch (err) {
             console.error(err);
-            alert("云端备份失败: " + err.message);
+            alert("Supabase 同步失败: " + err.message + "\n\n💡 提示：如果报 401/403，请确保在 Supabase 的 phone_sync 表上已关闭 RLS (Disable RLS)！");
         }
     },
 
     async restoreFromCloud() {
-        if (!confirm("⚠️ 确定要从云端恢复存档吗？这会覆盖本地当前的数据！")) return;
-        this.showToast("📥 正在从云端读取最新存档...");
+        if (!confirm("⚠️ 确定要从 Supabase 恢复存档吗？这会覆盖本地当前的数据！")) return;
+        this.showToast("📥 正在从 Supabase 拉取最新存档...");
         try {
-            const res = await fetch(`${this.CLOUD_BACKEND_URL}/save_data`);
-            if (!res.ok) throw new Error(`云端响应错误: ${res.status}`);
-            const dataStr = await res.text();
-            if (!dataStr || dataStr === "null") {
-                return alert("云端目前没有备份数据哦，请先在旧设备上点击【备份到云端】！");
+            const headers = {
+                'apikey': this.SUPABASE_KEY,
+                'Authorization': `Bearer ${this.SUPABASE_KEY}`
+            };
+
+            const res = await fetch(`${this.SUPABASE_URL}/rest/v1/phone_sync?id=eq.1&select=content`, { headers });
+            if (!res.ok) {
+                const errBody = await res.text();
+                throw new Error(`[${res.status}] ${errBody}`);
             }
-            const data = JSON.parse(dataStr);
+
+            const rows = await res.json();
+            if (!rows || rows.length === 0 || !rows[0].content) {
+                return alert("Supabase 云端还没有备份数据哦，请先在旧设备上点击【备份到云端】！");
+            }
+
+            const data = JSON.parse(rows[0].content);
             for (const key in data) {
                 localStorage.setItem(key, data[key]);
             }
+
             this.showToast("✨ 云端恢复成功！正在重新载入...");
             setTimeout(() => {
                 window.location.reload();
             }, 1200);
         } catch (err) {
             console.error(err);
-            alert("云端恢复失败: " + err.message);
+            alert("Supabase 恢复失败: " + err.message);
         }
     },
 
@@ -674,7 +712,7 @@ export const PhoneAPI = {
     }
 };
 
-// 🌟 核心救命代码：挂载到 window，保证任何地方都能访问到 PhoneAPI！
+// 🌟 全局挂载保证不报错
 if (typeof window !== 'undefined') {
     window.PhoneAPI = PhoneAPI;
 }

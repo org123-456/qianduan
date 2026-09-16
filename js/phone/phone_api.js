@@ -4429,4 +4429,5 @@ export const PhoneUI = {
             window.PhoneAPI?.showToast('✏️ 已加载预设，修改后点击保存即可覆盖');
         }
     }
-};
+    if (typeof window !== 'undefined') { window.PhoneAPI = PhoneAPI; }
+

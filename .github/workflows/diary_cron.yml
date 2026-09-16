@@ -1,5 +1,4 @@
-yaml
-name: 不死途深夜日记定时器
+yamlname: 不死途深夜日记定时器
 
 on:
   schedule:

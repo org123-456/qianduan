@@ -1236,5 +1236,5 @@ ${historyText}`;
                 </div>
             `;
         }
-    }
+    if (typeof window !== 'undefined') { window.PhoneEngine = PhoneEngine; }
 };

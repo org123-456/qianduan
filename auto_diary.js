@@ -19,7 +19,8 @@ async function run() {
 
     const headers = {
         'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json' // 🌟 补上这行致命缺失！
     };
 
     const res = await fetch(`${SUPABASE_URL}/rest/v1/phone_sync?id=eq.1&select=content`, { headers });
@@ -41,11 +42,10 @@ async function run() {
 
     const roleId = Object.keys(phoneData)[0] || 'contact_1';
 
-    // 🌟 自动获取用户日记设定的基准日期
+    // 自动获取最新聊天日期作为日记日期
     const startDateStr = localData['diary_start_date'] || '2026-09-15';
     let targetDateStr = startDateStr;
 
-    // 提取最近一天有聊天记录的日期，优先写那天
     const allItems = [
         ...(phoneData[roleId]?.wechat?.items || []),
         ...(phoneData[roleId]?.novel?.items || [])
@@ -86,7 +86,7 @@ async function run() {
 要求：
 1. 字数在 150-250 字左右。
 2. 语言极具侦探文学色彩与傲娇性格，表面嫌弃但字里行间都是在意。
-3. 必须是一篇真实的日记正文，严禁输出任何思考分析过程、禁止输出思维链、禁止输出 markdown 标记或 Emoji！
+3. 必须是一篇真实的日记正文，严禁输出任何分析过程、思维链、markdown 标记或任何 Emoji！
 4. 写完日记后另起一行，以【亲笔留言】：开头，写一句给她的傲娇简短留言。
 
 互动记录：
@@ -106,7 +106,7 @@ ${historyText}`;
     const aiData = await aiRes.json();
     let reply = aiData.choices[0].message.content || '';
 
-    // 🌟 彻底过滤中英文思维链和分析块
+    // 过滤中英文思维链
     reply = reply.replace(/<think>[\s\S]*?<\/think>/gi, '')
                  .replace(/<思维链>[\s\S]*?<\/思维链>/gi, '')
                  .replace(/```[\s\S]*?```/gi, '')
@@ -120,7 +120,7 @@ ${historyText}`;
         noteToUser = parts[1].trim();
     }
 
-    // 写入日记
+    // 🌟 写入日记对象
     let diaries = localData['char_diaries'];
     if (typeof diaries === 'string') {
         try { diaries = JSON.parse(diaries); } catch(e) {}
@@ -129,17 +129,23 @@ ${historyText}`;
     diaries[targetDateStr] = diaryContent;
     localData['char_diaries'] = JSON.stringify(diaries);
 
-    // 确保 phone_data 也是标准字符串存储
     if (typeof localData['phone_data'] !== 'string') {
         localData['phone_data'] = JSON.stringify(localData['phone_data']);
     }
 
-    await fetch(`${SUPABASE_URL}/rest/v1/phone_sync?id=eq.1`, {
+    // 🌟 真正带上 Content-Type 保存到 Supabase，并校验返回结果
+    const patchRes = await fetch(`${SUPABASE_URL}/rest/v1/phone_sync?id=eq.1`, {
         method: 'PATCH',
         headers: headers,
         body: JSON.stringify({ content: JSON.stringify(localData) })
     });
-    console.log(`✅ [${targetDateStr}] 日记已成功存入 Supabase！`);
+
+    if (!patchRes.ok) {
+        const err = await patchRes.text();
+        throw new Error(`保存回 Supabase 失败: [${patchRes.status}] ${err}`);
+    }
+
+    console.log(`✅ [${targetDateStr}] 日记已真正成功写入 Supabase！`);
 
     // 发邮件
     if (process.env.MAIL_PASS) {

@@ -459,7 +459,6 @@ input:checked + .slider:before { transform: translateX(16px); }
 .notebook-scroll-area { padding-left:16px; padding-right:16px; }
 }
 </style>
-
 </head>
 <body>
 <div id="api-fab" class="api-fab" onclick="window.PhoneUI.openApiModal()">
@@ -663,12 +662,12 @@ input:checked + .slider:before { transform: translateX(16px); }
 <button class="action-btn cancel" onclick="window.PhoneEngine.closeMsgMenu()">取消</button>
 </div>
 
-<!-- 🌟 核心修复：唯一的心声弹窗，扩大点击区域，加上移动端双保险 -->
-<div id="thought-bg" class="action-sheet-bg" style="cursor: pointer;" onclick="window.PhoneUI.closeThought()" ontouchend="window.PhoneUI.closeThought()"></div>
+<!-- 🌟 暴力破解：原生 JS 直接移除 show 类名，无视任何模块拦截 -->
+<div id="thought-bg" class="action-sheet-bg" style="cursor: pointer;" onclick="document.getElementById('thought-bg').classList.remove('show'); document.getElementById('thought-modal').classList.remove('show');"></div>
 <div id="thought-modal" class="thought-modal">
 <div class="thought-header" style="justify-content: space-between;">
 <span style="display:flex; align-items:center; gap:8px;"><i class="ph-fill ph-cloud"></i> TA 的心声</span>
-<div style="cursor:pointer; padding:15px; margin:-15px; display:flex;" onclick="window.PhoneUI.closeThought()" ontouchend="window.PhoneUI.closeThought(); event.preventDefault();">
+<div style="cursor:pointer; padding:15px; margin:-15px; display:flex;" onclick="document.getElementById('thought-bg').classList.remove('show'); document.getElementById('thought-modal').classList.remove('show');">
 <i class="ph ph-x" style="color:var(--text-sub); font-size:22px;"></i>
 </div>
 </div>
@@ -721,7 +720,6 @@ input:checked + .slider:before { transform: translateX(16px); }
 </div>
 
 </div>
-
 <script>
 const scrollBox = document.getElementById('scroll-box');
 const navItems = document.querySelectorAll('.nav-item');

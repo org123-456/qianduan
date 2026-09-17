@@ -202,7 +202,7 @@ input, textarea, select { background: rgba(255,255,255,.8); border: 1px solid #d
 .thought-header { font-size: 16px; font-weight: bold; color: var(--primary-color); display: flex; align-items: center; gap: 8px; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;}
 .thought-content { font-size: 14px; color: var(--text-main); line-height: 1.6; overflow-y: auto; white-space: pre-wrap;}
 
-/* ========================= 🌟 修复：线下故事小说排版样式 (带头像与心声) ========================= */
+/* 线下故事 */
 .story-bg { background: var(--story-bg); min-height: 100%; padding: 20px 15px 20px 15px; }
 .story-item { margin-bottom: 20px; display: flex; width: 100%; align-items: flex-start; gap: 12px; }
 .story-item.me { flex-direction: row-reverse; }
@@ -226,7 +226,6 @@ input, textarea, select { background: rgba(255,255,255,.8); border: 1px solid #d
 [data-theme="dark"] .story-item.me .story-bubble { background: var(--chat-right-bg); color: var(--text-main); }
 .story-bubble p { margin-bottom: 12px; text-indent: 2em; }
 .story-bubble p:last-child { margin-bottom: 0; }
-/* ================================================================================= */
 
 .story-input-bar { background: var(--input-bg); backdrop-filter: blur(10px); border-radius: 24px; padding: 10px 15px; display: flex; align-items: flex-end; gap: 10px; box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.05); border: 1px solid var(--border-color); margin: 0 15px 20px 15px; z-index: 10; }
 .story-input-bar .icon-btn { font-size: 26px; color: var(--primary-color); padding-bottom: 4px; cursor: pointer; transition: 0.2s; }
@@ -664,9 +663,13 @@ input:checked + .slider:before { transform: translateX(16px); }
 <button class="action-btn cancel" onclick="window.PhoneEngine.closeMsgMenu()">取消</button>
 </div>
 
+<!-- 🌟 修复：给心声弹窗加上明明白白的关闭按钮 -->
 <div id="thought-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeThought()"></div>
 <div id="thought-modal" class="thought-modal">
-<div class="thought-header"><i class="ph-fill ph-cloud"></i> TA 的心声</div>
+<div class="thought-header" style="justify-content: space-between;">
+<span style="display:flex; align-items:center; gap:8px;"><i class="ph-fill ph-cloud"></i> TA 的心声</span>
+<i class="ph ph-x" style="cursor:pointer; color:var(--text-sub); font-size:20px;" onclick="window.PhoneUI.closeThought()"></i>
+</div>
 <div class="thought-content" id="thought-content"></div>
 </div>
 

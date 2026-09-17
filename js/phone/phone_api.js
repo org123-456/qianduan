@@ -609,7 +609,28 @@ export const PhoneAPI = {
     getMemoryVault() { return JSON.parse(localStorage.getItem('memory_vault_entries') || '[]'); },
     saveToMemoryVault(summaries, source, isCore = false) { const vault = this.getMemoryVault(); const now = new Date(); const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`; const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`; let summaryArray = Array.isArray(summaries) ? summaries : [summaries]; summaryArray.forEach((summary, index) => { vault.push({ id: 'mem_' + Date.now() + '_' + index, content: summary, source: source, date: dateStr, time: timeStr, isCore: isCore }); }); localStorage.setItem('memory_vault_entries', JSON.stringify(vault)); this.showToast(`🧠 成功存入 ${summaryArray.length} 条记忆档案！`); },
     deleteFromMemoryVault(id) { if(!confirm('确定删除吗？')) return; let vault = this.getMemoryVault(); vault = vault.filter(m => m.id !== id); localStorage.setItem('memory_vault_entries', JSON.stringify(vault)); window.PhoneUI?.renderMemoryVault?.(); this.showToast('🗑️ 记忆已消除'); },
-    async editMemoryVault(id) { let vault = this.getMemoryVault(); let item = vault.find(m => m.id === id); if (item) { const newText = await window.PhoneUI?.showCustomPrompt?.("✏️ 修改记忆档案：", item.content); if (newText !== null && newText.trim() !== "") { item.content = newText.trim(); localStorage.setItem('memory_vault_entries', JSON.stringify(vault)); window.PhoneUI?.renderMemoryVault?.(); this.showToast('✅ 记忆已修改'); } } },
+
+    // 🌟 核心修改：支持绑定触发关键词
+    async editMemoryVault(id) {
+        let vault = this.getMemoryVault();
+        let item = vault.find(m => m.id === id);
+        if (item) {
+            const newText = await window.PhoneUI?.showCustomPrompt?.("✏️ 修改记忆档案：", item.content);
+            if (newText !== null && newText.trim() !== "") {
+                item.content = newText.trim();
+
+                const newKw = await window.PhoneUI?.showCustomPrompt?.("🔑 设置触发关键词 (多个词用逗号隔开，留空则不设)：", item.keywords || "");
+                if (newKw !== null) {
+                    item.keywords = newKw.trim();
+                }
+
+                localStorage.setItem('memory_vault_entries', JSON.stringify(vault));
+                window.PhoneUI?.renderMemoryVault?.();
+                this.showToast('✅ 记忆与关键词已更新');
+            }
+        }
+    },
+
     toggleCoreMemory(id) { let vault = this.getMemoryVault(); let item = vault.find(m => m.id === id); if (item) { item.isCore = !item.isCore; localStorage.setItem('memory_vault_entries', JSON.stringify(vault)); window.PhoneUI?.renderMemoryVault?.(); if (item.isCore) { this.showToast('📌 已设为核心记忆！'); } else { this.showToast('取消核心记忆'); } } },
 
     async forceUpdate() { if (confirm("确定要强制刷新并获取最新代码吗？")) { if ('serviceWorker' in navigator) { const registrations = await navigator.serviceWorker.getRegistrations(); for (let reg of registrations) { await reg.unregister(); } } if ('caches' in window) { const keys = await caches.keys(); for (let key of keys) { await caches.delete(key); } } window.location.href = window.location.pathname + '?t=' + new Date().getTime(); } },

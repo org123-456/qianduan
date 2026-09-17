@@ -1,19 +1,19 @@
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="light">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#dff1ff">
-    <meta name="color-scheme" content="light dark">
-    <meta name="supported-color-schemes" content="light dark">
-    <link rel="manifest" href="manifest.json">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#dff1ff">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<link rel="manifest" href="manifest.json">
 
-    <title>Claire & Claude</title>
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<title>Claire & Claude</title>
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Long+Cang&display=swap');
@@ -202,17 +202,18 @@ input, textarea, select { background: rgba(255,255,255,.8); border: 1px solid #d
 .thought-header { font-size: 16px; font-weight: bold; color: var(--primary-color); display: flex; align-items: center; gap: 8px; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;}
 .thought-content { font-size: 14px; color: var(--text-main); line-height: 1.6; overflow-y: auto; white-space: pre-wrap;}
 
-/* 🌟 修复：线下故事气泡样式 */
+/* ========================= 🌟 修复：线下故事小说排版样式 ========================= */
 .story-bg { background: var(--story-bg); min-height: 100%; padding: 20px 15px 20px 15px; }
-.story-item { margin-bottom: 15px; display: flex; flex-direction: column; width: 100%; }
-.story-item.me { align-items: flex-end; }
-.story-item.other { align-items: flex-start; }
-.story-bubble { padding: 12px 16px; border-radius: 18px; max-width: 85%; box-shadow: 0 6px 18px rgba(90,140,200,.12); font-size: 15px; line-height: 1.6; cursor: pointer; transition: 0.2s; }
+.story-item { margin-bottom: 18px; display: flex; flex-direction: column; width: 100%; align-items: stretch; }
+.story-bubble { padding: 18px 20px; border-radius: 16px; width: 100%; max-width: 100%; box-shadow: 0 6px 18px rgba(90,140,200,.08); font-size: 16px; line-height: 1.8; cursor: pointer; transition: 0.2s; text-align: justify; }
 .story-bubble:active { opacity: 0.7; }
-.story-item.me .story-bubble { background: linear-gradient(135deg, #9dccff, #6fa8dc); color: #fff; border-bottom-right-radius: 4px; }
-.story-item.other .story-bubble { background: linear-gradient(135deg, #ffffff, #edf7ff); color: #33495f; border-bottom-left-radius: 4px; }
+.story-item.me .story-bubble { background: linear-gradient(135deg, #9dccff, #6fa8dc); color: #fff; }
+.story-item.other .story-bubble { background: linear-gradient(135deg, #ffffff, #edf7ff); color: #33495f; }
 [data-theme="dark"] .story-item.other .story-bubble { background: var(--chat-left-bg); color: var(--text-main); }
 [data-theme="dark"] .story-item.me .story-bubble { background: var(--chat-right-bg); color: var(--text-main); }
+.story-bubble p { margin-bottom: 12px; text-indent: 2em; }
+.story-bubble p:last-child { margin-bottom: 0; }
+/* ================================================================================= */
 
 .story-input-bar { background: var(--input-bg); backdrop-filter: blur(10px); border-radius: 24px; padding: 10px 15px; display: flex; align-items: flex-end; gap: 10px; box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.05); border: 1px solid var(--border-color); margin: 0 15px 20px 15px; z-index: 10; }
 .story-input-bar .icon-btn { font-size: 26px; color: var(--primary-color); padding-bottom: 4px; cursor: pointer; transition: 0.2s; }
@@ -449,376 +450,376 @@ input:checked + .slider:before { transform: translateX(16px); }
 
 </head>
 <body>
-    <div id="api-fab" class="api-fab" onclick="window.PhoneUI.openApiModal()">
-        <i class="ph-fill ph-cpu"></i>
-    </div>
+<div id="api-fab" class="api-fab" onclick="window.PhoneUI.openApiModal()">
+<i class="ph-fill ph-cpu"></i>
+</div>
 
-    <div id="api-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeApiModal()"></div>
-    <div id="api-modal" class="api-modal">
-        <div class="thought-header"><i class="ph-fill ph-cpu"></i> 系统控制舱</div>
-        <div style="margin-bottom: 15px;">
-            <label style="font-size: 12px; color: var(--text-sub);">秒切主引擎 (聊天/小说)</label>
-            <select id="quick-main-engine" onchange="window.PhoneAPI.assignEngine('main', this.value)" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 5px;"></select>
-        </div>
-        <div class="card" style="padding: 15px; margin-bottom: 15px; background: var(--icon-bg);">
-            <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 5px;">上一次 API 状态：</div>
-            <div id="api-status-text" style="font-size: 14px; font-weight: bold; color: var(--text-main); word-break: break-all;">待命</div>
-            <div style="font-size: 12px; color: var(--text-sub); margin-top: 10px; margin-bottom: 5px;">消耗 Token 与缓存：</div>
-            <div id="api-token-text" style="font-size: 12px; font-family: monospace; color: var(--primary-color); white-space: pre-wrap; line-height: 1.6;">0</div>
-        </div>
-        <button class="btn-refresh" onclick="window.PhoneEngine.cleanStuckTyping(); window.PhoneUI.closeApiModal();" style="background: var(--danger-color); margin-top: 0;">
-            <i class="ph-fill ph-warning"></i> 一键解除“...”卡死
-        </button>
-    </div>
+<div id="api-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeApiModal()"></div>
+<div id="api-modal" class="api-modal">
+<div class="thought-header"><i class="ph-fill ph-cpu"></i> 系统控制舱</div>
+<div style="margin-bottom: 15px;">
+<label style="font-size: 12px; color: var(--text-sub);">秒切主引擎 (聊天/小说)</label>
+<select id="quick-main-engine" onchange="window.PhoneAPI.assignEngine('main', this.value)" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 5px;"></select>
+</div>
+<div class="card" style="padding: 15px; margin-bottom: 15px; background: var(--icon-bg);">
+<div style="font-size: 12px; color: var(--text-sub); margin-bottom: 5px;">上一次 API 状态：</div>
+<div id="api-status-text" style="font-size: 14px; font-weight: bold; color: var(--text-main); word-break: break-all;">待命</div>
+<div style="font-size: 12px; color: var(--text-sub); margin-top: 10px; margin-bottom: 5px;">消耗 Token 与缓存：</div>
+<div id="api-token-text" style="font-size: 12px; font-family: monospace; color: var(--primary-color); white-space: pre-wrap; line-height: 1.6;">0</div>
+</div>
+<button class="btn-refresh" onclick="window.PhoneEngine.cleanStuckTyping(); window.PhoneUI.closeApiModal();" style="background: var(--danger-color); margin-top: 0;">
+<i class="ph-fill ph-warning"></i> 一键解除“...”卡死
+</button>
+</div>
 
-    <div id="wallet-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeWalletModal()"></div>
-    <div id="wallet-modal" class="thought-modal" style="padding: 20px; z-index: 1005;">
-        <div class="thought-header"><i class="ph-fill ph-wallet"></i> 修改钱包余额</div>
-        <input type="number" id="wallet-input" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 18px; font-weight: bold; outline: none; margin-bottom: 15px; text-align: center;">
-        <div style="display: flex; gap: 10px;">
-            <button class="btn-refresh" onclick="window.PhoneUI.closeWalletModal()" style="flex: 1; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0; box-shadow: none;">取消</button>
-            <button class="btn-refresh" onclick="window.PhoneUI.saveWalletBalance()" style="flex: 1; margin-top: 0;">确定修改</button>
-        </div>
-    </div>
+<div id="wallet-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeWalletModal()"></div>
+<div id="wallet-modal" class="thought-modal" style="padding: 20px; z-index: 1005;">
+<div class="thought-header"><i class="ph-fill ph-wallet"></i> 修改钱包余额</div>
+<input type="number" id="wallet-input" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 18px; font-weight: bold; outline: none; margin-bottom: 15px; text-align: center;">
+<div style="display: flex; gap: 10px;">
+<button class="btn-refresh" onclick="window.PhoneUI.closeWalletModal()" style="flex: 1; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0; box-shadow: none;">取消</button>
+<button class="btn-refresh" onclick="window.PhoneUI.saveWalletBalance()" style="flex: 1; margin-top: 0;">确定修改</button>
+</div>
+</div>
 
-    <div id="wb-toggle-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeWbToggleModal()"></div>
-    <div id="wb-toggle-modal" class="thought-modal" style="padding: 20px; max-height: 70vh; z-index: 1005;">
-        <div class="thought-header" id="wb-toggle-title"><i class="ph-fill ph-puzzle-piece"></i> 规则插件挂载</div>
-        <div id="wb-toggle-list" style="overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; max-height: 40vh;"></div>
-        <button class="btn-refresh" onclick="window.PhoneUI.closeWbToggleModal()" style="margin-top: 0;">完成</button>
-    </div>
+<div id="wb-toggle-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeWbToggleModal()"></div>
+<div id="wb-toggle-modal" class="thought-modal" style="padding: 20px; max-height: 70vh; z-index: 1005;">
+<div class="thought-header" id="wb-toggle-title"><i class="ph-fill ph-puzzle-piece"></i> 规则插件挂载</div>
+<div id="wb-toggle-list" style="overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; max-height: 40vh;"></div>
+<button class="btn-refresh" onclick="window.PhoneUI.closeWbToggleModal()" style="margin-top: 0;">完成</button>
+</div>
 
-    <div id="app-container">
-        <div id="toast"><i class="ph-fill ph-check-circle" style="color: #4ade80; font-size: 18px;"></i> <span id="toast-msg">保存成功</span></div>
+<div id="app-container">
+<div id="toast"><i class="ph-fill ph-check-circle" style="color: #4ade80; font-size: 18px;"></i> <span id="toast-msg">保存成功</span></div>
 
-        <div class="top-bar">
-            <div class="menu-btn" onclick="window.PhoneUI.toggleTheme()"><i class="ph-fill ph-moon" id="theme-icon" style="font-size: 18px;"></i></div>
-            <div class="title" id="top-title">Claire & Claude</div>
-            <div class="heart"><i class="ph-fill ph-heart"></i> 100%</div>
-        </div>
+<div class="top-bar">
+<div class="menu-btn" onclick="window.PhoneUI.toggleTheme()"><i class="ph-fill ph-moon" id="theme-icon" style="font-size: 18px;"></i></div>
+<div class="title" id="top-title">Claire & Claude</div>
+<div class="heart"><i class="ph-fill ph-heart"></i> 100%</div>
+</div>
 
-        <div class="page-container" id="scroll-box">
+<div class="page-container" id="scroll-box">
 
-            <div id="page-home" class="page">
-                <div class="card" style="text-align: center; padding: 30px 15px;">
-                    <h3 style="color: var(--primary-color);">Little love record</h3>
-                    <h1 style="font-size: 48px; color: var(--secondary-color); margin: 10px 0;">44</h1>
-                    <p style="color: var(--text-sub);">days together for</p>
-                </div>
+<div id="page-home" class="page">
+<div class="card" style="text-align: center; padding: 30px 15px;">
+<h3 style="color: var(--primary-color);">Little love record</h3>
+<h1 style="font-size: 48px; color: var(--secondary-color); margin: 10px 0;">44</h1>
+<p style="color: var(--text-sub);">days together for</p>
+</div>
 
-                <h3 style="margin: 10px 0 10px 5px; color: var(--primary-color); font-size: 14px;">我的生活</h3>
-                <div class="app-grid">
-                    <div class="app-icon" onclick="window.PhoneUI.openApp('novel', '线下故事')">
-                        <div class="icon" id="home-icon-novel"><i class="ph-fill ph-book-open" style="color: var(--text-sub);"></i></div>
-                        <div class="name" style="font-weight: bold;">线下故事</div>
-                    </div>
-                    <div class="app-icon" onclick="window.PhoneUI.openApp('worldbook', '世界书')">
-                        <div class="icon" id="home-icon-worldbook"><i class="ph-fill ph-globe-hemisphere-west" style="color: var(--primary-color);"></i></div>
-                        <div class="name" style="font-weight: bold;">世界书</div>
-                    </div>
-                    <div class="app-icon" onclick="window.PhoneUI.openApp('settings', '系统设置')">
-                        <div class="icon" id="home-icon-settings"><i class="ph-fill ph-gear" style="color: var(--primary-color);"></i></div>
-                        <div class="name" style="font-weight: bold;">系统设置</div>
-                    </div>
-                    <div class="app-icon" onclick="window.PhoneUI.openApp('shop', '商店')">
-                        <div class="icon" id="home-icon-shop"><i class="ph-fill ph-storefront" style="color: #f4a261;"></i></div>
-                        <div class="name">商店</div>
-                    </div>
-                </div>
-            </div>
+<h3 style="margin: 10px 0 10px 5px; color: var(--primary-color); font-size: 14px;">我的生活</h3>
+<div class="app-grid">
+<div class="app-icon" onclick="window.PhoneUI.openApp('novel', '线下故事')">
+<div class="icon" id="home-icon-novel"><i class="ph-fill ph-book-open" style="color: var(--text-sub);"></i></div>
+<div class="name" style="font-weight: bold;">线下故事</div>
+</div>
+<div class="app-icon" onclick="window.PhoneUI.openApp('worldbook', '世界书')">
+<div class="icon" id="home-icon-worldbook"><i class="ph-fill ph-globe-hemisphere-west" style="color: var(--primary-color);"></i></div>
+<div class="name" style="font-weight: bold;">世界书</div>
+</div>
+<div class="app-icon" onclick="window.PhoneUI.openApp('settings', '系统设置')">
+<div class="icon" id="home-icon-settings"><i class="ph-fill ph-gear" style="color: var(--primary-color);"></i></div>
+<div class="name" style="font-weight: bold;">系统设置</div>
+</div>
+<div class="app-icon" onclick="window.PhoneUI.openApp('shop', '商店')">
+<div class="icon" id="home-icon-shop"><i class="ph-fill ph-storefront" style="color: #f4a261;"></i></div>
+<div class="name">商店</div>
+</div>
+</div>
+</div>
 
-            <div id="page-memory" class="page" style="padding: 0;">
-                <div class="starry-sea-bg" id="starry-sea-bg"></div>
+<div id="page-memory" class="page" style="padding: 0;">
+<div class="starry-sea-bg" id="starry-sea-bg"></div>
 
-                <div class="floating-bubbles" id="floating-bubbles">
-                    <div class="glass-bubble bubble-diary" onclick="window.PhoneUI.openApp('diary', '他的日记')">
-                        <i class="ph-fill ph-book-bookmark icon"></i>
-                        <span class="text">日记</span>
-                    </div>
-                    <div class="glass-bubble bubble-vault" onclick="window.PhoneUI.openApp('memory_vault', '全局记忆库')">
-                        <i class="ph-fill ph-database icon"></i>
-                        <span class="text">记忆库</span>
-                    </div>
-                    <div class="glass-bubble bubble-gallery" onclick="window.PhoneUI.openApp('gallery', '回忆相册')">
-                        <i class="ph-fill ph-polaroid-camera icon"></i>
-                        <span class="text">相册</span>
-                    </div>
-                </div>
+<div class="floating-bubbles" id="floating-bubbles">
+<div class="glass-bubble bubble-diary" onclick="window.PhoneUI.openApp('diary', '他的日记')">
+<i class="ph-fill ph-book-bookmark icon"></i>
+<span class="text">日记</span>
+</div>
+<div class="glass-bubble bubble-vault" onclick="window.PhoneUI.openApp('memory_vault', '全局记忆库')">
+<i class="ph-fill ph-database icon"></i>
+<span class="text">记忆库</span>
+</div>
+<div class="glass-bubble bubble-gallery" onclick="window.PhoneUI.openApp('gallery', '回忆相册')">
+<i class="ph-fill ph-polaroid-camera icon"></i>
+<span class="text">相册</span>
+</div>
+</div>
 
-                <div id="memory-fragments-container"></div>
-            </div>
+<div id="memory-fragments-container"></div>
+</div>
 
-            <div id="page-chat" class="page" style="position: relative; padding-bottom: 0;">
-                <div id="app-content-list" style="flex: 1; overflow-y: auto; padding-bottom: 140px;"></div>
+<div id="page-chat" class="page" style="position: relative; padding-bottom: 0;">
+<div id="app-content-list" style="flex: 1; overflow-y: auto; padding-bottom: 140px;"></div>
 
-                <div id="sticker-panel" class="chat-plus-menu" style="display: flex; flex-wrap: wrap; justify-content: flex-start; align-content: flex-start; padding: 15px; gap: 12px; overflow-y: auto; max-height: 280px; z-index: 11;"></div>
+<div id="sticker-panel" class="chat-plus-menu" style="display: flex; flex-wrap: wrap; justify-content: flex-start; align-content: flex-start; padding: 15px; gap: 12px; overflow-y: auto; max-height: 280px; z-index: 11;"></div>
 
-                <div id="chat-plus-menu" class="chat-plus-menu" style="grid-template-columns: repeat(4, 1fr);">
-                    <div class="app-icon" onclick="window.PhoneEngine.sendImageMsg();">
-                        <div class="icon"><i class="ph-fill ph-image" style="color: #4ade80;"></i></div>
-                        <div class="name">发图片</div>
-                    </div>
-                    <div class="app-icon" onclick="window.PhoneEngine.sendFileMsg();">
-                        <div class="icon"><i class="ph-fill ph-file-text" style="color: #60a5fa;"></i></div>
-                        <div class="name">发文件</div>
-                    </div>
-                    <div class="app-icon" onclick="window.PhoneEngine.transferMoney(); window.PhoneUI.closeChatMenu();">
-                        <div class="icon"><i class="ph-fill ph-currency-cny" style="color: #f6d365;"></i></div>
-                        <div class="name">转账给TA</div>
-                    </div>
-                    <div class="app-icon" onclick="window.PhoneUI.openWbToggleModal('online'); window.PhoneUI.closeChatMenu();">
-                        <div class="icon"><i class="ph-fill ph-puzzle-piece" style="color: #2a9d8f;"></i></div>
-                        <div class="name">规则挂载</div>
-                    </div>
-                    <div class="app-icon" onclick="window.PhoneEngine.extractMemory('wechat'); window.PhoneUI.closeChatMenu();">
-                        <div class="icon"><i class="ph-fill ph-brain" style="color: #a78bfa;"></i></div>
-                        <div class="name">提取记忆</div>
-                    </div>
-                    <div class="app-icon" onclick="window.PhoneEngine.washMemory('wechat'); window.PhoneUI.closeChatMenu();">
-                        <div class="icon"><i class="ph-fill ph-broom" style="color: #f4a261;"></i></div>
-                        <div class="name">记忆洗地</div>
-                    </div>
-                </div>
+<div id="chat-plus-menu" class="chat-plus-menu" style="grid-template-columns: repeat(4, 1fr);">
+<div class="app-icon" onclick="window.PhoneEngine.sendImageMsg();">
+<div class="icon"><i class="ph-fill ph-image" style="color: #4ade80;"></i></div>
+<div class="name">发图片</div>
+</div>
+<div class="app-icon" onclick="window.PhoneEngine.sendFileMsg();">
+<div class="icon"><i class="ph-fill ph-file-text" style="color: #60a5fa;"></i></div>
+<div class="name">发文件</div>
+</div>
+<div class="app-icon" onclick="window.PhoneEngine.transferMoney(); window.PhoneUI.closeChatMenu();">
+<div class="icon"><i class="ph-fill ph-currency-cny" style="color: #f6d365;"></i></div>
+<div class="name">转账给TA</div>
+</div>
+<div class="app-icon" onclick="window.PhoneUI.openWbToggleModal('online'); window.PhoneUI.closeChatMenu();">
+<div class="icon"><i class="ph-fill ph-puzzle-piece" style="color: #2a9d8f;"></i></div>
+<div class="name">规则挂载</div>
+</div>
+<div class="app-icon" onclick="window.PhoneEngine.extractMemory('wechat'); window.PhoneUI.closeChatMenu();">
+<div class="icon"><i class="ph-fill ph-brain" style="color: #a78bfa;"></i></div>
+<div class="name">提取记忆</div>
+</div>
+<div class="app-icon" onclick="window.PhoneEngine.washMemory('wechat'); window.PhoneUI.closeChatMenu();">
+<div class="icon"><i class="ph-fill ph-broom" style="color: #f4a261;"></i></div>
+<div class="name">记忆洗地</div>
+</div>
+</div>
 
-                <form class="chat-input-bar" onsubmit="event.preventDefault(); window.PhoneEngine.sendUserMsgOnly(); window.PhoneUI.closeChatMenu(); window.PhoneUI.closeStickerPanel();">
-                    <div class="icon-btn" onclick="window.PhoneUI.toggleChatMenu()" id="btn-plus"><i class="ph ph-plus-circle"></i></div>
-                    <input type="text" id="chat-input" enterkeyhint="send" placeholder="宝宝，说话..." onclick="window.PhoneUI.closeChatMenu(); window.PhoneUI.closeStickerPanel();">
-                    <div class="icon-btn" style="font-size: 22px;" onclick="window.PhoneUI.toggleStickerPanel()"><i class="ph ph-smiley"></i></div>
-                    <div class="icon-btn send-btn" onclick="window.PhoneEngine.sendChatMessage(); window.PhoneUI.closeChatMenu(); window.PhoneUI.closeStickerPanel();"><i class="ph-fill ph-paper-plane-right"></i></div>
-                </form>
-            </div>
+<form class="chat-input-bar" onsubmit="event.preventDefault(); window.PhoneEngine.sendUserMsgOnly(); window.PhoneUI.closeChatMenu(); window.PhoneUI.closeStickerPanel();">
+<div class="icon-btn" onclick="window.PhoneUI.toggleChatMenu()" id="btn-plus"><i class="ph ph-plus-circle"></i></div>
+<input type="text" id="chat-input" enterkeyhint="send" placeholder="宝宝，说话..." onclick="window.PhoneUI.closeChatMenu(); window.PhoneUI.closeStickerPanel();">
+<div class="icon-btn" style="font-size: 22px;" onclick="window.PhoneUI.toggleStickerPanel()"><i class="ph ph-smiley"></i></div>
+<div class="icon-btn send-btn" onclick="window.PhoneEngine.sendChatMessage(); window.PhoneUI.closeChatMenu(); window.PhoneUI.closeStickerPanel();"><i class="ph-fill ph-paper-plane-right"></i></div>
+</form>
+</div>
 
-            <div id="page-together" class="page">
-                <div class="gold-card" style="margin-bottom: 15px; background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%); box-shadow: 0 10px 20px rgba(139, 92, 246, 0.3);">
-                    <div class="gold-title">他的小金库余额</div>
-                    <div class="gold-amount"><i class="ph-fill ph-coin" style="font-size: 28px;"></i> <span id="together-coin-display">0</span></div>
-                </div>
-            </div>
+<div id="page-together" class="page">
+<div class="gold-card" style="margin-bottom: 15px; background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%); box-shadow: 0 10px 20px rgba(139, 92, 246, 0.3);">
+<div class="gold-title">他的小金库余额</div>
+<div class="gold-amount"><i class="ph-fill ph-coin" style="font-size: 28px;"></i> <span id="together-coin-display">0</span></div>
+</div>
+</div>
 
-            <div id="page-mine" class="page">
-                <div class="card" style="text-align: center; padding: 40px 20px; color: var(--text-main); position: relative;">
-                    <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa" id="mine-avatar-display" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 15px; border: 3px solid var(--primary-color); object-fit: cover;">
-                    <h3 style="color: var(--primary-color); margin-bottom: 5px;" id="mine-name-display">我</h3>
-                    <p style="font-size: 12px; color: var(--text-sub);">你的专属空间</p>
-                </div>
+<div id="page-mine" class="page">
+<div class="card" style="text-align: center; padding: 40px 20px; color: var(--text-main); position: relative;">
+<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa" id="mine-avatar-display" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 15px; border: 3px solid var(--primary-color); object-fit: cover;">
+<h3 style="color: var(--primary-color); margin-bottom: 5px;" id="mine-name-display">我</h3>
+<p style="font-size: 12px; color: var(--text-sub);">你的专属空间</p>
+</div>
 
-                <div class="gold-card" style="margin-bottom: 15px; cursor: pointer;" onclick="window.PhoneUI.openWalletModal()">
-                    <div class="gold-title">我的小金库余额 (点击修改)</div>
-                    <div class="gold-amount"><i class="ph-fill ph-coin" style="font-size: 28px;"></i> <span id="mine-coin-display">500</span></div>
-                </div>
+<div class="gold-card" style="margin-bottom: 15px; cursor: pointer;" onclick="window.PhoneUI.openWalletModal()">
+<div class="gold-title">我的小金库余额 (点击修改)</div>
+<div class="gold-amount"><i class="ph-fill ph-coin" style="font-size: 28px;"></i> <span id="mine-coin-display">500</span></div>
+</div>
 
-                <div class="memory-card" style="background: linear-gradient(135deg, #f4a261, #e76f51);" onclick="window.PhoneUI.openApp('favorites', '星海收藏夹')">
-                    <div class="mc-icon"><i class="ph-fill ph-star"></i></div>
-                    <div class="mc-info">
-                        <div class="mc-title">星海收藏夹</div>
-                        <div class="mc-desc">管理你摘录的绝美金句</div>
-                    </div>
-                    <i class="ph ph-caret-right mc-arrow"></i>
-                </div>
-            </div>
+<div class="memory-card" style="background: linear-gradient(135deg, #f4a261, #e76f51);" onclick="window.PhoneUI.openApp('favorites', '星海收藏夹')">
+<div class="mc-icon"><i class="ph-fill ph-star"></i></div>
+<div class="mc-info">
+<div class="mc-title">星海收藏夹</div>
+<div class="mc-desc">管理你摘录的绝美金句</div>
+</div>
+<i class="ph ph-caret-right mc-arrow"></i>
+</div>
+</div>
 
-        </div>
+</div>
 
-        <div class="bottom-nav">
-            <div class="nav-item active" onclick="switchTab(0)">
-                <div class="icon"><i class="ph ph-house"></i></div><div class="text">Home</div>
-            </div>
-            <div class="nav-item" onclick="switchTab(1)">
-                <div class="icon"><i class="ph ph-images"></i></div><div class="text">Memory</div>
-            </div>
-            <div class="nav-item center-btn" onclick="switchTab(2)">
-                <div class="center-circle">
-                    <div class="icon"><i class="ph-fill ph-chat-circle-dots"></i></div>
-                    <div class="text" style="color: white; margin-top: 2px;">Chat</div>
-                </div>
-            </div>
-            <div class="nav-item" onclick="switchTab(3)">
-                <div class="icon"><i class="ph ph-users"></i></div><div class="text">Together</div>
-            </div>
-            <div class="nav-item" onclick="switchTab(4)">
-                <div class="icon"><i class="ph ph-moon"></i></div><div class="text">Mine</div>
-            </div>
-        </div>
+<div class="bottom-nav">
+<div class="nav-item active" onclick="switchTab(0)">
+<div class="icon"><i class="ph ph-house"></i></div><div class="text">Home</div>
+</div>
+<div class="nav-item" onclick="switchTab(1)">
+<div class="icon"><i class="ph ph-images"></i></div><div class="text">Memory</div>
+</div>
+<div class="nav-item center-btn" onclick="switchTab(2)">
+<div class="center-circle">
+<div class="icon"><i class="ph-fill ph-chat-circle-dots"></i></div>
+<div class="text" style="color: white; margin-top: 2px;">Chat</div>
+</div>
+</div>
+<div class="nav-item" onclick="switchTab(3)">
+<div class="icon"><i class="ph ph-users"></i></div><div class="text">Together</div>
+</div>
+<div class="nav-item" onclick="switchTab(4)">
+<div class="icon"><i class="ph ph-moon"></i></div><div class="text">Mine</div>
+</div>
+</div>
 
-        <div id="action-bg" class="action-sheet-bg" onclick="window.PhoneEngine.closeMsgMenu()"></div>
-        <div id="action-sheet" class="action-sheet">
-            <button class="action-btn" onclick="window.PhoneEngine.favoriteMsg()"><i class="ph-fill ph-star" style="color: #f4a261;"></i> 手动摘录 (存入星海)</button>
-            <button class="action-btn" onclick="window.PhoneEngine.aiSummarizeMsg()"><i class="ph-fill ph-sparkle" style="color: #a78bfa;"></i> AI 提炼 (去敏并收藏)</button>
-            <button class="action-btn" onclick="window.PhoneEngine.editMsg()"><i class="ph ph-pencil-simple"></i> 编辑此消息</button>
-            <button class="action-btn" id="btn-regen" onclick="window.PhoneEngine.regenMsg()"><i class="ph ph-arrows-clockwise"></i> 重新生成 (删除并重骰)</button>
-            <button class="action-btn danger" onclick="window.PhoneEngine.deleteMsg()"><i class="ph ph-trash"></i> 删除此消息</button>
-            <button class="action-btn cancel" onclick="window.PhoneEngine.closeMsgMenu()">取消</button>
-        </div>
+<div id="action-bg" class="action-sheet-bg" onclick="window.PhoneEngine.closeMsgMenu()"></div>
+<div id="action-sheet" class="action-sheet">
+<button class="action-btn" onclick="window.PhoneEngine.favoriteMsg()"><i class="ph-fill ph-star" style="color: #f4a261;"></i> 手动摘录 (存入星海)</button>
+<button class="action-btn" onclick="window.PhoneEngine.aiSummarizeMsg()"><i class="ph-fill ph-sparkle" style="color: #a78bfa;"></i> AI 提炼 (去敏并收藏)</button>
+<button class="action-btn" onclick="window.PhoneEngine.editMsg()"><i class="ph ph-pencil-simple"></i> 编辑此消息</button>
+<button class="action-btn" id="btn-regen" onclick="window.PhoneEngine.regenMsg()"><i class="ph ph-arrows-clockwise"></i> 重新生成 (删除并重骰)</button>
+<button class="action-btn danger" onclick="window.PhoneEngine.deleteMsg()"><i class="ph ph-trash"></i> 删除此消息</button>
+<button class="action-btn cancel" onclick="window.PhoneEngine.closeMsgMenu()">取消</button>
+</div>
 
-        <div id="thought-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeThought()"></div>
-        <div id="thought-modal" class="thought-modal">
-            <div class="thought-header"><i class="ph-fill ph-cloud"></i> TA 的心声</div>
-            <div class="thought-content" id="thought-content"></div>
-        </div>
+<div id="thought-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeThought()"></div>
+<div id="thought-modal" class="thought-modal">
+<div class="thought-header"><i class="ph-fill ph-cloud"></i> TA 的心声</div>
+<div class="thought-content" id="thought-content"></div>
+</div>
 
-        <div id="wb-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeWbModal()"></div>
-        <div id="wb-modal" class="thought-modal" style="padding: 20px;">
-            <div class="thought-header"><i class="ph-fill ph-plus-circle"></i> 编写新规则</div>
-            <input type="text" id="wb-new-title" placeholder="规则名称 (如: 防八股)" style="width: 100%; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 14px; outline: none;">
-            <textarea id="wb-new-content" placeholder="输入具体的规则内容，越详细越好..." style="width: 100%; padding: 12px; border-radius: 8px; min-height: 100px; resize: none; font-size: 13px; line-height: 1.5; outline: none; margin-bottom: 15px; font-family: inherit;"></textarea>
-            <button class="btn-refresh" onclick="window.PhoneAPI.addWorldbook()" style="margin-top: 0;">保存</button>
-        </div>
+<div id="wb-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeWbModal()"></div>
+<div id="wb-modal" class="thought-modal" style="padding: 20px;">
+<div class="thought-header"><i class="ph-fill ph-plus-circle"></i> 编写新规则</div>
+<input type="text" id="wb-new-title" placeholder="规则名称 (如: 防八股)" style="width: 100%; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 14px; outline: none;">
+<textarea id="wb-new-content" placeholder="输入具体的规则内容，越详细越好..." style="width: 100%; padding: 12px; border-radius: 8px; min-height: 100px; resize: none; font-size: 13px; line-height: 1.5; outline: none; margin-bottom: 15px; font-family: inherit;"></textarea>
+<button class="btn-refresh" onclick="window.PhoneAPI.addWorldbook()" style="margin-top: 0;">保存</button>
+</div>
 
-        <div id="archive-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeArchiveModal()"></div>
-        <div id="archive-modal" class="thought-modal" style="padding: 20px; max-height: 80vh;">
-            <div class="thought-header"><i class="ph-fill ph-floppy-disk"></i> 剧情存档室 (平行宇宙)</div>
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <input type="text" id="archive-name" placeholder="给当前剧情起个名字..." style="flex: 1; padding: 10px; border-radius: 8px; outline: none;">
-                <button class="btn-refresh" onclick="window.PhoneAPI.saveArchive()" style="margin-top: 0; width: auto; padding: 0 15px;">存档</button>
-            </div>
-            <button class="btn-refresh" onclick="window.PhoneAPI.startNewTimeline()" style="margin-top: 0; margin-bottom: 15px; background: transparent; color: var(--danger-color); border: 1px dashed var(--danger-color); box-shadow: none;"><i class="ph ph-magic-wand"></i> 开启全新时间线 (清空当前)</button>
-            <div id="archive-list" style="overflow-y: auto; max-height: 40vh; display: flex; flex-direction: column; gap: 10px;"></div>
-        </div>
+<div id="archive-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeArchiveModal()"></div>
+<div id="archive-modal" class="thought-modal" style="padding: 20px; max-height: 80vh;">
+<div class="thought-header"><i class="ph-fill ph-floppy-disk"></i> 剧情存档室 (平行宇宙)</div>
+<div style="display: flex; gap: 10px; margin-bottom: 15px;">
+<input type="text" id="archive-name" placeholder="给当前剧情起个名字..." style="flex: 1; padding: 10px; border-radius: 8px; outline: none;">
+<button class="btn-refresh" onclick="window.PhoneAPI.saveArchive()" style="margin-top: 0; width: auto; padding: 0 15px;">存档</button>
+</div>
+<button class="btn-refresh" onclick="window.PhoneAPI.startNewTimeline()" style="margin-top: 0; margin-bottom: 15px; background: transparent; color: var(--danger-color); border: 1px dashed var(--danger-color); box-shadow: none;"><i class="ph ph-magic-wand"></i> 开启全新时间线 (清空当前)</button>
+<div id="archive-list" style="overflow-y: auto; max-height: 40vh; display: flex; flex-direction: column; gap: 10px;"></div>
+</div>
 
-        <div id="blindbox-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeBlindBox()"></div>
-        <div id="blindbox-modal" class="blindbox-modal">
-            <i class="ph-fill ph-shooting-star blindbox-icon"></i>
-            <div class="blindbox-text" id="blindbox-text">“回忆碎片加载中...”</div>
-            <div class="blindbox-meta" id="blindbox-meta">2023-10-24 · 线上微信</div>
-        </div>
+<div id="blindbox-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeBlindBox()"></div>
+<div id="blindbox-modal" class="blindbox-modal">
+<i class="ph-fill ph-shooting-star blindbox-icon"></i>
+<div class="blindbox-text" id="blindbox-text">“回忆碎片加载中...”</div>
+<div class="blindbox-meta" id="blindbox-meta">2023-10-24 · 线上微信</div>
+</div>
 
-        <div id="custom-prompt-bg" class="action-sheet-bg"></div>
-        <div id="custom-prompt-modal" class="thought-modal" style="padding: 20px; z-index: 1005;">
-            <div class="thought-header" id="custom-prompt-title" style="font-size: 14px; line-height: 1.4;">请输入</div>
-            <textarea id="custom-prompt-input" style="width: 100%; height: 220px; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 14px; resize: none; outline: none; margin-bottom: 15px; font-family: inherit; line-height: 1.6;"></textarea>
-            <div style="display: flex; gap: 10px;">
-                <button class="btn-refresh" id="custom-prompt-cancel" style="flex: 1; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0; box-shadow: none;">取消</button>
-                <button class="btn-refresh" id="custom-prompt-confirm" style="flex: 1; margin-top: 0;">确定保存</button>
-            </div>
-        </div>
+<div id="custom-prompt-bg" class="action-sheet-bg"></div>
+<div id="custom-prompt-modal" class="thought-modal" style="padding: 20px; z-index: 1005;">
+<div class="thought-header" id="custom-prompt-title" style="font-size: 14px; line-height: 1.4;">请输入</div>
+<textarea id="custom-prompt-input" style="width: 100%; height: 220px; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 14px; resize: none; outline: none; margin-bottom: 15px; font-family: inherit; line-height: 1.6;"></textarea>
+<div style="display: flex; gap: 10px;">
+<button class="btn-refresh" id="custom-prompt-cancel" style="flex: 1; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0; box-shadow: none;">取消</button>
+<button class="btn-refresh" id="custom-prompt-confirm" style="flex: 1; margin-top: 0;">确定保存</button>
+</div>
+</div>
 
-        <div id="app-window" class="app-window">
-            <div class="app-window-header">
-                <div class="app-window-back" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div>
-                <div class="app-window-title" id="app-window-title">应用名称</div>
-            </div>
-            <div class="app-window-content" id="app-window-content"></div>
-            <div id="app-window-footer"></div>
-        </div>
+<div id="app-window" class="app-window">
+<div class="app-window-header">
+<div class="app-window-back" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div>
+<div class="app-window-title" id="app-window-title">应用名称</div>
+</div>
+<div class="app-window-content" id="app-window-content"></div>
+<div id="app-window-footer"></div>
+</div>
 
-    </div>
+</div>
 
-    <script>
-        const scrollBox = document.getElementById('scroll-box');
-        const navItems = document.querySelectorAll('.nav-item');
-        const pages = document.querySelectorAll('.page');
+<script>
+const scrollBox = document.getElementById('scroll-box');
+const navItems = document.querySelectorAll('.nav-item');
+const pages = document.querySelectorAll('.page');
 
-        function switchTab(index) {
-            scrollBox.scrollTo({ left: pages[index].offsetLeft, behavior: 'smooth' });
+function switchTab(index) {
+scrollBox.scrollTo({ left: pages[index].offsetLeft, behavior: 'smooth' });
 
-            const appContainer = document.getElementById('app-container');
-            if(index === 1) {
-                appContainer.classList.add('hide-top-bar');
-                if(window.PhoneUI) window.PhoneUI.initStarrySea();
-            } else {
-                appContainer.classList.remove('hide-top-bar');
-            }
+const appContainer = document.getElementById('app-container');
+if(index === 1) {
+appContainer.classList.add('hide-top-bar');
+if(window.PhoneUI) window.PhoneUI.initStarrySea();
+} else {
+appContainer.classList.remove('hide-top-bar');
+}
 
-            if(index === 2 && window.PhoneUI) {
-                window.Config.currentAppId = 'wechat';
-                window.PhoneUI.renderAppContent('wechat');
-            }
+if(index === 2 && window.PhoneUI) {
+window.Config.currentAppId = 'wechat';
+window.PhoneUI.renderAppContent('wechat');
+}
 
-            if(index === 3) {
-                const hisCoins = localStorage.getItem('his_coins') || '0';
-                const coinEl = document.getElementById('together-coin-display');
-                if (coinEl) coinEl.innerText = hisCoins;
-            }
+if(index === 3) {
+const hisCoins = localStorage.getItem('his_coins') || '0';
+const coinEl = document.getElementById('together-coin-display');
+if (coinEl) coinEl.innerText = hisCoins;
+}
 
-            if(index === 4) {
-                const avatar = localStorage.getItem('my_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa';
-                const name = localStorage.getItem('my_name') || '我';
-                document.getElementById('mine-avatar-display').src = avatar;
-                document.getElementById('mine-name-display').innerText = name;
-                const coins = localStorage.getItem('my_coins') || '500';
-                const coinEl = document.getElementById('mine-coin-display');
-                if (coinEl) coinEl.innerText = coins;
-            }
-        }
+if(index === 4) {
+const avatar = localStorage.getItem('my_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa';
+const name = localStorage.getItem('my_name') || '我';
+document.getElementById('mine-avatar-display').src = avatar;
+document.getElementById('mine-name-display').innerText = name;
+const coins = localStorage.getItem('my_coins') || '500';
+const coinEl = document.getElementById('mine-coin-display');
+if (coinEl) coinEl.innerText = coins;
+}
+}
 
-        scrollBox.addEventListener('scroll', () => {
-            let currentIndex = Math.round(scrollBox.scrollLeft / scrollBox.clientWidth);
-            navItems.forEach((nav, i) => {
-                if (i === currentIndex) {
-                    nav.classList.add('active');
-                } else {
-                    nav.classList.remove('active');
-                }
-            });
-            if(window.PhoneUI && window.PhoneUI.closeChatMenu) {
-                window.PhoneUI.closeChatMenu();
-                window.PhoneUI.closeStickerPanel();
-            }
-        });
+scrollBox.addEventListener('scroll', () => {
+let currentIndex = Math.round(scrollBox.scrollLeft / scrollBox.clientWidth);
+navItems.forEach((nav, i) => {
+if (i === currentIndex) {
+nav.classList.add('active');
+} else {
+nav.classList.remove('active');
+}
+});
+if(window.PhoneUI && window.PhoneUI.closeChatMenu) {
+window.PhoneUI.closeChatMenu();
+window.PhoneUI.closeStickerPanel();
+}
+});
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            if (savedTheme === 'dark') {
-                document.documentElement.setAttribute('data-theme', 'dark');
-                const themeIcon = document.getElementById('theme-icon');
-                if (themeIcon) {
-                    themeIcon.classList.remove('ph-moon');
-                    themeIcon.classList.add('ph-sun');
-                }
-            }
+document.addEventListener('DOMContentLoaded', () => {
+const savedTheme = localStorage.getItem('theme') || 'light';
+if (savedTheme === 'dark') {
+document.documentElement.setAttribute('data-theme', 'dark');
+const themeIcon = document.getElementById('theme-icon');
+if (themeIcon) {
+themeIcon.classList.remove('ph-moon');
+themeIcon.classList.add('ph-sun');
+}
+}
 
-            setTimeout(() => {
-                if(window.PhoneAPI) {
-                    window.PhoneAPI.refreshPresetDropdowns();
-                    window.PhoneAPI.refreshPromptDropdowns();
-                    window.PhoneAPI.refreshUIDropdowns();
-                    window.PhoneAPI.refreshImgDropdowns();
-                    window.PhoneAPI.loadSettings();
-                    if(window.PhoneEngine) window.PhoneEngine.cleanStuckTyping();
-                }
-                if(window.PhoneUI) window.PhoneUI.renderAppContent('wechat');
-            }, 500);
-        });
+setTimeout(() => {
+if(window.PhoneAPI) {
+window.PhoneAPI.refreshPresetDropdowns();
+window.PhoneAPI.refreshPromptDropdowns();
+window.PhoneAPI.refreshUIDropdowns();
+window.PhoneAPI.refreshImgDropdowns();
+window.PhoneAPI.loadSettings();
+if(window.PhoneEngine) window.PhoneEngine.cleanStuckTyping();
+}
+if(window.PhoneUI) window.PhoneUI.renderAppContent('wechat');
+}, 500);
+});
 
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js')
-                .then(() => console.log('Service Worker 注册成功！'))
-                .catch(err => console.error('Service Worker 注册失败:', err));
-        }
+if ('serviceWorker' in navigator) {
+navigator.serviceWorker.register('./sw.js')
+.then(() => console.log('Service Worker 注册成功！'))
+.catch(err => console.error('Service Worker 注册失败:', err));
+}
 
-        document.addEventListener('DOMContentLoaded', () => {
-            let startX = 0;
-            let startY = 0;
+document.addEventListener('DOMContentLoaded', () => {
+let startX = 0;
+let startY = 0;
 
-            document.body.addEventListener('touchstart', (e) => {
-                if(document.querySelector('.diary-inside-view.opened')) {
-                    startX = e.touches[0].clientX;
-                    startY = e.touches[0].clientY;
-                }
-            }, {passive: true});
+document.body.addEventListener('touchstart', (e) => {
+if(document.querySelector('.diary-inside-view.opened')) {
+startX = e.touches[0].clientX;
+startY = e.touches[0].clientY;
+}
+}, {passive: true});
 
-            document.body.addEventListener('touchend', (e) => {
-                if(!document.querySelector('.diary-inside-view.opened')) return;
+document.body.addEventListener('touchend', (e) => {
+if(!document.querySelector('.diary-inside-view.opened')) return;
 
-                let endX = e.changedTouches[0].clientX;
-                let endY = e.changedTouches[0].clientY;
+let endX = e.changedTouches[0].clientX;
+let endY = e.changedTouches[0].clientY;
 
-                let diffX = startX - endX;
-                let diffY = startY - endY;
+let diffX = startX - endX;
+let diffY = startY - endY;
 
-                if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
-                    let btns = document.querySelectorAll('.page-btn');
-                    if(btns.length >= 2) {
-                        if (diffX > 0) {
-                            btns[1].click();
-                        } else {
-                            btns[0].click();
-                        }
-                    }
-                }
-            }, {passive: true});
-        });
-    </script>
-    <script type="module" src="js/main.js?t=40000"></script>
+if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+let btns = document.querySelectorAll('.page-btn');
+if(btns.length >= 2) {
+if (diffX > 0) {
+btns[1].click();
+} else {
+btns[0].click();
+}
+}
+}
+}, {passive: true});
+});
+</script>
+<script type="module" src="js/main.js?t=40000"></script>
 </body>
 </html>

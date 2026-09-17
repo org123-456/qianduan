@@ -663,12 +663,14 @@ input:checked + .slider:before { transform: translateX(16px); }
 <button class="action-btn cancel" onclick="window.PhoneEngine.closeMsgMenu()">取消</button>
 </div>
 
-<!-- 🌟 修复：给心声弹窗加上明明白白的关闭按钮 -->
-<div id="thought-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeThought()"></div>
+<!-- 🌟 核心修复：扩大关闭按钮点击区域，并加上 ontouchend 移动端双保险 -->
+<div id="thought-bg" class="action-sheet-bg" style="cursor: pointer;" onclick="window.PhoneUI.closeThought()" ontouchend="window.PhoneUI.closeThought()"></div>
 <div id="thought-modal" class="thought-modal">
 <div class="thought-header" style="justify-content: space-between;">
 <span style="display:flex; align-items:center; gap:8px;"><i class="ph-fill ph-cloud"></i> TA 的心声</span>
-<i class="ph ph-x" style="cursor:pointer; color:var(--text-sub); font-size:20px;" onclick="window.PhoneUI.closeThought()"></i>
+<div style="cursor:pointer; padding:15px; margin:-15px; display:flex;" onclick="window.PhoneUI.closeThought()" ontouchend="window.PhoneUI.closeThought(); event.preventDefault();">
+<i class="ph ph-x" style="color:var(--text-sub); font-size:22px;"></i>
+</div>
 </div>
 <div class="thought-content" id="thought-content"></div>
 </div>

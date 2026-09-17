@@ -307,6 +307,49 @@ export const PhoneUI = {
         if (btn) btn.style.transform = 'rotate(0deg)';
     },
 
+    // ================= 🌟 补齐失踪的存档室功能 =================
+    openArchiveModal() {
+        this.renderArchiveList();
+        const bg = document.getElementById('archive-modal-bg');
+        const modal = document.getElementById('archive-modal');
+        if (bg) bg.classList.add('show');
+        if (modal) modal.classList.add('show');
+    },
+
+    closeArchiveModal() {
+        const bg = document.getElementById('archive-modal-bg');
+        const modal = document.getElementById('archive-modal');
+        if (bg) bg.classList.remove('show');
+        if (modal) modal.classList.remove('show');
+    },
+
+    renderArchiveList() {
+        const listEl = document.getElementById('archive-list');
+        if (!listEl) return;
+        const archives = window.PhoneAPI?.getArchives?.() || [];
+        if (archives.length === 0) {
+            listEl.innerHTML = '<div style="text-align:center;color:var(--text-sub);padding:20px 0;">暂无存档</div>';
+            return;
+        }
+        let html = '';
+        [...archives].reverse().forEach(arc => {
+            html += `
+                <div class="archive-item">
+                    <div class="archive-info">
+                        <div class="archive-name">${this.escapeHtml(arc.name)}</div>
+                        <div class="archive-meta">${this.escapeHtml(arc.date)} · ${arc.count} 条记录</div>
+                    </div>
+                    <div class="archive-actions">
+                        <button class="archive-btn load" onclick="window.PhoneAPI?.loadArchive?.('${this.escapeHtml(arc.id)}')">读取</button>
+                        <button class="archive-btn del" onclick="window.PhoneAPI?.deleteArchive?.('${this.escapeHtml(arc.id)}')">删除</button>
+                    </div>
+                </div>
+            `;
+        });
+        listEl.innerHTML = html;
+    },
+    // =========================================================
+
     showCustomPrompt(title, defaultValue = '') {
         return new Promise(resolve => {
             const bg = document.getElementById('custom-prompt-bg');
@@ -1015,7 +1058,7 @@ export const PhoneUI = {
         contentArea.innerHTML = html;
     },
 
-    // 🌟 核心防闪烁定位 + 原版 HTML 结构恢复
+    // ================= 🌟 日记系统核心（防闪烁 + 自动定位） =================
     unlockDiary() {
         const cover = document.getElementById('diary-book-cover');
         const coverView = document.getElementById('diary-cover-view');
@@ -1026,7 +1069,7 @@ export const PhoneUI = {
             insideView.classList.add('opened');
         }
 
-        // 自动定位到最新日记页
+        // 核心优化：打开日记本时，自动翻到【最新有日记的那一页】
         const diaries = window.PhoneAPI?.getDiaries?.() || {};
         const dates = Object.keys(diaries).sort();
         const startDateStr = localStorage.getItem('diary_start_date') || '2026-09-15';
@@ -1061,44 +1104,31 @@ export const PhoneUI = {
     renderDiaryPage() {
         const contentAreaEl = document.getElementById('diary-content-area');
         if (!contentAreaEl) return;
-
         const currentIndex = window.Config?.diaryPageIndex ?? -1;
 
         if (currentIndex === -1) {
-            const quote = localStorage.getItem('diary_quote')
-                || '“时间会磨平一切痕迹，\\n除了我为你写下的字。”';
-
-            const formattedQuote = quote
-                .replace(/\\n/g, '<br>')
-                .replace(/\n/g, '<br>');
-
+            const quote = localStorage.getItem('diary_quote') || '“时间会磨平一切痕迹，\\n除了我为你写下的字。”';
+            const formattedQuote = quote.replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
             contentAreaEl.innerHTML = `
-                <div class="notebook-scroll-area"
-                     style="display:flex;justify-content:center;align-items:center;height:100%;">
-                    <div class="notebook-empty">
-                        <i class="ph-fill ph-feather"
-                           style="font-size:48px;color:rgba(0,0,0,0.3);margin-bottom:30px;">
-                        </i>
-                        <div style="
-                            font-family:'Long Cang','Kaiti','STKaiti',cursive;
-                            font-size:32px;
-                            color:rgba(0,0,0,0.6);
-                            text-shadow:1px 1px 2px rgba(255,255,255,0.5);
-                            line-height:1.8;
-                        ">
-                            ${formattedQuote}
-                        </div>
+                <div class="notebook-scroll-area" style="display:flex;justify-content:center;align-items:center;height:100%;min-height:300px;">
+                    <div class="notebook-empty" style="text-align:center;">
+                        <i class="ph-fill ph-feather" style="font-size:48px;color:rgba(0,0,0,0.3);margin-bottom:30px;display:inline-block;"></i>
+                        <div style="font-family:'Long Cang','Kaiti','STKaiti',cursive;font-size:32px;color:rgba(0,0,0,0.6);text-shadow:1px 1px 2px rgba(255,255,255,0.5);line-height:1.8;padding:0 20px;">${formattedQuote}</div>
                     </div>
+                </div>
+                <div class="page-turner">
+                    <div class="page-btn" style="opacity:0.3;pointer-events:none;"><i class="ph ph-caret-left"></i></div>
+                    <div class="page-btn" onclick="window.PhoneUI.turnDiaryPage(1)"><i class="ph ph-caret-right"></i></div>
                 </div>
             `;
             return;
         }
 
-        const startDateStr = localStorage.getItem('diary_start_date');
+        const startDateStr = localStorage.getItem('diary_start_date') || '2026-09-15';
         let startDate;
         if (startDateStr) {
             const parts = startDateStr.split('-');
-            startDate = new Date(parts[0], parts[1] - 1, parts[2]);
+            startDate = new Date(parts[0], parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
         } else {
             startDate = new Date();
         }
@@ -1110,112 +1140,52 @@ export const PhoneUI = {
         const m = String(targetDate.getMonth() + 1).padStart(2, '0');
         const d = String(targetDate.getDate()).padStart(2, '0');
         const dateStr = `${y}-${m}-${d}`;
-
         const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
         const weekStr = '星期' + weekDays[targetDate.getDay()];
         const displayDate = `${y}年${m}月${d}日`;
-
         const diaries = window.PhoneAPI?.getDiaries?.() || {};
         let content = diaries[dateStr];
 
         let html = `
-            <div class="notebook-scroll-area">
-                <div class="notebook-header">
+            <div class="notebook-scroll-area" style="overflow-y:auto;max-height:calc(100vh - 220px);padding:10px 5px 60px 5px;">
+                <div class="notebook-header" style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(0,0,0,0.1);padding-bottom:10px;margin-bottom:15px;">
                     <div class="notebook-date-wrap">
-                        <span class="notebook-date">${displayDate}</span>
-                        <span class="notebook-week">${weekStr}</span>
+                        <span class="notebook-date" style="font-weight:bold;font-size:18px;">${displayDate}</span>
+                        <span class="notebook-week" style="margin-left:8px;font-size:13px;color:var(--text-sub);">${weekStr}</span>
                     </div>
-
                     <div style="display:flex;align-items:center;gap:12px;">
-                        ${
-                            content
-                                ? `
-                                    <i class="ph ph-arrows-clockwise"
-                                       onclick="
-                                           if (confirm('确定要撕掉这页日记重新写吗？'))
-                                               (window.PhoneAPI?.generateDiary || window.PhoneEngine?.generateDiary)?.('${dateStr}')
-                                       "
-                                       style="
-                                           cursor:pointer;
-                                           color:var(--text-sub);
-                                           font-size:20px;
-                                       ">
-                                    </i>
-                                  `
-                                : ''
-                        }
+                        ${content ? `<i class="ph ph-arrows-clockwise" onclick="if(confirm('确定要让大侦探重写这页日记吗？')){ (window.PhoneAPI?.generateDiary || window.PhoneEngine?.generateDiary)?.('${dateStr}'); }" style="font-size:20px;color:var(--text-sub);cursor:pointer;transition:0.2s;"></i>` : ''}
                         <div class="notebook-mood">☁️</div>
                     </div>
                 </div>
         `;
 
         if (content) {
-            // 🌟 核心修复：只过滤思维链，绝不破坏你原版的 HTML 结构和 CSS 样式！
             content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<思维链>[\s\S]*?<\/思维链>/gi, '').trim();
-            const parsedContent = window.marked
-                ? window.marked.parse(content)
-                : content;
-
-            html += `
-                <div class="notebook-content">
-                    ${parsedContent}
-                </div>
-            </div>
-            `;
+            const parsedContent = window.marked ? window.marked.parse(content) : content.replace(/\n/g, '<br>');
+            html += `<div class="notebook-content" style="font-family:'Long Cang','Kaiti','STKaiti',cursive;font-size:22px;line-height:1.9;color:#2c2c2c;white-space:pre-wrap;word-break:break-word;">${parsedContent}</div></div>`;
         } else {
             html += `
-                <div class="notebook-empty" style="height:60vh;">
-                    <p style="margin-bottom:20px;">
-                        这一页还是空白的...
-                    </p>
-                    <button
-                        class="btn-refresh"
-                        onclick="(window.PhoneAPI?.generateDiary || window.PhoneEngine?.generateDiary)?.('${dateStr}')"
-                        style="
-                            width:auto;
-                            padding:10px 20px;
-                            background:rgba(0,0,0,0.6);
-                            border-radius:8px;
-                            font-size:13px;
-                            color:#fff;
-                            border:none;
-                        "
-                    >
-                        生成这页日记
-                    </button>
-                </div>
-            </div>
+                <div class="notebook-empty" style="height:60vh;text-align:center;padding:60px 0;">
+                    <p style="margin-bottom:20px;color:var(--text-sub);font-size:14px;">这一页还是空白的...</p>
+                    <button class="btn-refresh" onclick="(window.PhoneAPI?.generateDiary || window.PhoneEngine?.generateDiary)?.('${dateStr}')" style="width:auto;padding:10px 20px;background:rgba(0,0,0,0.6);border-radius:8px;font-family:sans-serif;font-size:14px;color:#fff;border:none;cursor:pointer;"><i class="ph-fill ph-magic-wand"></i> 偷偷写日记</button>
+                </div></div>
             `;
         }
 
         html += `
-            <div class="page-turner">
-                <div
-                    class="page-btn"
-                    onclick="window.PhoneUI.turnDiaryPage(-1)"
-                >
-                    <i class="ph ph-caret-left"></i>
-                </div>
-                <div
-                    class="page-btn"
-                    onclick="window.PhoneUI.turnDiaryPage(1)"
-                >
-                    <i class="ph ph-caret-right"></i>
-                </div>
+            <div class="page-turner" style="position:absolute;bottom:15px;left:0;right:0;display:flex;justify-content:space-between;padding:0 25px;pointer-events:none;">
+                <div class="page-btn" onclick="window.PhoneUI.turnDiaryPage(-1)" style="pointer-events:auto;cursor:pointer;background:rgba(255,255,255,0.8);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.1);"><i class="ph ph-caret-left"></i></div>
+                <div class="page-btn" onclick="window.PhoneUI.turnDiaryPage(1)" style="pointer-events:auto;cursor:pointer;background:rgba(255,255,255,0.8);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.1);"><i class="ph ph-caret-right"></i></div>
             </div>
         `;
-
         contentAreaEl.innerHTML = html;
     },
 
     turnDiaryPage(direction) {
         let newIndex = (window.Config?.diaryPageIndex ?? -1) + direction;
-        if (newIndex < -1) {
-            newIndex = -1;
-        }
-        if (window.Config) {
-            window.Config.diaryPageIndex = newIndex;
-        }
+        if (newIndex < -1) newIndex = -1;
+        if (window.Config) window.Config.diaryPageIndex = newIndex;
         this.renderDiaryPage();
     },
 
@@ -1362,6 +1332,7 @@ export const PhoneUI = {
     }
 };
 
+// 🌟 终极保险：强行挂载到 window，保证任何地方通过 window.PhoneUI 调用都不会报错！
 if (typeof window !== 'undefined') {
     window.PhoneUI = PhoneUI;
 }

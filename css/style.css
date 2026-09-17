@@ -1,294 +1,599 @@
+/* =========================
+   💙 Love App Theme
+   Part 1
+   ========================= */
+
 @import url('https://fonts.googleapis.com/css2?family=Long+Cang&display=swap');
 
-:root { color-scheme: light dark; --primary-color: #6b8bbd; --secondary-color: #4a70a8; --bg-gradient-start: #dbe9f6; --bg-gradient-end: #f0f5fa; --card-bg: rgba(255, 255, 255, 0.85); --text-main: #333333; --text-sub: #999999; --danger-color: #ff4d4f; --window-bg: #f4f5f7; --border-color: #eeeeee; --chat-left-bg: #ffffff; --chat-right-bg: #e8f0fa; --input-bg: rgba(255, 255, 255, 0.95); --icon-bg: #ffffff; --story-bg: #fdfbf7; --bg-image-global: none; --bg-image-chat: none; --bg-image-diary-cover: url('https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=1000&auto=format&fit=crop'); --bg-image-diary-page: url('https://www.transparenttextures.com/patterns/cream-paper.png'); }
 
-[data-theme="dark"] { --primary-color: #8aa8d4; --secondary-color: #a0c1eb; --bg-gradient-start: #161920; --bg-gradient-end: #0f1115; --card-bg: rgba(30, 35, 45, 0.85); --text-main: #d1d5db; --text-sub: #8b949e; --danger-color: #e06c6c; --window-bg: #161920; --border-color: #2c323f; --chat-left-bg: #232733; --chat-right-bg: #1e314b; --input-bg: rgba(22, 25, 32, 0.95); --icon-bg: #232733; --story-bg: #12141a; }
+:root {
 
-{ box-sizing: border-box; margin: 0; padding: 0; transition: background-color 0.3s, border-color 0.3s, color 0.3s; }
+    /* 主色 */
+    --primary-color: #6fa8dc;
+    --secondary-color: #4f81bd;
 
-html, body { width: 100%; height: 100%; overflow: hidden; position: fixed; top: 0; left: 0; overscroll-behavior: none; }
+    /* 背景 */
+    --bg-gradient-start: #dff1ff;
+    --bg-gradient-end: #f7fbff;
 
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-gradient-start); background-image: var(--bg-image-global, linear-gradient(180deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%)); background-size: cover; background-position: center; display: flex; justify-content: center; align-items: center; overflow-x: hidden; }
+    /* 卡片 */
+    --card-bg: rgba(255,255,255,0.72);
+    --glass-bg: rgba(255,255,255,0.55);
 
-[data-theme="dark"] body::before { content: ""; position: absolute; inset: 0; background: rgba(0, 0, 0, 0.55); z-index: -1; pointer-events: none; }
+    /* 文字 */
+    --text-main:#27364b;
+    --text-sub:#8fa5bd;
 
-#app-container { width: 100%; height: 100%; max-width: 400px; position: relative; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
 
-/* ========================= 顶部栏 ========================= */
+    /* 状态 */
+    --danger-color:#ff7b9c;
 
-.top-bar { display: flex; justify-content: space-between; align-items: center; padding: 45px 20px 15px; color: var(--primary-color); font-weight: bold; z-index: 50; background: var(--input-bg); backdrop-filter: blur(15px); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1); width: 100%; min-width: 0; }
 
-.top-bar .title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* 系统 */
+    --window-bg:#f4f9ff;
+    --border-color:#dcecff;
 
-.top-bar .menu-btn { width: 30px; height: 30px; background: var(--icon-bg); border-radius: 8px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); flex-shrink: 0; }
 
-.top-bar .heart { color: var(--danger-color); font-size: 14px; display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    /* 聊天气泡 */
+    --chat-left-bg:#ffffff;
+    --chat-right-bg:#dceeff;
 
-#app-container.hide-top-bar .top-bar { transform: translateY(-100%); position: absolute; width: 100%; }
 
-/* ========================= 页面容器 ========================= */
+    /* 输入 */
+    --input-bg:rgba(255,255,255,0.82);
 
-.page-container { flex: 1; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; min-width: 0; }
+    /* 图标 */
+    --icon-bg:#ffffff;
 
-.page-container::-webkit-scrollbar { display: none; }
 
-.page { flex: 0 0 100%; width: 100%; max-width: 100%; min-width: 0; height: 100%; scroll-snap-align: start; overflow-y: auto; overflow-x: hidden; padding: 10px 15px 120px; display: flex; flex-direction: column; position: relative; }
+    /* 日记 */
+    --story-bg:#f8fcff;
 
-#page-chat { background-image: var(--bg-image-chat); background-size: cover; background-position: center; background-attachment: fixed; }
 
-/* ========================= 通用卡片 ========================= */
+    /* 背景 */
+    --bg-image-global:none;
+}
 
-.card { background: var(--card-bg); backdrop-filter: blur(10px); border-radius: 20px; padding: 20px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); min-width: 0; max-width: 100%; overflow: hidden; }
 
-.app-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px 15px; padding: 10px 5px; }
 
-.app-icon { background: transparent; box-shadow: none; padding: 0; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: 0.2s; min-width: 0; }
+[data-theme="dark"] {
 
-.app-icon:active { transform: scale(0.9); }
 
-.app-icon .icon { width: 60px; height: 60px; background: var(--icon-bg); border-radius: 18px; display: flex; justify-content: center; align-items: center; font-size: 32px; margin-bottom: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); overflow: hidden; flex-shrink: 0; }
+    --primary-color:#8fc5ff;
+    --secondary-color:#b8dcff;
 
-.app-icon .name { font-size: 12px; font-weight: 500; color: var(--text-main); text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 
-/* ========================= 底部导航 ========================= */
+    --bg-gradient-start:#101827;
+    --bg-gradient-end:#0b1220;
 
-.bottom-nav { position: absolute; bottom: 0; left: 0; right: 0; height: 75px; background: var(--input-bg); backdrop-filter: blur(10px); display: flex; justify-content: space-around; align-items: center; border-radius: 30px 30px 0 0; box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.05); padding-bottom: env(safe-area-inset-bottom); z-index: 20; }
 
-.nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-sub); font-size: 10px; cursor: pointer; flex: 1; min-width: 0; transition: 0.3s; }
+    --card-bg:rgba(25,35,55,0.8);
+    --glass-bg:rgba(25,35,55,0.65);
 
-.nav-item.active { color: var(--secondary-color); font-weight: bold; transform: scale(1.1); }
 
-.nav-item .icon { font-size: 26px; margin-bottom: 2px; }
+    --text-main:#e7f1ff;
+    --text-sub:#94a8c2;
 
-.center-btn { position: relative; }
 
-.center-circle { position: absolute; top: -35px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; background: var(--primary-color); border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); border: 5px solid var(--bg-gradient-end); }
+    --danger-color:#ff8fa8;
 
-.center-circle .icon { font-size: 28px; color: #fff; }
 
-/* ========================= 聊天 ========================= */
+    --window-bg:#101827;
+    --border-color:#273750;
 
-.chat-container { display: flex; flex-direction: column; gap: 20px; padding-top: 10px; min-width: 0; }
 
-.chat-msg { display: flex; align-items: flex-start; gap: 12px; min-width: 0; max-width: 100%; }
+    --chat-left-bg:#18263d;
+    --chat-right-bg:#21456d;
 
-.chat-msg.right { flex-direction: row-reverse; }
 
-.chat-avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; background: var(--icon-bg); flex-shrink: 0; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+    --input-bg:rgba(20,30,45,0.85);
 
-.chat-content-box { display: flex; flex-direction: column; max-width: 72%; min-width: 0; }
 
-.chat-msg.right .chat-content-box { align-items: flex-end; }
+    --icon-bg:#18263d;
 
-.chat-bubble { min-height: 24px; max-width: 100%; padding: 12px 16px; border-radius: 18px; font-size: 15px; line-height: 1.5; overflow-wrap: anywhere; word-break: break-word; white-space: normal; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); cursor: pointer; transition: 0.2s; }
-
-.chat-bubble:active { opacity: 0.7; }
-
-.chat-msg.left .chat-bubble { background: var(--chat-left-bg); color: var(--text-main); border-top-left-radius: 4px; }
-
-.chat-msg.right .chat-bubble { background: var(--chat-right-bg); color: var(--text-main); border-top-right-radius: 4px; }
-
-.chat-avatar-placeholder { width: 42px; flex-shrink: 0; }
-
-.chat-msg.consecutive { margin-top: -14px; }
-
-.chat-msg.consecutive .chat-bubble { border-radius: 18px; }
-
-.markdown-body { max-width: 100%; overflow-wrap: anywhere; word-break: break-word; }
-
-.markdown-body p { margin: 0; padding: 0; }
-
-.markdown-body em { color: var(--primary-color); font-style: italic; background: rgba(107, 139, 189, 0.1); padding: 0 4px; border-radius: 4px; }
-
-.chat-msg.right .markdown-body em { color: var(--secondary-color); background: rgba(255,255,255,0.1); }
-
-.markdown-body img { max-width: 100%; height: auto; border-radius: 8px; display: block; margin-top: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-
-.chat-time { font-size: 11px; color: var(--text-sub); margin-top: 6px; padding: 0 4px; }
-
-.chat-msg.consecutive .chat-time { display: none; }
-
-/* ========================= 聊天输入 ========================= */
-
-.chat-input-bar { position: absolute; bottom: 90px; left: 10px; right: 10px; height: 50px; background: var(--input-bg); backdrop-filter: blur(10px); border-radius: 25px; display: flex; align-items: center; padding: 0 15px; gap: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); z-index: 10; margin: 0; min-width: 0; }
-
-.chat-input-bar input { flex: 1; min-width: 0; width: 0; border: none; background: transparent; outline: none; font-size: 15px; color: var(--text-main); }
-
-.chat-input-bar .icon-btn { color: var(--primary-color); font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; flex-shrink: 0; }
-
-.chat-input-bar .send-btn { color: #fff; background: var(--primary-color); width: 30px; height: 30px; border-radius: 50%; font-size: 16px; margin-left: 5px; }
-
-/* ========================= 加号菜单 ========================= */
-
-.chat-plus-menu { position: absolute; bottom: 150px; left: 10px; right: 10px; background: var(--input-bg); backdrop-filter: blur(10px); border-radius: 20px; padding: 20px 15px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); transform: translateY(20px) scale(0.95); opacity: 0; pointer-events: none; transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1); z-index: 9; overflow-x: hidden; }
-
-.chat-plus-menu.show { transform: translateY(0) scale(1); opacity: 1; pointer-events: auto; }
-
-.chat-plus-menu .app-icon .icon { width: 50px; height: 50px; font-size: 24px; border-radius: 14px; }
-
-/* ========================= Toast ========================= */
-
-#toast { position: absolute; top: -150px; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.85); color: white; padding: 12px 20px; border-radius: 20px; font-size: 13px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: top 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55); z-index: 9999; display: flex; align-items: center; gap: 8px; width: 90%; max-width: 350px; max-height: 80px; overflow: hidden; word-break: break-all; }
-
-#toast.show { top: 50px; }
-
-/* ========================= 日记 / Notebook ========================= */
-
-.diary-cover-view { position: absolute; inset: 0; display: flex; justify-content: center; align-items: center; background: #000; z-index: 20; perspective: 1200px; transition: opacity 0.5s 0.8s, visibility 0.5s 0.8s; overflow: hidden; }
-
-.diary-cover-view.opened { opacity: 0; visibility: hidden; pointer-events: none; }
-
-.diary-book-cover { width: 100%; height: 100%; max-width: 100%; background-image: var(--bg-image-diary-cover); background-size: cover; background-position: center; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; text-shadow: 0 2px 10px rgba(0,0,0,0.5); transform-origin: left center; transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; position: relative; overflow: hidden; }
-
-.diary-book-cover.opened { transform: rotateY(-110deg); opacity: 0; transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s 0.5s; }
-
-.diary-title { font-size: 32px; font-weight: bold; letter-spacing: 2px; margin-bottom: 10px; font-family: 'Georgia', serif; max-width: 90%; text-align: center; }
-
-.diary-hint { font-size: 12px; opacity: 0.8; letter-spacing: 1px; animation: pulseGlow 2s infinite alternate; }
-
-.diary-back-btn { position: absolute; top: 40px; left: 20px; width: 40px; height: 40px; background: rgba(0,0,0,0.3); backdrop-filter: blur(5px); border-radius: 50%; display: flex; justify-content: center; align-items: center; color: #fff; font-size: 24px; cursor: pointer; z-index: 30; }
-
-.diary-inside-view { position: absolute; inset: 0; opacity: 0; transition: opacity 0.8s 0.5s; pointer-events: none; background-image: var(--bg-image-diary-page); background-size: cover; background-position: center; display: flex; flex-direction: column; overflow: hidden; }
-
-.diary-inside-view.opened { opacity: 1; pointer-events: auto; }
-
-/* ⭐ 核心修复：日记页严格限制在屏幕内 */
-
-.notebook-page { flex: 1; width: 100%; max-width: 100%; min-width: 0; min-height: 0; display: flex; flex-direction: column; padding: 55px 22px 95px; position: relative; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
-
-.notebook-page::-webkit-scrollbar { display: none; }
-
-.notebook-header { width: 100%; max-width: 100%; min-width: 0; display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; border-bottom: 2px solid rgba(0,0,0,0.4); padding-bottom: 10px; margin-bottom: 18px; color: #333; overflow: hidden; }
-
-.notebook-date-wrap { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 5px; overflow: hidden; }
-
-.notebook-date { font-size: 22px; font-weight: bold; font-family: 'Georgia', serif; letter-spacing: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-.notebook-week { font-size: 13px; font-family: 'Georgia', serif; opacity: 0.8; white-space: nowrap; }
-
-.notebook-mood { font-size: 22px; flex-shrink: 0; }
-
-/* ⭐ 核心：正文绝不允许撑出横向 */
-
-.notebook-content { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box;
-
-font-family: 'Long Cang', 'Kaiti', 'STKaiti', cursive; /* 原来的 24px 在部分竖屏设备上太容易撑 */ font-size: clamp(19px, 5.8vw, 24px); line-height: 2.15rem; letter-spacing: 0.5px; color: #2c3e50; text-align: justify; background: repeating-linear-gradient( transparent, transparent calc(2.15rem - 1px), rgba(0,0,0,0.15) calc(2.15rem - 1px), rgba(0,0,0,0.15) 2.15rem ); padding-top: 5px; min-height: 100%; /* 防止任何文字把页面撑宽 */ overflow-wrap: anywhere; word-break: break-word; white-space: normal; overflow-x: hidden; 
+    --story-bg:#101827;
 
 }
 
-/* 如果正文里有链接、图片、代码等，也不能撑破 */
 
-.notebook-content * { max-width: 100%; box-sizing: border-box; overflow-wrap: anywhere; word-break: break-word; }
 
-.notebook-content img { width: auto; max-width: 100%; height: auto; }
+/* =========================
+   全局
+========================= */
 
-.notebook-content a { overflow-wrap: anywhere; word-break: break-all; }
 
-.notebook-empty { width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: 'Long Cang', 'Kaiti', 'STKaiti', cursive; font-size: 26px; color: rgba(0,0,0,0.4); text-align: center; overflow: hidden; padding: 20px; }
+* {
 
-.page-turner { position: absolute; bottom: 25px; left: 22px; right: 22px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; z-index: 5; }
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
 
-.page-btn { pointer-events: auto; background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.1); width: 48px; height: 48px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 22px; color: #333; cursor: pointer; transition: 0.2s; backdrop-filter: blur(5px); }
-
-.page-btn:active { transform: scale(0.9); background: rgba(0,0,0,0.1); }
-
-/* ========================= 记忆星海 ========================= */
-
-#page-memory { background: transparent; }
-
-.starry-sea-bg { position: absolute; inset: 0; background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%); z-index: -1; overflow: hidden; opacity: 0; transition: opacity 1.5s ease-in-out; }
-
-.starry-sea-bg.show { opacity: 1; }
-
-.star { position: absolute; background: #fff; border-radius: 50%; animation: twinkle infinite alternate; }
-
-@keyframes twinkle { 0% { opacity: 0.2; transform: scale(0.8); }
-
-100% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 8px #fff; } 
+    transition:
+    background-color .3s,
+    border-color .3s,
+    color .3s;
 
 }
 
-.floating-bubbles { position: relative; height: 100%; width: 100%; display: flex; justify-content: center; align-items: center; opacity: 0; transform: translateY(20px); transition: all 1s cubic-bezier(0.25, 1, 0.5, 1); overflow: hidden; }
 
-.floating-bubbles.show { opacity: 1; transform: translateY(0); }
 
-.glass-bubble { position: absolute; width: 110px; height: 110px; border-radius: 50%; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(255, 255, 255, 0.1); display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; cursor: pointer; transition: 0.3s; animation: floatBubble 6s ease-in-out infinite; }
+html,
+body {
 
-.glass-bubble:active { transform: scale(0.9) !important; }
 
-.glass-bubble .icon { font-size: 36px; margin-bottom: 6px; text-shadow: 0 0 15px rgba(255,255,255,0.5); }
+    width:100%;
+    height:100%;
 
-.glass-bubble .text { font-size: 13px; font-weight: bold; letter-spacing: 1px; }
+    overflow:hidden;
 
-.bubble-diary { top: 20%; left: 15%; animation-delay: 0s; background: rgba(107, 139, 189, 0.15); border-color: rgba(107, 139, 189, 0.4); }
+    position:fixed;
 
-.bubble-vault { top: 45%; right: 15%; animation-delay: -2s; background: rgba(167, 139, 250, 0.15); border-color: rgba(167, 139, 250, 0.4); }
-
-.bubble-gallery { bottom: 20%; left: 25%; animation-delay: -4s; background: rgba(244, 162, 97, 0.15); border-color: rgba(244, 162, 97, 0.4); }
-
-@keyframes floatBubble { 0%, 100% { transform: translateY(0); }
-
-50% { transform: translateY(-15px); } 
+    inset:0;
 
 }
 
-/* ========================= 世界书 / 设置 ========================= */
 
-.set-section { display: none; animation: fadeIn 0.3s ease-out; }
 
-.set-section.active { display: block; }
+body {
 
-.settings-tabs { display: flex; overflow-x: auto; white-space: nowrap; gap: 10px; padding: 5px 0 15px; border-bottom: 1px solid var(--border-color); margin-bottom: 15px; }
 
-.settings-tabs::-webkit-scrollbar { display: none; }
+    font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
 
-.settings-tab { padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: bold; color: var(--text-sub); background: var(--icon-bg); cursor: pointer; transition: 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.05); flex-shrink: 0; }
 
-.settings-tab.active { background: var(--primary-color); color: #fff; }
+    background:
 
-/* ========================= 其他原有组件 ========================= */
+    linear-gradient(
+        180deg,
+        var(--bg-gradient-start),
+        var(--bg-gradient-end)
+    );
 
-.vine-container { padding: 10px 15px 40px 45px; position: relative; min-width: 0; }
 
-.vine-item { position: relative; margin-bottom: 30px; z-index: 1; animation: fadeIn 0.5s ease-out backwards; min-width: 0; }
+    display:flex;
 
-.vine-content { background: var(--card-bg); backdrop-filter: blur(15px); padding: 20px 20px 10px; border-radius: 4px 20px 20px 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.05); border: 1px solid rgba(163, 177, 138, 0.3); position: relative; min-width: 0; max-width: 100%; overflow: hidden; }
+    justify-content:center;
 
-.vine-text { font-family: 'Long Cang', 'Kaiti', 'STKaiti', cursive; font-size: 20px; color: var(--text-main); line-height: 1.8; letter-spacing: 1px; overflow-wrap: anywhere; word-break: break-word; }
+    align-items:center;
 
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); }
-
-to { opacity: 1; transform: translateY(0); } 
-
-}
-
-/* ========================= 悬浮 API 球 ========================= */
-
-.api-fab { position: fixed !important; right: 15px !important; top: 50% !important; transform: translateY(-50%) !important; width: 44px !important; height: 44px !important; border-radius: 50% !important; background: rgba(255, 255, 255, 0.8) !important; backdrop-filter: blur(10px) !important; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important; border: 1px solid var(--border-color) !important; display: flex !important; justify-content: center !important; align-items: center !important; font-size: 22px !important; color: var(--primary-color) !important; cursor: pointer !important; z-index: 9999 !important; transition: 0.3s !important; }
-
-.api-fab:active { transform: translateY(-50%) scale(0.9) !important; }
-
-.api-fab.loading { background: var(--primary-color) !important; color: #fff !important; box-shadow: 0 0 20px var(--primary-color) !important; animation: pulse-fab 1.5s infinite !important; }
-
-.api-fab.loading i { animation: spin-fast 1s linear infinite !important; }
-
-.api-fab.error { background: var(--danger-color) !important; color: #fff !important; box-shadow: 0 0 20px var(--danger-color) !important; }
-
-.api-modal { position: fixed !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -40%) scale(0.9) !important; width: min(85%, 360px) !important; max-width: calc(100vw - 30px) !important; background: var(--input-bg) !important; backdrop-filter: blur(20px) !important; border-radius: 24px !important; padding: 25px !important; box-shadow: 0 10px 40px rgba(0,0,0,0.2) !important; z-index: 10001 !important; opacity: 0 !important; visibility: hidden !important; transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1) !important; box-sizing: border-box !important; overflow: hidden !important; }
-
-.api-modal.show { transform: translate(-50%, -50%) scale(1) !important; opacity: 1 !important; visibility: visible !important; }
-
-/* ========================= 小屏幕专门适配 ========================= */
-
-@media (max-width: 360px) {
-
-.page { padding-left: 12px; padding-right: 12px; } .notebook-page { padding-left: 16px; padding-right: 16px; } .notebook-content { font-size: 18px; line-height: 2rem; background: repeating-linear-gradient( transparent, transparent calc(2rem - 1px), rgba(0,0,0,0.15) calc(2rem - 1px), rgba(0,0,0,0.15) 2rem ); } .notebook-date { font-size: 19px; } .notebook-week { font-size: 12px; } .notebook-mood { font-size: 20px; } .page-turner { left: 16px; right: 16px; } 
 
 }
 
-/* 防止任何组件制造横向滚动 */
 
-img, video, iframe, canvas, svg { max-width: 100%; }
 
-input, textarea, select, button { max-width: 100%; }
+#app-container {
 
+
+    width:100%;
+    height:100%;
+
+    max-width:430px;
+
+
+    position:relative;
+
+    display:flex;
+
+    flex-direction:column;
+
+
+    overflow:hidden;
+
+
+}
+
+
+
+/* =========================
+   顶部恋爱栏
+========================= */
+
+
+.top-bar {
+
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+
+    padding:
+
+    42px 20px 16px;
+
+
+    background:
+
+    rgba(255,255,255,.55);
+
+
+    backdrop-filter:blur(20px);
+
+
+    box-shadow:
+
+    0 8px 25px rgba(90,140,200,.12);
+
+
+    color:var(--primary-color);
+
+
+    z-index:50;
+
+
+}
+
+
+
+.top-bar .title {
+
+
+    font-size:17px;
+
+    font-weight:700;
+
+
+    letter-spacing:.5px;
+
+
+    color:var(--secondary-color);
+
+
+}
+
+
+
+.top-bar .menu-btn {
+
+
+    width:34px;
+
+    height:34px;
+
+
+    border-radius:12px;
+
+
+    background:white;
+
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+
+    box-shadow:
+
+    0 5px 15px rgba(100,150,200,.15);
+
+
+}
+
+
+
+.top-bar .heart {
+
+
+    color:#ff7b9c;
+
+
+    font-size:14px;
+
+    font-weight:bold;
+
+
+    display:flex;
+
+    align-items:center;
+
+    gap:5px;
+
+
+}
+
+
+
+
+/* =========================
+   页面容器
+========================= */
+
+
+.page-container {
+
+
+    flex:1;
+
+
+    display:flex;
+
+
+    overflow-x:auto;
+
+
+    scroll-snap-type:x mandatory;
+
+
+}
+
+
+
+.page {
+
+
+    flex:
+
+    0 0 100%;
+
+
+    width:100%;
+
+
+    height:100%;
+
+
+    overflow-y:auto;
+
+
+    padding:
+
+    15px 16px 120px;
+
+
+}
+
+
+
+/* =========================
+   首页恋爱卡片
+========================= */
+
+
+.card {
+
+
+    background:
+
+    var(--card-bg);
+
+
+    backdrop-filter:
+
+    blur(18px);
+
+
+    border-radius:28px;
+
+
+    padding:22px;
+
+
+    margin-bottom:18px;
+
+
+    box-shadow:
+
+
+    0 12px 30px
+
+    rgba(90,140,200,.12);
+
+
+    border:
+
+    1px solid
+
+    rgba(255,255,255,.6);
+
+
+
+}
+
+
+
+
+/* 首页恋爱记录 */
+
+#page-home .card:first-child {
+
+
+    background:
+
+    linear-gradient(
+
+        135deg,
+
+        rgba(255,255,255,.9),
+
+        rgba(220,240,255,.8)
+
+    );
+
+
+    text-align:center;
+
+
+}
+
+
+
+#page-home h3 {
+
+
+    color:var(--primary-color);
+
+    letter-spacing:1px;
+
+
+}
+
+
+
+#page-home h1 {
+
+
+    font-size:56px!important;
+
+
+    background:
+
+    linear-gradient(
+
+        135deg,
+
+        #6fa8dc,
+
+        #4f81bd
+
+    );
+
+
+    -webkit-background-clip:text;
+
+    color:transparent;
+
+
+}
+
+
+
+/* =========================
+   App 图标
+========================= */
+
+
+.app-grid {
+
+
+    display:grid;
+
+
+    grid-template-columns:
+
+    repeat(3,1fr);
+
+
+    gap:
+
+    24px 15px;
+
+
+}
+
+
+
+.app-icon {
+
+
+    display:flex;
+
+
+    flex-direction:column;
+
+
+    align-items:center;
+
+
+}
+
+
+
+.app-icon .icon {
+
+
+    width:64px;
+
+    height:64px;
+
+
+    border-radius:22px;
+
+
+    background:white;
+
+
+    display:flex;
+
+
+    align-items:center;
+
+
+    justify-content:center;
+
+
+    font-size:32px;
+
+
+    box-shadow:
+
+
+    0 10px 25px
+
+    rgba(90,140,200,.18);
+
+
+}
+
+
+
+.app-icon .name {
+
+
+    margin-top:8px;
+
+
+    font-size:12px;
+
+
+    color:var(--text-main);
+
+
+    font-weight:600;
+
+
+}
+/* ========================= 💙 Love Chat UI Part 2 ========================= */
+ /* 聊天区域 */ .chat-container { display:flex; flex-direction:column; gap:18px; padding-top:10px; } 
+/* 消息 */ .chat-msg { display:flex; gap:12px; align-items:flex-start; } .chat-msg.right { flex-direction:row-reverse; }
+ /* 头像 */ 
+.chat-avatar { width:44px; height:44px; border-radius:50%; border: 3px solid rgba(255,255,255,.8); box-shadow: 0 6px 15px rgba(90,140,200,.18); } 
+/* 气泡容器 */ 
+.chat-content-box { max-width:72%; } 
+/* 气泡 */ .chat-bubble { padding: 12px 16px; border-radius:22px; font-size:15px; line-height:1.6; box-shadow: 0 6px 18px rgba(90,140,200,.12); }
+ /* 对方 */ .chat-msg.left .chat-bubble { background: linear-gradient( 135deg, #ffffff, #edf7ff ); color:#33495f; border-top-left-radius:6px; }
+ /* 自己 */ .chat-msg.right .chat-bubble { background: linear-gradient( 135deg, #9dccff, #6fa8dc ); color:white; border-top-right-radius:6px; } 
+/* 时间 */ .chat-time { color:#9bb2ca; font-size:11px; } 
+/* ========================= 输入栏 ========================= */ .chat-input-bar { position:absolute; bottom:90px; left:12px; right:12px; height:54px; border-radius:30px; background: rgba(255,255,255,.8); backdrop-filter: blur(20px); box-shadow: 0 10px 30px rgba(90,140,200,.2); padding: 0 16px; } .chat-input-bar input { color:#33495f; } .chat-input-bar .icon-btn { color:#6fa8dc; } 
+/* 发送按钮 */ .chat-input-bar .send-btn { background: linear-gradient( 135deg, #8bc6ff, #4f81bd ); box-shadow: 0 5px 15px rgba(80,140,210,.3); } /* ========================= 加号菜单 ========================= */ .chat-plus-menu { background: rgba(255,255,255,.85); backdrop-filter: blur(20px); border-radius:26px; box-shadow: 0 15px 40px rgba(80,130,200,.2); } .chat-plus-menu .app-icon .icon { border-radius:18px; background: linear-gradient( 135deg, #f5fbff, #dceeff ); } 
+/* ========================= 表情包面板 ========================= */ .sticker-item { background: rgba(255,255,255,.75); border-radius:18px; box-shadow: 0 5px 15px rgba(90,140,200,.12); } .sticker-add-btn { border: 2px dashed #9dccff; color:#6fa8dc; border-radius:18px; } 
+/* ========================= 💙 Diary 蓝色恋爱手账 ========================= */ .diary-cover-view { background:#081827; } .diary-book-cover { background: linear-gradient( 135deg, #5b8fc9, #b8ddff ); } .diary-title { font-family: 'Long Cang', cursive; font-size:38px; letter-spacing:4px; } .diary-hint { color:white; } 
+/* 日记内部 */ .diary-inside-view { background: linear-gradient( 180deg, #eef8ff, #ffffff ); } 
+/* 页面 */ .notebook-page { padding: 55px 22px 100px; overflow-x:hidden; }
+ /* 日期 */ .notebook-header { border-bottom: 2px solid rgba(80,130,180,.35); } .notebook-date { color:#4f81bd; } 
+/* 正文 */ .notebook-content { font-family: 'Long Cang', 'Kaiti', cursive; color:#39536d; font-size: clamp(18px,5vw,23px); line-height:2.15rem; width:100%; max-width:100%; overflow-wrap:anywhere; word-break:break-word; background: repeating-linear-gradient( transparent, transparent calc(2.15rem - 1px), rgba(100,150,200,.18) calc(2.15rem - 1px), rgba(100,150,200,.18) 2.15rem ); } 
+/* 防止日记横屏溢出 */ .notebook-content * { max-width:100%; overflow-wrap:anywhere; } .notebook-content img { max-width:100%; height:auto; } 
+/* 翻页按钮 */ .page-btn { background: rgba(111,168,220,.15); border: 1px solid rgba(111,168,220,.3); color:#4f81bd; } 
+/* ========================= 🌌 蓝色星海 Memory ========================= */ .starry-sea-bg { background: radial-gradient( ellipse at bottom, #12345a 0%, #06111f 100% ); } .glass-bubble { background: rgba(130,190,255,.12); border: 1px solid rgba(170,220,255,.35); box-shadow: 0 10px 40px rgba(0,0,0,.35), inset 0 0 20px rgba(255,255,255,.15); } .bubble-diary { background: rgba(111,168,220,.22); } .bubble-vault { background: rgba(130,150,255,.2); } .bubble-gallery { background: rgba(120,210,255,.18); } .glass-bubble .icon { color:#e8f6ff; text-shadow: 0 0 15px #8bc6ff; } 
+
+/* ========================= 💙 Love App UI Part 3 ========================= */ 
+/* ========================= 底部导航 ========================= */ .bottom-nav { height:78px; background: rgba(255,255,255,.75); backdrop-filter: blur(20px); border-radius: 30px 30px 0 0; box-shadow: 0 -10px 30px rgba(80,130,200,.15); } .nav-item { color:#9bb2ca; } .nav-item.active { color:#4f81bd; } .nav-item.active .icon { filter: drop-shadow( 0 0 8px rgba(111,168,220,.5) ); } /* 中间 Chat */ .center-circle { width:64px; height:64px; background: linear-gradient( 135deg, #8bc6ff, #4f81bd ); border: 5px solid #f7fbff; box-shadow: 0 10px 30px rgba(80,140,210,.35); } .center-circle .icon { color:white; }
+ /* ========================= 设置页面 ========================= */ .settings-tabs { padding-bottom:15px; } .settings-tab { background: rgba(255,255,255,.75); color:#7f98b5; border-radius:22px; } .settings-tab.active { background: linear-gradient( 135deg, #8bc6ff, #4f81bd ); color:white; box-shadow: 0 6px 15px rgba(80,140,210,.3); } 
+/* 设置卡片 */ .set-section .card { border-radius:24px; background: rgba(255,255,255,.72); }
+/* 输入框 */ input, textarea, select { background: rgba(255,255,255,.8); border: 1px solid #dcecff; color:#33495f; } 
+/* 按钮 */ button, .btn-refresh { border-radius:18px!important; background: linear-gradient( 135deg, #8bc6ff, #4f81bd ); color:white; box-shadow: 0 8px 20px rgba(80,140,210,.25); } 
+/* ========================= API AI 小球 ========================= */ .api-fab { background: linear-gradient( 135deg, rgba(255,255,255,.95), rgba(220,240,255,.95) ) !important; color:#4f81bd!important; border: 1px solid rgba(111,168,220,.35)!important; box-shadow: 0 10px 30px rgba(80,140,210,.25)!important; } .api-fab.loading { background: linear-gradient( 135deg, #8bc6ff, #4f81bd )!important; color:white!important; }
+ /* API 弹窗 */ .api-modal { border-radius:28px!important; background: rgba(255,255,255,.85)!important; backdrop-filter: blur(25px); border: 1px solid rgba(255,255,255,.8); } .thought-header { color:#4f81bd; }
+ /* ========================= Toast ========================= */ #toast { background: rgba(40,70,100,.9); border-radius:25px; backdrop-filter: blur(15px); } /* ========================= 深色模式加强 ========================= */ [data-theme="dark"] .top-bar { background: rgba(15,25,40,.75); } [data-theme="dark"] .card, [data-theme="dark"] .set-section .card { background: rgba(25,40,65,.75); } [data-theme="dark"] .bottom-nav { background: rgba(15,25,40,.85); } [data-theme="dark"] .center-circle { border-color:#101827; } [data-theme="dark"] input, [data-theme="dark"] textarea, [data-theme="dark"] select { background: rgba(20,35,55,.8); color:#dcecff; } 
+/* ========================= 小屏适配 ========================= */ @media(max-width:360px){ #app-container { max-width:100%; } .page { padding-left:12px; padding-right:12px; } .app-icon .icon { width:56px; height:56px; } .chat-bubble { font-size:14px; padding: 10px 14px; } .notebook-page { padding-left:16px; padding-right:16px; } }
+ /* ========================= 防横屏溢出保险 ========================= */ * { max-width:100vw; } img, video, canvas, svg { max-width:100%; height:auto; } .page, .card, .chat-container, .notebook-page, .notebook-content { min-width:0; overflow-wrap:anywhere; } 
+/* 柔和动画 */ @keyframes loveFloat { 0%{ transform:translateY(0); } 50%{ transform:translateY(-8px); } 100%{ transform:translateY(0); } } .center-circle { animation: loveFloat 4s ease-in-out infinite; } 

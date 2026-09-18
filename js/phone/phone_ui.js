@@ -540,7 +540,6 @@ contentEl.innerHTML = `
 </div>
 <div class="diary-back-btn" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div>
 </div>
-<!-- 🌟 恢复了滑动监听 -->
 <div id="diary-inside-view" class="diary-inside-view" ontouchstart="window.PhoneUI.handleSwipeStart(event)" ontouchend="window.PhoneUI.handleSwipeEnd(event)">
 <div class="diary-back-btn" onclick="window.PhoneUI.closeApp()" style="top:20px;left:15px;background:rgba(0,0,0,0.1);color:#333;z-index:50;"><i class="ph ph-caret-left"></i></div>
 <div id="diary-content-area" style="display:flex;flex-direction:column;height:100%;"></div>
@@ -1116,7 +1115,6 @@ html += '</div>';
 contentArea.innerHTML = html;
 },
 
-// 🌟 修复：强制定位到导语页
 unlockDiary() {
 const cover = document.getElementById('diary-book-cover');
 const coverView = document.getElementById('diary-cover-view');
@@ -1133,20 +1131,29 @@ window.Config.diaryPageIndex = -1;
 this.renderDiaryPage();
 },
 
-// 🌟 修复：防冒泡滑动监听
+// 🌟 修复：防误触滑动监听（上下滑动不触发翻页）
 touchStartX: 0,
+touchStartY: 0,
 handleSwipeStart(e) {
-if (e?.changedTouches?.[0]) this.touchStartX = e.changedTouches[0].screenX;
+if (e?.changedTouches?.[0]) {
+this.touchStartX = e.changedTouches[0].screenX;
+this.touchStartY = e.changedTouches[0].screenY;
+}
 },
 handleSwipeEnd(e) {
 if (!e?.changedTouches?.[0]) return;
 const touchEndX = e.changedTouches[0].screenX;
-const diff = touchEndX - this.touchStartX;
+const touchEndY = e.changedTouches[0].screenY;
+const diffX = touchEndX - this.touchStartX;
+const diffY = touchEndY - this.touchStartY;
 
-if (Math.abs(diff) > 50) {
-e.stopPropagation(); // 阻止事件冒泡，防止跳页
-if (diff > 50) this.turnDiaryPage(-1);
-else if (diff < -50) this.turnDiaryPage(1);
+// 核心修复：如果上下滑动的距离大于左右滑动，说明是在看日记内容，绝对不触发翻页！
+if (Math.abs(diffY) > Math.abs(diffX)) return;
+
+if (Math.abs(diffX) > 50) {
+e.stopPropagation();
+if (diffX > 50) this.turnDiaryPage(-1);
+else if (diffX < -50) this.turnDiaryPage(1);
 }
 },
 
@@ -1157,7 +1164,7 @@ if (window.Config) window.Config.diaryPageIndex = newIndex;
 this.renderDiaryPage();
 },
 
-// 🌟 修复：导语换行 + 内页顶部留白
+// 🌟 修复：原生文本渲染，完美贴合横线
 renderDiaryPage() {
 const contentAreaEl = document.getElementById('diary-content-area');
 if (!contentAreaEl) return;
@@ -1219,8 +1226,8 @@ ${content ? `<i class="ph ph-arrows-clockwise" onclick="if(confirm('确定要让
 
 if (content) {
 content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<思维链>[\s\S]*?<\/思维链>/gi, '').trim();
-const parsedContent = window.marked ? window.marked.parse(content) : content.replace(/\n/g, '<br>');
-html += `<div class="notebook-content" style="font-family:'Long Cang','Kaiti','STKaiti',cursive;font-size:22px;line-height:1.9;color:#2c2c2c;white-space:pre-wrap;word-break:break-word;">${parsedContent}</div></div>`;
+// 核心修复：弃用 marked 解析，防止 <p> 标签自带的 margin 打乱横线对齐！直接用 pre-wrap 原生换行
+html += `<div class="notebook-content" style="font-family:'Long Cang','Kaiti','STKaiti',cursive;font-size:22px;line-height:2.15rem;color:#2c2c2c;white-space:pre-wrap;word-break:break-word; margin:0; padding-bottom: 40px;">${this.escapeHtml(content)}</div></div>`;
 } else {
 html += `
 <div class="notebook-empty" style="height:60vh;text-align:center;padding:60px 0;">

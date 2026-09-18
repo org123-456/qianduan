@@ -1131,7 +1131,6 @@ window.Config.diaryPageIndex = -1;
 this.renderDiaryPage();
 },
 
-// 🌟 修复：防误触滑动监听（上下滑动不触发翻页）
 touchStartX: 0,
 touchStartY: 0,
 handleSwipeStart(e) {
@@ -1147,7 +1146,6 @@ const touchEndY = e.changedTouches[0].screenY;
 const diffX = touchEndX - this.touchStartX;
 const diffY = touchEndY - this.touchStartY;
 
-// 核心修复：如果上下滑动的距离大于左右滑动，说明是在看日记内容，绝对不触发翻页！
 if (Math.abs(diffY) > Math.abs(diffX)) return;
 
 if (Math.abs(diffX) > 50) {
@@ -1164,7 +1162,7 @@ if (window.Config) window.Config.diaryPageIndex = newIndex;
 this.renderDiaryPage();
 },
 
-// 🌟 修复：原生文本渲染，完美贴合横线
+// 🌟 修复：原生文本渲染，完美贴合横线，全屏铺满
 renderDiaryPage() {
 const contentAreaEl = document.getElementById('diary-content-area');
 if (!contentAreaEl) return;
@@ -1211,8 +1209,8 @@ const diaries = window.PhoneAPI?.getDiaries?.() || {};
 let content = diaries[dateStr];
 
 let html = `
-<div class="notebook-scroll-area" style="overflow-y:auto;max-height:calc(100vh - 220px);padding:80px 15px 60px 15px;">
-<div class="notebook-header" style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(80,130,180,.35);padding-bottom:10px;margin-bottom:15px;">
+<div class="notebook-scroll-area" style="overflow-y:auto; height:100%; padding:80px 15px 60px 15px; display:flex; flex-direction:column;">
+<div class="notebook-header" style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(80,130,180,.35);padding-bottom:10px;margin-bottom:15px;flex-shrink:0;">
 <div class="notebook-date-wrap">
 <span class="notebook-date" style="font-weight:bold;font-size:18px;">${displayDate}</span>
 <span class="notebook-week" style="margin-left:8px;font-size:13px;color:var(--text-sub);">${weekStr}</span>
@@ -1226,11 +1224,10 @@ ${content ? `<i class="ph ph-arrows-clockwise" onclick="if(confirm('确定要让
 
 if (content) {
 content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<思维链>[\s\S]*?<\/思维链>/gi, '').trim();
-// 核心修复：弃用 marked 解析，防止 <p> 标签自带的 margin 打乱横线对齐！直接用 pre-wrap 原生换行
-html += `<div class="notebook-content" style="font-family:'Long Cang','Kaiti','STKaiti',cursive;font-size:22px;line-height:2.15rem;color:#2c2c2c;white-space:pre-wrap;word-break:break-word; margin:0; padding-bottom: 40px;">${this.escapeHtml(content)}</div></div>`;
+html += `<div class="notebook-content" style="flex:1; font-family:'Long Cang','Kaiti','STKaiti',cursive;font-size:22px;line-height:2.15rem;color:#2c2c2c;white-space:pre-wrap;word-break:break-word; margin:0; padding-bottom: 40px;">${this.escapeHtml(content)}</div></div>`;
 } else {
 html += `
-<div class="notebook-empty" style="height:60vh;text-align:center;padding:60px 0;">
+<div class="notebook-empty" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center;">
 <p style="margin-bottom:20px;color:var(--text-sub);font-size:14px;">这一页还是空白的...</p>
 <button class="btn-refresh" onclick="(window.PhoneAPI?.generateDiary || window.PhoneEngine?.generateDiary)?.('${dateStr}')" style="width:auto;padding:10px 20px;background:rgba(0,0,0,0.6);border-radius:8px;font-family:sans-serif;font-size:14px;color:#fff;border:none;cursor:pointer;"><i class="ph-fill ph-magic-wand"></i> 偷偷写日记</button>
 </div></div>
@@ -1392,3 +1389,4 @@ window.PhoneAPI?.showToast('✏️ 已加载预设，修改后点击保存即可
 if (typeof window !== 'undefined') {
 window.PhoneUI = PhoneUI;
 }
+

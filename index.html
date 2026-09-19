@@ -73,9 +73,9 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 .mini-cal span { display: flex; justify-content: center; align-items: center; aspect-ratio: 1; border-radius: 50%; }
 .mini-cal span.today { background: var(--primary-color); color: #fff; font-weight: bold; box-shadow: 0 2px 6px rgba(111,168,220,0.5); }
 
-/* 🌟 拍立得相框 (C) */
+/* 🌟 拍立得相框 (C) - 修复变形问题 */
 .polaroid-widget { padding: 12px 12px 20px 12px; display: flex; flex-direction: column; align-items: center; cursor: pointer; position: relative; overflow: hidden; }
-.polaroid-photo { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); background: var(--border-color); pointer-events: none; }
+.polaroid-photo { width: 100%; height: auto; aspect-ratio: 4/3; object-fit: cover; border-radius: 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); background: var(--border-color); pointer-events: none; display: block; }
 .polaroid-text { font-family: 'Long Cang', cursive; font-size: 18px; color: var(--text-main); margin-top: 15px; text-align: center; width: 100%; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; pointer-events: none; }
 
 /* 🌟 倒数日小组件 (B) */
@@ -87,12 +87,12 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 .cd-num { font-size: 32px; font-weight: 800; line-height: 1; text-shadow: 0 4px 10px rgba(111,168,220,0.3); }
 .cd-suf { font-size: 12px; font-weight: bold; }
 
-/* 传纸条 */
-.note-widget { position: relative; padding: 25px 20px 20px 20px; cursor: pointer; overflow: hidden; display: flex; flex-direction: column; gap: 12px; }
-.note-tape { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 60px; height: 16px; background: rgba(255,255,255,0.4); border-radius: 0 0 4px 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.6); border-top: none; }
-[data-theme="dark"] .note-tape { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
-.note-header { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-sub); }
-.note-content { font-family: 'Long Cang', cursive; font-size: 20px; color: var(--text-main); line-height: 1.5; text-align: center; padding: 10px 0; font-weight: bold; white-space: pre-wrap; word-break: break-word; max-height: 150px; overflow-y: auto; }
+/* 传纸条 - 修复胶带样式 */
+.note-widget { position: relative; padding: 25px 20px 20px 20px; cursor: pointer; overflow: hidden; display: flex; flex-direction: column; gap: 12px; margin-top: 10px;}
+.note-tape { position: absolute; top: -8px; left: 50%; width: 80px; height: 22px; background: rgba(255,255,255,0.5); backdrop-filter: blur(4px); box-shadow: 0 2px 5px rgba(0,0,0,0.05); transform: translateX(-50%) rotate(-2deg); z-index: 2; pointer-events: none;}
+[data-theme="dark"] .note-tape { background: rgba(255,255,255,0.1); }
+.note-header { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-sub); z-index: 1;}
+.note-content { font-family: 'Long Cang', cursive; font-size: 20px; color: var(--text-main); line-height: 1.5; text-align: center; padding: 10px 0; font-weight: bold; white-space: pre-wrap; word-break: break-word; max-height: 150px; overflow-y: auto; z-index: 1;}
 
 /* 顶部与导航 */
 .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 42px 20px 16px 20px; z-index: 50; background: rgba(255,255,255,.55); backdrop-filter: blur(20px); box-shadow: 0 8px 25px rgba(90,140,200,.12); width: 100%; transition: transform 0.4s; }
@@ -151,6 +151,43 @@ input, textarea, select { background: rgba(255,255,255,.8); border: 1px solid #d
 .vault-tab.active { background: #fff; color: var(--primary-color); box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
 .ev-card { background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.8); border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(90,140,200,0.1); }
 .glass-fab { position: absolute; bottom: 20px; right: 20px; width: 54px; height: 54px; border-radius: 50%; background: linear-gradient(135deg, #8bc6ff, #4f81bd); color: white; font-size: 24px; box-shadow: 0 8px 25px rgba(80,140,210,0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 100; }
+
+/* 记忆星海 */
+#page-memory { background: transparent; }
+.starry-sea-bg { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(ellipse at bottom, #12345a 0%, #06111f 100%); z-index: -1; overflow: hidden; opacity: 0; transition: opacity 1.5s ease-in-out; }
+.starry-sea-bg.show { opacity: 1; }
+.star { position: absolute; background: #fff; border-radius: 50%; animation: twinkle infinite alternate; }
+@keyframes twinkle { 0% { opacity: 0.2; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 8px #fff; } }
+
+.floating-bubbles { position: relative; height: 100%; width: 100%; display: flex; justify-content: center; align-items: center; opacity: 0; transform: translateY(20px); transition: all 1s cubic-bezier(0.25, 1, 0.5, 1); }
+.floating-bubbles.show { opacity: 1; transform: translateY(0); }
+.glass-bubble { position: absolute; width: 110px; height: 110px; border-radius: 50%; background: rgba(130,190,255,.12); backdrop-filter: blur(12px); border: 1px solid rgba(170,220,255,.35); box-shadow: 0 10px 40px rgba(0,0,0,.35), inset 0 0 20px rgba(255,255,255,.15); display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; cursor: pointer; transition: 0.3s; animation: floatBubble 6s ease-in-out infinite; }
+.glass-bubble:active { transform: scale(0.9) !important; }
+.glass-bubble .icon { font-size: 36px; margin-bottom: 6px; color: #e8f6ff; text-shadow: 0 0 15px #8bc6ff; }
+.glass-bubble .text { font-size: 13px; font-weight: bold; letter-spacing: 1px; }
+.bubble-diary { top: 20%; left: 15%; animation-delay: 0s; background: rgba(111,168,220,.22); }
+.bubble-vault { top: 45%; right: 15%; animation-delay: -2s; background: rgba(130,150,255,.2); }
+.bubble-gallery { bottom: 20%; left: 25%; animation-delay: -4s; background: rgba(120,210,255,.18); }
+@keyframes floatBubble { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+
+.memory-fragment { position: absolute; width: 12px; height: 12px; border-radius: 50%; background: #fff; box-shadow: 0 0 15px 4px rgba(255, 255, 255, 0.6); cursor: pointer; transition: 0.3s; animation: pulseGlow 3s infinite alternate; }
+.memory-fragment:active { transform: scale(1.5); }
+@keyframes pulseGlow { 0% { transform: scale(0.8); opacity: 0.6; box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.4); } 100% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 20px 6px rgba(255, 255, 255, 0.8); } }
+
+.blindbox-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -40%) scale(0.9); width: 85%; max-height: 70vh; overflow-y: auto; background: rgba(30, 35, 45, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 30px 25px; box-shadow: 0 15px 50px rgba(0,0,0,0.5); z-index: 1000; opacity: 0; visibility: hidden; transition: 0.4s; color: #fff; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.blindbox-modal.show { transform: translate(-50%, -50%) scale(1); opacity: 1; visibility: visible; }
+.blindbox-icon { font-size: 42px; color: var(--primary-color); margin-bottom: 15px; }
+.blindbox-text { font-family: 'Long Cang', cursive; font-size: 24px; line-height: 1.6; margin-bottom: 20px;}
+.blindbox-meta { font-size: 12px; color: rgba(255,255,255,0.5); font-family: monospace; }
+
+/* Mine 页卡片 */
+.memory-card { display: flex; align-items: center; padding: 22px 20px; border-radius: 20px; margin-bottom: 15px; cursor: pointer; transition: 0.3s; box-shadow: 0 8px 20px rgba(0,0,0,0.08); color: #fff; position: relative; overflow: hidden; }
+.memory-card:active { transform: scale(0.96); }
+.mc-icon { font-size: 32px; margin-right: 15px; background: rgba(255,255,255,0.2); width: 54px; height: 54px; display: flex; justify-content: center; align-items: center; border-radius: 16px; flex-shrink: 0;}
+.mc-info { flex: 1; z-index: 1;}
+.mc-title { font-size: 17px; font-weight: bold; margin-bottom: 6px; letter-spacing: 1px;}
+.mc-desc { font-size: 12px; opacity: 0.85; line-height: 1.4; }
+.mc-arrow { font-size: 20px; opacity: 0.5; }
 
 /* 其他样式补全 */
 #toast { position: absolute; top: -150px; left: 50%; transform: translateX(-50%); background: rgba(40,70,100,.9); color: white; padding: 12px 20px; border-radius: 25px; font-size: 13px; font-weight: bold; z-index: 9999; transition: 0.4s; display: flex; align-items: center; gap: 8px; }
@@ -239,7 +276,7 @@ input, textarea, select { background: rgba(255,255,255,.8); border: 1px solid #d
 
     <!-- 第二排：拍立得相框 (C) -->
     <div class="neo-card polaroid-widget long-pressable" data-img="home_polaroid" style="margin-bottom: 16px;">
-        <img id="polaroid-img" class="polaroid-photo" src="https://images.unsplash.com/photo-1518133910546-b6c2fb7d79e3?q=80&w=600&auto=format&fit=crop">
+        <img id="polaroid-img" class="polaroid-photo" src="https://images.unsplash.com/photo-1522093007474-d86e9bf7ba6f?q=80&w=600&auto=format&fit=crop">
         <div class="polaroid-text" id="polaroid-text">“回忆正在加载中...”</div>
     </div>
 
@@ -284,14 +321,16 @@ input, textarea, select { background: rgba(255,255,255,.8); border: 1px solid #d
     </div>
 </div>
 
-<!-- Memory 页 -->
+<!-- 🌟 Memory 页 (修复骨架) -->
 <div id="page-memory" class="page" style="padding: 0;">
-<div class="starry-sea-bg" id="starry-sea-bg"></div>
-<div class="floating-bubbles" id="floating-bubbles">
-<div class="glass-bubble bubble-diary" onclick="window.PhoneUI.openApp('diary', '他的日记')"><i class="ph-fill ph-book-bookmark icon"></i><span class="text">日记</span></div>
-<div class="glass-bubble bubble-vault" onclick="window.PhoneUI.openApp('memory_vault', 'EchoVault 记忆库')"><i class="ph-fill ph-database icon"></i><span class="text">记忆库</span></div>
-<div class="glass-bubble bubble-gallery" onclick="window.PhoneUI.openApp('gallery', '回忆相册')"><i class="ph-fill ph-polaroid-camera icon"></i><span class="text">相册</span></div>
-</div>
+    <div class="starry-sea-bg" id="starry-sea-bg"></div>
+    <div class="floating-bubbles" id="floating-bubbles">
+        <div class="glass-bubble bubble-diary" onclick="window.PhoneUI.openApp('diary', '他的日记')"><i class="ph-fill ph-book-bookmark icon"></i><span class="text">日记</span></div>
+        <div class="glass-bubble bubble-vault" onclick="window.PhoneUI.openApp('memory_vault', 'EchoVault 记忆库')"><i class="ph-fill ph-database icon"></i><span class="text">记忆库</span></div>
+        <div class="glass-bubble bubble-gallery" onclick="window.PhoneUI.openApp('gallery', '回忆相册')"><i class="ph-fill ph-polaroid-camera icon"></i><span class="text">相册</span></div>
+    </div>
+    <!-- 致命遗漏补回：记忆碎片容器 -->
+    <div id="memory-fragments-container"></div>
 </div>
 
 <!-- Chat 页 -->
@@ -303,7 +342,7 @@ input, textarea, select { background: rgba(255,255,255,.8); border: 1px solid #d
 </form>
 </div>
 
-<!-- Together 页 (保留共听音乐室) -->
+<!-- 🌟 Together 页 (补回完整的播放控制栏) -->
 <div id="page-together" class="page" style="padding: 0; background: var(--bg-gradient-start);">
     <div style="padding: 60px 20px 20px; text-align: center; color: var(--text-main);">
         <div id="music-title" style="font-size: 22px; font-weight: bold;">等待点歌...</div>
@@ -314,22 +353,48 @@ input, textarea, select { background: rgba(255,255,255,.8); border: 1px solid #d
             <img id="music-cover" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=1000&auto=format&fit=crop" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 4px solid #fff;">
         </div>
     </div>
-    <div style="padding: 20px 30px 120px; color: var(--primary-color);">
-        <div style="display:flex; justify-content:center; align-items:center; font-size:32px;">
-            <div id="play-btn" onclick="togglePlayUI()" style="width:64px; height:64px; border-radius:50%; background:#fff; display:flex; justify-content:center; align-items:center; cursor:pointer; box-shadow: 0 8px 20px rgba(90,140,200,0.2);">
-                <i class="ph-fill ph-play" id="play-icon"></i>
+    <div style="padding: 20px 30px 120px; color: var(--primary-color); z-index: 10; position: relative;">
+        <!-- 进度条 -->
+        <div style="display:flex; align-items:center; gap:12px; font-size:11px; margin-bottom: 25px; font-family: monospace;">
+            <span id="music-curr">00:00</span>
+            <div style="flex:1; height:4px; background:rgba(111,168,220,0.2); border-radius:2px; position:relative; cursor: pointer;">
+                <div id="music-progress" style="width:0%; height:100%; background:var(--primary-color); border-radius:2px; position:relative;">
+                    <div style="position:absolute; right:-5px; top:-3px; width:10px; height:10px; background:var(--primary-color); border-radius:50%; box-shadow:0 0 5px rgba(111,168,220,0.5);"></div>
+                </div>
             </div>
+            <span id="music-dur">00:00</span>
+        </div>
+        <!-- 按钮组 -->
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:28px;">
+            <i class="ph ph-heart" style="font-size:24px; cursor:pointer;" onclick="window.PhoneAPI?.showToast('已收藏到星海！')"></i>
+            <i class="ph-fill ph-skip-back" style="cursor:pointer;" onclick="window.PhoneAPI?.showToast('暂无上一首')"></i>
+            <!-- 播放/暂停按钮 -->
+            <div id="play-btn" onclick="togglePlayUI()" style="width:64px; height:64px; border-radius:50%; background:#fff; border:1px solid rgba(255,255,255,0.8); display:flex; justify-content:center; align-items:center; font-size:32px; cursor:pointer; box-shadow: 0 8px 20px rgba(90,140,200,0.2);">
+                <i class="ph-fill ph-play" id="play-icon" style="margin-left: 4px;"></i>
+            </div>
+            <i class="ph-fill ph-skip-forward" style="cursor:pointer;" onclick="window.PhoneAPI?.showToast('请让 AI 为你切歌')"></i>
+            <i class="ph ph-list" style="font-size:24px; cursor:pointer;" onclick="window.PhoneUI?.togglePlaylist?.()"></i>
         </div>
     </div>
 </div>
 
-<!-- Mine 页 -->
+<!-- 🌟 Mine 页 (补回星海收藏夹) -->
 <div id="page-mine" class="page">
-<div class="card" style="text-align: center; padding: 40px 20px; color: var(--text-main);">
-<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa" id="mine-avatar-display" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 15px; border: 3px solid var(--primary-color); object-fit: cover;">
-<h3 style="color: var(--primary-color); margin-bottom: 5px;" id="mine-name-display">我</h3>
-<p style="font-size: 12px; color: var(--text-sub);">你的专属空间</p>
-</div>
+    <div class="card" style="text-align: center; padding: 40px 20px; color: var(--text-main); position: relative;">
+        <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa" id="mine-avatar-display" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 15px; border: 3px solid var(--primary-color); object-fit: cover;">
+        <h3 style="color: var(--primary-color); margin-bottom: 5px;" id="mine-name-display">我</h3>
+        <p style="font-size: 12px; color: var(--text-sub);">你的专属空间</p>
+    </div>
+    
+    <!-- 星海收藏夹 -->
+    <div class="memory-card" style="background: linear-gradient(135deg, #f4a261, #e76f51);" onclick="window.PhoneUI.openApp('favorites', '星海收藏夹')">
+        <div class="mc-icon"><i class="ph-fill ph-star"></i></div>
+        <div class="mc-info">
+            <div class="mc-title">星海收藏夹</div>
+            <div class="mc-desc">管理你摘录的绝美金句</div>
+        </div>
+        <i class="ph ph-caret-right mc-arrow"></i>
+    </div>
 </div>
 
 </div>

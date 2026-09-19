@@ -816,7 +816,9 @@ ${historyText}`;
             formatRule += "【微信连发机制】：不限制气泡数量，请务必把你想说的话完整说完！系统会根据换行符切分微信气泡。绝对不要把所有话挤在同一行！\n";
             formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。\n【心声强制规则】：**绝对严禁再次提及‘小手机’、‘实验对象/实验品’、‘修东西’等老调重弹的内容！** 此刻的心声必须严格聚焦在【你对用户刚刚发的具体内容最私密、最真实的心理反应】！\n";
             
-            // 🌟 核心新增：AI 点歌机制
+            // 🌟 EchoVault 主动记忆机制
+            formatRule += "【主动记忆机制】：你拥有一个本地记忆库。当你觉得某段对话、某个约定或你的某种感受值得被记住时，请在回复最末尾使用 `<write_memory type=\"daily\" importance=\"1-10\">你的日记原文</write_memory>` 来主动写日记。如果是永不遗忘的核心设定，使用 `type=\"permanent\" title=\"标题\"`。注意：必须用第一人称带有温度地写，绝对禁止写成冷冰冰的总结！\n";
+
             formatRule += "【点歌机制】：如果用户在聊天中明确要求你放首歌、听音乐，或者剧情氛围需要，你可以在回复的最末尾加上 `<play_music>歌曲名 歌手名</play_music>`。系统会自动在后台为你们播放。例如：`<play_music>七里香 周杰伦</play_music>`。如果没有相关要求，绝对不要输出此标签！\n";
 
             if (autoPhoto) {
@@ -842,6 +844,13 @@ ${historyText}`;
 
             if (latestUserText) {
                 dynamicPrompt += this._scanKeywords(latestUserText);
+            }
+
+            // 🌟 注入 EchoVault Dream 上下文
+            const recentMemories = window.PhoneAPI?.EchoVault?.dream?.() || [];
+            if (recentMemories.length > 0) {
+                dynamicPrompt += "\n【EchoVault 你的近期记忆】\n这是你最近几天写下的日记，用来帮你回忆最近发生的事：\n" 
+                    + recentMemories.map(m => `[${m.date}]\n${m.content}`).join("\n\n") + "\n";
             }
 
             if (accessibleVault.length > 0) {
@@ -935,7 +944,33 @@ ${historyText}`;
                 }
             }
 
-            // 🌟 核心新增：拦截 AI 点歌标签
+            // 🌟 核心新增：拦截 EchoVault 记忆标签
+            let memoryRegex = /<write_memory(.*?)>([\s\S]*?)<\/write_memory>/gi;
+            let memMatch;
+            while ((memMatch = memoryRegex.exec(rawReply)) !== null) {
+                const attrs = memMatch[1];
+                const content = memMatch[2].trim();
+                let type = 'daily';
+                let title = '';
+                let importance = 5;
+                
+                const typeMatch = attrs.match(/type="([^"]+)"/i);
+                if (typeMatch) type = typeMatch[1];
+                
+                const titleMatch = attrs.match(/title="([^"]+)"/i);
+                if (titleMatch) title = titleMatch[1];
+                
+                const impMatch = attrs.match(/importance="([^"]+)"/i);
+                if (impMatch) importance = parseInt(impMatch[1]) || 5;
+                
+                window.PhoneAPI?.EchoVault?.write(content, type, importance, '线上微信', title);
+                console.log(`[EchoVault] AI 偷偷写了一篇日记:`, { type, title, importance, content });
+                if (window.Config?.currentAppId === 'memory_vault' && window.PhoneUI?.renderMemoryVault) {
+                    window.PhoneUI.renderMemoryVault();
+                }
+            }
+            rawReply = rawReply.replace(/<write_memory[\s\S]*?<\/write_memory>/gi, '').trim();
+
             let musicQuery = null;
             const musicMatch = rawReply.match(/<play_music>([\s\S]*?)<\/play_music>/i);
             if (musicMatch) {
@@ -991,7 +1026,6 @@ ${historyText}`;
             PhoneUI.renderAppContent('wechat');
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
 
-            // 🌟 核心新增：异步触发搜歌和播放
             if (musicQuery) {
                 setTimeout(async () => {
                     const song = await window.PhoneAPI?.searchMusic(musicQuery);
@@ -1121,7 +1155,9 @@ ${historyText}`;
             formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。严禁重复心声，必须产生全新心理活动！\n";
             formatRule += "【动态交易机制】：如果剧情中发生了购买、点外卖、送礼等消费行为，你必须根据情境【自行编造商品名称和合理的金币价格】，并在回复最末尾加上 `<purchase>商品名称|价格数字</purchase>`。例如：`<purchase>双人豪华晚餐|120</purchase>`。系统会自动扣除金币并生成订单卡片。无消费行为时绝对不要输出此标签！\n";
             
-            // 🌟 核心新增：AI 点歌机制
+            // 🌟 EchoVault 主动记忆机制
+            formatRule += "【主动记忆机制】：你拥有一个本地记忆库。当你觉得某段对话、某个约定或你的某种感受值得被记住时，请在回复最末尾使用 `<write_memory type=\"daily\" importance=\"1-10\">你的日记原文</write_memory>` 来主动写日记。如果是永不遗忘的核心设定，使用 `type=\"permanent\" title=\"标题\"`。注意：必须用第一人称带有温度地写，绝对禁止写成冷冰冰的总结！\n";
+
             formatRule += "【点歌机制】：如果用户在剧情中明确要求你放首歌、听音乐，或者剧情氛围需要，你可以在回复的最末尾加上 `<play_music>歌曲名 歌手名</play_music>`。系统会自动在后台为你们播放。例如：`<play_music>七里香 周杰伦</play_music>`。如果没有相关要求，绝对不要输出此标签！\n";
 
             if (banEmoji) formatRule += "【最高禁令】：绝对不允许使用任何 Emoji、颜文字、波浪号(~)，违者抹杀！\n";
@@ -1143,6 +1179,13 @@ ${historyText}`;
 
             if (latestUserText) {
                 dynamicPrompt += this._scanKeywords(latestUserText);
+            }
+
+            // 🌟 注入 EchoVault Dream 上下文
+            const recentMemories = window.PhoneAPI?.EchoVault?.dream?.() || [];
+            if (recentMemories.length > 0) {
+                dynamicPrompt += "\n【EchoVault 你的近期记忆】\n这是你最近几天写下的日记，用来帮你回忆最近发生的事：\n" 
+                    + recentMemories.map(m => `[${m.date}]\n${m.content}`).join("\n\n") + "\n";
             }
 
             if (accessibleVault.length > 0) {
@@ -1213,7 +1256,33 @@ ${historyText}`;
                 }
             }
 
-            // 🌟 核心新增：拦截 AI 点歌标签
+            // 🌟 核心新增：拦截 EchoVault 记忆标签
+            let memoryRegex = /<write_memory(.*?)>([\s\S]*?)<\/write_memory>/gi;
+            let memMatch;
+            while ((memMatch = memoryRegex.exec(rawReply)) !== null) {
+                const attrs = memMatch[1];
+                const content = memMatch[2].trim();
+                let type = 'daily';
+                let title = '';
+                let importance = 5;
+                
+                const typeMatch = attrs.match(/type="([^"]+)"/i);
+                if (typeMatch) type = typeMatch[1];
+                
+                const titleMatch = attrs.match(/title="([^"]+)"/i);
+                if (titleMatch) title = titleMatch[1];
+                
+                const impMatch = attrs.match(/importance="([^"]+)"/i);
+                if (impMatch) importance = parseInt(impMatch[1]) || 5;
+                
+                window.PhoneAPI?.EchoVault?.write(content, type, importance, '线下故事', title);
+                console.log(`[EchoVault] AI 偷偷写了一篇日记:`, { type, title, importance, content });
+                if (window.Config?.currentAppId === 'memory_vault' && window.PhoneUI?.renderMemoryVault) {
+                    window.PhoneUI.renderMemoryVault();
+                }
+            }
+            rawReply = rawReply.replace(/<write_memory[\s\S]*?<\/write_memory>/gi, '').trim();
+
             let musicQuery = null;
             const musicMatch = rawReply.match(/<play_music>([\s\S]*?)<\/play_music>/i);
             if (musicMatch) {
@@ -1257,7 +1326,6 @@ ${historyText}`;
             PhoneUI.renderNovelContent();
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
 
-            // 🌟 核心新增：异步触发搜歌和播放
             if (musicQuery) {
                 setTimeout(async () => {
                     const song = await window.PhoneAPI?.searchMusic(musicQuery);
@@ -1344,9 +1412,12 @@ ${historyText}`;
             let finalDiary = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
             finalDiary = finalDiary.replace(/```.*?/g, '').replace(/```/g, '').trim();
 
+            // 🌟 升级：把日记同步存入 EchoVault 的 Daily 中
             PhoneAPI.saveDiary(dateStr, finalDiary);
+            window.PhoneAPI?.EchoVault?.write(finalDiary, 'daily', 5, '偷看日记');
+
             PhoneUI.renderDiaryPage();
-            PhoneAPI.showToast('✨ 日记生成成功！');
+            PhoneAPI.showToast('✨ 日记生成成功，已同步至 EchoVault！');
 
         } catch (error) {
             contentAreaEl.innerHTML = `

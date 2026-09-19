@@ -78,8 +78,9 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 .mini-cal span { display: flex; justify-content: center; align-items: center; aspect-ratio: 1; border-radius: 50%; }
 .mini-cal span.today { background: var(--primary-color); color: #fff; font-weight: bold; box-shadow: 0 2px 6px rgba(111,168,220,0.5); }
 
+/* 🌟 修复相框塌陷：写死高度 */
 .polaroid-widget { padding: 12px 12px 20px 12px; display: flex; flex-direction: column; align-items: center; cursor: pointer; position: relative; overflow: hidden; }
-.polaroid-photo { width: 100%; min-height: 180px; height: auto; aspect-ratio: 4/3; object-fit: cover; border-radius: 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); background: #e2e8f0; pointer-events: none; display: block; }
+.polaroid-photo { width: 100%; height: 220px; object-fit: cover; border-radius: 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); background: #e2e8f0; pointer-events: none; display: block; }
 .polaroid-text { font-family: 'Long Cang', cursive; font-size: 18px; color: var(--text-main); margin-top: 15px; text-align: center; width: 100%; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; pointer-events: none; }
 
 .countdown-widget { display: flex; justify-content: space-between; align-items: center; padding: 20px; cursor: pointer; }
@@ -97,12 +98,17 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 .note-content { font-family: 'Long Cang', cursive; font-size: 20px; color: var(--text-main); line-height: 1.5; text-align: center; padding: 10px 0; font-weight: bold; white-space: pre-wrap; word-break: break-word; max-height: 150px; overflow-y: auto; z-index: 1;}
 .note-content::-webkit-scrollbar { display: none; }
 
+/* 🌟 顶部栏：把 API 按钮优雅地融合进来 */
 .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 42px 20px 16px 20px; color: var(--primary-color); font-weight: bold; z-index: 50; background: rgba(255,255,255,.8); box-shadow: 0 8px 25px rgba(90,140,200,.12); transition: transform 0.4s; width: 100%; box-sizing: border-box;}
 .top-bar .title { font-size: 17px; font-weight: 700; letter-spacing: .5px; color: var(--secondary-color); }
-.top-bar .menu-btn { width: 34px; height: 34px; background: white; border-radius: 12px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 5px 15px rgba(100,150,200,.15);}
+.top-bar .menu-btn { width: 34px; height: 34px; background: white; border-radius: 12px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 5px 15px rgba(100,150,200,.15); transition: 0.3s;}
+.top-bar .menu-btn.loading { background: linear-gradient(135deg, #8bc6ff, #4f81bd); color: #fff; animation: pulse-fab 1.5s infinite; }
+.top-bar .menu-btn.loading i { animation: spin-fast 1s linear infinite; }
+.top-bar .menu-btn.error { background: var(--danger-color); color: #fff; }
 .top-bar .heart { color: var(--danger-color); font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 5px;}
 #app-container.hide-top-bar .top-bar { transform: translateY(-100%); position: absolute; width: 100%; }
 [data-theme="dark"] .top-bar { background: rgba(15,25,40,.9); }
+@keyframes spin-fast { 100% { transform: rotate(360deg); } }
 
 .page-container { flex: 1; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
 .page-container::-webkit-scrollbar { display: none; }
@@ -190,7 +196,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 .typing-dot:nth-child(2) { animation-delay: -0.16s; }
 @keyframes typing { 0%, 80%, 100% { transform: scale(0); opacity: 0.5; } 40% { transform: scale(1); opacity: 1; } }
 
-/* 🌟 核心修复：所有遮罩层层级提升，确保不被挡住 */
 .action-sheet-bg { position: absolute; inset: 0; background: rgba(0,0,0,0.4); z-index: 9000; opacity: 0; visibility: hidden; pointer-events: none; transition: 0.3s; }
 .action-sheet-bg.show { opacity: 1; visibility: visible; pointer-events: auto; }
 
@@ -207,7 +212,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 .app-window-back { font-size: 24px; color: var(--primary-color); cursor: pointer; margin-right: 15px; display: flex; align-items: center; padding: 5px; }
 .app-window-title { font-size: 17px; font-weight: bold; color: var(--text-main); }
 .app-window-content { flex: 1; overflow-y: auto; padding: 20px; position: relative; }
-#app-window-footer { position: relative; flex-shrink: 0; background: transparent; }
 .app-window.fullscreen-mode .app-window-header { display: none; }
 .app-window.fullscreen-mode .app-window-content { padding: 0; }
 
@@ -216,7 +220,7 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 .thought-header { font-size: 16px; font-weight: bold; color: var(--primary-color); display: flex; align-items: center; gap: 8px; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;}
 .thought-content { font-size: 14px; color: var(--text-main); line-height: 1.6; overflow-y: auto; white-space: pre-wrap;}
 
-.story-bg { background: var(--story-bg); min-height: 100%; padding: 20px 15px 20px 15px; }
+.story-bg { background: var(--story-bg); flex: 1; overflow-y: auto; padding: 20px 15px 20px 15px; }
 .story-item { margin-bottom: 20px; display: flex; width: 100%; align-items: flex-start; gap: 12px; }
 .story-item.me { flex-direction: row-reverse; }
 .story-avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; box-shadow: 0 4px 10px rgba(90,140,200,.15); flex-shrink: 0; }
@@ -237,7 +241,7 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 .story-bubble p { margin-bottom: 12px; text-indent: 2em; }
 .story-bubble p:last-child { margin-bottom: 0; }
 
-.story-input-bar { background: var(--input-bg); border-radius: 24px; padding: 10px 15px; display: flex; align-items: flex-end; gap: 10px; box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.05); border: 1px solid var(--border-color); margin: 0 15px 20px 15px; z-index: 10; }
+.story-input-bar { background: var(--input-bg); border-radius: 24px; padding: 10px 15px; display: flex; align-items: flex-end; gap: 10px; box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.05); border: 1px solid var(--border-color); margin: 10px 15px 20px 15px; z-index: 10; flex-shrink: 0; }
 .story-input-bar .icon-btn { font-size: 26px; color: var(--primary-color); padding-bottom: 4px; cursor: pointer; transition: 0.2s; }
 .story-textarea { flex: 1; border: none; background: transparent; outline: none; font-size: 14px; color: var(--text-main); resize: none; min-height: 24px; max-height: 100px; line-height: 1.5; padding: 5px 0; font-family: inherit;}
 .story-send-btn { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #8bc6ff, #4f81bd); color: #fff; border: none; display: flex; justify-content: center; align-items: center; font-size: 18px; cursor: pointer; flex-shrink: 0; transition: 0.2s; box-shadow: 0 5px 15px rgba(80,140,210,.3);}
@@ -336,7 +340,7 @@ input:checked + .slider:before { transform: translateX(16px); }
 .memory-fragment:active { transform: scale(1.5); }
 @keyframes pulseGlow { 0% { transform: scale(0.8); opacity: 0.6; box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.4); } 100% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 20px 6px rgba(255, 255, 255, 0.8); } }
 
-.blindbox-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -40%) scale(0.9); width: 85%; max-height: 70vh; overflow-y: auto; background: rgba(30, 35, 45, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 30px 25px; box-shadow: 0 15px 50px rgba(0,0,0,0.5); z-index: 9001; opacity: 0; visibility: hidden; transition: 0.4s cubic-bezier(0.25, 1, 0.5, 1); color: #fff; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.blindbox-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -40%) scale(0.9); width: 85%; max-height: 70vh; overflow-y: auto; background: rgba(30, 35, 45, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 30px 25px; box-shadow: 0 15px 50px rgba(0,0,0,0.5); z-index: 1000; opacity: 0; visibility: hidden; transition: 0.4s cubic-bezier(0.25, 1, 0.5, 1); color: #fff; display: flex; flex-direction: column; align-items: center; text-align: center; }
 .blindbox-modal.show { transform: translate(-50%, -50%) scale(1); opacity: 1; visibility: visible; }
 .blindbox-modal::-webkit-scrollbar { width: 4px; }
 .blindbox-modal::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 4px; }
@@ -384,19 +388,6 @@ input:checked + .slider:before { transform: translateX(16px); }
 .viewer-download { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 16px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
 .viewer-download:active { background: rgba(255,255,255,0.4); }
 
-/* 🌟 修复：悬浮球位置上移，防止遮挡记忆库内容，并确保层级最高 */
-.api-fab { position: fixed !important; right: 15px !important; top: 120px !important; width: 44px !important; height: 44px !important; border-radius: 50% !important; background: linear-gradient(135deg, rgba(255,255,255,.95), rgba(220,240,255,.95)) !important; backdrop-filter: blur(10px) !important; box-shadow: 0 10px 30px rgba(80,140,210,.25) !important; border: 1px solid rgba(111,168,220,.35) !important; display: flex !important; justify-content: center !important; align-items: center !important; font-size: 22px !important; color: #4f81bd !important; cursor: pointer !important; z-index: 9999 !important; transition: 0.3s !important; }
-.api-fab:active { transform: scale(0.9) !important; }
-.api-fab.loading { background: linear-gradient(135deg, #8bc6ff, #4f81bd) !important; color: #fff !important; box-shadow: 0 0 20px var(--primary-color) !important; animation: pulse-fab 1.5s infinite !important; }
-.api-fab.loading i { animation: spin-fast 1s linear infinite !important; }
-.api-fab.error { background: var(--danger-color) !important; color: #fff !important; box-shadow: 0 0 20px var(--danger-color) !important; }
-@keyframes pulse-fab { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-
-/* 🌟 修复：悬浮球弹窗遮罩层，确保层级绝对最高 */
-#api-modal-bg { z-index: 10000 !important; }
-.api-modal { position: fixed !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -40%) scale(0.9) !important; width: 85% !important; background: rgba(255,255,255,.95) !important; border-radius: 28px !important; padding: 25px !important; box-shadow: 0 10px 40px rgba(0,0,0,0.2) !important; z-index: 10001 !important; opacity: 0 !important; visibility: hidden !important; transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1) !important; border: 1px solid rgba(255,255,255,.8); }
-.api-modal.show { transform: translate(-50%, -50%) scale(1) !important; opacity: 1 !important; visibility: visible !important; }
-
 /* 小屏幕适配 */
 @media(max-width:360px){
 #app-container { max-width:100%; }
@@ -413,14 +404,9 @@ input:checked + .slider:before { transform: translateX(16px); }
 
 <div id="toast"><i class="ph-fill ph-check-circle" style="color: #4ade80;"></i> <span id="toast-msg">提示</span></div>
 
-<!-- 悬浮球 -->
-<div id="api-fab" class="api-fab" onclick="window.PhoneUI.openApiModal()">
-<i class="ph-fill ph-cpu"></i>
-</div>
-
 <!-- 弹窗区 -->
 <div id="api-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeApiModal()"></div>
-<div id="api-modal" class="api-modal">
+<div id="api-modal" class="api-modal thought-modal">
 <div class="thought-header"><i class="ph-fill ph-cpu"></i> 系统控制舱</div>
 <div style="margin-bottom: 15px;">
 <label style="font-size: 12px; color: var(--text-sub);">秒切主引擎 (聊天/小说)</label>
@@ -485,17 +471,20 @@ input:checked + .slider:before { transform: translateX(16px); }
 <audio id="shared-audio-player" src=""></audio>
 
 <div id="app-container">
+<!-- 🌟 修复悬浮球：优雅地移到顶部栏，不再挡视线 -->
 <div class="top-bar">
-<div class="menu-btn" onclick="window.PhoneUI.toggleTheme()"><i class="ph-fill ph-moon" id="theme-icon"></i></div>
-<div class="title" id="top-title">Claire & Claude</div>
-<div class="heart"><i class="ph-fill ph-heart"></i> 100%</div>
+    <div style="display: flex; gap: 10px;">
+        <div class="menu-btn" onclick="window.PhoneUI.toggleTheme()"><i class="ph-fill ph-moon" id="theme-icon"></i></div>
+        <div class="menu-btn" id="api-fab" onclick="window.PhoneUI.openApiModal()"><i class="ph-fill ph-cpu"></i></div>
+    </div>
+    <div class="title" id="top-title">Claire & Claude</div>
+    <div class="heart"><i class="ph-fill ph-heart"></i> 100%</div>
 </div>
 
 <div class="page-container" id="scroll-box">
 
 <!-- 首页 -->
 <div id="page-home" class="page">
-    
     <!-- 第一排：天数 + 时钟日历 -->
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
         <!-- 左侧：相爱天数 (支持长按换图) -->
@@ -520,7 +509,7 @@ input:checked + .slider:before { transform: translateX(16px); }
         </div>
     </div>
 
-    <!-- 🌟 修复：加入 min-height 防止图片加载前变形 -->
+    <!-- 第二排：拍立得相框 -->
     <div class="neo-card polaroid-widget long-pressable" data-img="home_polaroid" style="margin-bottom: 16px;">
         <img id="polaroid-img" class="polaroid-photo" src="https://images.unsplash.com/photo-1522093007474-d86e9bf7ba6f?q=80&w=600&auto=format&fit=crop">
         <div class="polaroid-text" id="polaroid-text">“回忆正在加载中...”</div>
@@ -549,8 +538,7 @@ input:checked + .slider:before { transform: translateX(16px); }
         <div class="note-content" id="note-content">“今天也要开心哦！”</div>
     </div>
 
-    <!-- 第五排：我的生活 (精简为3个) -->
-    <h3 style="margin: 0 0 12px 5px; color: var(--primary-color); font-size: 14px; font-weight: bold;">我的生活</h3>
+    <!-- 第五排：App Grid (已移除“我的生活”文字) -->
     <div class="app-grid">
         <div class="app-icon" onclick="window.PhoneUI.openApp('novel', '线下故事')">
             <div class="icon neo-card"><i class="ph-fill ph-book-open" style="color: var(--text-sub);"></i></div>
@@ -567,7 +555,7 @@ input:checked + .slider:before { transform: translateX(16px); }
     </div>
 </div>
 
-<!-- 🌟 Memory 页 -->
+<!-- Memory 页 -->
 <div id="page-memory" class="page" style="padding: 0;">
 <div class="starry-sea-bg" id="starry-sea-bg"></div>
 <div class="floating-bubbles" id="floating-bubbles">
@@ -658,7 +646,7 @@ input:checked + .slider:before { transform: translateX(16px); }
     </div>
 </div>
 
-<!-- 🌟 Mine 页 -->
+<!-- Mine 页 -->
 <div id="page-mine" class="page">
 <div class="card" style="text-align: center; padding: 40px 20px; color: var(--text-main); position: relative;">
 <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa" id="mine-avatar-display" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 15px; border: 3px solid var(--primary-color); object-fit: cover;">
@@ -744,7 +732,7 @@ input:checked + .slider:before { transform: translateX(16px); }
 </div>
 </div>
 
-<!-- 🌟 修复：层级修改为 1000，确保在设置页面点击不会被遮罩层挡住 -->
+<!-- 🌟 修复：应用窗口层级 -->
 <div id="app-window" class="app-window" style="z-index: 1000;">
 <div class="app-window-header"><div class="app-window-back" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div><div class="app-window-title" id="app-window-title">应用</div></div>
 <div class="app-window-content" id="app-window-content"></div>

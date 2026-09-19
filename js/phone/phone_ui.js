@@ -68,7 +68,7 @@ async updateHomeWidget() {
         this.renderCountdown();
 
         const polaroidText = document.getElementById('polaroid-text');
-        if (polaroidText && window.PhoneAPI?.EchoVault) {
+        if (polaroidText && window.PhoneAPI && window.PhoneAPI.EchoVault) {
             try {
                 const evData = window.PhoneAPI.EchoVault.getData();
                 const dates = Object.keys(evData.daily).sort((a, b) => new Date(b) - new Date(a));
@@ -106,7 +106,6 @@ async updateHomeWidget() {
     }
 },
 
-// 🌟 修复：长按换图后即时刷新 CSS 背景
 bindLongPresses() {
     const elements = document.querySelectorAll('.long-pressable');
     const fileInput = document.getElementById('global-file-input');
@@ -139,7 +138,7 @@ bindLongPresses() {
             const f = e.target.files && e.target.files[0];
             e.target.value = '';
             if (!f || !pendingKey) return;
-            window.PhoneAPI?.showToast('处理中...');
+            if (window.PhoneAPI) window.PhoneAPI.showToast('处理中...');
             try {
                 const blob = await window.PhoneAPI.LocalDB.shrink(f, 800);
                 await window.PhoneAPI.LocalDB.set(pendingKey, blob);
@@ -148,7 +147,6 @@ bindLongPresses() {
                 if (pendingEl.tagName.toLowerCase() === 'img') {
                     pendingEl.src = url;
                 } else {
-                    // 如果是背景图，直接修改 CSS 变量让它立刻生效！
                     if (pendingKey.startsWith('bg_')) {
                         let cssVar = '--bg-image-' + pendingKey.replace('bg_', '').replace(/_/g, '-');
                         if (pendingKey === 'bg_global') cssVar = '--bg-image-global';
@@ -158,8 +156,8 @@ bindLongPresses() {
                         if (imgChild) imgChild.src = url;
                     }
                 }
-                window.PhoneAPI?.showToast('✨ 换图成功！已永久保存在本地。');
-            } catch (err) { window.PhoneAPI?.showToast('换图失败'); }
+                if (window.PhoneAPI) window.PhoneAPI.showToast('✨ 换图成功！已永久保存在本地。');
+            } catch (err) { if (window.PhoneAPI) window.PhoneAPI.showToast('换图失败'); }
             pendingKey = null; pendingEl = null;
         });
     }
@@ -207,7 +205,7 @@ closeCdSheet() {
 
 saveCdSheet() {
     const date = document.getElementById('cd-in-date').value;
-    if (!date) { window.PhoneAPI?.showToast('请先挑个日子！'); return; }
+    if (!date) { if (window.PhoneAPI) window.PhoneAPI.showToast('请先挑个日子！'); return; }
     const cfg = {
         title: document.getElementById('cd-in-title').value.trim(),
         date: date,
@@ -217,7 +215,7 @@ saveCdSheet() {
     localStorage.setItem('cc_countdown', JSON.stringify(cfg));
     this.renderCountdown();
     this.closeCdSheet();
-    window.PhoneAPI?.showToast('✅ 倒数日已更新！');
+    if (window.PhoneAPI) window.PhoneAPI.showToast('✅ 倒数日已更新！');
 },
 
 openNoteModal() {
@@ -240,11 +238,11 @@ async sendNote() {
 const input = document.getElementById('note-input');
 if (!input) return;
 const text = input.value.trim();
-if (!text) { window.PhoneAPI?.showToast('纸条不能是空的哦！'); return; }
+if (!text) { if (window.PhoneAPI) window.PhoneAPI.showToast('纸条不能是空的哦！'); return; }
 this.closeNoteModal();
 localStorage.setItem('home_note_content', `“${text}”`);
 this.updateHomeWidget();
-window.PhoneAPI?.showToast('纸条已递出，等待 TA 的回复...');
+if (window.PhoneAPI) window.PhoneAPI.showToast('纸条已递出，等待 TA 的回复...');
 
 try {
 const persona = localStorage.getItem('char_persona') || '';
@@ -252,13 +250,13 @@ const myName = localStorage.getItem('my_name') || '我';
 const taName = localStorage.getItem('char_name') || 'TA';
 let sysPrompt = `你扮演${taName}，用户是${myName}。${persona}\n请根据用户传给你的纸条内容，回复一张纸条。要求：\n1. 必须非常简短，一两句话，20字以内。\n2. 语气符合你的人设，像是在小纸条上随手写的。\n3. 不要任何动作描写，只输出纸条上的话。`;
 const messages = [ { role: 'system', content: sysPrompt }, { role: 'user', content: `[传纸条] ${text}` } ];
-const reply = await window.PhoneAPI?.chatWithAI(messages);
+const reply = await window.PhoneAPI.chatWithAI(messages);
 if (reply) {
 localStorage.setItem('home_note_content', `“${reply}”`);
 this.updateHomeWidget();
-window.PhoneAPI?.showToast('收到 TA 的纸条回信啦！');
+if (window.PhoneAPI) window.PhoneAPI.showToast('收到 TA 的纸条回信啦！');
 }
-} catch (error) { window.PhoneAPI?.showToast('TA 好像没看到纸条...'); }
+} catch (error) { if (window.PhoneAPI) window.PhoneAPI.showToast('TA 好像没看到纸条...'); }
 },
 
 renderNovelContent() {
@@ -287,7 +285,7 @@ let thoughtHtml = '';
 if (!isMe && item.innerThought) {
 thoughtHtml = `<div class="story-thought-icon" onclick="window.PhoneUI.showThought(${idx}, 'novel'); event.stopPropagation();"><i class="ph-fill ph-cloud"></i></div>`;
 }
-html += `<div class="story-item ${isMe ? 'me' : 'other'}"><img class="story-avatar" src="${avatar}"><div class="story-content-wrapper"><div class="story-name-row"><span class="story-name">${name}</span>${thoughtHtml}</div><div class="story-bubble markdown-body" onclick="window.PhoneEngine?.openMsgMenu?.(${idx}, '${item.sender}')">${parsed}</div></div></div>`;
+html += `<div class="story-item ${isMe ? 'me' : 'other'}"><img class="story-avatar" src="${avatar}"><div class="story-content-wrapper"><div class="story-name-row"><span class="story-name">${name}</span>${thoughtHtml}</div><div class="story-bubble markdown-body" onclick="if(window.PhoneEngine) window.PhoneEngine.openMsgMenu(${idx}, '${item.sender}')">${parsed}</div></div></div>`;
 });
 listEl.innerHTML = html;
 setTimeout(() => { listEl.scrollTop = listEl.scrollHeight; }, 100);
@@ -328,11 +326,11 @@ const listEl = document.getElementById('wb-toggle-list');
 const titleEl = document.getElementById('wb-toggle-title');
 if (!listEl || !titleEl) return;
 titleEl.innerHTML = `<i class="ph-fill ph-puzzle-piece"></i> 规则插件挂载 (${mode === 'online' ? '线上微信' : '线下故事'})`;
-const wbData = window.PhoneAPI?.getWorldbookData?.() || [];
+const wbData = window.PhoneAPI ? window.PhoneAPI.getWorldbookData() : [];
 let html = '';
 wbData.forEach(wb => {
 const isChecked = mode === 'online' ? wb.online : wb.offline;
-html += `<div style="display:flex;justify-content:space-between;align-items:center;background:var(--icon-bg);padding:12px;border-radius:12px;border:1px solid var(--border-color);"><div style="font-size:13px;font-weight:bold;color:var(--text-main);">${this.escapeHtml(wb.title)}</div><label class="switch"><input type="checkbox" ${isChecked ? 'checked' : ''} onchange="window.PhoneAPI?.toggleWorldbook?.('${this.escapeHtml(wb.id)}','${mode}',this.checked)"><span class="slider"></span></label></div>`;
+html += `<div style="display:flex;justify-content:space-between;align-items:center;background:var(--icon-bg);padding:12px;border-radius:12px;border:1px solid var(--border-color);"><div style="font-size:13px;font-weight:bold;color:var(--text-main);">${this.escapeHtml(wb.title)}</div><label class="switch"><input type="checkbox" ${isChecked ? 'checked' : ''} onchange="if(window.PhoneAPI) window.PhoneAPI.toggleWorldbook('${this.escapeHtml(wb.id)}','${mode}',this.checked)"><span class="slider"></span></label></div>`;
 });
 if (wbData.length === 0) { html = `<div style="text-align:center;color:var(--text-sub);padding:20px 0;">暂无规则，请去 Home 页【世界书】添加！</div>`; }
 listEl.innerHTML = html;
@@ -362,7 +360,7 @@ async importStickers() {
 const text = await this.showCustomPrompt("📦 批量导入表情包", "请直接粘贴你的文档内容，格式如：\n让我摸摸:\nhttps://...gif\n害羞了:\nhttps://...gif\n（清空所有表情包请输入：CLEAR）");
 if (!text) return;
 if (text.trim() === 'CLEAR') {
-if (confirm("确定要清空所有表情包吗？")) { localStorage.removeItem('custom_stickers'); this.renderStickers(); window.PhoneAPI?.showToast("🗑️ 表情包已清空"); }
+if (confirm("确定要清空所有表情包吗？")) { localStorage.removeItem('custom_stickers'); this.renderStickers(); if (window.PhoneAPI) window.PhoneAPI.showToast("🗑️ 表情包已清空"); }
 return;
 }
 const lines = text.split('\n'); let newStickers = []; let currentName = "未命名表情"; const urlRegex = /(https?:\/\/[^\s]+)/;
@@ -377,8 +375,8 @@ newStickers.push({ name, url });
 });
 if (newStickers.length > 0) {
 let existing = JSON.parse(localStorage.getItem('custom_stickers') || '[]'); existing = [...existing, ...newStickers];
-localStorage.setItem('custom_stickers', JSON.stringify(existing)); this.renderStickers(); window.PhoneAPI?.showToast(`✅ 成功解析并导入 ${newStickers.length} 个表情包！`);
-} else { window.PhoneAPI?.showToast(`❌ 未识别到任何有效链接`); }
+localStorage.setItem('custom_stickers', JSON.stringify(existing)); this.renderStickers(); if (window.PhoneAPI) window.PhoneAPI.showToast(`✅ 成功解析并导入 ${newStickers.length} 个表情包！`);
+} else { if (window.PhoneAPI) window.PhoneAPI.showToast(`❌ 未识别到任何有效链接`); }
 },
 
 renderStickers() {
@@ -388,7 +386,7 @@ const stickers = JSON.parse(localStorage.getItem('custom_stickers') || '[]');
 let html = `<div class="sticker-add-btn" onclick="window.PhoneUI.importStickers()"><i class="ph ph-plus" style="font-size:24px;"></i><span style="font-size:10px;margin-top:4px;">导入</span></div>`;
 stickers.forEach(st => {
 const safeName = this.escapeHtml(st.name); const safeUrl = this.escapeHtml(st.url);
-html += `<div class="sticker-item" onclick="window.PhoneEngine?.sendSticker?.('${safeName}','${safeUrl}')" title="${safeName}"><img src="${safeUrl}" alt="${safeName}"></div>`;
+html += `<div class="sticker-item" onclick="if(window.PhoneEngine) window.PhoneEngine.sendSticker('${safeName}','${safeUrl}')" title="${safeName}"><img src="${safeUrl}" alt="${safeName}"></div>`;
 });
 panel.innerHTML = html;
 },
@@ -423,11 +421,11 @@ if (modal) modal.classList.remove('show');
 renderArchiveList() {
 const listEl = document.getElementById('archive-list');
 if (!listEl) return;
-const archives = window.PhoneAPI?.getArchives?.() || [];
+const archives = window.PhoneAPI ? window.PhoneAPI.getArchives() : [];
 if (archives.length === 0) { listEl.innerHTML = '<div style="text-align:center;color:var(--text-sub);padding:20px 0;">暂无存档</div>'; return; }
 let html = '';
 [...archives].reverse().forEach(arc => {
-html += `<div class="archive-item"><div class="archive-info"><div class="archive-name">${this.escapeHtml(arc.name)}</div><div class="archive-meta">${this.escapeHtml(arc.date)} · ${arc.count} 条记录</div></div><div class="archive-actions"><button class="archive-btn load" onclick="window.PhoneAPI?.loadArchive?.('${this.escapeHtml(arc.id)}')">读取</button><button class="archive-btn del" onclick="window.PhoneAPI?.deleteArchive?.('${this.escapeHtml(arc.id)}')">删除</button></div></div>`;
+html += `<div class="archive-item"><div class="archive-info"><div class="archive-name">${this.escapeHtml(arc.name)}</div><div class="archive-meta">${this.escapeHtml(arc.date)} · ${arc.count} 条记录</div></div><div class="archive-actions"><button class="archive-btn load" onclick="if(window.PhoneAPI) window.PhoneAPI.loadArchive('${this.escapeHtml(arc.id)}')">读取</button><button class="archive-btn del" onclick="if(window.PhoneAPI) window.PhoneAPI.deleteArchive('${this.escapeHtml(arc.id)}')">删除</button></div></div>`;
 });
 listEl.innerHTML = html;
 },
@@ -492,24 +490,24 @@ if (appId === 'diary') { winEl.classList.add('fullscreen-mode'); } else { winEl.
 
 if (appId === 'novel') {
 contentEl.style.padding = '0';
-contentEl.innerHTML = `<div id="novel-content-list" class="story-bg" onclick="window.PhoneUI.closeStoryMenu();"></div><div id="story-plus-menu" class="story-menu"><div class="story-menu-item" onclick="window.PhoneUI.openWbToggleModal('offline');window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-puzzle-piece" style="color:#2a9d8f;"></i></div><div class="text">规则挂载</div></div><div class="story-menu-item" onclick="window.PhoneEngine?.extractMemory?.('novel');window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-brain"></i></div><div class="text">提取记忆</div></div><div class="story-menu-item" onclick="window.PhoneEngine?.washMemory?.('novel');window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-broom" style="color:#f4a261;"></i></div><div class="text">记忆洗地</div></div><div class="story-menu-item" onclick="window.PhoneUI.openArchiveModal?.();window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-floppy-disk"></i></div><div class="text">存档室</div></div></div><div class="story-input-bar"><div class="icon-btn" id="btn-story-plus" onclick="window.PhoneUI.toggleStoryMenu();"><i class="ph ph-plus-circle"></i></div><textarea id="novel-input" class="story-textarea" placeholder="书写你们的故事..." onclick="window.PhoneUI.closeStoryMenu();"></textarea><button class="story-send-btn" onclick="window.PhoneEngine?.sendNovelMessage?.();window.PhoneUI.closeStoryMenu();"><i class="ph-fill ph-paper-plane-right"></i></button></div>`;
+contentEl.innerHTML = `<div id="novel-content-list" class="story-bg" onclick="window.PhoneUI.closeStoryMenu();"></div><div id="story-plus-menu" class="story-menu"><div class="story-menu-item" onclick="window.PhoneUI.openWbToggleModal('offline');window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-puzzle-piece" style="color:#2a9d8f;"></i></div><div class="text">规则挂载</div></div><div class="story-menu-item" onclick="if(window.PhoneEngine) window.PhoneEngine.extractMemory('novel');window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-brain"></i></div><div class="text">提取记忆</div></div><div class="story-menu-item" onclick="if(window.PhoneEngine) window.PhoneEngine.washMemory('novel');window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-broom" style="color:#f4a261;"></i></div><div class="text">记忆洗地</div></div><div class="story-menu-item" onclick="window.PhoneUI.openArchiveModal();window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-floppy-disk"></i></div><div class="text">存档室</div></div></div><div class="story-input-bar"><div class="icon-btn" id="btn-story-plus" onclick="window.PhoneUI.toggleStoryMenu();"><i class="ph ph-plus-circle"></i></div><textarea id="novel-input" class="story-textarea" placeholder="书写你们的故事..." onclick="window.PhoneUI.closeStoryMenu();"></textarea><button class="story-send-btn" onclick="if(window.PhoneEngine) window.PhoneEngine.sendNovelMessage();window.PhoneUI.closeStoryMenu();"><i class="ph-fill ph-paper-plane-right"></i></button></div>`;
 this.renderNovelContent();
 } else if (appId === 'diary') {
 const diaryTitle = localStorage.getItem('diary_title') || 'His Diary';
 contentEl.innerHTML = `<div id="diary-cover-view" class="diary-cover-view"><div class="diary-book-cover long-pressable" data-img="bg_diary_cover" id="diary-book-cover" onclick="window.PhoneUI.unlockDiary()"><div class="diary-title">${this.escapeHtml(diaryTitle)}</div><div class="diary-hint">点击翻开日记</div></div><div class="diary-back-btn" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div></div><div id="diary-inside-view" class="diary-inside-view" ontouchstart="window.PhoneUI.handleSwipeStart(event)" ontouchend="window.PhoneUI.handleSwipeEnd(event)"><div class="diary-back-btn" onclick="window.PhoneUI.closeApp()" style="top:20px;left:15px;background:rgba(0,0,0,0.1);color:#333;z-index:50;"><i class="ph ph-caret-left"></i></div><div id="diary-content-area" style="display:flex;flex-direction:column;height:100%;"></div></div>`;
 this.renderDiaryPage();
-this.bindLongPresses(); // 重新绑定日记本封面的长按换图
+this.bindLongPresses();
 } else if (appId === 'memory_vault') {
 if (window.Config) window.Config.memoryVaultTab = 'daily';
 contentEl.innerHTML = `<div class="vault-tabs"><div class="vault-tab active" id="tab-daily" onclick="window.PhoneUI.switchVaultTab('daily')">日常 (Daily)</div><div class="vault-tab" id="tab-permanent" onclick="window.PhoneUI.switchVaultTab('permanent')">锚点 (Permanent)</div></div><div id="vault-content-area" style="padding-bottom: 80px;"></div><button id="ev-btn-remind" class="glass-fab" title="捞一个漂流瓶" onclick="window.PhoneUI.remindEchoVault()"><i class="ph-fill ph-bottle"></i></button>`;
 this.renderMemoryVault();
 } else if (appId === 'favorites') {
-const favs = window.PhoneAPI?.getFavorites?.() || [];
+const favs = window.PhoneAPI ? window.PhoneAPI.getFavorites() : [];
 let html = '<div style="padding:10px 5px;">';
 if (favs.length === 0) { html += `<div style="text-align:center;color:var(--text-sub);padding:50px 0;"><i class="ph-fill ph-star" style="font-size:48px;color:var(--border-color);margin-bottom:15px;"></i><br>空空如也<br>快去聊天记录长按消息收藏吧！</div>`; } else {
 [...favs].reverse().forEach(fav => {
 let content = window.marked ? window.marked.parse(fav.content || '') : (fav.content || '');
-html += `<div class="card" style="position:relative;padding-right:40px;"><div style="font-size:12px;color:var(--primary-color);margin-bottom:5px;font-weight:bold;">${this.escapeHtml(fav.time)} · ${this.escapeHtml(fav.source)}</div><div class="markdown-body" style="font-size:14px;">${content}</div><div onclick="window.PhoneAPI?.deleteFavorite?.('${this.escapeHtml(fav.id)}')" style="position:absolute;right:15px;top:50%;transform:translateY(-50%);color:var(--danger-color);font-size:20px;cursor:pointer;padding:5px;"><i class="ph ph-trash"></i></div></div>`;
+html += `<div class="card" style="position:relative;padding-right:40px;"><div style="font-size:12px;color:var(--primary-color);margin-bottom:5px;font-weight:bold;">${this.escapeHtml(fav.time)} · ${this.escapeHtml(fav.source)}</div><div class="markdown-body" style="font-size:14px;">${content}</div><div onclick="if(window.PhoneAPI) window.PhoneAPI.deleteFavorite('${this.escapeHtml(fav.id)}')" style="position:absolute;right:15px;top:50%;transform:translateY(-50%);color:var(--danger-color);font-size:20px;cursor:pointer;padding:5px;"><i class="ph ph-trash"></i></div></div>`;
 });
 }
 html += '</div>'; contentEl.innerHTML = html;
@@ -520,7 +518,7 @@ this.renderWorldbook();
 }
 },
 
-// 🌟 修复：在设置页面补回了壁纸和封面的 URL 输入框，支持双通道！
+// 🌟 修复：移除所有 onclick 里的 ?.
 renderSettings() {
 const contentEl = document.getElementById('app-window-content');
 if (!contentEl) return;
@@ -539,8 +537,8 @@ contentEl.innerHTML = `
 <div class="card">
 <h3 style="color:var(--primary-color);margin-bottom:15px;"><i class="ph-fill ph-user-list"></i> 基础设定</h3>
 <div style="display:flex;gap:10px;margin-bottom:10px;">
-<div style="flex:1;"><label style="font-size:12px;color:var(--text-sub);">我的名字</label><input type="text" id="my-name" oninput="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
-<div style="flex:1;"><label style="font-size:12px;color:var(--text-sub);">TA的名字</label><input type="text" id="char-name" oninput="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
+<div style="flex:1;"><label style="font-size:12px;color:var(--text-sub);">我的名字</label><input type="text" id="my-name" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
+<div style="flex:1;"><label style="font-size:12px;color:var(--text-sub);">TA的名字</label><input type="text" id="char-name" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
 </div>
 </div>
 
@@ -548,100 +546,102 @@ contentEl.innerHTML = `
 <h3 style="color:var(--primary-color);margin-bottom:10px;"><i class="ph-fill ph-palette"></i> UI 主题装修</h3>
 <div class="engine-title"><i class="ph-fill ph-image"></i> 壁纸设置 (支持长按换图，也可填URL)</div>
 <div style="display:flex;gap:10px;margin-bottom:10px;">
-<div style="flex:1;"><label style="font-size:11px;color:var(--text-sub);">全局壁纸(网址)</label><input type="text" id="bg-global" oninput="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
-<div style="flex:1;"><label style="font-size:11px;color:var(--text-sub);">聊天壁纸(网址)</label><input type="text" id="bg-chat" oninput="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
+<div style="flex:1;"><label style="font-size:11px;color:var(--text-sub);">全局壁纸(网址)</label><input type="text" id="bg-global" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
+<div style="flex:1;"><label style="font-size:11px;color:var(--text-sub);">聊天壁纸(网址)</label><input type="text" id="bg-chat" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
 </div>
 <div style="display:flex;gap:10px;margin-bottom:10px;">
-<div style="flex:1;"><label style="font-size:11px;color:var(--text-sub);">日记封面(网址)</label><input type="text" id="bg-diary-cover" oninput="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
-<div style="flex:1;"><label style="font-size:11px;color:var(--text-sub);">日记内页(网址)</label><input type="text" id="bg-diary-page" oninput="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
+<div style="flex:1;"><label style="font-size:11px;color:var(--text-sub);">日记封面(网址)</label><input type="text" id="bg-diary-cover" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
+<div style="flex:1;"><label style="font-size:11px;color:var(--text-sub);">日记内页(网址)</label><input type="text" id="bg-diary-page" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
 </div>
 <div class="engine-title"><i class="ph-fill ph-heart" style="color:var(--danger-color);"></i> 恋爱纪念日</div>
-<div style="margin-bottom:15px;"><label style="font-size:11px;color:var(--text-sub);">相爱起始日 (用于首页天数计算)</label><input type="date" id="love-start-date" value="${localStorage.getItem('love_start_date') || defaultDate}" onchange="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
+<div style="margin-bottom:15px;"><label style="font-size:11px;color:var(--text-sub);">相爱起始日 (用于首页天数计算)</label><input type="date" id="love-start-date" value="${localStorage.getItem('love_start_date') || defaultDate}" onchange="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
 <div class="engine-title"><i class="ph-fill ph-text-aa"></i> 日记本专属设置</div>
-<div style="margin-bottom:10px;"><label style="font-size:11px;color:var(--danger-color);font-weight:bold;">日记起始日期</label><input type="date" id="diary-start-date" value="${defaultDate}" onchange="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
-<div style="margin-bottom:10px;"><label style="font-size:11px;color:var(--text-sub);">封面标题</label><input type="text" id="diary-title" placeholder="His Diary" oninput="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
+<div style="margin-bottom:10px;"><label style="font-size:11px;color:var(--danger-color);font-weight:bold;">日记起始日期</label><input type="date" id="diary-start-date" value="${defaultDate}" onchange="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
+<div style="margin-bottom:10px;"><label style="font-size:11px;color:var(--text-sub);">封面标题</label><input type="text" id="diary-title" placeholder="His Diary" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
 </div>
 </div>
 
 <div id="set-sec-ai" class="set-section">
 <div class="card">
 <h3 style="color:var(--primary-color);margin-bottom:10px;"><i class="ph-fill ph-scroll"></i> 提示词与人设 (预设库)</h3>
-<div class="preset-bar"><select id="prompt-preset-select" onchange="window.PhoneAPI?.loadPromptPreset?.()"></select><button class="preset-btn" onclick="window.PhoneAPI?.savePromptPreset?.()">存为预设</button><button class="preset-btn del" onclick="window.PhoneAPI?.deletePromptPreset?.()">删除</button></div>
-<div style="margin-bottom:15px;"><label style="font-size:12px;color:var(--text-main);font-weight:bold;">1. 系统指令 (防八股/核心规则)</label><textarea id="system-prompt" rows="4" oninput="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:10px;border-radius:8px;resize:vertical;font-size:12px;margin-top:4px;"></textarea></div>
-<div style="margin-bottom:15px;"><label style="font-size:12px;color:var(--text-main);font-weight:bold;">2. 角色人设 (性格/背景/口吻)</label><textarea id="char-persona" rows="6" oninput="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:10px;border-radius:8px;resize:vertical;font-size:12px;margin-top:4px;"></textarea></div>
-<div style="margin-bottom:5px;"><label style="font-size:12px;color:var(--text-main);font-weight:bold;">3. 线下文风 (小说模式专属要求)</label><textarea id="novel-style" rows="4" oninput="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:10px;border-radius:8px;resize:vertical;font-size:12px;margin-top:4px;"></textarea></div>
+<div class="preset-bar"><select id="prompt-preset-select" onchange="if(window.PhoneAPI) window.PhoneAPI.loadPromptPreset()"></select><button class="preset-btn" onclick="if(window.PhoneAPI) window.PhoneAPI.savePromptPreset()">存为预设</button><button class="preset-btn del" onclick="if(window.PhoneAPI) window.PhoneAPI.deletePromptPreset()">删除</button></div>
+<div style="margin-bottom:15px;"><label style="font-size:12px;color:var(--text-main);font-weight:bold;">1. 系统指令 (防八股/核心规则)</label><textarea id="system-prompt" rows="4" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:10px;border-radius:8px;resize:vertical;font-size:12px;margin-top:4px;"></textarea></div>
+<div style="margin-bottom:15px;"><label style="font-size:12px;color:var(--text-main);font-weight:bold;">2. 角色人设 (性格/背景/口吻)</label><textarea id="char-persona" rows="6" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:10px;border-radius:8px;resize:vertical;font-size:12px;margin-top:4px;"></textarea></div>
+<div style="margin-bottom:5px;"><label style="font-size:12px;color:var(--text-main);font-weight:bold;">3. 线下文风 (小说模式专属要求)</label><textarea id="novel-style" rows="4" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:10px;border-radius:8px;resize:vertical;font-size:12px;margin-top:4px;"></textarea></div>
 </div>
 <div class="card">
 <h3 style="color:var(--primary-color);margin-bottom:15px;"><i class="ph-fill ph-toggle-left"></i> 功能开关</h3>
-<div style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;background:var(--icon-bg);padding:10px;border-radius:8px;"><label style="font-size:13px;color:var(--text-main);font-weight:bold;"><i class="ph ph-prohibit"></i> 绝对禁止 AI 使用 Emoji</label><input type="checkbox" id="ban-emoji" onchange="window.PhoneAPI?.autoSave?.()" style="width:18px;height:18px;"></div>
-<div style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;background:var(--icon-bg);padding:10px;border-radius:8px;"><label style="font-size:13px;color:var(--text-main);font-weight:bold;"><i class="ph ph-arrows-merge"></i> 开启线上/线下记忆互通</label><input type="checkbox" id="share-memory" onchange="window.PhoneAPI?.autoSave?.()" style="width:18px;height:18px;"></div>
+<div style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;background:var(--icon-bg);padding:10px;border-radius:8px;"><label style="font-size:13px;color:var(--text-main);font-weight:bold;"><i class="ph ph-prohibit"></i> 绝对禁止 AI 使用 Emoji</label><input type="checkbox" id="ban-emoji" onchange="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:18px;height:18px;"></div>
+<div style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;background:var(--icon-bg);padding:10px;border-radius:8px;"><label style="font-size:13px;color:var(--text-main);font-weight:bold;"><i class="ph ph-arrows-merge"></i> 开启线上/线下记忆互通</label><input type="checkbox" id="share-memory" onchange="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:18px;height:18px;"></div>
 </div>
 <div class="card">
 <h3 style="color:var(--primary-color);margin-bottom:10px;"><i class="ph-fill ph-database"></i> 语言引擎预设库 (文本模型)</h3>
-<div style="display:flex;gap:8px;align-items:center;margin-bottom:15px;padding-bottom:15px;border-bottom:1px dashed var(--border-color);"><select id="preset-delete-select" onchange="window.PhoneUI.fillPresetData()" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--primary-color);"><option value="">-- 选择预设以编辑或删除 --</option></select><button class="btn-refresh" onclick="window.PhoneAPI?.deletePreset?.()" style="width:auto;margin:0;background:transparent;color:var(--danger-color);border:1px solid var(--danger-color);padding:8px 12px;"><i class="ph ph-trash"></i></button></div>
+<div style="display:flex;gap:8px;align-items:center;margin-bottom:15px;padding-bottom:15px;border-bottom:1px dashed var(--border-color);"><select id="preset-delete-select" onchange="window.PhoneUI.fillPresetData()" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--primary-color);"><option value="">-- 选择预设以编辑或删除 --</option></select><button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.deletePreset()" style="width:auto;margin:0;background:transparent;color:var(--danger-color);border:1px solid var(--danger-color);padding:8px 12px;"><i class="ph ph-trash"></i></button></div>
 <div style="margin-bottom:10px;"><input type="text" id="preset-name" placeholder="起个名字 (如: 硅基-DeepSeek)" style="width:100%;padding:8px;border-radius:8px;"></div>
 <div style="margin-bottom:10px;"><input type="text" id="preset-url" placeholder="接口地址 (Base URL)" style="width:100%;padding:8px;border-radius:8px;"></div>
 <div style="margin-bottom:10px;"><input type="password" id="preset-key" placeholder="API Key (密钥)" style="width:100%;padding:8px;border-radius:8px;"></div>
 <div style="margin-bottom:15px;"><input type="text" id="preset-model" placeholder="模型名称 (Model)" style="width:100%;padding:8px;border-radius:8px;"></div>
-<button class="btn-refresh" onclick="window.PhoneAPI?.savePreset?.()" style="margin-top:0;margin-bottom:5px;"><i class="ph ph-floppy-disk"></i> 保存 / 更新当前预设</button>
+<button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.savePreset()" style="margin-top:0;margin-bottom:5px;"><i class="ph ph-floppy-disk"></i> 保存 / 更新当前预设</button>
 </div>
 </div>
 
 <div id="set-sec-draw" class="set-section">
 <div class="card">
 <h3 style="color:var(--primary-color);margin-bottom:10px;"><i class="ph-fill ph-image"></i> 绘画引擎配置 (DALL-E 格式)</h3>
-<div style="margin-bottom:10px;"><input type="text" id="img-api-url" placeholder="接口地址" oninput="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:8px;border-radius:8px;"></div>
-<div style="margin-bottom:10px;"><input type="password" id="img-api-key" placeholder="API Key (密钥)" oninput="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:8px;border-radius:8px;"></div>
-<div style="margin-bottom:10px;"><input type="text" id="img-api-model" placeholder="模型名称 (例如: dall-e-3)" oninput="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:8px;border-radius:8px;"></div>
+<div style="margin-bottom:10px;"><input type="text" id="img-api-url" placeholder="接口地址" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;"></div>
+<div style="margin-bottom:10px;"><input type="password" id="img-api-key" placeholder="API Key (密钥)" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;"></div>
+<div style="margin-bottom:10px;"><input type="text" id="img-api-model" placeholder="模型名称 (例如: dall-e-3)" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;"></div>
 </div>
 </div>
 
 <div id="set-sec-sys" class="set-section">
 <div class="card" style="border: 1px solid var(--primary-color);">
 <h3 style="color:var(--primary-color);margin-bottom:10px;"><i class="ph-fill ph-cloud-check"></i> Cloudflare 云端同步</h3>
-<div style="display:flex;gap:10px;"><button class="btn-refresh" onclick="window.PhoneAPI?.syncToCloud?.()" style="flex:1;margin-top:0;background:linear-gradient(135deg, var(--primary-color), var(--secondary-color));"><i class="ph-fill ph-cloud-arrow-up"></i> 备份到云端</button><button class="btn-refresh" onclick="window.PhoneAPI?.restoreFromCloud?.()" style="flex:1;margin-top:0;background:var(--icon-bg);color:var(--text-main);border:1px solid var(--border-color);"><i class="ph-fill ph-cloud-arrow-down"></i> 从云端拉取</button></div>
+<div style="display:flex;gap:10px;"><button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.syncToCloud()" style="flex:1;margin-top:0;background:linear-gradient(135deg, var(--primary-color), var(--secondary-color));"><i class="ph-fill ph-cloud-arrow-up"></i> 备份到云端</button><button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.restoreFromCloud()" style="flex:1;margin-top:0;background:var(--icon-bg);color:var(--text-main);border:1px solid var(--border-color);"><i class="ph-fill ph-cloud-arrow-down"></i> 从云端拉取</button></div>
 </div>
 <div class="card">
 <h3 style="color:var(--primary-color);margin-bottom:15px;"><i class="ph-fill ph-floppy-disk-back"></i> 本地文件备份 (JSON)</h3>
-<div style="display:flex;gap:10px;"><button class="btn-refresh" onclick="window.PhoneAPI?.exportData?.()" style="flex:1;margin-top:0;background:var(--secondary-color);"><i class="ph ph-export"></i> 导出文件</button><button class="btn-refresh" onclick="document.getElementById('import-file').click()" style="flex:1;margin-top:0;background:#2a9d8f;"><i class="ph ph-import"></i> 导入文件</button><input type="file" id="import-file" style="display:none" accept=".json" onchange="window.PhoneAPI?.importData?.(event)"></div>
+<div style="display:flex;gap:10px;"><button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.exportData()" style="flex:1;margin-top:0;background:var(--secondary-color);"><i class="ph ph-export"></i> 导出文件</button><button class="btn-refresh" onclick="document.getElementById('import-file').click()" style="flex:1;margin-top:0;background:#2a9d8f;"><i class="ph ph-import"></i> 导入文件</button><input type="file" id="import-file" style="display:none" accept=".json" onchange="if(window.PhoneAPI) window.PhoneAPI.importData(event)"></div>
 </div>
 <div class="card">
 <h3 style="color:var(--danger-color);margin-bottom:15px;"><i class="ph-fill ph-warning-circle"></i> 系统维护</h3>
-<button class="btn-refresh" onclick="window.PhoneAPI?.forceUpdate?.()" style="background:#f4a261;margin-top:0;margin-bottom:10px;"><i class="ph ph-arrows-clockwise"></i> 强制更新系统 (获取最新代码)</button>
-<button class="btn-refresh" onclick="window.PhoneAPI?.clearChat?.()" style="background:var(--danger-color);margin-top:0;"><i class="ph ph-trash"></i> 清空所有聊天与小说记录</button>
+<button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.forceUpdate()" style="background:#f4a261;margin-top:0;margin-bottom:10px;"><i class="ph ph-arrows-clockwise"></i> 强制更新系统 (获取最新代码)</button>
+<button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.clearChat()" style="background:var(--danger-color);margin-top:0;"><i class="ph ph-trash"></i> 清空所有聊天与小说记录</button>
 </div>
 </div>
 `;
 
 setTimeout(() => {
-window.PhoneAPI?.loadSettings?.();
-window.PhoneAPI?.refreshPresetDropdowns?.();
-window.PhoneAPI?.refreshPromptDropdowns?.();
-window.PhoneAPI?.refreshUIDropdowns?.();
-window.PhoneAPI?.refreshImgDropdowns?.();
+if (window.PhoneAPI) {
+    window.PhoneAPI.loadSettings();
+    window.PhoneAPI.refreshPresetDropdowns();
+    window.PhoneAPI.refreshPromptDropdowns();
+    window.PhoneAPI.refreshUIDropdowns();
+    window.PhoneAPI.refreshImgDropdowns();
+}
 }, 50);
 },
 
 renderWorldbook() {
 const contentEl = document.getElementById('app-window-content');
 if (!contentEl) return;
-const wbData = window.PhoneAPI?.getWorldbookData?.() || [];
+const wbData = window.PhoneAPI ? window.PhoneAPI.getWorldbookData() : [];
 let wbHtml = '';
 wbData.forEach(wb => {
-const deleteBtn = wb.isCustom ? `<div class="wb-delete-btn" onclick="window.PhoneAPI?.deleteWorldbook?.('${this.escapeHtml(wb.id)}')"><i class="ph ph-trash"></i></div>` : '';
+const deleteBtn = wb.isCustom ? `<div class="wb-delete-btn" onclick="if(window.PhoneAPI) window.PhoneAPI.deleteWorldbook('${this.escapeHtml(wb.id)}')"><i class="ph ph-trash"></i></div>` : '';
 wbHtml += `<div class="wb-card"><div class="wb-header"><span class="wb-title">${this.escapeHtml(wb.title)}</span>${deleteBtn}</div><div class="wb-content">${wb.content || ''}</div></div>`;
 });
 contentEl.innerHTML = `
 <div class="card" style="margin-bottom:20px;">
 <h3 style="font-size:14px;color:var(--primary-color);margin-bottom:10px;"><i class="ph-fill ph-text-aa"></i> 线下小说字数底线</h3>
 <div style="display:flex;align-items:center;gap:10px;">
-<input type="number" id="novel-min-words" value="${localStorage.getItem('novel_min_words') || '150'}" oninput="window.PhoneAPI?.saveNovelWords?.()" style="width:80px;padding:8px;border:1px solid var(--border-color);border-radius:8px;text-align:center;background:var(--icon-bg);color:var(--text-main);">
+<input type="number" id="novel-min-words" value="${localStorage.getItem('novel_min_words') || '150'}" oninput="if(window.PhoneAPI) window.PhoneAPI.saveNovelWords()" style="width:80px;padding:8px;border:1px solid var(--border-color);border-radius:8px;text-align:center;background:var(--icon-bg);color:var(--text-main);">
 <span style="font-size:12px;color:var(--text-sub);">字 (打字自动保存)</span>
 </div>
 </div>
 <h3 style="font-size:14px;color:var(--primary-color);margin-bottom:10px;margin-left:5px;"><i class="ph-fill ph-puzzle-piece"></i> 规则插件库</h3>
 ${wbHtml}
-<button class="btn-refresh" onclick="window.PhoneUI.openWbModal?.()" style="margin-top:10px;margin-bottom:30px;background:transparent;color:var(--primary-color);border:1px dashed var(--primary-color);"><i class="ph ph-plus"></i> 添加自定义规则</button>
+<button class="btn-refresh" onclick="window.PhoneUI.openWbModal()" style="margin-top:10px;margin-bottom:30px;background:transparent;color:var(--primary-color);border:1px dashed var(--primary-color);"><i class="ph ph-plus"></i> 添加自定义规则</button>
 `;
 },
 
@@ -666,7 +666,7 @@ html += `<div class="gallery-grid">`;
 [...items].reverse().forEach(img => {
 const safeSrc = this.escapeHtml(img.content || '');
 const safeId = this.escapeHtml(img.id || '');
-html += `<div class="gallery-item" onclick="window.PhoneUI.openImageViewer('${safeSrc}')"><img src="${safeSrc}"><div class="gallery-del-btn" onclick="event.stopPropagation();window.PhoneEngine?.deleteGalleryImage?.('${safeId}')"><i class="ph ph-trash"></i></div></div>`;
+html += `<div class="gallery-item" onclick="window.PhoneUI.openImageViewer('${safeSrc}')"><img src="${safeSrc}"><div class="gallery-del-btn" onclick="event.stopPropagation();if(window.PhoneEngine) window.PhoneEngine.deleteGalleryImage('${safeId}')"><i class="ph ph-trash"></i></div></div>`;
 });
 html += '</div>';
 }
@@ -687,7 +687,7 @@ const img = document.getElementById('viewer-img');
 if (!img || !img.src) return;
 const a = document.createElement('a'); a.href = img.src; a.download = 'Photo_' + Date.now() + '.jpg';
 document.body.appendChild(a); a.click(); document.body.removeChild(a);
-window.PhoneAPI?.showToast('✅ 图片已保存到手机！');
+if (window.PhoneAPI) window.PhoneAPI.showToast('✅ 图片已保存到手机！');
 },
 
 closeApp() {
@@ -706,7 +706,7 @@ this.renderMemoryVault();
 
 renderMemoryVault() {
 const contentArea = document.getElementById('vault-content-area');
-if (!contentArea || !window.PhoneAPI?.EchoVault) return;
+if (!contentArea || !window.PhoneAPI || !window.PhoneAPI.EchoVault) return;
 const currentTab = window.Config?.memoryVaultTab || 'daily';
 const evData = window.PhoneAPI.EchoVault.getData();
 
@@ -717,7 +717,7 @@ if (currentTab === 'daily') {
     else {
         dailyKeys.forEach(date => {
             const item = evData.daily[date];
-            html += `<div class="ev-card"><div class="ev-card-header"><span class="ev-date">📅 ${date}</span><span class="ev-importance">重要度: ${item.importance} | 查阅: ${item.hits}</span></div><div class="ev-body">${this.escapeHtml(item.content)}</div><div class="ev-actions"><i class="ph-fill ph-star" title="设为锚点" onclick="window.PhoneAPI.toggleCoreMemory('${date}')"></i><i class="ph-fill ph-pencil-simple" title="编辑" onclick="window.PhoneAPI.editMemoryVault('${date}')"></i><i class="ph-fill ph-trash" title="删除" onclick="window.PhoneAPI.deleteFromMemoryVault('${date}')"></i></div></div>`;
+            html += `<div class="ev-card"><div class="ev-card-header"><span class="ev-date">📅 ${date}</span><span class="ev-importance">重要度: ${item.importance} | 查阅: ${item.hits}</span></div><div class="ev-body">${this.escapeHtml(item.content)}</div><div class="ev-actions"><i class="ph-fill ph-star" title="设为锚点" onclick="if(window.PhoneAPI) window.PhoneAPI.toggleCoreMemory('${date}')"></i><i class="ph-fill ph-pencil-simple" title="编辑" onclick="if(window.PhoneAPI) window.PhoneAPI.editMemoryVault('${date}')"></i><i class="ph-fill ph-trash" title="删除" onclick="if(window.PhoneAPI) window.PhoneAPI.deleteFromMemoryVault('${date}')"></i></div></div>`;
         });
     }
 } else if (currentTab === 'permanent') {
@@ -726,7 +726,7 @@ if (currentTab === 'daily') {
     else {
         permKeys.forEach(key => {
             const item = evData.permanent[key];
-            html += `<div class="ev-card ev-permanent-card"><div class="ev-card-header"><span class="ev-title">📌 ${key}</span><span class="ev-importance">永不衰减</span></div><div class="ev-body">${this.escapeHtml(item.content)}</div><div class="ev-actions"><i class="ph ph-star" title="取消锚点" onclick="window.PhoneAPI.toggleCoreMemory('${key}')"></i><i class="ph-fill ph-pencil-simple" title="编辑" onclick="window.PhoneAPI.editMemoryVault('${key}')"></i><i class="ph-fill ph-trash" title="删除" onclick="window.PhoneAPI.deleteFromMemoryVault('${key}')"></i></div></div>`;
+            html += `<div class="ev-card ev-permanent-card"><div class="ev-card-header"><span class="ev-title">📌 ${key}</span><span class="ev-importance">永不衰减</span></div><div class="ev-body">${this.escapeHtml(item.content)}</div><div class="ev-actions"><i class="ph ph-star" title="取消锚点" onclick="if(window.PhoneAPI) window.PhoneAPI.toggleCoreMemory('${key}')"></i><i class="ph-fill ph-pencil-simple" title="编辑" onclick="if(window.PhoneAPI) window.PhoneAPI.editMemoryVault('${key}')"></i><i class="ph-fill ph-trash" title="删除" onclick="if(window.PhoneAPI) window.PhoneAPI.deleteFromMemoryVault('${key}')"></i></div></div>`;
         });
     }
 }
@@ -734,7 +734,7 @@ contentArea.innerHTML = html;
 },
 
 remindEchoVault() {
-    const memory = window.PhoneAPI?.EchoVault?.remind();
+    const memory = window.PhoneAPI && window.PhoneAPI.EchoVault ? window.PhoneAPI.EchoVault.remind() : null;
     if(memory) {
         alert(`🌊 【命运的漂流瓶】\n捞起了一段快被遗忘的旧时光 (${memory.date}):\n\n${memory.meta.content}`);
         this.renderMemoryVault(); 
@@ -789,16 +789,16 @@ const targetDate = new Date(startDate); targetDate.setDate(startDate.getDate() +
 const y = targetDate.getFullYear(); const m = String(targetDate.getMonth() + 1).padStart(2, '0'); const d = String(targetDate.getDate()).padStart(2, '0');
 const dateStr = `${y}-${m}-${d}`; const weekDays = ['日', '一', '二', '三', '四', '五', '六']; const weekStr = '星期' + weekDays[targetDate.getDay()];
 const displayDate = `${y}年${m}月${d}日`;
-const diaries = window.PhoneAPI?.getDiaries?.() || {};
+const diaries = window.PhoneAPI ? window.PhoneAPI.getDiaries() : {};
 let content = diaries[dateStr];
 
-let html = `<div class="notebook-scroll-area" style="overflow-y:auto; height:100%; padding:80px 15px 60px 15px; display:flex; flex-direction:column;"><div class="notebook-header" style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(80,130,180,.35);padding-bottom:10px;margin-bottom:15px;flex-shrink:0;"><div class="notebook-date-wrap"><span class="notebook-date" style="font-weight:bold;font-size:18px;">${displayDate}</span><span class="notebook-week" style="margin-left:8px;font-size:13px;color:var(--text-sub);">${weekStr}</span></div><div style="display:flex;align-items:center;gap:12px;">${content ? `<i class="ph ph-arrows-clockwise" onclick="if(confirm('确定要让大侦探重写这页日记吗？')){ (window.PhoneAPI?.generateDiary || window.PhoneEngine?.generateDiary)?.('${dateStr}'); }" style="font-size:20px;color:var(--text-sub);cursor:pointer;transition:0.2s;"></i>` : ''}<div class="notebook-mood">☁️</div></div></div>`;
+let html = `<div class="notebook-scroll-area" style="overflow-y:auto; height:100%; padding:80px 15px 60px 15px; display:flex; flex-direction:column;"><div class="notebook-header" style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(80,130,180,.35);padding-bottom:10px;margin-bottom:15px;flex-shrink:0;"><div class="notebook-date-wrap"><span class="notebook-date" style="font-weight:bold;font-size:18px;">${displayDate}</span><span class="notebook-week" style="margin-left:8px;font-size:13px;color:var(--text-sub);">${weekStr}</span></div><div style="display:flex;align-items:center;gap:12px;">${content ? `<i class="ph ph-arrows-clockwise" onclick="if(confirm('确定要让大侦探重写这页日记吗？')){ if(window.PhoneEngine) window.PhoneEngine.generateDiary('${dateStr}'); }" style="font-size:20px;color:var(--text-sub);cursor:pointer;transition:0.2s;"></i>` : ''}<div class="notebook-mood">☁️</div></div></div>`;
 
 if (content) {
 content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<思维链>[\s\S]*?<\/思维链>/gi, '').trim();
 html += `<div class="notebook-content" style="flex:1; font-family:'Long Cang','Kaiti',cursive;font-size:22px;line-height:2.15rem;color:#2c2c2c;white-space:pre-wrap;word-break:break-word; margin:0; padding-bottom: 40px;">${this.escapeHtml(content)}</div></div>`;
 } else {
-html += `<div class="notebook-empty" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center;"><p style="margin-bottom:20px;color:var(--text-sub);font-size:14px;">这一页还是空白的...</p><button class="btn-refresh" onclick="(window.PhoneAPI?.generateDiary || window.PhoneEngine?.generateDiary)?.('${dateStr}')" style="width:auto;padding:10px 20px;background:rgba(0,0,0,0.6);border-radius:8px;font-family:sans-serif;font-size:14px;color:#fff;border:none;cursor:pointer;"><i class="ph-fill ph-magic-wand"></i> 偷偷写日记</button></div></div>`;
+html += `<div class="notebook-empty" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center;"><p style="margin-bottom:20px;color:var(--text-sub);font-size:14px;">这一页还是空白的...</p><button class="btn-refresh" onclick="if(window.PhoneEngine) window.PhoneEngine.generateDiary('${dateStr}')" style="width:auto;padding:10px 20px;background:rgba(0,0,0,0.6);border-radius:8px;font-family:sans-serif;font-size:14px;color:#fff;border:none;cursor:pointer;"><i class="ph-fill ph-magic-wand"></i> 偷偷写日记</button></div></div>`;
 }
 
 html += `<div class="page-turner" style="position:absolute;bottom:15px;left:0;right:0;display:flex;justify-content:space-between;padding:0 25px;pointer-events:none;"><div class="page-btn" onclick="window.PhoneUI.turnDiaryPage(-1)" style="pointer-events:auto;cursor:pointer;background:rgba(255,255,255,0.8);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.1);"><i class="ph ph-caret-left"></i></div><div class="page-btn" onclick="window.PhoneUI.turnDiaryPage(1)" style="pointer-events:auto;cursor:pointer;background:rgba(255,255,255,0.8);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.1);"><i class="ph ph-caret-right"></i></div></div>`;
@@ -819,7 +819,7 @@ starsHtml += `<div class="star" style="width:${size}px;height:${size}px;top:${to
 }
 bgEl.innerHTML = starsHtml;
 
-const validMemories = window.PhoneAPI?.getFavorites?.() || [];
+const validMemories = window.PhoneAPI ? window.PhoneAPI.getFavorites() : [];
 fragmentsContainer.innerHTML = '';
 if (validMemories.length === 0) {
 const frag = document.createElement('div'); frag.className = 'memory-fragment'; frag.style.cssText = 'top:50%; left:50%; animation-delay:0s;';
@@ -906,7 +906,7 @@ document.getElementById('preset-name').value = preset.name || '';
 document.getElementById('preset-url').value = preset.url || '';
 document.getElementById('preset-key').value = preset.key || '';
 document.getElementById('preset-model').value = preset.model || '';
-window.PhoneAPI?.showToast('✏️ 已加载预设，修改后点击保存即可覆盖');
+if (window.PhoneAPI) window.PhoneAPI.showToast('✏️ 已加载预设，修改后点击保存即可覆盖');
 }
 }
 };

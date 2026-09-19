@@ -65,38 +65,20 @@ this.renderWorldbook();
 }
 },
 
+// 🌟 核心修改：更新首页头像、天数、最新消息
 updateHomeWidget() {
 const roleId = window.Config?.currentContactId;
 if (!roleId) return;
 const wechatItems = window.Config?.phoneData?.[roleId]?.wechat?.items || [];
 const msgEl = document.getElementById('widget-msg');
+const avatarEl = document.getElementById('widget-avatar');
+const nameEl = document.getElementById('widget-name');
 
-// 🌟 更新小组件头像和名字
-const widgetAvatarEl = document.getElementById('widget-avatar');
-const widgetNameEl = document.getElementById('widget-name');
 const taAvatar = localStorage.getItem('ta_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=TA&backgroundColor=e8f0fa';
-const charName = localStorage.getItem('char_name') || 'TA';
-
-if (widgetAvatarEl) widgetAvatarEl.src = taAvatar;
-if (widgetNameEl) widgetNameEl.innerText = charName;
-
-// 🌟 更新全新首页的头像
-const homeMyAvatarEl = document.getElementById('home-my-avatar');
-const homeTaAvatarEl = document.getElementById('home-ta-avatar');
 const myAvatar = localStorage.getItem('my_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa';
-if (homeMyAvatarEl) homeMyAvatarEl.src = myAvatar;
-if (homeTaAvatarEl) homeTaAvatarEl.src = taAvatar;
 
-// 🌟 更新恋爱天数计算
-const daysEl = document.getElementById('home-love-days');
-if (daysEl) {
-const startDateStr = localStorage.getItem('love_start_date') || localStorage.getItem('diary_start_date') || new Date().toISOString().split('T')[0];
-const startDate = new Date(startDateStr);
-const now = new Date();
-const diffTime = Math.abs(now - startDate);
-const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-daysEl.innerText = diffDays;
-}
+if (avatarEl) avatarEl.src = taAvatar;
+if (nameEl) nameEl.innerText = localStorage.getItem('char_name') || 'TA';
 
 if (msgEl) {
 if (wechatItems.length > 0) {
@@ -107,6 +89,27 @@ if (text.includes('<purchase>')) text = '[收到一笔新订单]';
 msgEl.innerText = text;
 } else {
 msgEl.innerText = '暂无新消息...';
+}
+}
+
+// 同步双人头像
+const homeMyAvatar = document.getElementById('home-my-avatar');
+const homeTaAvatar = document.getElementById('home-ta-avatar');
+if (homeMyAvatar) homeMyAvatar.src = myAvatar;
+if (homeTaAvatar) homeTaAvatar.src = taAvatar;
+
+// 动态计算相爱天数
+const daysEl = document.getElementById('home-love-days');
+if (daysEl) {
+const startDateStr = localStorage.getItem('love_start_date') || localStorage.getItem('diary_start_date');
+if (startDateStr) {
+const start = new Date(startDateStr);
+const now = new Date();
+const diffTime = Math.abs(now - start);
+const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+daysEl.innerText = diffDays;
+} else {
+daysEl.innerText = '0';
 }
 }
 },
@@ -607,6 +610,7 @@ this.renderWorldbook();
 }
 },
 
+// 🌟 核心修改：在设置里加上“恋爱纪念日”
 renderSettings() {
 const contentEl = document.getElementById('app-window-content');
 if (!contentEl) return;
@@ -644,11 +648,6 @@ contentEl.innerHTML = `
 <input type="text" id="ta-avatar" oninput="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;">
 </div>
 </div>
-<!-- 🌟 新增：恋爱纪念日设置 -->
-<div style="margin-top:10px;">
-<label style="font-size:12px;color:var(--danger-color);font-weight:bold;"><i class="ph-fill ph-heart"></i> 恋爱纪念日 (用于首页自动算天数)</label>
-<input type="date" id="love-start-date" value="${defaultDate}" onchange="window.PhoneAPI?.autoSave?.(); window.PhoneUI?.updateHomeWidget?.();" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;">
-</div>
 </div>
 
 <div class="card">
@@ -677,9 +676,16 @@ contentEl.innerHTML = `
 <label style="font-size:11px;color:var(--text-sub);">日记内页底图(网址)</label>
 <input type="text" id="bg-diary-page" placeholder="推荐使用牛皮纸或水彩底图" oninput="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;">
 </div>
+
+<div class="engine-title"><i class="ph-fill ph-heart" style="color:var(--danger-color);"></i> 恋爱纪念日</div>
+<div style="margin-bottom:15px;">
+<label style="font-size:11px;color:var(--text-sub);">相爱起始日 (用于首页天数计算)</label>
+<input type="date" id="love-start-date" value="${localStorage.getItem('love_start_date') || defaultDate}" onchange="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;">
+</div>
+
 <div class="engine-title"><i class="ph-fill ph-text-aa"></i> 日记本专属设置</div>
 <div style="margin-bottom:10px;">
-<label style="font-size:11px;color:var(--text-sub);">日记起始日期 (决定第一页是哪天)</label>
+<label style="font-size:11px;color:var(--danger-color);font-weight:bold;">日记起始日期 (决定第一页是哪天！)</label>
 <input type="date" id="diary-start-date" value="${defaultDate}" onchange="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;">
 </div>
 <div style="margin-bottom:10px;">

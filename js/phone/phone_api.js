@@ -63,7 +63,7 @@ export const PhoneAPI = {
         }
     },
 
-    // 🌟 修复：EchoVault 记忆库数据引擎 (强制从备份拉取)
+    // 🌟 修复：EchoVault 记忆库强制拉取备份
     EchoVault: {
         getData() {
             const raw = localStorage.getItem('echovault_data');
@@ -236,12 +236,16 @@ export const PhoneAPI = {
         try {
             const keys = ['bg_global', 'bg_chat', 'bg_diary_cover', 'bg_diary_page'];
             for (let key of keys) {
-                const blob = await this.LocalDB.get(key);
-                if (blob) {
-                    const url = this.LocalDB.urlOf(key, blob);
-                    let cssVar = '--bg-image-' + key.replace('bg_', '').replace(/_/g, '-');
-                    if (key === 'bg_global') cssVar = '--bg-image-global';
-                    document.documentElement.style.setProperty(cssVar, `url('${url}')`);
+                // 如果用户没有在设置里填 URL，才去加载本地长按存的图
+                const urlSetting = localStorage.getItem(key);
+                if (!urlSetting || urlSetting.trim() === '') {
+                    const blob = await this.LocalDB.get(key);
+                    if (blob) {
+                        const url = this.LocalDB.urlOf(key, blob);
+                        let cssVar = '--bg-image-' + key.replace('bg_', '').replace(/_/g, '-');
+                        if (key === 'bg_global') cssVar = '--bg-image-global';
+                        document.documentElement.style.setProperty(cssVar, `url('${url}')`);
+                    }
                 }
             }
         } catch(e) {}
@@ -274,11 +278,15 @@ export const PhoneAPI = {
     refreshPresetDropdowns() {
         const presets = this.getPresets();
         const mainSelect = document.getElementById('quick-main-engine');
+        const delSelect = document.getElementById('preset-delete-select');
         if (!mainSelect) return;
         let optionsHtml = '<option value="">-- 请选择 --</option>';
         presets.forEach(p => { optionsHtml += `<option value="${p.id}">${p.name} (${p.model})</option>`; });
         mainSelect.innerHTML = optionsHtml;
         mainSelect.value = localStorage.getItem('main_engine_id') || '';
+        if (delSelect) {
+            delSelect.innerHTML = optionsHtml;
+        }
     },
     assignEngine(type, presetId) {
         if (type === 'main') { localStorage.setItem('main_engine_id', presetId); this.showToast('✅ 主引擎切换成功！'); this.refreshPresetDropdowns(); }

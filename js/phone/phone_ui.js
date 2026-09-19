@@ -14,6 +14,17 @@ const listEl = document.getElementById('app-content-list');
 
 if (listEl && window.Apps && window.Apps[appId]) {
 let renderData = JSON.parse(JSON.stringify(data));
+if (Array.isArray(renderData.items)) {
+renderData.items.forEach(item => {
+if (item && typeof item.content === 'string' && item.content.includes('[发送了表情包：')) {
+const urlMatch = item.content.match(/(https?:\/\/[^\s\)]+)/);
+if (urlMatch) {
+const safeUrl = this.escapeHtml(urlMatch[1]);
+item.content = `<img src="${safeUrl}" class="chat-sticker">`;
+}
+}
+});
+}
 listEl.innerHTML = window.Apps[appId].renderList(renderData);
 setTimeout(() => { listEl.scrollTop = listEl.scrollHeight; }, 100);
 if (appId === 'wechat') this.updateHomeWidget();
@@ -26,7 +37,7 @@ this.renderWorldbook();
 }
 },
 
-// 🌟 修复后的首页渲染逻辑 (加入安全保护)
+// 🌟 修复后的首页渲染逻辑 (加入安全保护，防止白屏)
 async updateHomeWidget() {
     try {
         // 1. 相爱天数
@@ -43,7 +54,7 @@ async updateHomeWidget() {
         const noteContentEl = document.getElementById('note-content');
         if (noteContentEl) noteContentEl.innerText = localStorage.getItem('home_note_content') || '“今天也要开心哦！”';
 
-        // 3. 渲染迷你日历网格 (D)
+        // 3. 渲染迷你日历网格
         const calGrid = document.getElementById('home-cal-grid');
         if (calGrid) {
             const now = new Date();
@@ -58,10 +69,10 @@ async updateHomeWidget() {
             calGrid.innerHTML = html;
         }
 
-        // 4. 渲染倒数日小组件 (B)
+        // 4. 渲染倒数日小组件
         this.renderCountdown();
 
-        // 5. 渲染拍立得相框 (C) - 自动抓取 EchoVault 最新日记
+        // 5. 渲染拍立得相框 - 自动抓取 EchoVault 最新日记
         const polaroidText = document.getElementById('polaroid-text');
         if (polaroidText && window.PhoneAPI?.EchoVault) {
             try {
@@ -79,7 +90,7 @@ async updateHomeWidget() {
             }
         }
 
-        // 6. 加载所有被替换过的本地图片 (A)
+        // 6. 加载所有被替换过的本地图片 (长按换图功能)
         if (window.PhoneAPI && window.PhoneAPI.LocalDB) {
             const elements = document.querySelectorAll('[data-img]');
             for (const el of elements) {
@@ -102,7 +113,7 @@ async updateHomeWidget() {
     }
 },
 
-// A功能：绑定全局的长按换图事件
+// 绑定全局的长按换图事件
 bindLongPresses() {
     const elements = document.querySelectorAll('.long-pressable');
     const fileInput = document.getElementById('global-file-input');
@@ -152,7 +163,6 @@ bindLongPresses() {
     }
 },
 
-// B功能：倒数日小组件逻辑
 renderCountdown() {
     const cfgRaw = localStorage.getItem('cc_countdown');
     const cfg = cfgRaw ? JSON.parse(cfgRaw) : { title: '见到你', date: '2025-05-09', pre: '还有', suf: '天' };
@@ -249,6 +259,144 @@ window.PhoneAPI?.showToast('收到 TA 的纸条回信啦！');
 } catch (error) { window.PhoneAPI?.showToast('TA 好像没看到纸条...'); }
 },
 
+initMusicPlayer() {
+    const audio = document.getElementById('shared-audio-player');
+    if(!audio) return;
+    const currentSongStr = localStorage.getItem('current_music');
+    if (currentSongStr) {
+        try {
+            const song = JSON.parse(currentSongStr);
+            const titleEl = document.getElementById('music-title');
+            const artistEl = document.getElementById('music-artist');
+            const coverEl = document.getElementById('music-cover');
+            if(titleEl) titleEl.innerText = song.name;
+            if(artistEl) artistEl.innerText = song.artist;
+            if(coverEl) coverEl.src = song.cover;
+            audio.src = song.url;
+        } catch(e){}
+    }
+    
+    audio.addEventListener('timeupdate', () => {
+        const currEl = document.getElementById('music-curr');
+        const progEl = document.getElementById('music-progress');
+        if(currEl && audio.currentTime) {
+            let m = Math.floor(audio.currentTime / 60).toString().padStart(2, '0');
+            let s = Math.floor(audio.currentTime % 60).toString().padStart(2, '0');
+            currEl.innerText = `${m}:${s}`;
+            if(audio.duration) {
+                progEl.style.width = `${(audio.currentTime / audio.duration) * 100}%`;
+            }
+        }
+    });
+    
+    audio.addEventListener('loadedmetadata', () => {
+        const durEl = document.getElementById('music-dur');
+        if(durEl && audio.duration) {
+            let m = Math.floor(audio.duration / 60).toString().padStart(2, '0');
+            let s = Math.floor(audio.duration % 60).toString().padStart(2, '0');
+            durEl.innerText = `${m}:${s}`;
+        }
+    });
+    
+    audio.addEventListener('ended', () => {
+        if (typeof window.togglePlayUI === 'function') window.togglePlayUI(false);
+    });
+    
+    setInterval(async () => {
+        const state = await window.PhoneAPI?.pullMusicState?.();
+        if (state && state.id) {
+            const currentSong = JSON.parse(localStorage.getItem('current_music') || '{}');
+            if (currentSong.id !== state.id) {
+                this.playMusic(state, false);
+                window.PhoneAPI?.showToast(`TA 为你点播了: ${state.name}`);
+            }
+        }
+    }, 5000);
+},
+
+playMusic(song, syncToCloud = true) {
+    const audio = document.getElementById('shared-audio-player');
+    const titleEl = document.getElementById('music-title');
+    const artistEl = document.getElementById('music-artist');
+    const coverEl = document.getElementById('music-cover');
+    
+    if(!audio || !song) return;
+    
+    if(titleEl) titleEl.innerText = song.name;
+    if(artistEl) artistEl.innerText = song.artist;
+    if(coverEl) coverEl.src = song.cover;
+    
+    audio.src = song.url;
+    audio.play().then(() => {
+        if (typeof window.togglePlayUI === 'function') window.togglePlayUI(true);
+    }).catch(e => {
+        console.error("自动播放被浏览器拦截", e);
+        window.PhoneAPI?.showToast("请点击播放按钮开始听歌~");
+        if (typeof window.togglePlayUI === 'function') window.togglePlayUI(false);
+    });
+    
+    localStorage.setItem('current_music', JSON.stringify(song));
+    
+    let playlist = JSON.parse(localStorage.getItem('shared_playlist') || '[]');
+    playlist = playlist.filter(s => s.id !== song.id);
+    playlist.unshift(song);
+    if (playlist.length > 50) playlist.pop();
+    localStorage.setItem('shared_playlist', JSON.stringify(playlist));
+    this.renderPlaylist();
+    
+    if (syncToCloud) {
+        window.PhoneAPI?.syncMusicState?.(song);
+    }
+},
+
+togglePlaylist() {
+    const bg = document.getElementById('playlist-modal-bg');
+    const modal = document.getElementById('playlist-modal');
+    if (!bg || !modal) return;
+    if (modal.classList.contains('show')) {
+        bg.classList.remove('show');
+        modal.classList.remove('show');
+    } else {
+        this.renderPlaylist();
+        bg.classList.add('show');
+        modal.classList.add('show');
+    }
+},
+
+renderPlaylist() {
+    const listEl = document.getElementById('playlist-container');
+    if (!listEl) return;
+    const playlist = JSON.parse(localStorage.getItem('shared_playlist') || '[]');
+    if (playlist.length === 0) {
+        listEl.innerHTML = `<div style="text-align:center; padding:30px 0; color:var(--text-sub);">歌单空空如也，快去点歌吧！</div>`;
+        return;
+    }
+    let html = '';
+    playlist.forEach((song, idx) => {
+        html += `
+        <div class="cart-item" style="cursor:pointer;" onclick="window.PhoneUI.playFromPlaylist(${idx})">
+            <img src="${song.cover}" style="width:40px; height:40px; border-radius:8px; object-fit:cover; flex-shrink:0;">
+            <div class="cart-item-info">
+                <div class="cart-item-name">${this.escapeHtml(song.name)}</div>
+                <div class="cart-item-price" style="color:var(--text-sub);">${this.escapeHtml(song.artist)}</div>
+            </div>
+            <i class="ph-fill ph-play-circle" style="color:var(--primary-color); font-size:24px;"></i>
+        </div>
+        `;
+    });
+    listEl.innerHTML = html;
+},
+
+playFromPlaylist(index) {
+    const playlist = JSON.parse(localStorage.getItem('shared_playlist') || '[]');
+    const song = playlist[index];
+    if (song) {
+        this.playMusic(song, true);
+        this.togglePlaylist();
+        window.PhoneAPI?.showToast(`🎶 正在播放: ${song.name}`);
+    }
+},
+
 renderNovelContent() {
 const listEl = document.getElementById('novel-content-list');
 if (!listEl) return;
@@ -334,6 +482,51 @@ const bg = document.getElementById('wb-toggle-modal-bg');
 const modal = document.getElementById('wb-toggle-modal');
 if (bg) bg.classList.remove('show');
 if (modal) modal.classList.remove('show');
+},
+
+toggleStickerPanel() {
+const panel = document.getElementById('sticker-panel');
+if (!panel) return;
+if (panel.classList.contains('show')) { this.closeStickerPanel(); } else { this.closeChatMenu(); this.renderStickers(); panel.classList.add('show'); }
+},
+closeStickerPanel() {
+const panel = document.getElementById('sticker-panel');
+if (panel) panel.classList.remove('show');
+},
+
+async importStickers() {
+const text = await this.showCustomPrompt("📦 批量导入表情包", "请直接粘贴你的文档内容，格式如：\n让我摸摸:\nhttps://...gif\n害羞了:\nhttps://...gif\n（清空所有表情包请输入：CLEAR）");
+if (!text) return;
+if (text.trim() === 'CLEAR') {
+if (confirm("确定要清空所有表情包吗？")) { localStorage.removeItem('custom_stickers'); this.renderStickers(); window.PhoneAPI?.showToast("🗑️ 表情包已清空"); }
+return;
+}
+const lines = text.split('\n'); let newStickers = []; let currentName = "未命名表情"; const urlRegex = /(https?:\/\/[^\s]+)/;
+lines.forEach(line => {
+const str = line.trim(); if (!str) return;
+const urlMatch = str.match(urlRegex);
+if (urlMatch) {
+const url = urlMatch[1]; let name = str.replace(url, '').replace(/[:：]/g, '').trim();
+if (!name && currentName !== "未命名表情") { name = currentName; currentName = "未命名表情"; } else if (!name) { name = "表情" + Math.floor(Math.random() * 1000); }
+newStickers.push({ name, url });
+} else { currentName = str.replace(/[:：]/g, '').trim(); }
+});
+if (newStickers.length > 0) {
+let existing = JSON.parse(localStorage.getItem('custom_stickers') || '[]'); existing = [...existing, ...newStickers];
+localStorage.setItem('custom_stickers', JSON.stringify(existing)); this.renderStickers(); window.PhoneAPI?.showToast(`✅ 成功解析并导入 ${newStickers.length} 个表情包！`);
+} else { window.PhoneAPI?.showToast(`❌ 未识别到任何有效链接`); }
+},
+
+renderStickers() {
+const panel = document.getElementById('sticker-panel');
+if (!panel) return;
+const stickers = JSON.parse(localStorage.getItem('custom_stickers') || '[]');
+let html = `<div class="sticker-add-btn" onclick="window.PhoneUI.importStickers()"><i class="ph ph-plus" style="font-size:24px;"></i><span style="font-size:10px;margin-top:4px;">导入</span></div>`;
+stickers.forEach(st => {
+const safeName = this.escapeHtml(st.name); const safeUrl = this.escapeHtml(st.url);
+html += `<div class="sticker-item" onclick="window.PhoneEngine?.sendSticker?.('${safeName}','${safeUrl}')" title="${safeName}"><img src="${safeUrl}" alt="${safeName}"></div>`;
+});
+panel.innerHTML = html;
 },
 
 toggleStoryMenu() {

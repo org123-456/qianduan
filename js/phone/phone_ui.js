@@ -65,7 +65,7 @@ this.renderWorldbook();
 }
 },
 
-// 🌟 核心修改：更新首页头像、天数、最新消息
+// 🌟 核心修改：更新首页头像、天数、最新消息、以及【传纸条】状态
 updateHomeWidget() {
 const roleId = window.Config?.currentContactId;
 if (!roleId) return;
@@ -111,6 +111,89 @@ daysEl.innerText = diffDays;
 } else {
 daysEl.innerText = '0';
 }
+}
+
+// 恢复纸条状态
+const noteAvatarEl = document.getElementById('note-avatar');
+const noteStatusEl = document.getElementById('note-status');
+const noteContentEl = document.getElementById('note-content');
+if (noteAvatarEl && noteStatusEl && noteContentEl) {
+const noteSender = localStorage.getItem('home_note_sender') || 'ta';
+const noteContent = localStorage.getItem('home_note_content') || '“今天也要开心哦！”';
+if (noteSender === 'me') {
+noteAvatarEl.src = myAvatar;
+noteStatusEl.innerText = '你递出了一张纸条...';
+} else {
+noteAvatarEl.src = taAvatar;
+noteStatusEl.innerText = 'TA 悄悄塞给你一张纸条...';
+}
+noteContentEl.innerText = noteContent;
+}
+},
+
+// 🌟 新增：传纸条相关逻辑
+openNoteModal() {
+const bg = document.getElementById('note-modal-bg');
+const modal = document.getElementById('note-modal');
+const input = document.getElementById('note-input');
+if (bg) bg.classList.add('show');
+if (modal) modal.classList.add('show');
+if (input) {
+input.value = '';
+setTimeout(() => input.focus(), 100);
+}
+},
+
+closeNoteModal() {
+const bg = document.getElementById('note-modal-bg');
+const modal = document.getElementById('note-modal');
+if (bg) bg.classList.remove('show');
+if (modal) modal.classList.remove('show');
+},
+
+async sendNote() {
+const input = document.getElementById('note-input');
+if (!input) return;
+const text = input.value.trim();
+if (!text) {
+window.PhoneAPI?.showToast('纸条不能是空的哦！');
+return;
+}
+
+this.closeNoteModal();
+
+// 1. 立即更新为我的纸条
+localStorage.setItem('home_note_sender', 'me');
+localStorage.setItem('home_note_content', `“${text}”`);
+this.updateHomeWidget();
+
+window.PhoneAPI?.showToast('纸条已递出，等待 TA 的回复...');
+
+// 2. 后台呼叫 AI
+try {
+const persona = localStorage.getItem('char_persona') || '';
+const myName = localStorage.getItem('my_name') || '我';
+const taName = localStorage.getItem('char_name') || 'TA';
+
+let sysPrompt = `你扮演${taName}，用户是${myName}。${persona}\n请根据用户传给你的纸条内容，回复一张纸条。要求：\n1. 必须非常简短，一两句话，20字以内。\n2. 语气符合你的人设，像是在小纸条上随手写的。\n3. 不要任何动作描写，只输出纸条上的话。`;
+
+const messages = [
+{ role: 'system', content: sysPrompt },
+{ role: 'user', content: `[传纸条] ${text}` }
+];
+
+const reply = await window.PhoneAPI?.chatWithAI(messages, true); // 使用副引擎/主引擎
+
+if (reply) {
+// 3. 更新为 TA 的回复
+localStorage.setItem('home_note_sender', 'ta');
+localStorage.setItem('home_note_content', `“${reply}”`);
+this.updateHomeWidget();
+window.PhoneAPI?.showToast('收到 TA 的纸条回信啦！');
+}
+} catch (error) {
+console.error('纸条回复失败', error);
+window.PhoneAPI?.showToast('TA 好像没看到纸条...');
 }
 },
 
@@ -586,7 +669,7 @@ this.renderMemoryVault();
 const favs = window.PhoneAPI?.getFavorites?.() || [];
 let html = '<div style="padding:10px 5px;">';
 if (favs.length === 0) {
-html += `<div style="text-align:center;color:var(--text-sub);padding:50px 0;"><i class="ph-fill ph-star" style="font-size:48px;color:var(--border-color);margin-bottom:15px;"></i><br>空空如也<br>快去聊天记录长按消息收藏吧！</div>`;
+html += `<div style="text-align:center;color:var(--text-sub);padding:50px 0;"><i class="ph-fill ph-star" style="font-size:48px;color:var(--border-color);margin-bottom:15px;"></i><br>空空如也<br>快去聊天记录长按消息收藏吧！</div></div>`;
 } else {
 [...favs].reverse().forEach(fav => {
 let content = window.marked ? window.marked.parse(fav.content || '') : (fav.content || '');
@@ -610,7 +693,6 @@ this.renderWorldbook();
 }
 },
 
-// 🌟 核心修改：在设置里加上“恋爱纪念日”
 renderSettings() {
 const contentEl = document.getElementById('app-window-content');
 if (!contentEl) return;

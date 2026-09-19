@@ -91,13 +91,11 @@ msgEl.innerText = '暂无新消息...';
 }
 }
 
-// 同步双人头像
 const homeMyAvatar = document.getElementById('home-my-avatar');
 const homeTaAvatar = document.getElementById('home-ta-avatar');
 if (homeMyAvatar) homeMyAvatar.src = myAvatar;
 if (homeTaAvatar) homeTaAvatar.src = taAvatar;
 
-// 动态计算相爱天数
 const daysEl = document.getElementById('home-love-days');
 if (daysEl) {
 const startDateStr = localStorage.getItem('love_start_date') || localStorage.getItem('diary_start_date');
@@ -112,7 +110,6 @@ daysEl.innerText = '0';
 }
 }
 
-// 恢复纸条状态
 const noteAvatarEl = document.getElementById('note-avatar');
 const noteStatusEl = document.getElementById('note-status');
 const noteContentEl = document.getElementById('note-content');
@@ -160,14 +157,12 @@ return;
 
 this.closeNoteModal();
 
-// 1. 立即更新为我的纸条
 localStorage.setItem('home_note_sender', 'me');
 localStorage.setItem('home_note_content', `“${text}”`);
 this.updateHomeWidget();
 
 window.PhoneAPI?.showToast('纸条已递出，等待 TA 的回复...');
 
-// 2. 后台呼叫 AI
 try {
 const persona = localStorage.getItem('char_persona') || '';
 const myName = localStorage.getItem('my_name') || '我';
@@ -180,10 +175,9 @@ const messages = [
 { role: 'user', content: `[传纸条] ${text}` }
 ];
 
-const reply = await window.PhoneAPI?.chatWithAI(messages, true); // 使用副引擎/主引擎
+const reply = await window.PhoneAPI?.chatWithAI(messages, true);
 
 if (reply) {
-// 3. 更新为 TA 的回复
 localStorage.setItem('home_note_sender', 'ta');
 localStorage.setItem('home_note_content', `“${reply}”`);
 this.updateHomeWidget();
@@ -193,6 +187,95 @@ window.PhoneAPI?.showToast('收到 TA 的纸条回信啦！');
 console.error('纸条回复失败', error);
 window.PhoneAPI?.showToast('TA 好像没看到纸条...');
 }
+},
+
+// 🌟 核心新增 3：初始化音乐播放器事件监听
+initMusicPlayer() {
+    const audio = document.getElementById('shared-audio-player');
+    if(!audio) return;
+    
+    // 监听进度条
+    audio.addEventListener('timeupdate', () => {
+        const currEl = document.getElementById('music-curr');
+        const progEl = document.getElementById('music-progress');
+        if(currEl && audio.currentTime) {
+            let m = Math.floor(audio.currentTime / 60).toString().padStart(2, '0');
+            let s = Math.floor(audio.currentTime % 60).toString().padStart(2, '0');
+            currEl.innerText = `${m}:${s}`;
+            if(audio.duration) {
+                progEl.style.width = `${(audio.currentTime / audio.duration) * 100}%`;
+            }
+        }
+    });
+    
+    // 监听总时长
+    audio.addEventListener('loadedmetadata', () => {
+        const durEl = document.getElementById('music-dur');
+        if(durEl && audio.duration) {
+            let m = Math.floor(audio.duration / 60).toString().padStart(2, '0');
+            let s = Math.floor(audio.duration % 60).toString().padStart(2, '0');
+            durEl.innerText = `${m}:${s}`;
+        }
+    });
+    
+    // 播放结束自动停止动画
+    audio.addEventListener('ended', () => {
+        if (typeof window.togglePlayUI === 'function') {
+            window.togglePlayUI(false);
+        }
+    });
+    
+    // 轮询 Supabase 云端状态（每 5 秒拉取一次）
+    setInterval(async () => {
+        const state = await window.PhoneAPI?.pullMusicState?.();
+        if (state && state.id) {
+            const currentSong = JSON.parse(localStorage.getItem('current_music') || '{}');
+            // 如果云端的歌和本地不一样，说明 TA 切歌了！自动同步播放！
+            if (currentSong.id !== state.id) {
+                this.playMusic(state, false); // false 代表是被动同步，不再重复上传
+                window.PhoneAPI?.showToast(`TA 为你点播了: ${state.name}`);
+            }
+        }
+    }, 5000);
+},
+
+// 🌟 核心新增 4：播放音乐逻辑
+playMusic(song, syncToCloud = true) {
+    const audio = document.getElementById('shared-audio-player');
+    const titleEl = document.getElementById('music-title');
+    const artistEl = document.getElementById('music-artist');
+    const coverEl = document.getElementById('music-cover');
+    const bgEl = document.getElementById('music-bg');
+    
+    if(!audio || !song) return;
+    
+    // 更新 UI
+    if(titleEl) titleEl.innerText = song.name;
+    if(artistEl) artistEl.innerText = song.artist;
+    if(coverEl) coverEl.src = song.cover;
+    if(bgEl) bgEl.style.backgroundImage = `url('${song.cover}')`;
+    
+    // 播放音频
+    audio.src = song.url;
+    audio.play().then(() => {
+        if (typeof window.togglePlayUI === 'function') {
+            window.togglePlayUI(true);
+        }
+    }).catch(e => {
+        console.error("自动播放被浏览器拦截", e);
+        window.PhoneAPI?.showToast("请点击播放按钮开始听歌~");
+        if (typeof window.togglePlayUI === 'function') {
+            window.togglePlayUI(false);
+        }
+    });
+    
+    // 记录到本地
+    localStorage.setItem('current_music', JSON.stringify(song));
+    
+    // 同步到云端
+    if (syncToCloud) {
+        window.PhoneAPI?.syncMusicState?.(song);
+    }
 },
 
 renderNovelContent() {
@@ -691,7 +774,6 @@ this.renderWorldbook();
 }
 },
 
-// 🌟 核心修改：在设置里加上“全局字体设置”
 renderSettings() {
 const contentEl = document.getElementById('app-window-content');
 if (!contentEl) return;

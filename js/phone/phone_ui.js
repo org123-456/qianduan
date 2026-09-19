@@ -106,7 +106,7 @@ async updateHomeWidget() {
     }
 },
 
-// 🌟 修复：长按换图后，如果是背景图，立刻刷新 CSS
+// 🌟 修复：长按换图后即时刷新 CSS 背景
 bindLongPresses() {
     const elements = document.querySelectorAll('.long-pressable');
     const fileInput = document.getElementById('global-file-input');
@@ -148,9 +148,11 @@ bindLongPresses() {
                 if (pendingEl.tagName.toLowerCase() === 'img') {
                     pendingEl.src = url;
                 } else {
-                    // 如果是背景图（比如日记封面），通知 API 刷新 CSS 变量
+                    // 如果是背景图，直接修改 CSS 变量让它立刻生效！
                     if (pendingKey.startsWith('bg_')) {
-                        window.PhoneAPI?.applyUITheme();
+                        let cssVar = '--bg-image-' + pendingKey.replace('bg_', '').replace(/_/g, '-');
+                        if (pendingKey === 'bg_global') cssVar = '--bg-image-global';
+                        document.documentElement.style.setProperty(cssVar, `url('${url}')`);
                     } else {
                         const imgChild = pendingEl.querySelector('img');
                         if (imgChild) imgChild.src = url;

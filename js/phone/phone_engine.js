@@ -815,6 +815,9 @@ ${historyText}`;
             formatRule += "【互动最高指令】：如果用户向你发送了问卷、测试题单或提问，**绝对禁止**说‘等我写完告诉你有空再答’等拖延废话！你**必须立刻、当场逐题作答**，给出你的具体选项并配合傲娇或犀利的吐槽！\n";
             formatRule += "【微信连发机制】：不限制气泡数量，请务必把你想说的话完整说完！系统会根据换行符切分微信气泡。绝对不要把所有话挤在同一行！\n";
             formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。\n【心声强制规则】：**绝对严禁再次提及‘小手机’、‘实验对象/实验品’、‘修东西’等老调重弹的内容！** 此刻的心声必须严格聚焦在【你对用户刚刚发的具体内容最私密、最真实的心理反应】！\n";
+            
+            // 🌟 核心新增：AI 点歌机制
+            formatRule += "【点歌机制】：如果用户在聊天中明确要求你放首歌、听音乐，或者剧情氛围需要，你可以在回复的最末尾加上 `<play_music>歌曲名 歌手名</play_music>`。系统会自动在后台为你们播放。例如：`<play_music>七里香 周杰伦</play_music>`。如果没有相关要求，绝对不要输出此标签！\n";
 
             if (autoPhoto) {
                 formatRule += "【视觉交互机制】：如果用户在聊天中要求你“发一张自拍”、“拍个照看看”或者“让我看看你在干嘛”，你除了正常的文字回复外，**必须**在回复的最后加上一个 <photo> 标签，里面用英文详细描述你当前的动作、表情、穿着和环境（用于AI绘图）。例如：<photo>1boy, handsome, looking at viewer, holding a coffee cup, neon city background, masterpiece</photo>。注意：如果没有要求拍照，绝对不要输出这个标签！\n";
@@ -932,6 +935,14 @@ ${historyText}`;
                 }
             }
 
+            // 🌟 核心新增：拦截 AI 点歌标签
+            let musicQuery = null;
+            const musicMatch = rawReply.match(/<play_music>([\s\S]*?)<\/play_music>/i);
+            if (musicMatch) {
+                musicQuery = musicMatch[1].trim();
+                rawReply = rawReply.replace(/<play_music>[\s\S]*?<\/play_music>/gi, '').trim();
+            }
+
             let photoPrompt = null;
             const photoMatch = rawReply.match(/<photo>([\s\S]*?)<\/photo>/i);
             if (photoMatch) {
@@ -979,6 +990,17 @@ ${historyText}`;
 
             PhoneUI.renderAppContent('wechat');
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+
+            // 🌟 核心新增：异步触发搜歌和播放
+            if (musicQuery) {
+                setTimeout(async () => {
+                    const song = await window.PhoneAPI?.searchMusic(musicQuery);
+                    if (song) {
+                        window.PhoneUI?.playMusic(song, true);
+                        window.PhoneAPI?.showToast(`🎶 TA 为你点播了: ${song.name}`);
+                    }
+                }, 500);
+            }
 
             if (photoPrompt) {
                 chatItems.push({ sender: 'typing' });
@@ -1098,6 +1120,9 @@ ${historyText}`;
             formatRule += `【字数与细节强制要求】：每次回复**必须不少于 ${minWords} 字**（不包含思维链的字数）！请尽情展开环境渲染、细腻的动作刻画和深度的心理描写，让场景充满画面感。绝对禁止像微信聊天那样只发短对话，必须像长篇小说的一段一样丰满！\n`;
             formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。严禁重复心声，必须产生全新心理活动！\n";
             formatRule += "【动态交易机制】：如果剧情中发生了购买、点外卖、送礼等消费行为，你必须根据情境【自行编造商品名称和合理的金币价格】，并在回复最末尾加上 `<purchase>商品名称|价格数字</purchase>`。例如：`<purchase>双人豪华晚餐|120</purchase>`。系统会自动扣除金币并生成订单卡片。无消费行为时绝对不要输出此标签！\n";
+            
+            // 🌟 核心新增：AI 点歌机制
+            formatRule += "【点歌机制】：如果用户在剧情中明确要求你放首歌、听音乐，或者剧情氛围需要，你可以在回复的最末尾加上 `<play_music>歌曲名 歌手名</play_music>`。系统会自动在后台为你们播放。例如：`<play_music>七里香 周杰伦</play_music>`。如果没有相关要求，绝对不要输出此标签！\n";
 
             if (banEmoji) formatRule += "【最高禁令】：绝对不允许使用任何 Emoji、颜文字、波浪号(~)，违者抹杀！\n";
 
@@ -1188,6 +1213,14 @@ ${historyText}`;
                 }
             }
 
+            // 🌟 核心新增：拦截 AI 点歌标签
+            let musicQuery = null;
+            const musicMatch = rawReply.match(/<play_music>([\s\S]*?)<\/play_music>/i);
+            if (musicMatch) {
+                musicQuery = musicMatch[1].trim();
+                rawReply = rawReply.replace(/<play_music>[\s\S]*?<\/play_music>/gi, '').trim();
+            }
+
             let purchaseHtml = null;
             const purchaseMatch = rawReply.match(/<purchase>(.*)\|(\d+)<\/purchase>/i);
             if (purchaseMatch) {
@@ -1223,6 +1256,17 @@ ${historyText}`;
 
             PhoneUI.renderNovelContent();
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+
+            // 🌟 核心新增：异步触发搜歌和播放
+            if (musicQuery) {
+                setTimeout(async () => {
+                    const song = await window.PhoneAPI?.searchMusic(musicQuery);
+                    if (song) {
+                        window.PhoneUI?.playMusic(song, true);
+                        window.PhoneAPI?.showToast(`🎶 TA 为你点播了: ${song.name}`);
+                    }
+                }, 500);
+            }
 
         } catch (error) {
             PhoneAPI.showToast(error.message);
@@ -1319,4 +1363,3 @@ ${historyText}`;
 if (typeof window !== 'undefined') {
     window.PhoneEngine = PhoneEngine;
 }
-

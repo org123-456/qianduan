@@ -84,10 +84,130 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 /* 卡片与图标 */
 .card { background: var(--card-bg); backdrop-filter: blur(18px); border-radius: 28px; padding: 22px; margin-bottom: 18px; box-shadow: 0 12px 30px rgba(90,140,200,.12); border: 1px solid rgba(255,255,255,.6); min-width: 0; overflow-wrap: anywhere;}
 [data-theme="dark"] .card { background: rgba(25,40,65,.75); border-color: var(--border-color); }
-#page-home .card:first-child { background: linear-gradient(135deg, rgba(255,255,255,.9), rgba(220,240,255,.8)); text-align: center; }
-[data-theme="dark"] #page-home .card:first-child { background: linear-gradient(135deg, rgba(30,45,70,.9), rgba(20,30,50,.8)); }
-#page-home h3 { color: var(--primary-color); letter-spacing: 1px; }
-#page-home h1 { font-size: 56px !important; background: linear-gradient(135deg, #6fa8dc, #4f81bd); -webkit-background-clip: text; color: transparent; }
+
+/* ================= 🌟 首页全新轻拟物 UI ================= */
+.time-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 35px 20px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.6), rgba(255,255,255,0.15));
+    border-radius: 32px;
+    box-shadow: -8px -8px 20px rgba(255,255,255,0.7), 10px 10px 25px rgba(90,140,200,0.15);
+    border: 1px solid rgba(255,255,255,0.6);
+    margin-bottom: 20px;
+    backdrop-filter: blur(25px);
+}
+[data-theme="dark"] .time-card {
+    background: linear-gradient(135deg, rgba(30,45,70,0.6), rgba(20,30,50,0.2));
+    box-shadow: -5px -5px 15px rgba(40,55,80,0.5), 8px 8px 20px rgba(0,0,0,0.3);
+    border-color: var(--border-color);
+}
+.time-display {
+    font-size: 72px;
+    font-weight: 200;
+    letter-spacing: 2px;
+    color: var(--text-main);
+    line-height: 1;
+    margin-bottom: 10px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    text-shadow: 0 4px 15px rgba(255,255,255,0.8);
+}
+[data-theme="dark"] .time-display { text-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+.date-display {
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: var(--text-sub);
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+.love-card {
+    padding: 30px 20px;
+    border-radius: 32px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.6), rgba(255,255,255,0.15));
+    box-shadow: -8px -8px 20px rgba(255,255,255,0.7), 10px 10px 25px rgba(90,140,200,0.15);
+    border: 1px solid rgba(255,255,255,0.6);
+    margin-bottom: 20px;
+    backdrop-filter: blur(25px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+[data-theme="dark"] .love-card {
+    background: linear-gradient(135deg, rgba(30,45,70,0.6), rgba(20,30,50,0.2));
+    box-shadow: -5px -5px 15px rgba(40,55,80,0.5), 8px 8px 20px rgba(0,0,0,0.3);
+    border-color: var(--border-color);
+}
+.avatar-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 25px;
+    width: 100%;
+}
+.love-avatar {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid var(--icon-bg);
+    box-shadow: 0 8px 20px rgba(90,140,200,0.2);
+    z-index: 2;
+}
+.love-connector {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    max-width: 80px;
+}
+.love-connector::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--danger-color), transparent);
+    z-index: 0;
+    opacity: 0.5;
+}
+.love-heart {
+    font-size: 22px;
+    color: var(--danger-color);
+    z-index: 1;
+    background: var(--icon-bg);
+    border-radius: 50%;
+    padding: 6px;
+    animation: heartBeat 1.5s infinite;
+    box-shadow: 0 4px 15px rgba(255,123,156,0.3);
+}
+@keyframes heartBeat {
+    0% { transform: scale(1); }
+    14% { transform: scale(1.25); }
+    28% { transform: scale(1); }
+    42% { transform: scale(1.25); }
+    70% { transform: scale(1); }
+}
+.love-days-title {
+    font-size: 13px;
+    color: var(--text-sub);
+    margin-bottom: 2px;
+    letter-spacing: 1px;
+    font-weight: bold;
+}
+.love-days-number {
+    font-size: 54px;
+    font-weight: bold;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    color: transparent;
+    line-height: 1.1;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+/* ========================================================= */
 
 /* 🌟 桌面小组件样式 */
 .ios-widget { background: var(--card-bg); backdrop-filter: blur(18px); border-radius: 24px; padding: 18px; margin-bottom: 18px; box-shadow: 0 10px 30px rgba(90,140,200,.12); border: 1px solid rgba(255,255,255,.6); display: flex; flex-direction: column; gap: 12px; cursor: pointer; transition: 0.2s; }
@@ -520,10 +640,26 @@ input:checked + .slider:before { transform: translateX(16px); }
 <div class="page-container" id="scroll-box">
 
 <div id="page-home" class="page">
-<div class="card" style="text-align: center; padding: 30px 15px;">
-<h3 style="color: var(--primary-color);">Little love record</h3>
-<h1 style="font-size: 48px; color: var(--secondary-color); margin: 10px 0;">44</h1>
-<p style="color: var(--text-sub);">days together for</p>
+<!-- 🌟 顶部时间模块 -->
+<div class="time-card">
+    <div class="time-display" id="home-time">00:00</div>
+    <div class="date-display" id="home-date">MONDAY 01/01/24</div>
+</div>
+
+<!-- 🌟 相爱倒计时模块 -->
+<div class="love-card">
+    <div class="avatar-row">
+        <img class="love-avatar" id="home-my-avatar" src="https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa">
+        <div class="love-connector">
+            <i class="ph-fill ph-heart love-heart"></i>
+        </div>
+        <img class="love-avatar" id="home-ta-avatar" src="https://api.dicebear.com/7.x/notionists/svg?seed=TA&backgroundColor=e8f0fa">
+    </div>
+    <div class="love-days-title">我们已经相爱了</div>
+    <div>
+        <span class="love-days-number" id="home-love-days">0</span>
+        <span style="color: var(--text-sub); font-size: 16px; font-weight: bold; margin-left: 4px;">天</span>
+    </div>
 </div>
 
 <!-- 🌟 桌面小组件 -->
@@ -818,6 +954,25 @@ window.PhoneUI.closeChatMenu();
 window.PhoneUI.closeStickerPanel();
 }
 });
+
+// 🌟 首页时钟与日期更新逻辑
+function updateHomeClock() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2, '0');
+    const m = String(now.getMinutes()).padStart(2, '0');
+    const timeEl = document.getElementById('home-time');
+    if (timeEl) timeEl.innerText = `${h}:${m}`;
+
+    const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+    const dayName = days[now.getDay()];
+    const y = String(now.getFullYear()).slice(-2);
+    const mo = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const dateEl = document.getElementById('home-date');
+    if (dateEl) dateEl.innerText = `${dayName} ${d}/${mo}/${y}`;
+}
+setInterval(updateHomeClock, 1000);
+updateHomeClock();
 
 document.addEventListener('DOMContentLoaded', () => {
 const savedTheme = localStorage.getItem('theme') || 'light';

@@ -189,10 +189,27 @@ window.PhoneAPI?.showToast('TA 好像没看到纸条...');
 }
 },
 
-// 🌟 核心新增 3：初始化音乐播放器事件监听
+// 🌟 核心新增 3：初始化音乐播放器事件监听与恢复
 initMusicPlayer() {
     const audio = document.getElementById('shared-audio-player');
     if(!audio) return;
+    
+    // 恢复上次播放的歌曲 UI
+    const currentSongStr = localStorage.getItem('current_music');
+    if (currentSongStr) {
+        try {
+            const song = JSON.parse(currentSongStr);
+            const titleEl = document.getElementById('music-title');
+            const artistEl = document.getElementById('music-artist');
+            const coverEl = document.getElementById('music-cover');
+            const bgEl = document.getElementById('music-bg');
+            if(titleEl) titleEl.innerText = song.name;
+            if(artistEl) artistEl.innerText = song.artist;
+            if(coverEl) coverEl.src = song.cover;
+            if(bgEl) bgEl.style.backgroundImage = `url('${song.cover}')`;
+            audio.src = song.url;
+        } catch(e){}
+    }
     
     // 监听进度条
     audio.addEventListener('timeupdate', () => {
@@ -239,7 +256,7 @@ initMusicPlayer() {
     }, 5000);
 },
 
-// 🌟 核心新增 4：播放音乐逻辑
+// 🌟 核心新增 4：播放音乐并加入歌单
 playMusic(song, syncToCloud = true) {
     const audio = document.getElementById('shared-audio-player');
     const titleEl = document.getElementById('music-title');
@@ -272,9 +289,66 @@ playMusic(song, syncToCloud = true) {
     // 记录到本地
     localStorage.setItem('current_music', JSON.stringify(song));
     
+    // 🌟 加入本地共听歌单 (去重并放到最前面)
+    let playlist = JSON.parse(localStorage.getItem('shared_playlist') || '[]');
+    playlist = playlist.filter(s => s.id !== song.id);
+    playlist.unshift(song);
+    if (playlist.length > 50) playlist.pop(); // 最多存50首
+    localStorage.setItem('shared_playlist', JSON.stringify(playlist));
+    this.renderPlaylist(); // 刷新歌单UI
+    
     // 同步到云端
     if (syncToCloud) {
         window.PhoneAPI?.syncMusicState?.(song);
+    }
+},
+
+// 🌟 核心新增 5：共听歌单面板逻辑
+togglePlaylist() {
+    const bg = document.getElementById('playlist-modal-bg');
+    const modal = document.getElementById('playlist-modal');
+    if (!bg || !modal) return;
+    if (modal.classList.contains('show')) {
+        bg.classList.remove('show');
+        modal.classList.remove('show');
+    } else {
+        this.renderPlaylist();
+        bg.classList.add('show');
+        modal.classList.add('show');
+    }
+},
+
+renderPlaylist() {
+    const listEl = document.getElementById('playlist-container');
+    if (!listEl) return;
+    const playlist = JSON.parse(localStorage.getItem('shared_playlist') || '[]');
+    if (playlist.length === 0) {
+        listEl.innerHTML = `<div style="text-align:center; padding:30px 0; color:var(--text-sub);">歌单空空如也，快去点歌吧！</div>`;
+        return;
+    }
+    let html = '';
+    playlist.forEach((song, idx) => {
+        html += `
+        <div class="cart-item" style="cursor:pointer;" onclick="window.PhoneUI.playFromPlaylist(${idx})">
+            <img src="${song.cover}" style="width:40px; height:40px; border-radius:8px; object-fit:cover; flex-shrink:0;">
+            <div class="cart-item-info">
+                <div class="cart-item-name">${this.escapeHtml(song.name)}</div>
+                <div class="cart-item-price" style="color:var(--text-sub);">${this.escapeHtml(song.artist)}</div>
+            </div>
+            <i class="ph-fill ph-play-circle" style="color:var(--primary-color); font-size:24px;"></i>
+        </div>
+        `;
+    });
+    listEl.innerHTML = html;
+},
+
+playFromPlaylist(index) {
+    const playlist = JSON.parse(localStorage.getItem('shared_playlist') || '[]');
+    const song = playlist[index];
+    if (song) {
+        this.playMusic(song, true);
+        this.togglePlaylist(); // 播放后自动关闭歌单
+        window.PhoneAPI?.showToast(`🎶 正在播放: ${song.name}`);
     }
 },
 

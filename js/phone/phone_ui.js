@@ -37,10 +37,8 @@ this.renderWorldbook();
 }
 },
 
-// 🌟 修复后的首页渲染逻辑 (加入安全保护，防止白屏)
 async updateHomeWidget() {
     try {
-        // 1. 相爱天数
         const daysEl = document.getElementById('home-love-days');
         if (daysEl) {
             const startDateStr = localStorage.getItem('love_start_date') || localStorage.getItem('diary_start_date');
@@ -50,11 +48,9 @@ async updateHomeWidget() {
             } else { daysEl.innerText = '0'; }
         }
 
-        // 2. 传纸条
         const noteContentEl = document.getElementById('note-content');
         if (noteContentEl) noteContentEl.innerText = localStorage.getItem('home_note_content') || '“今天也要开心哦！”';
 
-        // 3. 渲染迷你日历网格
         const calGrid = document.getElementById('home-cal-grid');
         if (calGrid) {
             const now = new Date();
@@ -69,10 +65,8 @@ async updateHomeWidget() {
             calGrid.innerHTML = html;
         }
 
-        // 4. 渲染倒数日小组件
         this.renderCountdown();
 
-        // 5. 渲染拍立得相框 - 自动抓取 EchoVault 最新日记
         const polaroidText = document.getElementById('polaroid-text');
         if (polaroidText && window.PhoneAPI?.EchoVault) {
             try {
@@ -90,7 +84,6 @@ async updateHomeWidget() {
             }
         }
 
-        // 6. 加载所有被替换过的本地图片 (长按换图功能)
         if (window.PhoneAPI && window.PhoneAPI.LocalDB) {
             const elements = document.querySelectorAll('[data-img]');
             for (const el of elements) {
@@ -113,7 +106,7 @@ async updateHomeWidget() {
     }
 },
 
-// 绑定全局的长按换图事件
+// 🌟 修复：长按换图后，如果是背景图，立刻刷新 CSS
 bindLongPresses() {
     const elements = document.querySelectorAll('.long-pressable');
     const fileInput = document.getElementById('global-file-input');
@@ -128,7 +121,7 @@ bindLongPresses() {
                 el.classList.remove('holding');
                 pendingKey = key; pendingEl = el;
                 if (fileInput) fileInput.click();
-            }, 500); // 长按 0.5 秒
+            }, 500);
         };
         const cancel = () => { clearTimeout(holdTimer); el.classList.remove('holding'); };
 
@@ -151,10 +144,17 @@ bindLongPresses() {
                 const blob = await window.PhoneAPI.LocalDB.shrink(f, 800);
                 await window.PhoneAPI.LocalDB.set(pendingKey, blob);
                 const url = window.PhoneAPI.LocalDB.urlOf(pendingKey, blob);
-                if (pendingEl.tagName.toLowerCase() === 'img') pendingEl.src = url;
-                else {
-                    const imgChild = pendingEl.querySelector('img');
-                    if (imgChild) imgChild.src = url;
+                
+                if (pendingEl.tagName.toLowerCase() === 'img') {
+                    pendingEl.src = url;
+                } else {
+                    // 如果是背景图（比如日记封面），通知 API 刷新 CSS 变量
+                    if (pendingKey.startsWith('bg_')) {
+                        window.PhoneAPI?.applyUITheme();
+                    } else {
+                        const imgChild = pendingEl.querySelector('img');
+                        if (imgChild) imgChild.src = url;
+                    }
                 }
                 window.PhoneAPI?.showToast('✨ 换图成功！已永久保存在本地。');
             } catch (err) { window.PhoneAPI?.showToast('换图失败'); }
@@ -257,144 +257,6 @@ this.updateHomeWidget();
 window.PhoneAPI?.showToast('收到 TA 的纸条回信啦！');
 }
 } catch (error) { window.PhoneAPI?.showToast('TA 好像没看到纸条...'); }
-},
-
-initMusicPlayer() {
-    const audio = document.getElementById('shared-audio-player');
-    if(!audio) return;
-    const currentSongStr = localStorage.getItem('current_music');
-    if (currentSongStr) {
-        try {
-            const song = JSON.parse(currentSongStr);
-            const titleEl = document.getElementById('music-title');
-            const artistEl = document.getElementById('music-artist');
-            const coverEl = document.getElementById('music-cover');
-            if(titleEl) titleEl.innerText = song.name;
-            if(artistEl) artistEl.innerText = song.artist;
-            if(coverEl) coverEl.src = song.cover;
-            audio.src = song.url;
-        } catch(e){}
-    }
-    
-    audio.addEventListener('timeupdate', () => {
-        const currEl = document.getElementById('music-curr');
-        const progEl = document.getElementById('music-progress');
-        if(currEl && audio.currentTime) {
-            let m = Math.floor(audio.currentTime / 60).toString().padStart(2, '0');
-            let s = Math.floor(audio.currentTime % 60).toString().padStart(2, '0');
-            currEl.innerText = `${m}:${s}`;
-            if(audio.duration) {
-                progEl.style.width = `${(audio.currentTime / audio.duration) * 100}%`;
-            }
-        }
-    });
-    
-    audio.addEventListener('loadedmetadata', () => {
-        const durEl = document.getElementById('music-dur');
-        if(durEl && audio.duration) {
-            let m = Math.floor(audio.duration / 60).toString().padStart(2, '0');
-            let s = Math.floor(audio.duration % 60).toString().padStart(2, '0');
-            durEl.innerText = `${m}:${s}`;
-        }
-    });
-    
-    audio.addEventListener('ended', () => {
-        if (typeof window.togglePlayUI === 'function') window.togglePlayUI(false);
-    });
-    
-    setInterval(async () => {
-        const state = await window.PhoneAPI?.pullMusicState?.();
-        if (state && state.id) {
-            const currentSong = JSON.parse(localStorage.getItem('current_music') || '{}');
-            if (currentSong.id !== state.id) {
-                this.playMusic(state, false);
-                window.PhoneAPI?.showToast(`TA 为你点播了: ${state.name}`);
-            }
-        }
-    }, 5000);
-},
-
-playMusic(song, syncToCloud = true) {
-    const audio = document.getElementById('shared-audio-player');
-    const titleEl = document.getElementById('music-title');
-    const artistEl = document.getElementById('music-artist');
-    const coverEl = document.getElementById('music-cover');
-    
-    if(!audio || !song) return;
-    
-    if(titleEl) titleEl.innerText = song.name;
-    if(artistEl) artistEl.innerText = song.artist;
-    if(coverEl) coverEl.src = song.cover;
-    
-    audio.src = song.url;
-    audio.play().then(() => {
-        if (typeof window.togglePlayUI === 'function') window.togglePlayUI(true);
-    }).catch(e => {
-        console.error("自动播放被浏览器拦截", e);
-        window.PhoneAPI?.showToast("请点击播放按钮开始听歌~");
-        if (typeof window.togglePlayUI === 'function') window.togglePlayUI(false);
-    });
-    
-    localStorage.setItem('current_music', JSON.stringify(song));
-    
-    let playlist = JSON.parse(localStorage.getItem('shared_playlist') || '[]');
-    playlist = playlist.filter(s => s.id !== song.id);
-    playlist.unshift(song);
-    if (playlist.length > 50) playlist.pop();
-    localStorage.setItem('shared_playlist', JSON.stringify(playlist));
-    this.renderPlaylist();
-    
-    if (syncToCloud) {
-        window.PhoneAPI?.syncMusicState?.(song);
-    }
-},
-
-togglePlaylist() {
-    const bg = document.getElementById('playlist-modal-bg');
-    const modal = document.getElementById('playlist-modal');
-    if (!bg || !modal) return;
-    if (modal.classList.contains('show')) {
-        bg.classList.remove('show');
-        modal.classList.remove('show');
-    } else {
-        this.renderPlaylist();
-        bg.classList.add('show');
-        modal.classList.add('show');
-    }
-},
-
-renderPlaylist() {
-    const listEl = document.getElementById('playlist-container');
-    if (!listEl) return;
-    const playlist = JSON.parse(localStorage.getItem('shared_playlist') || '[]');
-    if (playlist.length === 0) {
-        listEl.innerHTML = `<div style="text-align:center; padding:30px 0; color:var(--text-sub);">歌单空空如也，快去点歌吧！</div>`;
-        return;
-    }
-    let html = '';
-    playlist.forEach((song, idx) => {
-        html += `
-        <div class="cart-item" style="cursor:pointer;" onclick="window.PhoneUI.playFromPlaylist(${idx})">
-            <img src="${song.cover}" style="width:40px; height:40px; border-radius:8px; object-fit:cover; flex-shrink:0;">
-            <div class="cart-item-info">
-                <div class="cart-item-name">${this.escapeHtml(song.name)}</div>
-                <div class="cart-item-price" style="color:var(--text-sub);">${this.escapeHtml(song.artist)}</div>
-            </div>
-            <i class="ph-fill ph-play-circle" style="color:var(--primary-color); font-size:24px;"></i>
-        </div>
-        `;
-    });
-    listEl.innerHTML = html;
-},
-
-playFromPlaylist(index) {
-    const playlist = JSON.parse(localStorage.getItem('shared_playlist') || '[]');
-    const song = playlist[index];
-    if (song) {
-        this.playMusic(song, true);
-        this.togglePlaylist();
-        window.PhoneAPI?.showToast(`🎶 正在播放: ${song.name}`);
-    }
 },
 
 renderNovelContent() {
@@ -656,6 +518,7 @@ this.renderWorldbook();
 }
 },
 
+// 🌟 修复：在设置页面补回了壁纸和封面的 URL 输入框，支持双通道！
 renderSettings() {
 const contentEl = document.getElementById('app-window-content');
 if (!contentEl) return;
@@ -681,10 +544,14 @@ contentEl.innerHTML = `
 
 <div class="card">
 <h3 style="color:var(--primary-color);margin-bottom:10px;"><i class="ph-fill ph-palette"></i> UI 主题装修</h3>
-<div class="engine-title"><i class="ph-fill ph-image"></i> 壁纸设置 (支持长按换图)</div>
+<div class="engine-title"><i class="ph-fill ph-image"></i> 壁纸设置 (支持长按换图，也可填URL)</div>
 <div style="display:flex;gap:10px;margin-bottom:10px;">
 <div style="flex:1;"><label style="font-size:11px;color:var(--text-sub);">全局壁纸(网址)</label><input type="text" id="bg-global" oninput="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
 <div style="flex:1;"><label style="font-size:11px;color:var(--text-sub);">聊天壁纸(网址)</label><input type="text" id="bg-chat" oninput="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
+</div>
+<div style="display:flex;gap:10px;margin-bottom:10px;">
+<div style="flex:1;"><label style="font-size:11px;color:var(--text-sub);">日记封面(网址)</label><input type="text" id="bg-diary-cover" oninput="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
+<div style="flex:1;"><label style="font-size:11px;color:var(--text-sub);">日记内页(网址)</label><input type="text" id="bg-diary-page" oninput="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
 </div>
 <div class="engine-title"><i class="ph-fill ph-heart" style="color:var(--danger-color);"></i> 恋爱纪念日</div>
 <div style="margin-bottom:15px;"><label style="font-size:11px;color:var(--text-sub);">相爱起始日 (用于首页天数计算)</label><input type="date" id="love-start-date" value="${localStorage.getItem('love_start_date') || defaultDate}" onchange="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>

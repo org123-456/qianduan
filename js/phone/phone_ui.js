@@ -65,7 +65,6 @@ this.renderWorldbook();
 }
 },
 
-// 🌟 核心修改：更新首页头像、天数、最新消息、以及【传纸条】状态
 updateHomeWidget() {
 const roleId = window.Config?.currentContactId;
 if (!roleId) return;
@@ -131,7 +130,6 @@ noteContentEl.innerText = noteContent;
 }
 },
 
-// 🌟 新增：传纸条相关逻辑
 openNoteModal() {
 const bg = document.getElementById('note-modal-bg');
 const modal = document.getElementById('note-modal');
@@ -669,7 +667,7 @@ this.renderMemoryVault();
 const favs = window.PhoneAPI?.getFavorites?.() || [];
 let html = '<div style="padding:10px 5px;">';
 if (favs.length === 0) {
-html += `<div style="text-align:center;color:var(--text-sub);padding:50px 0;"><i class="ph-fill ph-star" style="font-size:48px;color:var(--border-color);margin-bottom:15px;"></i><br>空空如也<br>快去聊天记录长按消息收藏吧！</div></div>`;
+html += `<div style="text-align:center;color:var(--text-sub);padding:50px 0;"><i class="ph-fill ph-star" style="font-size:48px;color:var(--border-color);margin-bottom:15px;"></i><br>空空如也<br>快去聊天记录长按消息收藏吧！</div>`;
 } else {
 [...favs].reverse().forEach(fav => {
 let content = window.marked ? window.marked.parse(fav.content || '') : (fav.content || '');
@@ -693,6 +691,7 @@ this.renderWorldbook();
 }
 },
 
+// 🌟 核心修改：在设置里加上“全局字体设置”
 renderSettings() {
 const contentEl = document.getElementById('app-window-content');
 if (!contentEl) return;
@@ -757,6 +756,16 @@ contentEl.innerHTML = `
 <div style="margin-bottom:15px;">
 <label style="font-size:11px;color:var(--text-sub);">日记内页底图(网址)</label>
 <input type="text" id="bg-diary-page" placeholder="推荐使用牛皮纸或水彩底图" oninput="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;">
+</div>
+
+<div class="engine-title"><i class="ph-fill ph-text-aa"></i> 全局字体设置</div>
+<div style="margin-bottom:10px;">
+<label style="font-size:11px;color:var(--text-sub);">字体直链 (如: https://.../font.ttf)</label>
+<input type="text" id="global-font-url" placeholder="留空则不使用外链字体" oninput="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;">
+</div>
+<div style="margin-bottom:15px;">
+<label style="font-size:11px;color:var(--text-sub);">后备/系统字体名 (如: 楷体, 微软雅黑)</label>
+<input type="text" id="global-font" placeholder="楷体" oninput="window.PhoneAPI?.autoSave?.()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;">
 </div>
 
 <div class="engine-title"><i class="ph-fill ph-heart" style="color:var(--danger-color);"></i> 恋爱纪念日</div>

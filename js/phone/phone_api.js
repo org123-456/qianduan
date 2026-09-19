@@ -150,11 +150,10 @@ el.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.05)';
 });
 },
 
-// 🌟 核心新增 1：网易云 API 搜歌 (终极不死保底版)
+// 🌟 核心新增 1：网易云 API 搜歌 (多节点防挂版 + 专属封面保底)
 async searchMusic(keyword) {
     this.showToast("🎵 正在云端检索歌曲...");
     try {
-        // 准备多个公共 API 节点防挂
         const apis = [
             `https://api.injahow.cn/meting/?type=search&search=${encodeURIComponent(keyword)}`,
             `https://netease-cloud-music-api-teal-roan.vercel.app/search?keywords=${encodeURIComponent(keyword)}&limit=1`
@@ -180,7 +179,7 @@ async searchMusic(keyword) {
                 name: song.name,
                 artist: song.ar ? song.ar.map(a => a.name).join(' / ') : '未知歌手',
                 cover: (song.al && song.al.picUrl) ? song.al.picUrl + '?param=300y300' : 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=1000&auto=format&fit=crop',
-                url: `https://music.163.com/song/media/outer/url?id=${song.id}.mp3` // 网易云官方外链
+                url: `https://music.163.com/song/media/outer/url?id=${song.id}.mp3`
             };
         }
         throw new Error("API全挂了");
@@ -188,26 +187,24 @@ async searchMusic(keyword) {
         console.error(e);
         this.showToast("⚠️ 网络节点受限，已切换至【系统专属歌单】");
         
-        // 🌟 终极保底方案：如果网易云接口全挂了，直接返回一首绝对能播的版权免费高清音乐！
+        // 🌟 终极保底方案：如果网易云接口全挂了，直接返回绝对能播的高清音乐，并配上非常明显的封面！
         const fallbackSongs = [
             {
                 id: 999001,
                 name: "Cyberpunk Ambient (系统私选)",
                 artist: "Night Glow",
-                cover: "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=1000&auto=format&fit=crop",
+                cover: "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?q=80&w=1000&auto=format&fit=crop", // 赛博朋克城市封面
                 url: "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3"
             },
             {
                 id: 999002,
                 name: "Rainy City (系统私选)",
                 artist: "Lofi Chill",
-                cover: "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?q=80&w=1000&auto=format&fit=crop",
+                cover: "https://images.unsplash.com/photo-1534050359320-02900022671e?q=80&w=1000&auto=format&fit=crop", // 唯美动漫风景封面
                 url: "https://cdn.pixabay.com/download/audio/2022/05/16/audio_b8c9103636.mp3?filename=empty-mind-118973.mp3"
             }
         ];
-        // 随机抽一首保底歌曲
-        const randomSong = fallbackSongs[Math.floor(Math.random() * fallbackSongs.length)];
-        return randomSong;
+        return fallbackSongs[Math.floor(Math.random() * fallbackSongs.length)];
     }
 },
 

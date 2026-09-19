@@ -72,13 +72,19 @@ async updateHomeWidget() {
             try {
                 const evData = window.PhoneAPI.EchoVault.getData();
                 const dates = Object.keys(evData.daily).sort((a, b) => new Date(b) - new Date(a));
-                if (dates.length > 0 && evData.daily[dates[0]] && evData.daily[dates[0]].content) {
-                    let latestContent = evData.daily[dates[0]].content.split('---').pop().trim();
-                    if (latestContent.length > 30) latestContent = latestContent.substring(0, 30) + '...';
-                    polaroidText.innerText = `“${latestContent}”`;
-                } else {
-                    polaroidText.innerText = "“我们的故事才刚刚开始...”";
+                let foundText = false;
+                for (let date of dates) {
+                    if (evData.daily[date] && evData.daily[date].content) {
+                        let text = evData.daily[date].content.replace(/---/g, '').trim();
+                        if (text) {
+                            if (text.length > 35) text = text.substring(0, 35) + '...';
+                            polaroidText.innerText = `“${text}”`;
+                            foundText = true;
+                            break;
+                        }
+                    }
                 }
+                if (!foundText) polaroidText.innerText = "“我们的故事才刚刚开始...”";
             } catch(e) {
                 polaroidText.innerText = "“我们的故事才刚刚开始...”";
             }
@@ -473,6 +479,7 @@ if (activeTab) activeTab.classList.add('active');
 if (activeSec) activeSec.classList.add('active');
 },
 
+// 🌟 修复：线下故事输入框完美沉底，文字可以滑动
 openApp(appId, appName) {
 if (window.Config) window.Config.currentAppId = appId;
 const titleEl = document.getElementById('app-window-title');
@@ -483,14 +490,32 @@ if (!titleEl || !winEl || !contentEl) return;
 
 titleEl.innerText = appName;
 winEl.classList.add('open');
+
+// 重置样式
 contentEl.style.padding = '20px';
 contentEl.style.background = 'transparent';
+contentEl.style.display = 'block';
+contentEl.style.flexDirection = 'row';
 
 if (appId === 'diary') { winEl.classList.add('fullscreen-mode'); } else { winEl.classList.remove('fullscreen-mode'); }
 
 if (appId === 'novel') {
 contentEl.style.padding = '0';
-contentEl.innerHTML = `<div id="novel-content-list" class="story-bg" onclick="window.PhoneUI.closeStoryMenu();"></div><div id="story-plus-menu" class="story-menu"><div class="story-menu-item" onclick="window.PhoneUI.openWbToggleModal('offline');window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-puzzle-piece" style="color:#2a9d8f;"></i></div><div class="text">规则挂载</div></div><div class="story-menu-item" onclick="if(window.PhoneEngine) window.PhoneEngine.extractMemory('novel');window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-brain"></i></div><div class="text">提取记忆</div></div><div class="story-menu-item" onclick="if(window.PhoneEngine) window.PhoneEngine.washMemory('novel');window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-broom" style="color:#f4a261;"></i></div><div class="text">记忆洗地</div></div><div class="story-menu-item" onclick="window.PhoneUI.openArchiveModal();window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-floppy-disk"></i></div><div class="text">存档室</div></div></div><div class="story-input-bar"><div class="icon-btn" id="btn-story-plus" onclick="window.PhoneUI.toggleStoryMenu();"><i class="ph ph-plus-circle"></i></div><textarea id="novel-input" class="story-textarea" placeholder="书写你们的故事..." onclick="window.PhoneUI.closeStoryMenu();"></textarea><button class="story-send-btn" onclick="if(window.PhoneEngine) window.PhoneEngine.sendNovelMessage();window.PhoneUI.closeStoryMenu();"><i class="ph-fill ph-paper-plane-right"></i></button></div>`;
+contentEl.style.display = 'flex';
+contentEl.style.flexDirection = 'column';
+contentEl.innerHTML = `
+<div id="novel-content-list" class="story-bg" onclick="window.PhoneUI.closeStoryMenu();"></div>
+<div id="story-plus-menu" class="story-menu">
+<div class="story-menu-item" onclick="window.PhoneUI.openWbToggleModal('offline');window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-puzzle-piece" style="color:#2a9d8f;"></i></div><div class="text">规则挂载</div></div>
+<div class="story-menu-item" onclick="if(window.PhoneEngine) window.PhoneEngine.extractMemory('novel');window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-brain"></i></div><div class="text">提取记忆</div></div>
+<div class="story-menu-item" onclick="if(window.PhoneEngine) window.PhoneEngine.washMemory('novel');window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-broom" style="color:#f4a261;"></i></div><div class="text">记忆洗地</div></div>
+<div class="story-menu-item" onclick="window.PhoneUI.openArchiveModal();window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-floppy-disk"></i></div><div class="text">存档室</div></div>
+</div>
+<div class="story-input-bar">
+<div class="icon-btn" id="btn-story-plus" onclick="window.PhoneUI.toggleStoryMenu();"><i class="ph ph-plus-circle"></i></div>
+<textarea id="novel-input" class="story-textarea" placeholder="书写你们的故事..." onclick="window.PhoneUI.closeStoryMenu();"></textarea>
+<button class="story-send-btn" onclick="if(window.PhoneEngine) window.PhoneEngine.sendNovelMessage();window.PhoneUI.closeStoryMenu();"><i class="ph-fill ph-paper-plane-right"></i></button>
+</div>`;
 this.renderNovelContent();
 } else if (appId === 'diary') {
 const diaryTitle = localStorage.getItem('diary_title') || 'His Diary';
@@ -499,7 +524,10 @@ this.renderDiaryPage();
 this.bindLongPresses();
 } else if (appId === 'memory_vault') {
 if (window.Config) window.Config.memoryVaultTab = 'daily';
-contentEl.innerHTML = `<div class="vault-tabs"><div class="vault-tab active" id="tab-daily" onclick="window.PhoneUI.switchVaultTab('daily')">日常 (Daily)</div><div class="vault-tab" id="tab-permanent" onclick="window.PhoneUI.switchVaultTab('permanent')">锚点 (Permanent)</div></div><div id="vault-content-area" style="padding-bottom: 80px;"></div><button id="ev-btn-remind" class="glass-fab" title="捞一个漂流瓶" onclick="window.PhoneUI.remindEchoVault()"><i class="ph-fill ph-bottle"></i></button>`;
+contentEl.innerHTML = `
+<div class="vault-tabs"><div class="vault-tab active" id="tab-daily" onclick="window.PhoneUI.switchVaultTab('daily')">日常 (Daily)</div><div class="vault-tab" id="tab-permanent" onclick="window.PhoneUI.switchVaultTab('permanent')">锚点 (Permanent)</div></div>
+<button class="btn-refresh" onclick="window.PhoneUI.remindEchoVault()" style="margin-top: 0; margin-bottom: 15px; background: linear-gradient(135deg, #a78bfa, #8b5cf6); border-radius: 16px; box-shadow: 0 4px 15px rgba(167, 139, 250, 0.4);"><i class="ph-fill ph-bottle"></i> 捞一个漂流瓶</button>
+<div id="vault-content-area" style="padding-bottom: 80px;"></div>`;
 this.renderMemoryVault();
 } else if (appId === 'favorites') {
 const favs = window.PhoneAPI ? window.PhoneAPI.getFavorites() : [];
@@ -518,7 +546,6 @@ this.renderWorldbook();
 }
 },
 
-// 🌟 修复：移除所有 onclick 里的 ?.
 renderSettings() {
 const contentEl = document.getElementById('app-window-content');
 if (!contentEl) return;

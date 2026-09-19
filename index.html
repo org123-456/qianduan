@@ -69,7 +69,7 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 [data-theme="dark"] body::before { content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.55); z-index: -1; pointer-events: none; }
 #app-container { width: 100%; height: 100%; max-width: 430px; position: relative; display: flex; flex-direction: column; overflow: hidden; }
 
-/* 🌟 轻拟物 (Neumorphism) 卡片样式 */
+/* 🌟 轻拟物卡片 */
 .neo-card { background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(20px); border-radius: 24px; box-shadow: -6px -6px 16px rgba(255, 255, 255, 0.9), 6px 6px 16px rgba(160, 190, 220, 0.4); border: 1px solid rgba(255, 255, 255, 0.8); transition: transform 0.2s, box-shadow 0.2s; }
 .neo-card:active { transform: scale(0.97); box-shadow: -2px -2px 8px rgba(255, 255, 255, 0.9), 2px 2px 8px rgba(160, 190, 220, 0.4); }
 [data-theme="dark"] .neo-card { background: rgba(25, 35, 55, 0.65); box-shadow: -4px -4px 12px rgba(45, 65, 90, 0.5), 4px 4px 12px rgba(10, 15, 25, 0.6); border: 1px solid rgba(50, 70, 100, 0.5); }
@@ -98,8 +98,8 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 .cd-num { font-size: 32px; font-weight: 800; line-height: 1; text-shadow: 0 4px 10px rgba(111,168,220,0.3); }
 .cd-suf { font-size: 12px; font-weight: bold; }
 
-/* 传纸条专属样式 */
-.note-widget { position: relative; padding: 25px 20px 20px 20px; cursor: pointer; overflow: hidden; display: flex; flex-direction: column; gap: 12px; }
+/* 传纸条 */
+.note-widget { position: relative; padding: 25px 20px 20px 20px; cursor: pointer; overflow: hidden; display: flex; flex-direction: column; gap: 12px; margin-top: 10px;}
 .note-tape { position: absolute; top: -8px; left: 50%; width: 80px; height: 22px; background: rgba(255,255,255,0.5); backdrop-filter: blur(4px); box-shadow: 0 2px 5px rgba(0,0,0,0.05); transform: translateX(-50%) rotate(-2deg); z-index: 2; pointer-events: none;}
 [data-theme="dark"] .note-tape { background: rgba(255,255,255,0.1); }
 .note-header { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-sub); z-index: 1;}
@@ -130,7 +130,7 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 [data-theme="dark"] .app-icon .icon { background: var(--icon-bg); }
 .app-icon .name { font-size: 12px; font-weight: 600; color: var(--text-main); text-align: center; margin-top: 8px;}
 
-/* 🌟 悬浮半透明底栏 (Floating Bottom Nav) */
+/* 🌟 悬浮半透明底栏 */
 .bottom-nav { position: absolute; bottom: 20px; left: 15px; right: 15px; height: 70px; background: rgba(255,255,255,0.7); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); display: flex; justify-content: space-around; align-items: center; border-radius: 35px; box-shadow: 0 10px 30px rgba(90,140,200,0.15); z-index: 20; border: 1px solid rgba(255,255,255,0.8); }
 [data-theme="dark"] .bottom-nav { background: rgba(25,35,55,0.75); border-color: rgba(50,70,100,0.5); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
 .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-sub); font-size: 10px; cursor: pointer; flex: 1; transition: 0.3s; }
@@ -180,7 +180,7 @@ input, textarea, select { background: rgba(255,255,255,.8); border: 1px solid #d
 .chat-time { font-size: 11px; color: #9bb2ca; margin-top: 6px; padding: 0 4px; }
 .chat-msg.consecutive .chat-time { display: none; }
 
-/* 聊天输入框 (抬高以避开悬浮底栏) */
+/* 🌟 恢复完美的聊天输入框位置 */
 .chat-input-bar { position: absolute; bottom: 105px; left: 12px; right: 12px; height: 54px; background: rgba(255,255,255,.8); backdrop-filter: blur(20px); border-radius: 30px; display: flex; align-items: center; padding: 0 16px; gap: 12px; box-shadow: 0 10px 30px rgba(90,140,200,.2); z-index: 10; margin: 0; }
 [data-theme="dark"] .chat-input-bar { background: var(--input-bg); }
 .chat-input-bar input { flex: 1; border: none; background: transparent; outline: none; font-size: 15px; color: #33495f; font-family: var(--global-font); }
@@ -220,7 +220,8 @@ input, textarea, select { background: rgba(255,255,255,.8); border: 1px solid #d
 .action-btn.danger { color: var(--danger-color); }
 .action-btn.cancel { background: var(--icon-bg); margin-top: 5px; color: var(--text-sub);}
 
-.app-window { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--window-bg); z-index: 50; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); display: flex; flex-direction: column; }
+/* 🌟 修复设置页面点不动的 Bug (z-index) */
+.app-window { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--window-bg); z-index: 900; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); display: flex; flex-direction: column; }
 .app-window.open { transform: translateX(0); }
 .app-window-header { display: flex; align-items: center; padding: 45px 20px 15px 20px; background: var(--icon-bg); box-shadow: 0 2px 10px rgba(0,0,0,0.03); z-index: 10;}
 .app-window-back { font-size: 24px; color: var(--primary-color); cursor: pointer; margin-right: 15px; display: flex; align-items: center; padding: 5px; }
@@ -412,6 +413,7 @@ input:checked + .slider:before { transform: translateX(16px); }
 .viewer-download { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 16px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
 .viewer-download:active { background: rgba(255,255,255,0.4); }
 
+/* 🌟 修复：找回悬浮球完整 CSS */
 .api-fab { position: fixed !important; right: 15px !important; top: 50% !important; transform: translateY(-50%) !important; width: 44px !important; height: 44px !important; border-radius: 50% !important; background: linear-gradient(135deg, rgba(255,255,255,.95), rgba(220,240,255,.95)) !important; backdrop-filter: blur(10px) !important; box-shadow: 0 10px 30px rgba(80,140,210,.25) !important; border: 1px solid rgba(111,168,220,.35) !important; display: flex !important; justify-content: center !important; align-items: center !important; font-size: 22px !important; color: #4f81bd !important; cursor: pointer !important; z-index: 9999 !important; transition: 0.3s !important; }
 .api-fab:active { transform: translateY(-50%) scale(0.9) !important; }
 .api-fab.loading { background: linear-gradient(135deg, #8bc6ff, #4f81bd) !important; color: #fff !important; box-shadow: 0 0 20px var(--primary-color) !important; animation: pulse-fab 1.5s infinite !important; }
@@ -432,10 +434,15 @@ input:checked + .slider:before { transform: translateX(16px); }
 </head>
 <body>
 
-<!-- 🌟 全局隐藏的文件上传框 (用于长按换图) -->
+<!-- 全局隐藏的文件上传框 (用于长按换图) -->
 <input type="file" id="global-file-input" accept="image/*" style="display:none">
 
 <div id="toast"><i class="ph-fill ph-check-circle" style="color: #4ade80;"></i> <span id="toast-msg">提示</span></div>
+
+<!-- 悬浮球 -->
+<div id="api-fab" class="api-fab" onclick="window.PhoneUI.openApiModal()">
+<i class="ph-fill ph-cpu"></i>
+</div>
 
 <!-- 弹窗区 -->
 <div id="api-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeApiModal()"></div>
@@ -481,7 +488,7 @@ input:checked + .slider:before { transform: translateX(16px); }
 <button class="btn-refresh" onclick="window.PhoneUI.closeWbToggleModal()" style="margin-top: 0;">完成</button>
 </div>
 
-<!-- 🌟 传纸条 弹窗 -->
+<!-- 传纸条 弹窗 -->
 <div id="note-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeNoteModal()"></div>
 <div id="note-modal" class="thought-modal" style="padding: 20px; z-index: 1005;">
 <div class="thought-header"><i class="ph-fill ph-paper-plane-tilt"></i> 传纸条</div>
@@ -492,7 +499,7 @@ input:checked + .slider:before { transform: translateX(16px); }
 </div>
 </div>
 
-<!-- 🌟 共听歌单 弹窗 -->
+<!-- 共听歌单 弹窗 -->
 <div id="playlist-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.togglePlaylist()"></div>
 <div id="playlist-modal" class="thought-modal" style="padding: 20px; z-index: 1005;">
 <div class="thought-header"><span><i class="ph-fill ph-playlist"></i> 共听歌单</span></div>
@@ -500,12 +507,12 @@ input:checked + .slider:before { transform: translateX(16px); }
 <button class="btn-refresh" onclick="window.PhoneUI.togglePlaylist()" style="margin-top: 15px;">关闭</button>
 </div>
 
-<!-- 🌟 全局音频播放器 -->
+<!-- 全局音频播放器 -->
 <audio id="shared-audio-player" src=""></audio>
 
 <div id="app-container">
 <div class="top-bar">
-<div class="menu-btn" onclick="window.PhoneUI.toggleTheme()"><i class="ph-fill ph-moon" id="theme-icon" style="font-size: 18px;"></i></div>
+<div class="menu-btn" onclick="window.PhoneUI.toggleTheme()"><i class="ph-fill ph-moon" id="theme-icon"></i></div>
 <div class="title" id="top-title">Claire & Claude</div>
 <div class="heart"><i class="ph-fill ph-heart"></i> 100%</div>
 </div>
@@ -586,7 +593,7 @@ input:checked + .slider:before { transform: translateX(16px); }
     </div>
 </div>
 
-<!-- 🌟 Memory 页 (完整修复) -->
+<!-- 🌟 Memory 页 -->
 <div id="page-memory" class="page" style="padding: 0;">
 <div class="starry-sea-bg" id="starry-sea-bg"></div>
 <div class="floating-bubbles" id="floating-bubbles">
@@ -622,10 +629,6 @@ input:checked + .slider:before { transform: translateX(16px); }
 <div class="icon"><i class="ph-fill ph-file-text" style="color: #60a5fa;"></i></div>
 <div class="name">发文件</div>
 </div>
-<div class="app-icon" onclick="window.PhoneEngine.transferMoney(); window.PhoneUI.closeChatMenu();">
-<div class="icon"><i class="ph-fill ph-currency-cny" style="color: #f6d365;"></i></div>
-<div class="name">转账给TA</div>
-</div>
 <div class="app-icon" onclick="window.PhoneUI.openWbToggleModal('online'); window.PhoneUI.closeChatMenu();">
 <div class="icon"><i class="ph-fill ph-puzzle-piece" style="color: #2a9d8f;"></i></div>
 <div class="name">规则挂载</div>
@@ -648,7 +651,7 @@ input:checked + .slider:before { transform: translateX(16px); }
 </form>
 </div>
 
-<!-- 🌟 Together 页 (找回完整的播放控制栏) -->
+<!-- Together 页 -->
 <div id="page-together" class="page" style="padding: 0; background: var(--bg-gradient-start);">
     <div style="padding: 60px 20px 20px; text-align: center; color: var(--text-main);">
         <div id="music-title" style="font-size: 22px; font-weight: bold;">等待点歌...</div>
@@ -681,7 +684,7 @@ input:checked + .slider:before { transform: translateX(16px); }
     </div>
 </div>
 
-<!-- 🌟 Mine 页 (找回星海收藏夹) -->
+<!-- 🌟 Mine 页 -->
 <div id="page-mine" class="page">
 <div class="card" style="text-align: center; padding: 40px 20px; color: var(--text-main); position: relative;">
 <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa" id="mine-avatar-display" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 15px; border: 3px solid var(--primary-color); object-fit: cover;">
@@ -767,7 +770,8 @@ input:checked + .slider:before { transform: translateX(16px); }
 </div>
 </div>
 
-<div id="app-window" class="app-window">
+<!-- 🌟 修复：修正层级，确保设置页面点击正常 -->
+<div id="app-window" class="app-window" style="z-index: 900;">
 <div class="app-window-header"><div class="app-window-back" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div><div class="app-window-title" id="app-window-title">应用</div></div>
 <div class="app-window-content" id="app-window-content"></div>
 </div>
@@ -775,19 +779,6 @@ input:checked + .slider:before { transform: translateX(16px); }
 </div>
 
 <script>
-// 🚨 紧急自救系统
-setTimeout(() => {
-if (typeof window.PhoneAPI === 'undefined' || typeof window.PhoneUI === 'undefined' || typeof window.PhoneEngine === 'undefined') {
-document.body.innerHTML = `
-<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;background:#f4f9ff;color:#27364b;padding:30px;text-align:center;z-index:99999;position:fixed;inset:0;">
-<i class="ph-fill ph-warning-circle" style="font-size:72px;color:#ff7b9c;margin-bottom:20px;"></i>
-<h2 style="margin-bottom:15px;font-size:22px;">核心代码崩溃了 😭</h2>
-<button onclick="clearCacheAndReload()" style="background:linear-gradient(135deg, #8bc6ff, #4f81bd);color:#fff;border:none;padding:16px 32px;border-radius:25px;font-size:16px;font-weight:bold;box-shadow:0 8px 20px rgba(80,140,210,0.3);"><i class="ph ph-arrows-clockwise"></i> 一键清理缓存并重载</button>
-</div>
-`;
-}
-}, 1500);
-
 function clearCacheAndReload() {
 if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister())); }
 if ('caches' in window) { caches.keys().then(keys => keys.forEach(k => caches.delete(k))); }

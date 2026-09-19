@@ -23,11 +23,14 @@ if (el) localStorage.setItem(key, isCheckbox ? el.checked : el.value.trim());
 
 saveIfExist('my-name', 'my_name'); saveIfExist('char-name', 'char_name');
 saveIfExist('my-avatar', 'my_avatar'); saveIfExist('ta-avatar', 'ta_avatar');
-// 🌟 新增：保存恋爱纪念日
-saveIfExist('love-start-date', 'love_start_date');
-
 saveIfExist('bg-global', 'bg_global'); saveIfExist('bg-chat', 'bg_chat');
 saveIfExist('bg-diary-cover', 'bg_diary_cover'); saveIfExist('bg-diary-page', 'bg_diary_page');
+
+// 🌟 保存全局字体设置
+saveIfExist('global-font', 'global_font'); 
+saveIfExist('global-font-url', 'global_font_url'); 
+
+saveIfExist('love-start-date', 'love_start_date');
 saveIfExist('diary-title', 'diary_title'); saveIfExist('diary-quote', 'diary_quote'); saveIfExist('diary-start-date', 'diary_start_date');
 saveIfExist('ui-icon-novel', 'ui_icon_novel'); saveIfExist('ui-icon-worldbook', 'ui_icon_worldbook');
 saveIfExist('ui-icon-settings', 'ui_icon_settings'); saveIfExist('ui-icon-shop', 'ui_icon_shop'); saveIfExist('ui-icon-task', 'ui_icon_task');
@@ -61,14 +64,16 @@ setVal('my-name', localStorage.getItem('my_name') || ''); setVal('char-name', lo
 setVal('my-avatar', localStorage.getItem('my_avatar') || ''); setVal('ta-avatar', localStorage.getItem('ta_avatar') || '');
 setVal('bg-global', localStorage.getItem('bg_global') || ''); setVal('bg-chat', localStorage.getItem('bg_chat') || '');
 setVal('bg-diary-cover', localStorage.getItem('bg_diary_cover') || ''); setVal('bg-diary-page', localStorage.getItem('bg_diary_page') || '');
+
+// 🌟 读取全局字体设置
+setVal('global-font', localStorage.getItem('global_font') || ''); 
+setVal('global-font-url', localStorage.getItem('global_font_url') || ''); 
+
 setVal('diary-title', localStorage.getItem('diary_title') || 'His Diary');
 setVal('diary-quote', localStorage.getItem('diary_quote') || '“时间会磨平一切痕迹，\n除了我为你写下的字。”');
 const today = new Date(); const defaultDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
 setVal('diary-start-date', localStorage.getItem('diary_start_date') || defaultDate);
-
-// 🌟 新增：读取恋爱纪念日
 setVal('love-start-date', localStorage.getItem('love_start_date') || defaultDate);
-
 setVal('ui-icon-novel', localStorage.getItem('ui_icon_novel') || ''); setVal('ui-icon-worldbook', localStorage.getItem('ui_icon_worldbook') || '');
 setVal('ui-icon-settings', localStorage.getItem('ui_icon_settings') || ''); setVal('ui-icon-shop', localStorage.getItem('ui_icon_shop') || ''); setVal('ui-icon-task', localStorage.getItem('ui_icon_task') || '');
 
@@ -107,6 +112,23 @@ if (titleEl) titleEl.innerText = `${savedMyName} & ${savedCharName}`;
 applyUITheme() {
 const globalBg = localStorage.getItem('bg_global'); const chatBg = localStorage.getItem('bg_chat');
 const diaryCover = localStorage.getItem('bg_diary_cover'); const diaryPage = localStorage.getItem('bg_diary_page');
+const fontUrl = localStorage.getItem('global_font_url');
+const fontFamily = localStorage.getItem('global_font') || '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+
+// 🌟 动态注入全局字体
+let styleEl = document.getElementById('custom-font-style');
+if (fontUrl && fontUrl.trim() !== '') {
+    if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = 'custom-font-style';
+        document.head.appendChild(styleEl);
+    }
+    styleEl.innerHTML = `@font-face { font-family: 'MyCustomFont'; src: url('${fontUrl.trim()}'); font-display: swap; }`;
+    document.documentElement.style.setProperty('--global-font', `'MyCustomFont', ${fontFamily}`);
+} else {
+    if (styleEl) styleEl.remove();
+    document.documentElement.style.setProperty('--global-font', fontFamily);
+}
 
 if (globalBg) { document.documentElement.style.setProperty('--bg-image-global', `url('${globalBg}')`); } else { document.documentElement.style.removeProperty('--bg-image-global'); }
 if (chatBg) { document.documentElement.style.setProperty('--bg-image-chat', `url('${chatBg}')`); } else { document.documentElement.style.removeProperty('--bg-image-chat'); }
@@ -614,7 +636,6 @@ deleteFavorite(id) { if (!confirm('确定删除吗？')) return; let favs = this
 
 getMemoryVault() { return JSON.parse(localStorage.getItem('memory_vault_entries') || '[]'); },
 
-// 🌟 核心修改 1：支持存入带关键词的对象
 saveToMemoryVault(summaries, source, isCore = false) {
 const vault = this.getMemoryVault();
 const now = new Date();
@@ -634,7 +655,6 @@ this.showToast(`🧠 成功存入 ${summaryArray.length} 条记忆档案！`);
 
 deleteFromMemoryVault(id) { if(!confirm('确定删除吗？')) return; let vault = this.getMemoryVault(); vault = vault.filter(m => m.id !== id); localStorage.setItem('memory_vault_entries', JSON.stringify(vault)); window.PhoneUI?.renderMemoryVault?.(); this.showToast('🗑️ 记忆已消除'); },
 
-// 🌟 核心修改 2：手动修改记忆时，自动呼叫 AI 提取关键词
 async editMemoryVault(id) {
 let vault = this.getMemoryVault();
 let item = vault.find(m => m.id === id);

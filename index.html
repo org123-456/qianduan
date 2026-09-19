@@ -75,6 +75,10 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 .neo-card:active { transform: scale(0.97); box-shadow: -2px -2px 8px rgba(255, 255, 255, 0.9), 2px 2px 8px rgba(160, 190, 220, 0.4); }
 [data-theme="dark"] .neo-card { background: rgba(25, 35, 55, 0.65); box-shadow: -4px -4px 12px rgba(45, 65, 90, 0.5), 4px 4px 12px rgba(10, 15, 25, 0.6); border: 1px solid rgba(50, 70, 100, 0.5); }
 
+/* 贴纸装饰样式 */
+.deco-sticker { transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); cursor: pointer; filter: drop-shadow(0 4px 10px rgba(160, 190, 220, 0.2)); }
+.deco-sticker:active { transform: scale(0.9) !important; }
+
 /* 心跳动画 */
 @keyframes heartbeat { 0% { transform: scale(1); } 15% { transform: scale(1.25); } 30% { transform: scale(1); } 45% { transform: scale(1.15); } 60% { transform: scale(1); } 100% { transform: scale(1); } }
 
@@ -96,7 +100,6 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 
 .page-container { flex: 1; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
 .page-container::-webkit-scrollbar { display: none; }
-/* 🌟 增加 padding-bottom 防止被悬浮底栏遮挡 */
 .page { flex: 0 0 100%; max-width: 100%; height: 100%; scroll-snap-align: start; overflow-y: auto; padding: 15px 16px 130px 16px; display: flex; flex-direction: column; position: relative; min-width: 0; overflow-wrap: anywhere;}
 #page-chat { background-image: var(--bg-image-chat); background-size: cover; background-position: center; background-attachment: fixed; }
 
@@ -252,14 +255,6 @@ input, textarea, select { background: rgba(255,255,255,.8); border: 1px solid #d
 .story-menu-item .icon { width: 44px; height: 44px; border-radius: 14px; background: var(--bg-gradient-start); color: var(--primary-color); display: flex; justify-content: center; align-items: center; font-size: 22px; transition: 0.2s;}
 .story-menu-item:active .icon { transform: scale(0.9); }
 .story-menu-item .text { font-size: 11px; color: var(--secondary-color); font-weight: bold;}
-
-/* 🌟 音乐室专属动画与样式 (浅色/蓝调) */
-@keyframes spin { 100% { transform: rotate(360deg); } }
-@keyframes breatheBg { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-.vinyl-spin { animation: spin 15s linear infinite; }
-.vinyl-pause { animation-play-state: paused; }
-.stylus-play { transform: rotate(20deg) !important; }
-.lyrics-mask { mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%); -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%); }
 
 /* 世界书与设置 */
 .wb-card { background: var(--icon-bg); border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); position: relative;}
@@ -532,6 +527,13 @@ input:checked + .slider:before { transform: translateX(16px); }
 </div>
 </div>
 
+<!-- 🌟 共听歌单 弹窗 -->
+<div id="playlist-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.togglePlaylist()"></div>
+<div id="playlist-modal" class="cart-modal" style="background: rgba(255,255,255,0.85); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);">
+<div class="cart-header"><span><i class="ph-fill ph-playlist"></i> 共听歌单</span><i class="ph ph-x" style="cursor:pointer;color:var(--text-sub);" onclick="window.PhoneUI.togglePlaylist()"></i></div>
+<div class="cart-list" id="playlist-container" style="max-height: 50vh;"></div>
+</div>
+
 <!-- 🌟 全局音频播放器 -->
 <audio id="shared-audio-player" src=""></audio>
 
@@ -738,7 +740,8 @@ input:checked + .slider:before { transform: translateX(16px); }
                 <i class="ph-fill ph-play" id="play-icon" style="margin-left: 4px;"></i>
             </div>
             <i class="ph-fill ph-skip-forward" style="cursor:pointer;" onclick="window.PhoneAPI?.showToast('请让 AI 为你切歌')"></i>
-            <i class="ph ph-list" style="font-size:24px; cursor:pointer;" onclick="window.PhoneAPI?.showToast('共听队列开发中...')"></i>
+            <!-- 🌟 点击打开歌单 -->
+            <i class="ph ph-list" style="font-size:24px; cursor:pointer;" onclick="window.PhoneUI?.togglePlaylist?.()"></i>
         </div>
     </div>
 </div>
@@ -962,8 +965,25 @@ function toggleMusicView() {
     }
 }
 
-function togglePlayUI() {
-    isPlaying = !isPlaying;
+// 🌟 修复：真正控制音频播放和暂停的按钮逻辑
+function togglePlayUI(forceState) {
+    const audio = document.getElementById('shared-audio-player');
+    if (!audio || !audio.src) {
+        if (window.PhoneAPI) window.PhoneAPI.showToast("当前没有正在播放的歌曲哦，快去让 TA 点一首吧~");
+        return;
+    }
+    
+    if (typeof forceState === 'boolean') {
+        isPlaying = forceState;
+    } else {
+        isPlaying = !isPlaying;
+        if (isPlaying) {
+            audio.play().catch(e => console.error("播放失败:", e));
+        } else {
+            audio.pause();
+        }
+    }
+    
     const record = document.getElementById('vinyl-record');
     const stylus = document.getElementById('stylus');
     const icon = document.getElementById('play-icon');

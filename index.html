@@ -75,6 +75,10 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 .neo-card:active { transform: scale(0.97); box-shadow: -2px -2px 8px rgba(255, 255, 255, 0.9), 2px 2px 8px rgba(160, 190, 220, 0.4); }
 [data-theme="dark"] .neo-card { background: rgba(25, 35, 55, 0.65); box-shadow: -4px -4px 12px rgba(45, 65, 90, 0.5), 4px 4px 12px rgba(10, 15, 25, 0.6); border: 1px solid rgba(50, 70, 100, 0.5); }
 
+/* 贴纸装饰样式 */
+.deco-sticker { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); cursor: pointer; }
+.deco-sticker:active { transform: scale(0.92) !important; }
+
 /* 心跳动画 */
 @keyframes heartbeat { 0% { transform: scale(1); } 15% { transform: scale(1.25); } 30% { transform: scale(1); } 45% { transform: scale(1.15); } 60% { transform: scale(1); } 100% { transform: scale(1); } }
 
@@ -83,7 +87,6 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 .note-tape { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 60px; height: 16px; background: rgba(255,255,255,0.4); border-radius: 0 0 4px 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.6); border-top: none; }
 [data-theme="dark"] .note-tape { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
 .note-header { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-sub); }
-/* 🌟 修复纸条超格问题：加入自动换行和最大高度 */
 .note-content { font-family: 'Long Cang', 'Kaiti', cursive; font-size: 20px; color: var(--text-main); line-height: 1.5; text-align: center; padding: 10px 0; font-weight: bold; white-space: pre-wrap; word-break: break-word; max-height: 150px; overflow-y: auto; }
 .note-content::-webkit-scrollbar { display: none; }
 
@@ -535,7 +538,7 @@ input:checked + .slider:before { transform: translateX(16px); }
 
 <div class="page-container" id="scroll-box">
 
-<!-- 🌟 重新设计的 iOS Widget 风格首页 -->
+<!-- 🌟 重新设计的 iOS Widget 风格首页 (包含贴纸装饰) -->
 <div id="page-home" class="page">
     
     <!-- 顶部双网格：天数 + 时钟 -->
@@ -565,7 +568,7 @@ input:checked + .slider:before { transform: translateX(16px); }
     </div>
 
     <!-- 🌟 传纸条 Widget -->
-    <div class="neo-card note-widget" onclick="window.PhoneUI.openNoteModal()" style="margin-bottom: 20px;">
+    <div class="neo-card note-widget" onclick="window.PhoneUI.openNoteModal()" style="margin-bottom: 16px;">
         <div class="note-tape"></div>
         <div class="note-header">
             <img id="note-avatar" src="https://api.dicebear.com/7.x/notionists/svg?seed=TA&backgroundColor=e8f0fa" style="width: 28px; height: 28px; border-radius: 50%; border: 1px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); object-fit: cover;">
@@ -574,9 +577,27 @@ input:checked + .slider:before { transform: translateX(16px); }
         <div class="note-content" id="note-content">“今天也要开心哦！”</div>
     </div>
 
+    <!-- 🌟 装饰排版 1：长条 + 方块 -->
+    <div style="display: flex; gap: 12px; margin-bottom: 16px; align-items: center;">
+        <img class="deco-sticker" src="https://nos.netease.com/vcloud-statistic/nrtc/aa5dbdd4-65d6-48aa-9dd5-64629d2990e8.png" style="flex: 2; width: 0; border-radius: 24px;">
+        <img class="deco-sticker" src="https://nos.netease.com/vcloud-statistic/nrtc/089afda0-ad54-4e66-9b28-974c99140150.png" style="flex: 1; width: 0; border-radius: 24px;">
+    </div>
+
+    <!-- 🌟 装饰排版 2：横向长胶囊 (4 icons) -->
+    <div style="margin-bottom: 16px; text-align: center;">
+        <img class="deco-sticker" src="https://nos.netease.com/vcloud-statistic/nrtc/132eebd7-1663-4923-b519-1912bddaf208.png" style="width: 100%; border-radius: 24px;">
+    </div>
+
+    <!-- 🌟 装饰排版 3：三个小方块并排 -->
+    <div style="display: flex; gap: 12px; margin-bottom: 20px; align-items: center;">
+        <img class="deco-sticker" src="https://nos.netease.com/vcloud-statistic/nrtc/65c646c3-3a33-4b2c-88e4-cd4f429efb58.png" style="flex: 1; width: 0; border-radius: 24px;">
+        <img class="deco-sticker" src="https://nos.netease.com/vcloud-statistic/nrtc/c9d8116e-610d-488a-8c0d-7255bbd4a443.png" style="flex: 1; width: 0; border-radius: 24px;">
+        <img class="deco-sticker" src="https://nos.netease.com/vcloud-statistic/nrtc/c27ca969-9f27-4d48-a387-c8af35e9c4da.png" style="flex: 1; width: 0; border-radius: 24px;">
+    </div>
+
     <!-- 我的生活 -->
     <h3 style="margin: 0 0 12px 5px; color: var(--primary-color); font-size: 14px; font-weight: bold; letter-spacing: 1px;">我的生活</h3>
-    <div class="app-grid" style="gap: 16px 12px; padding: 5px;">
+    <div class="app-grid" style="gap: 16px 12px; padding: 5px; margin-bottom: 20px;">
         <div class="app-icon" onclick="window.PhoneUI.openApp('novel', '线下故事')">
             <div class="icon neo-card" id="home-icon-novel" style="width: 60px; height: 60px; border-radius: 20px; margin-bottom: 8px;"><i class="ph-fill ph-book-open" style="color: var(--text-sub);"></i></div>
             <div class="name" style="font-weight: bold;">线下故事</div>
@@ -594,6 +615,16 @@ input:checked + .slider:before { transform: translateX(16px); }
             <div class="name" style="font-weight: bold;">商店</div>
         </div>
     </div>
+
+    <!-- 🌟 装饰排版 4：底部不对称拼贴 (灯泡 + 音频波/音量) -->
+    <div style="display: flex; gap: 12px; margin-bottom: 16px; align-items: stretch;">
+         <img class="deco-sticker" src="https://nos.netease.com/vcloud-statistic/nrtc/010dffce-d0a8-45c3-896d-c606f25235c1.png" style="flex: 1; width: 0; border-radius: 24px;">
+         <div style="flex: 2; display: flex; flex-direction: column; justify-content: space-between; gap: 12px;">
+             <img class="deco-sticker" src="https://nos.netease.com/vcloud-statistic/nrtc/f53ddcb9-210f-45d8-880d-415561484bb8.png" style="width: 100%; border-radius: 24px;">
+             <img class="deco-sticker" src="https://nos.netease.com/vcloud-statistic/nrtc/506145df-74fd-445e-921d-d6fe8ebb3eb8.png" style="width: 100%; border-radius: 24px;">
+         </div>
+    </div>
+
 </div>
 
 <div id="page-memory" class="page" style="padding: 0;">

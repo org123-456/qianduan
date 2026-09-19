@@ -26,7 +26,6 @@ saveIfExist('my-avatar', 'my_avatar'); saveIfExist('ta-avatar', 'ta_avatar');
 saveIfExist('bg-global', 'bg_global'); saveIfExist('bg-chat', 'bg_chat');
 saveIfExist('bg-diary-cover', 'bg_diary_cover'); saveIfExist('bg-diary-page', 'bg_diary_page');
 
-// 🌟 保存全局字体设置
 saveIfExist('global-font', 'global_font'); 
 saveIfExist('global-font-url', 'global_font_url'); 
 
@@ -65,7 +64,6 @@ setVal('my-avatar', localStorage.getItem('my_avatar') || ''); setVal('ta-avatar'
 setVal('bg-global', localStorage.getItem('bg_global') || ''); setVal('bg-chat', localStorage.getItem('bg_chat') || '');
 setVal('bg-diary-cover', localStorage.getItem('bg_diary_cover') || ''); setVal('bg-diary-page', localStorage.getItem('bg_diary_page') || '');
 
-// 🌟 读取全局字体设置
 setVal('global-font', localStorage.getItem('global_font') || ''); 
 setVal('global-font-url', localStorage.getItem('global_font_url') || ''); 
 
@@ -115,7 +113,6 @@ const diaryCover = localStorage.getItem('bg_diary_cover'); const diaryPage = loc
 const fontUrl = localStorage.getItem('global_font_url');
 const fontFamily = localStorage.getItem('global_font') || '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
-// 🌟 动态注入全局字体
 let styleEl = document.getElementById('custom-font-style');
 if (fontUrl && fontUrl.trim() !== '') {
     if (!styleEl) {
@@ -151,6 +148,58 @@ el.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.05)';
 }
 }
 });
+},
+
+// 🌟 核心新增 1：网易云 API 搜歌
+async searchMusic(keyword) {
+    this.showToast("🎵 正在云端检索歌曲...");
+    try {
+        const res = await fetch(`https://netease-cloud-music-api-teal-roan.vercel.app/search?keywords=${encodeURIComponent(keyword)}&limit=1`);
+        const data = await res.json();
+        if (data.result && data.result.songs && data.result.songs.length > 0) {
+            const song = data.result.songs[0];
+            return {
+                id: song.id,
+                name: song.name,
+                artist: song.ar.map(a => a.name).join(' / '),
+                cover: song.al.picUrl + '?param=300y300',
+                url: `https://music.163.com/song/media/outer/url?id=${song.id}.mp3` // 网易云官方外链
+            };
+        }
+        throw new Error("未找到歌曲");
+    } catch (e) {
+        console.error(e);
+        this.showToast("❌ 搜歌失败，可能是版权限制或网络问题");
+        return null;
+    }
+},
+
+// 🌟 核心新增 2：Supabase 共听状态同步
+async syncMusicState(songData) {
+    try {
+        const headers = { 'apikey': this.SUPABASE_KEY, 'Authorization': `Bearer ${this.SUPABASE_KEY}`, 'Content-Type': 'application/json' };
+        const checkRes = await fetch(`${this.SUPABASE_URL}/rest/v1/phone_sync?id=eq.2&select=id`, { headers });
+        const checkData = await checkRes.json();
+        const payload = { content: JSON.stringify(songData) };
+        
+        if (checkData && checkData.length > 0) {
+            await fetch(`${this.SUPABASE_URL}/rest/v1/phone_sync?id=eq.2`, { method: 'PATCH', headers, body: JSON.stringify(payload) });
+        } else {
+            await fetch(`${this.SUPABASE_URL}/rest/v1/phone_sync`, { method: 'POST', headers: { ...headers, 'Prefer': 'return=representation' }, body: JSON.stringify({ id: 2, ...payload }) });
+        }
+    } catch(e) { console.error("同步音乐状态失败", e); }
+},
+
+async pullMusicState() {
+    try {
+        const headers = { 'apikey': this.SUPABASE_KEY, 'Authorization': `Bearer ${this.SUPABASE_KEY}` };
+        const res = await fetch(`${this.SUPABASE_URL}/rest/v1/phone_sync?id=eq.2&select=content`, { headers });
+        const rows = await res.json();
+        if (rows && rows.length > 0 && rows[0].content) {
+            return JSON.parse(rows[0].content);
+        }
+    } catch(e) { console.error("拉取音乐状态失败", e); }
+    return null;
 },
 
 getUIPresets() { return JSON.parse(localStorage.getItem('ui_presets') || '[]'); },
@@ -802,7 +851,6 @@ throw error;
 }
 };
 
-// 🌟 全局挂载保证不报错
 if (typeof window !== 'undefined') {
 window.PhoneAPI = PhoneAPI;
 }

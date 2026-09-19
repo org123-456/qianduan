@@ -23,6 +23,9 @@ if (el) localStorage.setItem(key, isCheckbox ? el.checked : el.value.trim());
 
 saveIfExist('my-name', 'my_name'); saveIfExist('char-name', 'char_name');
 saveIfExist('my-avatar', 'my_avatar'); saveIfExist('ta-avatar', 'ta_avatar');
+// 🌟 新增：保存恋爱纪念日
+saveIfExist('love-start-date', 'love_start_date');
+
 saveIfExist('bg-global', 'bg_global'); saveIfExist('bg-chat', 'bg_chat');
 saveIfExist('bg-diary-cover', 'bg_diary_cover'); saveIfExist('bg-diary-page', 'bg_diary_page');
 saveIfExist('diary-title', 'diary_title'); saveIfExist('diary-quote', 'diary_quote'); saveIfExist('diary-start-date', 'diary_start_date');
@@ -62,6 +65,10 @@ setVal('diary-title', localStorage.getItem('diary_title') || 'His Diary');
 setVal('diary-quote', localStorage.getItem('diary_quote') || '“时间会磨平一切痕迹，\n除了我为你写下的字。”');
 const today = new Date(); const defaultDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
 setVal('diary-start-date', localStorage.getItem('diary_start_date') || defaultDate);
+
+// 🌟 新增：读取恋爱纪念日
+setVal('love-start-date', localStorage.getItem('love_start_date') || defaultDate);
+
 setVal('ui-icon-novel', localStorage.getItem('ui_icon_novel') || ''); setVal('ui-icon-worldbook', localStorage.getItem('ui_icon_worldbook') || '');
 setVal('ui-icon-settings', localStorage.getItem('ui_icon_settings') || ''); setVal('ui-icon-shop', localStorage.getItem('ui_icon_shop') || ''); setVal('ui-icon-task', localStorage.getItem('ui_icon_task') || '');
 

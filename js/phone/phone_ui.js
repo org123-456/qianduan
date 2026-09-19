@@ -26,76 +26,83 @@ this.renderWorldbook();
 }
 },
 
-// 🌟 核心升级：渲染首页所有小组件 (包含 B, C, D)
+// 🌟 修复后的首页渲染逻辑 (加入安全保护)
 async updateHomeWidget() {
-    // 1. 相爱天数
-    const daysEl = document.getElementById('home-love-days');
-    if (daysEl) {
-        const startDateStr = localStorage.getItem('love_start_date') || localStorage.getItem('diary_start_date');
-        if (startDateStr) {
-            const start = new Date(startDateStr); const now = new Date();
-            daysEl.innerText = Math.floor(Math.abs(now - start) / (1000 * 60 * 60 * 24));
-        } else { daysEl.innerText = '0'; }
-    }
-
-    // 2. 传纸条
-    const noteContentEl = document.getElementById('note-content');
-    if (noteContentEl) noteContentEl.innerText = localStorage.getItem('home_note_content') || '“今天也要开心哦！”';
-
-    // 🌟 3. 渲染迷你日历网格 (D)
-    const calGrid = document.getElementById('home-cal-grid');
-    if (calGrid) {
-        const now = new Date();
-        const y = now.getFullYear(), m = now.getMonth(), today = now.getDate();
-        const first = new Date(y, m, 1).getDay();
-        const days = new Date(y, m + 1, 0).getDate();
-        let html = '';
-        for (let i = 0; i < first; i++) html += '<span></span>';
-        for (let d = 1; d <= days; d++) {
-            html += d === today ? `<span class="today">${d}</span>` : `<span>${d}</span>`;
+    try {
+        // 1. 相爱天数
+        const daysEl = document.getElementById('home-love-days');
+        if (daysEl) {
+            const startDateStr = localStorage.getItem('love_start_date') || localStorage.getItem('diary_start_date');
+            if (startDateStr) {
+                const start = new Date(startDateStr); const now = new Date();
+                daysEl.innerText = Math.floor(Math.abs(now - start) / (1000 * 60 * 60 * 24));
+            } else { daysEl.innerText = '0'; }
         }
-        calGrid.innerHTML = html;
-    }
 
-    // 🌟 4. 渲染倒数日小组件 (B)
-    this.renderCountdown();
+        // 2. 传纸条
+        const noteContentEl = document.getElementById('note-content');
+        if (noteContentEl) noteContentEl.innerText = localStorage.getItem('home_note_content') || '“今天也要开心哦！”';
 
-    // 🌟 5. 渲染拍立得相框 (C) - 自动抓取 EchoVault 最新日记
-    const polaroidText = document.getElementById('polaroid-text');
-    if (polaroidText && window.PhoneAPI?.EchoVault) {
-        const evData = window.PhoneAPI.EchoVault.getData();
-        const dates = Object.keys(evData.daily).sort((a, b) => new Date(b) - new Date(a));
-        if (dates.length > 0) {
-            // 抓取最新一天的日记，截取前 30 个字
-            let latestContent = evData.daily[dates[0]].content.split('---').pop().trim();
-            if (latestContent.length > 30) latestContent = latestContent.substring(0, 30) + '...';
-            polaroidText.innerText = `“${latestContent}”`;
-        } else {
-            polaroidText.innerText = "“我们的故事才刚刚开始...”";
+        // 3. 渲染迷你日历网格 (D)
+        const calGrid = document.getElementById('home-cal-grid');
+        if (calGrid) {
+            const now = new Date();
+            const y = now.getFullYear(), m = now.getMonth(), today = now.getDate();
+            const first = new Date(y, m, 1).getDay();
+            const days = new Date(y, m + 1, 0).getDate();
+            let html = '';
+            for (let i = 0; i < first; i++) html += '<span></span>';
+            for (let d = 1; d <= days; d++) {
+                html += d === today ? `<span class="today">${d}</span>` : `<span>${d}</span>`;
+            }
+            calGrid.innerHTML = html;
         }
-    }
 
-    // 🌟 6. 加载所有被替换过的本地图片 (A)
-    if (window.PhoneAPI && window.PhoneAPI.LocalDB) {
-        const elements = document.querySelectorAll('[data-img]');
-        for (const el of elements) {
-            const key = el.dataset.img;
+        // 4. 渲染倒数日小组件 (B)
+        this.renderCountdown();
+
+        // 5. 渲染拍立得相框 (C) - 自动抓取 EchoVault 最新日记
+        const polaroidText = document.getElementById('polaroid-text');
+        if (polaroidText && window.PhoneAPI?.EchoVault) {
             try {
-                const blob = await window.PhoneAPI.LocalDB.get(key);
-                if (blob) {
-                    const url = window.PhoneAPI.LocalDB.urlOf(key, blob);
-                    if (el.tagName.toLowerCase() === 'img') el.src = url;
-                    else {
-                        const imgChild = el.querySelector('img');
-                        if (imgChild) imgChild.src = url;
-                    }
+                const evData = window.PhoneAPI.EchoVault.getData();
+                const dates = Object.keys(evData.daily).sort((a, b) => new Date(b) - new Date(a));
+                if (dates.length > 0 && evData.daily[dates[0]] && evData.daily[dates[0]].content) {
+                    let latestContent = evData.daily[dates[0]].content.split('---').pop().trim();
+                    if (latestContent.length > 30) latestContent = latestContent.substring(0, 30) + '...';
+                    polaroidText.innerText = `“${latestContent}”`;
+                } else {
+                    polaroidText.innerText = "“我们的故事才刚刚开始...”";
                 }
-            } catch(e) {}
+            } catch(e) {
+                polaroidText.innerText = "“我们的故事才刚刚开始...”";
+            }
         }
+
+        // 6. 加载所有被替换过的本地图片 (A)
+        if (window.PhoneAPI && window.PhoneAPI.LocalDB) {
+            const elements = document.querySelectorAll('[data-img]');
+            for (const el of elements) {
+                const key = el.dataset.img;
+                try {
+                    const blob = await window.PhoneAPI.LocalDB.get(key);
+                    if (blob) {
+                        const url = window.PhoneAPI.LocalDB.urlOf(key, blob);
+                        if (el.tagName.toLowerCase() === 'img') el.src = url;
+                        else {
+                            const imgChild = el.querySelector('img');
+                            if (imgChild) imgChild.src = url;
+                        }
+                    }
+                } catch(e) {}
+            }
+        }
+    } catch(e) {
+        console.error("更新首页 Widget 失败:", e);
     }
 },
 
-// 🌟 A功能：绑定全局的长按换图事件
+// A功能：绑定全局的长按换图事件
 bindLongPresses() {
     const elements = document.querySelectorAll('.long-pressable');
     const fileInput = document.getElementById('global-file-input');
@@ -145,7 +152,7 @@ bindLongPresses() {
     }
 },
 
-// 🌟 B功能：倒数日小组件逻辑
+// B功能：倒数日小组件逻辑
 renderCountdown() {
     const cfgRaw = localStorage.getItem('cc_countdown');
     const cfg = cfgRaw ? JSON.parse(cfgRaw) : { title: '见到你', date: '2025-05-09', pre: '还有', suf: '天' };
@@ -304,32 +311,6 @@ if (menu) menu.classList.remove('show');
 if (btn) btn.style.transform = 'rotate(0deg)';
 },
 
-openWalletModal() {
-const input = document.getElementById('wallet-input');
-if (input) input.value = localStorage.getItem('my_coins') || '500';
-const bg = document.getElementById('wallet-modal-bg');
-const modal = document.getElementById('wallet-modal');
-if (bg) bg.classList.add('show');
-if (modal) modal.classList.add('show');
-},
-closeWalletModal() {
-const bg = document.getElementById('wallet-modal-bg');
-const modal = document.getElementById('wallet-modal');
-if (bg) bg.classList.remove('show');
-if (modal) modal.classList.remove('show');
-},
-saveWalletBalance() {
-const input = document.getElementById('wallet-input');
-if (!input || input.value === '') { this.closeWalletModal(); return; }
-const value = parseInt(input.value, 10);
-if (!Number.isFinite(value) || value < 0) { window.PhoneAPI?.showToast('❌ 请输入有效的余额'); return; }
-localStorage.setItem('my_coins', value);
-const coinEl = document.getElementById('mine-coin-display');
-if (coinEl) coinEl.innerText = value;
-window.PhoneAPI?.showToast('💰 余额修改成功！');
-this.closeWalletModal();
-},
-
 openWbToggleModal(mode) {
 const listEl = document.getElementById('wb-toggle-list');
 const titleEl = document.getElementById('wb-toggle-title');
@@ -353,51 +334,6 @@ const bg = document.getElementById('wb-toggle-modal-bg');
 const modal = document.getElementById('wb-toggle-modal');
 if (bg) bg.classList.remove('show');
 if (modal) modal.classList.remove('show');
-},
-
-toggleStickerPanel() {
-const panel = document.getElementById('sticker-panel');
-if (!panel) return;
-if (panel.classList.contains('show')) { this.closeStickerPanel(); } else { this.closeChatMenu(); this.renderStickers(); panel.classList.add('show'); }
-},
-closeStickerPanel() {
-const panel = document.getElementById('sticker-panel');
-if (panel) panel.classList.remove('show');
-},
-
-async importStickers() {
-const text = await this.showCustomPrompt("📦 批量导入表情包", "请直接粘贴你的文档内容，格式如：\n让我摸摸:\nhttps://...gif\n害羞了:\nhttps://...gif\n（清空所有表情包请输入：CLEAR）");
-if (!text) return;
-if (text.trim() === 'CLEAR') {
-if (confirm("确定要清空所有表情包吗？")) { localStorage.removeItem('custom_stickers'); this.renderStickers(); window.PhoneAPI?.showToast("🗑️ 表情包已清空"); }
-return;
-}
-const lines = text.split('\n'); let newStickers = []; let currentName = "未命名表情"; const urlRegex = /(https?:\/\/[^\s]+)/;
-lines.forEach(line => {
-const str = line.trim(); if (!str) return;
-const urlMatch = str.match(urlRegex);
-if (urlMatch) {
-const url = urlMatch[1]; let name = str.replace(url, '').replace(/[:：]/g, '').trim();
-if (!name && currentName !== "未命名表情") { name = currentName; currentName = "未命名表情"; } else if (!name) { name = "表情" + Math.floor(Math.random() * 1000); }
-newStickers.push({ name, url });
-} else { currentName = str.replace(/[:：]/g, '').trim(); }
-});
-if (newStickers.length > 0) {
-let existing = JSON.parse(localStorage.getItem('custom_stickers') || '[]'); existing = [...existing, ...newStickers];
-localStorage.setItem('custom_stickers', JSON.stringify(existing)); this.renderStickers(); window.PhoneAPI?.showToast(`✅ 成功解析并导入 ${newStickers.length} 个表情包！`);
-} else { window.PhoneAPI?.showToast(`❌ 未识别到任何有效链接`); }
-},
-
-renderStickers() {
-const panel = document.getElementById('sticker-panel');
-if (!panel) return;
-const stickers = JSON.parse(localStorage.getItem('custom_stickers') || '[]');
-let html = `<div class="sticker-add-btn" onclick="window.PhoneUI.importStickers()"><i class="ph ph-plus" style="font-size:24px;"></i><span style="font-size:10px;margin-top:4px;">导入</span></div>`;
-stickers.forEach(st => {
-const safeName = this.escapeHtml(st.name); const safeUrl = this.escapeHtml(st.url);
-html += `<div class="sticker-item" onclick="window.PhoneEngine?.sendSticker?.('${safeName}','${safeUrl}')" title="${safeName}"><img src="${safeUrl}" alt="${safeName}"></div>`;
-});
-panel.innerHTML = html;
 },
 
 toggleStoryMenu() {
@@ -487,22 +423,19 @@ if (window.Config) window.Config.currentAppId = appId;
 const titleEl = document.getElementById('app-window-title');
 const winEl = document.getElementById('app-window');
 const contentEl = document.getElementById('app-window-content');
-const footerEl = document.getElementById('app-window-footer');
 
-if (!titleEl || !winEl || !contentEl || !footerEl) return;
+if (!titleEl || !winEl || !contentEl) return;
 
 titleEl.innerText = appName;
 winEl.classList.add('open');
 contentEl.style.padding = '20px';
 contentEl.style.background = 'transparent';
-footerEl.innerHTML = '';
 
 if (appId === 'diary') { winEl.classList.add('fullscreen-mode'); } else { winEl.classList.remove('fullscreen-mode'); }
 
 if (appId === 'novel') {
 contentEl.style.padding = '0';
-contentEl.innerHTML = `<div id="novel-content-list" class="story-bg" onclick="window.PhoneUI.closeStoryMenu();window.PhoneUI.closeStickerPanel();"></div><div id="sticker-panel" class="chat-plus-menu" style="display:flex;flex-wrap:wrap;justify-content:flex-start;align-content:flex-start;padding:15px;gap:12px;overflow-y:auto;max-height:280px;z-index:11;bottom:100%;margin-bottom:10px;left:15px;right:15px;transform-origin:bottom left;"></div>`;
-footerEl.innerHTML = `<div id="story-plus-menu" class="story-menu"><div class="story-menu-item" onclick="window.PhoneUI.openWbToggleModal('offline');window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-puzzle-piece" style="color:#2a9d8f;"></i></div><div class="text">规则挂载</div></div><div class="story-menu-item" onclick="window.PhoneEngine?.extractMemory?.('novel');window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-brain"></i></div><div class="text">提取记忆</div></div><div class="story-menu-item" onclick="window.PhoneEngine?.washMemory?.('novel');window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-broom" style="color:#f4a261;"></i></div><div class="text">记忆洗地</div></div><div class="story-menu-item" onclick="window.PhoneUI.openArchiveModal?.();window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-floppy-disk"></i></div><div class="text">存档室</div></div></div><div class="story-input-bar"><div class="icon-btn" id="btn-story-plus" onclick="window.PhoneUI.toggleStoryMenu();window.PhoneUI.closeStickerPanel();"><i class="ph ph-plus-circle"></i></div><textarea id="novel-input" class="story-textarea" placeholder="书写你们的故事..." onclick="window.PhoneUI.closeStoryMenu();window.PhoneUI.closeStickerPanel();"></textarea><div class="icon-btn" style="font-size:26px;padding-bottom:4px;margin-right:5px;" onclick="window.PhoneUI.toggleStickerPanel();window.PhoneUI.closeStoryMenu();"><i class="ph ph-smiley"></i></div><button class="story-send-btn" onclick="window.PhoneEngine?.sendNovelMessage?.();window.PhoneUI.closeStoryMenu();window.PhoneUI.closeStickerPanel();"><i class="ph-fill ph-paper-plane-right"></i></button></div>`;
+contentEl.innerHTML = `<div id="novel-content-list" class="story-bg" onclick="window.PhoneUI.closeStoryMenu();"></div><div id="story-plus-menu" class="story-menu"><div class="story-menu-item" onclick="window.PhoneUI.openWbToggleModal('offline');window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-puzzle-piece" style="color:#2a9d8f;"></i></div><div class="text">规则挂载</div></div><div class="story-menu-item" onclick="window.PhoneEngine?.extractMemory?.('novel');window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-brain"></i></div><div class="text">提取记忆</div></div><div class="story-menu-item" onclick="window.PhoneEngine?.washMemory?.('novel');window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-broom" style="color:#f4a261;"></i></div><div class="text">记忆洗地</div></div><div class="story-menu-item" onclick="window.PhoneUI.openArchiveModal?.();window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-floppy-disk"></i></div><div class="text">存档室</div></div></div><div class="story-input-bar"><div class="icon-btn" id="btn-story-plus" onclick="window.PhoneUI.toggleStoryMenu();"><i class="ph ph-plus-circle"></i></div><textarea id="novel-input" class="story-textarea" placeholder="书写你们的故事..." onclick="window.PhoneUI.closeStoryMenu();"></textarea><button class="story-send-btn" onclick="window.PhoneEngine?.sendNovelMessage?.();window.PhoneUI.closeStoryMenu();"><i class="ph-fill ph-paper-plane-right"></i></button></div>`;
 this.renderNovelContent();
 } else if (appId === 'diary') {
 const diaryTitle = localStorage.getItem('diary_title') || 'His Diary';
@@ -657,9 +590,6 @@ const roleId = window.Config?.currentContactId;
 const items = window.Config?.phoneData?.[roleId]?.gallery?.items || [];
 
 let html = `
-<button class="btn-refresh" onclick="window.PhoneEngine?.generateAiImage?.()" style="margin-top:0;margin-bottom:15px;border-radius:16px;background:linear-gradient(135deg,#a78bfa,#8b5cf6);box-shadow:0 5px 15px rgba(139,92,246,0.3);">
-<i class="ph-fill ph-magic-wand"></i> 生成新照片
-</button>
 <div id="image-viewer" class="image-viewer">
 <div class="viewer-close" onclick="window.PhoneUI.closeImageViewer()"><i class="ph ph-x"></i></div>
 <div class="viewer-download" onclick="window.PhoneUI.downloadCurrentImage()"><i class="ph ph-download-simple"></i> 保存到手机</div>

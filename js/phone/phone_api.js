@@ -150,26 +150,45 @@ el.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.05)';
 });
 },
 
-// 🌟 核心新增 1：网易云 API 搜歌
+// 🌟 核心新增 1：网易云 API 搜歌 (多节点防挂版)
 async searchMusic(keyword) {
     this.showToast("🎵 正在云端检索歌曲...");
     try {
-        const res = await fetch(`https://netease-cloud-music-api-teal-roan.vercel.app/search?keywords=${encodeURIComponent(keyword)}&limit=1`);
-        const data = await res.json();
-        if (data.result && data.result.songs && data.result.songs.length > 0) {
+        // 准备多个公共 API 节点防挂
+        const apis = [
+            `https://netease-cloud-music-api-teal-roan.vercel.app/search?keywords=${encodeURIComponent(keyword)}&limit=1`,
+            `https://music.cyfan.top/search?keywords=${encodeURIComponent(keyword)}&limit=1`,
+            `https://api.injahow.cn/meting/?type=search&search=${encodeURIComponent(keyword)}`
+        ];
+
+        let data = null;
+        for (let api of apis) {
+            try {
+                const res = await fetch(api);
+                data = await res.json();
+                // 适配不同 API 的返回格式
+                if (data.result && data.result.songs && data.result.songs.length > 0) break;
+                if (Array.isArray(data) && data.length > 0) {
+                    data = { result: { songs: [{ id: data[0].id, name: data[0].name, ar: [{name: data[0].author}], al: {picUrl: data[0].pic} }] } };
+                    break;
+                }
+            } catch(e) { console.log("节点失效，切换备用节点..."); }
+        }
+
+        if (data && data.result && data.result.songs && data.result.songs.length > 0) {
             const song = data.result.songs[0];
             return {
                 id: song.id,
                 name: song.name,
-                artist: song.ar.map(a => a.name).join(' / '),
-                cover: song.al.picUrl + '?param=300y300',
+                artist: song.ar ? song.ar.map(a => a.name).join(' / ') : '未知歌手',
+                cover: (song.al && song.al.picUrl) ? song.al.picUrl + '?param=300y300' : 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=1000&auto=format&fit=crop',
                 url: `https://music.163.com/song/media/outer/url?id=${song.id}.mp3` // 网易云官方外链
             };
         }
         throw new Error("未找到歌曲");
     } catch (e) {
         console.error(e);
-        this.showToast("❌ 搜歌失败，可能是版权限制或网络问题");
+        this.showToast("❌ 搜歌失败，可能是 VIP 版权限制或网络问题");
         return null;
     }
 },

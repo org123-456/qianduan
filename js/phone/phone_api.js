@@ -2,7 +2,7 @@ export const PhoneAPI = {
     SUPABASE_URL: 'https://kkzztqbxjzskrsapiils.supabase.co',
     SUPABASE_KEY: 'sb_publishable_h1SIixE2PCM2hrjXvt1I4w_eKYSQCE0',
     
-    // 🌟 A功能：偷师 Moon 的 IndexedDB 本地存图神技
+    // IndexedDB 本地存图神技
     LocalDB: {
         dbName: 'cc-assets', storeName: 'img', _db: null, _urls: {},
         init() {
@@ -26,6 +26,15 @@ export const PhoneAPI = {
             return new Promise((res, rej) => {
                 const t = this._db.transaction(this.storeName, 'readwrite');
                 t.objectStore(this.storeName).put(blob, key);
+                t.oncomplete = () => res();
+                t.onerror = () => rej(t.error);
+            });
+        },
+        async delete(key) {
+            if (!this._db) await this.init();
+            return new Promise((res, rej) => {
+                const t = this._db.transaction(this.storeName, 'readwrite');
+                t.objectStore(this.storeName).delete(key);
                 t.oncomplete = () => res();
                 t.onerror = () => rej(t.error);
             });
@@ -54,31 +63,41 @@ export const PhoneAPI = {
         }
     },
 
-    // 🌟 EchoVault 记忆库数据引擎
+    // 🌟 修复：EchoVault 记忆库数据引擎 (强制从备份拉取)
     EchoVault: {
         getData() {
             const raw = localStorage.getItem('echovault_data');
-            if (raw) return JSON.parse(raw);
-            const defaultData = { daily: {}, permanent: {}, archive: {} };
-            const oldVaultRaw = localStorage.getItem('memory_vault_entries');
-            if (oldVaultRaw) {
-                try {
-                    const oldVault = JSON.parse(oldVaultRaw);
-                    oldVault.forEach(item => {
-                        if (item.isCore) {
-                            const title = item.keywords || item.content.substring(0, 10) + '...';
-                            defaultData.permanent[title] = { type: 'permanent', created: `${item.date} ${item.time}`, importance: 10, tags: item.source, hits: 0, content: item.content, comments: [] };
-                        } else {
-                            const dateStr = item.date || new Date().toISOString().split('T')[0];
-                            if (defaultData.daily[dateStr]) defaultData.daily[dateStr].content += `\n\n---\n\n${item.content}`;
-                            else defaultData.daily[dateStr] = { type: 'daily', created: `${item.date} ${item.time}`, importance: 5, tags: item.source, hits: 0, content: item.content, comments: [] };
-                        }
-                    });
-                    localStorage.setItem('memory_vault_entries_backup', oldVaultRaw);
-                    localStorage.removeItem('memory_vault_entries');
-                } catch(e) {}
+            let parsed = raw ? JSON.parse(raw) : null;
+            
+            // 如果数据为空，或者压根没数据，强制去备份库里捞！
+            if (!parsed || (Object.keys(parsed.daily).length === 0 && Object.keys(parsed.permanent).length === 0)) {
+                const defaultData = { daily: {}, permanent: {}, archive: {} };
+                let oldVaultRaw = localStorage.getItem('memory_vault_entries');
+                if (!oldVaultRaw) oldVaultRaw = localStorage.getItem('memory_vault_entries_backup');
+                
+                if (oldVaultRaw) {
+                    try {
+                        const oldVault = JSON.parse(oldVaultRaw);
+                        oldVault.forEach(item => {
+                            if (item.isCore) {
+                                const title = item.keywords || item.content.substring(0, 10) + '...';
+                                defaultData.permanent[title] = { type: 'permanent', created: `${item.date} ${item.time}`, importance: 10, tags: item.source, hits: 0, content: item.content, comments: [] };
+                            } else {
+                                const dateStr = item.date || new Date().toISOString().split('T')[0];
+                                if (defaultData.daily[dateStr]) defaultData.daily[dateStr].content += `\n\n---\n\n${item.content}`;
+                                else defaultData.daily[dateStr] = { type: 'daily', created: `${item.date} ${item.time}`, importance: 5, tags: item.source, hits: 0, content: item.content, comments: [] };
+                            }
+                        });
+                        localStorage.setItem('memory_vault_entries_backup', oldVaultRaw);
+                        localStorage.removeItem('memory_vault_entries');
+                        localStorage.setItem('echovault_data', JSON.stringify(defaultData));
+                        console.log("✅ 成功从备份恢复记忆！");
+                        return defaultData;
+                    } catch(e) { console.error("记忆恢复失败", e); }
+                }
+                return defaultData;
             }
-            return defaultData;
+            return parsed;
         },
         saveData(data) { localStorage.setItem('echovault_data', JSON.stringify(data)); },
         calculateScore(meta, daysOld) {
@@ -147,12 +166,26 @@ export const PhoneAPI = {
     },
     
     _doSave() {
-        const saveIfExist = (id, key, isCheckbox = false) => { const el = document.getElementById(id); if (el) localStorage.setItem(key, isCheckbox ? el.checked : el.value.trim()); };
+        const saveIfExist = (id, key, isCheckbox = false) => { 
+            const el = document.getElementById(id); 
+            if (el) {
+                const val = isCheckbox ? el.checked : el.value.trim();
+                const oldVal = localStorage.getItem(key);
+                localStorage.setItem(key, val);
+                // 🌟 修复：如果用户在设置里手动改了 URL，就删掉长按存的本地图，让 URL 生效
+                if (key.startsWith('bg_') && val !== oldVal && this.LocalDB) {
+                    this.LocalDB.delete(key);
+                }
+            }
+        };
         saveIfExist('my-name', 'my_name'); saveIfExist('char-name', 'char_name');
         saveIfExist('bg-global', 'bg_global'); saveIfExist('bg-chat', 'bg_chat');
+        saveIfExist('bg-diary-cover', 'bg_diary_cover'); saveIfExist('bg-diary-page', 'bg_diary_page');
         saveIfExist('love-start-date', 'love_start_date');
-        saveIfExist('diary-title', 'diary_title'); saveIfExist('diary-quote', 'diary_quote'); saveIfExist('diary-start-date', 'diary_start_date');
+        saveIfExist('diary-title', 'diary_title'); saveIfExist('diary-start-date', 'diary_start_date');
+        
         this.applyUITheme();
+        
         saveIfExist('system-prompt', 'system_prompt'); saveIfExist('char-persona', 'char_persona'); saveIfExist('novel-style', 'novel_style');
         saveIfExist('img-api-url', 'img_api_url'); saveIfExist('img-api-key', 'img_api_key'); saveIfExist('img-api-model', 'img_api_model');
         const charName = localStorage.getItem('char_name'); const myName = localStorage.getItem('my_name');
@@ -166,11 +199,14 @@ export const PhoneAPI = {
             const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
             setVal('my-name', localStorage.getItem('my_name') || ''); setVal('char-name', localStorage.getItem('char_name') || '');
             setVal('bg-global', localStorage.getItem('bg_global') || ''); setVal('bg-chat', localStorage.getItem('bg_chat') || '');
+            setVal('bg-diary-cover', localStorage.getItem('bg_diary_cover') || ''); setVal('bg-diary-page', localStorage.getItem('bg_diary_page') || '');
             setVal('diary-title', localStorage.getItem('diary_title') || 'His Diary');
             const today = new Date(); const defaultDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
             setVal('diary-start-date', localStorage.getItem('diary_start_date') || defaultDate);
             setVal('love-start-date', localStorage.getItem('love_start_date') || defaultDate);
+            
             this.applyUITheme();
+            
             setVal('system-prompt', localStorage.getItem('system_prompt') || ''); setVal('char-persona', localStorage.getItem('char_persona') || ''); setVal('novel-style', localStorage.getItem('novel_style') || '');
             setVal('img-api-url', localStorage.getItem('img_api_url') || ''); setVal('img-api-key', localStorage.getItem('img_api_key') || ''); setVal('img-api-model', localStorage.getItem('img_api_model') || 'dall-e-3');
             const savedCharName = localStorage.getItem('char_name'); const savedMyName = localStorage.getItem('my_name');
@@ -178,10 +214,37 @@ export const PhoneAPI = {
         } catch (error) {}
     },
     
+    // 🌟 修复：双通道壁纸渲染逻辑 (优先用 IndexedDB 本地长按图，没有再用 URL)
     applyUITheme() {
-        const globalBg = localStorage.getItem('bg_global'); const chatBg = localStorage.getItem('bg_chat');
-        if (globalBg) { document.documentElement.style.setProperty('--bg-image-global', `url('${globalBg}')`); } else { document.documentElement.style.removeProperty('--bg-image-global'); }
-        if (chatBg) { document.documentElement.style.setProperty('--bg-image-chat', `url('${chatBg}')`); } else { document.documentElement.style.removeProperty('--bg-image-chat'); }
+        let globalBg = localStorage.getItem('bg_global'); 
+        let chatBg = localStorage.getItem('bg_chat');
+        let diaryCover = localStorage.getItem('bg_diary_cover');
+        let diaryPage = localStorage.getItem('bg_diary_page');
+        
+        // 先应用 URL
+        if (globalBg) document.documentElement.style.setProperty('--bg-image-global', `url('${globalBg}')`); else document.documentElement.style.removeProperty('--bg-image-global');
+        if (chatBg) document.documentElement.style.setProperty('--bg-image-chat', `url('${chatBg}')`); else document.documentElement.style.removeProperty('--bg-image-chat');
+        if (diaryCover) document.documentElement.style.setProperty('--bg-image-diary-cover', `url('${diaryCover}')`); else document.documentElement.style.removeProperty('--bg-image-diary-cover');
+        if (diaryPage) document.documentElement.style.setProperty('--bg-image-diary-page', `url('${diaryPage}')`); else document.documentElement.style.removeProperty('--bg-image-diary-page');
+        
+        // 然后异步检查 IndexedDB 是否有本地图，有的话覆盖
+        this._applyIndexedDBThemes();
+    },
+    
+    async _applyIndexedDBThemes() {
+        if (!this.LocalDB || !this.LocalDB._db) return;
+        try {
+            const keys = ['bg_global', 'bg_chat', 'bg_diary_cover', 'bg_diary_page'];
+            for (let key of keys) {
+                const blob = await this.LocalDB.get(key);
+                if (blob) {
+                    const url = this.LocalDB.urlOf(key, blob);
+                    let cssVar = '--bg-image-' + key.replace('bg_', '').replace(/_/g, '-');
+                    if (key === 'bg_global') cssVar = '--bg-image-global';
+                    document.documentElement.style.setProperty(cssVar, `url('${url}')`);
+                }
+            }
+        } catch(e) {}
     },
     
     async searchMusic(keyword) {

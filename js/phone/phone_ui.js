@@ -27,7 +27,6 @@ item.content = `<img src="${safeUrl}" class="chat-sticker">`;
 }
 listEl.innerHTML = window.Apps[appId].renderList(renderData);
 
-// 🌟 修复：精准锁定 listEl 进行滚动，而不再去滚外层容器！
 setTimeout(() => { 
     if (listEl) listEl.scrollTop = listEl.scrollHeight; 
 }, 100);
@@ -300,7 +299,6 @@ html += `<div class="story-item ${isMe ? 'me' : 'other'}"><img class="story-avat
 });
 listEl.innerHTML = html;
 
-// 🌟 修复：精准锁定 novel-content-list 进行滚动
 setTimeout(() => { 
     const listEl = document.getElementById('novel-content-list');
     if (listEl) listEl.scrollTop = listEl.scrollHeight;
@@ -489,7 +487,6 @@ if (activeTab) activeTab.classList.add('active');
 if (activeSec) activeSec.classList.add('active');
 },
 
-// 🌟 核心修复：线下故事的 Flex 布局高度锁死，确保输入框沉底且内容可滑动
 openApp(appId, appName) {
 if (window.Config) window.Config.currentAppId = appId;
 const titleEl = document.getElementById('app-window-title');
@@ -501,7 +498,6 @@ if (!titleEl || !winEl || !contentEl) return;
 titleEl.innerText = appName;
 winEl.classList.add('open');
 
-// 🌟 重置样式，确保其他页面（如设置、世界书）能正常滚动
 contentEl.style.padding = '20px';
 contentEl.style.background = 'transparent';
 contentEl.style.display = 'block';
@@ -515,7 +511,7 @@ if (appId === 'novel') {
 contentEl.style.padding = '0';
 contentEl.style.display = 'flex';
 contentEl.style.flexDirection = 'column';
-contentEl.style.overflow = 'hidden'; // 🌟 关键：外层禁止滚动，强制内部 list 滚动
+contentEl.style.overflow = 'hidden'; 
 contentEl.innerHTML = `
 <div id="novel-content-list" class="story-bg" onclick="window.PhoneUI.closeStoryMenu();" style="flex: 1; overflow-y: auto; min-height: 0; padding: 20px 15px;"></div>
 <div style="position: relative; flex-shrink: 0; background: var(--window-bg); padding: 10px 15px 20px 15px; z-index: 20; border-top: 1px solid var(--border-color);">
@@ -737,7 +733,6 @@ const winEl = document.getElementById('app-window');
 const contentEl = document.getElementById('app-window-content');
 if (winEl) { winEl.classList.remove('open'); winEl.classList.remove('fullscreen-mode'); }
 if (contentEl) {
-    // 恢复默认样式
     contentEl.style.padding = '20px';
     contentEl.style.display = 'block';
     contentEl.style.flexDirection = 'row';
@@ -768,7 +763,7 @@ if (currentTab === 'daily') {
     else {
         dailyKeys.forEach(date => {
             const item = evData.daily[date];
-            html += `<div class="ev-card"><div class="ev-card-header"><span class="ev-date">📅 ${date}</span><span class="ev-importance">重要度: ${item.importance} | 查阅: ${item.hits}</span></div><div class="ev-body">${this.escapeHtml(item.content)}</div><div class="ev-actions"><i class="ph-fill ph-star" title="设为锚点" onclick="if(window.PhoneAPI) window.PhoneAPI.toggleCoreMemory('${date}')"></i><i class="ph-fill ph-pencil-simple" title="编辑" onclick="if(window.PhoneAPI) window.PhoneAPI.editMemoryVault('${date}')"></i><i class="ph-fill ph-trash" title="删除" onclick="if(window.PhoneAPI) window.PhoneAPI.deleteFromMemoryVault('${date}')"></i></div></div>`;
+            html += `<div class="ev-card"><div class="ev-card-header"><span class="ev-date">📅 ${date}</span><span class="ev-importance">重要度: ${item.importance} | 查阅: ${item.hits}</span></div><div class="ev-body">${this.escapeHtml(item.content)}</div><div class="ev-actions"><i class="ph-fill ph-star" title="设为锚点" onclick="if(window.PhoneAPI) window.PhoneAPI.toggleCoreMemory('${date}')"></i><i class="ph-fill ph-pencil-simple" title="手动编辑/去重" onclick="window.PhoneUI.openEvEdit('${date}', false)"></i><i class="ph-fill ph-trash" title="删除" onclick="if(window.PhoneAPI) window.PhoneAPI.deleteFromMemoryVault('${date}')"></i></div></div>`;
         });
     }
 } else if (currentTab === 'permanent') {
@@ -777,11 +772,52 @@ if (currentTab === 'daily') {
     else {
         permKeys.forEach(key => {
             const item = evData.permanent[key];
-            html += `<div class="ev-card ev-permanent-card"><div class="ev-card-header"><span class="ev-title">📌 ${key}</span><span class="ev-importance">永不衰减</span></div><div class="ev-body">${this.escapeHtml(item.content)}</div><div class="ev-actions"><i class="ph ph-star" title="取消锚点" onclick="if(window.PhoneAPI) window.PhoneAPI.toggleCoreMemory('${key}')"></i><i class="ph-fill ph-pencil-simple" title="编辑" onclick="if(window.PhoneAPI) window.PhoneAPI.editMemoryVault('${key}')"></i><i class="ph-fill ph-trash" title="删除" onclick="if(window.PhoneAPI) window.PhoneAPI.deleteFromMemoryVault('${key}')"></i></div></div>`;
+            html += `<div class="ev-card ev-permanent-card"><div class="ev-card-header"><span class="ev-title">📌 ${key}</span><span class="ev-importance">永不衰减</span></div><div class="ev-body">${this.escapeHtml(item.content)}</div><div class="ev-actions"><i class="ph ph-star" title="取消锚点" onclick="if(window.PhoneAPI) window.PhoneAPI.toggleCoreMemory('${key}')"></i><i class="ph-fill ph-pencil-simple" title="手动编辑/去重" onclick="window.PhoneUI.openEvEdit('${key}', true)"></i><i class="ph-fill ph-trash" title="删除" onclick="if(window.PhoneAPI) window.PhoneAPI.deleteFromMemoryVault('${key}')"></i></div></div>`;
         });
     }
 }
 contentArea.innerHTML = html;
+},
+
+openEvEdit(key, isPermanent) {
+    this.currentEvEditKey = key;
+    this.currentEvEditIsPerm = isPermanent;
+    const evData = window.PhoneAPI.EchoVault.getData();
+    const item = isPermanent ? evData.permanent[key] : evData.daily[key];
+    if (!item) return;
+    
+    document.getElementById('ev-edit-date').innerText = isPermanent ? `📌 锚点记忆: ${key}` : `📅 日常记忆: ${key}`;
+    document.getElementById('ev-edit-content').value = item.content || '';
+    
+    document.getElementById('ev-edit-bg').classList.add('show');
+    document.getElementById('ev-edit-modal').classList.add('show');
+},
+closeEvEdit() {
+    document.getElementById('ev-edit-bg').classList.remove('show');
+    document.getElementById('ev-edit-modal').classList.remove('show');
+},
+saveEvEdit() {
+    const key = this.currentEvEditKey;
+    const isPerm = this.currentEvEditIsPerm;
+    const newContent = document.getElementById('ev-edit-content').value.trim();
+    
+    if(!newContent) {
+        if(window.PhoneAPI) window.PhoneAPI.showToast("内容不能为空，若要删除请点击垃圾桶图标");
+        return;
+    }
+    
+    if(window.PhoneAPI && window.PhoneAPI.EchoVault) {
+        const evData = window.PhoneAPI.EchoVault.getData();
+        if(isPerm && evData.permanent[key]) {
+            evData.permanent[key].content = newContent;
+        } else if(!isPerm && evData.daily[key]) {
+            evData.daily[key].content = newContent;
+        }
+        window.PhoneAPI.EchoVault.saveData(evData);
+        if(window.PhoneAPI) window.PhoneAPI.showToast("✅ 记忆已成功修改去重！");
+        this.renderMemoryVault();
+        this.closeEvEdit();
+    }
 },
 
 remindEchoVault() {

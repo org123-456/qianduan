@@ -27,14 +27,9 @@ item.content = `<img src="${safeUrl}" class="chat-sticker">`;
 }
 listEl.innerHTML = window.Apps[appId].renderList(renderData);
 
-// 🌟 修复：让外层容器自动滚到底部！
+// 🌟 修复：精准锁定 listEl 进行滚动，而不再去滚外层容器！
 setTimeout(() => { 
-    if (appId === 'wechat') {
-        const pageChat = document.getElementById('page-chat');
-        if (pageChat) pageChat.scrollTop = pageChat.scrollHeight;
-    } else {
-        if (listEl) listEl.scrollTop = listEl.scrollHeight; 
-    }
+    if (listEl) listEl.scrollTop = listEl.scrollHeight; 
 }, 100);
 
 if (appId === 'wechat') this.updateHomeWidget();
@@ -305,10 +300,10 @@ html += `<div class="story-item ${isMe ? 'me' : 'other'}"><img class="story-avat
 });
 listEl.innerHTML = html;
 
-// 🌟 修复：线下故事也让外层容器自动滚到底部！
+// 🌟 修复：精准锁定 novel-content-list 进行滚动
 setTimeout(() => { 
-    const winContent = document.getElementById('app-window-content');
-    if (winContent) winContent.scrollTop = winContent.scrollHeight;
+    const listEl = document.getElementById('novel-content-list');
+    if (listEl) listEl.scrollTop = listEl.scrollHeight;
 }, 100);
 },
 
@@ -506,12 +501,13 @@ if (!titleEl || !winEl || !contentEl) return;
 titleEl.innerText = appName;
 winEl.classList.add('open');
 
-// 重置样式
+// 🌟 重置样式，确保其他页面（如设置、世界书）能正常滚动
 contentEl.style.padding = '20px';
 contentEl.style.background = 'transparent';
 contentEl.style.display = 'block';
 contentEl.style.flexDirection = 'row';
 contentEl.style.height = 'auto';
+contentEl.style.overflow = 'auto'; 
 
 if (appId === 'diary') { winEl.classList.add('fullscreen-mode'); } else { winEl.classList.remove('fullscreen-mode'); }
 
@@ -519,7 +515,7 @@ if (appId === 'novel') {
 contentEl.style.padding = '0';
 contentEl.style.display = 'flex';
 contentEl.style.flexDirection = 'column';
-contentEl.style.height = '100%'; // 🌟 关键：强制占满剩余高度
+contentEl.style.overflow = 'hidden'; // 🌟 关键：外层禁止滚动，强制内部 list 滚动
 contentEl.innerHTML = `
 <div id="novel-content-list" class="story-bg" onclick="window.PhoneUI.closeStoryMenu();" style="flex: 1; overflow-y: auto; min-height: 0; padding: 20px 15px;"></div>
 <div style="position: relative; flex-shrink: 0; background: var(--window-bg); padding: 10px 15px 20px 15px; z-index: 20; border-top: 1px solid var(--border-color);">
@@ -738,7 +734,16 @@ if (window.PhoneAPI) window.PhoneAPI.showToast('✅ 图片已保存到手机！'
 
 closeApp() {
 const winEl = document.getElementById('app-window');
+const contentEl = document.getElementById('app-window-content');
 if (winEl) { winEl.classList.remove('open'); winEl.classList.remove('fullscreen-mode'); }
+if (contentEl) {
+    // 恢复默认样式
+    contentEl.style.padding = '20px';
+    contentEl.style.display = 'block';
+    contentEl.style.flexDirection = 'row';
+    contentEl.style.overflow = 'auto';
+    contentEl.style.height = 'auto';
+}
 if (window.Config) window.Config.currentAppId = 'wechat';
 },
 

@@ -557,7 +557,6 @@ this.renderSettings();
 } else if (appId === 'worldbook') {
 this.renderWorldbook();
 } else if (appId === 'moments') {
-// 🌟 渲染情侣空间 (朋友圈)
 this.renderMoments();
 }
 },
@@ -573,7 +572,6 @@ renderMoments() {
     const taName = localStorage.getItem('char_name') || 'TA';
     const coverImg = localStorage.getItem('bg_moments_cover') || 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?q=80&w=1000&auto=format&fit=crop';
     
-    // UI 演示假数据
     let feedHtml = `
         <div class="moment-card">
             <img class="moment-avatar" src="${myAvatar}">
@@ -617,13 +615,20 @@ renderMoments() {
     
     contentEl.innerHTML = `
         <div class="moments-cover long-pressable" data-img="bg_moments_cover" style="background-image: url('${coverImg}')">
-            <div class="moments-avatars">
-                <span style="color: white; font-weight: bold; text-shadow: 0 2px 5px rgba(0,0,0,0.8); margin-right: 5px;">${myName} & ${taName}</span>
-                <img src="${taAvatar}">
-                <img class="my-avatar" src="${myAvatar}">
+            <div class="moments-cover-info">
+                <div class="moments-avatar-wrap">
+                    <img src="${myAvatar}">
+                    <span class="moments-name">${myName}</span>
+                </div>
+                <div class="moments-avatar-wrap">
+                    <span class="moments-name">${taName}</span>
+                    <img src="${taAvatar}">
+                </div>
             </div>
         </div>
         
+        <div style="height: 40px;"></div>
+
         <div class="status-panel">
             <div class="status-half">
                 <div class="status-title"><i class="ph-fill ph-user"></i> ${myName}的状态</div>
@@ -662,6 +667,13 @@ renderMoments() {
             </div>
         </div>
         
+        <div class="moments-menu-bar">
+            <div class="moments-menu-item" onclick="window.PhoneAPI.showToast('愿望清单模块开发中...')"><i class="ph-fill ph-star"></i> 愿望清单</div>
+            <div class="moments-menu-item" onclick="window.PhoneAPI.showToast('恋爱家规模块开发中...')"><i class="ph-fill ph-scroll"></i> 恋爱家规</div>
+            <div class="moments-menu-item" onclick="window.PhoneAPI.showToast('纪念日模块开发中...')"><i class="ph-fill ph-calendar-heart"></i> 纪念日</div>
+            <div class="moments-menu-item" onclick="window.PhoneAPI.showToast('更多功能敬请期待...')"><i class="ph-fill ph-dots-three-circle"></i> 更多</div>
+        </div>
+
         <div style="padding-bottom: 80px;">
             ${feedHtml}
         </div>

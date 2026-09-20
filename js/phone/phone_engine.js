@@ -416,7 +416,7 @@ ${historyText}`;
             if (item.keywords && typeof item.keywords === 'string') {
                 const kws = item.keywords.split(',').map(k => k.trim()).filter(k => k.length > 0);
                 if (kws.some(kw => userText.includes(kw))) {
-                    triggeredMemories.push(`[${item.date}] ${item.source}: ${item.content}`);
+                    triggeredMemories.push(`[${item.id}] ${item.source}: ${item.content}`);
                 }
             }
         });
@@ -486,7 +486,13 @@ ${historyText}`;
             formatRule += "【微信连发机制】：不限制气泡数量，请务必把你想说的话完整说完！系统会根据换行符切分微信气泡。绝对不要把所有话挤在同一行！\n";
             formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。\n【心声强制规则】：**绝对严禁再次提及‘小手机’、‘实验对象/实验品’、‘修东西’等老调重弹的内容！** 此刻的心声必须严格聚焦在【你对用户刚刚发的具体内容最私密、最真实的心理反应】！\n";
             
-            formatRule += "【主动记忆机制】：你拥有一个本地记忆库。当你觉得某段对话、某个约定或你的某种感受值得被记住时，请在回复最末尾使用 `<write_memory type=\"daily\" importance=\"1-10\">你的日记原文</write_memory>` 来主动写日记。如果是永不遗忘的核心设定，使用 `type=\"permanent\" title=\"标题\"`。注意：必须用第一人称带有温度地写，绝对禁止写成冷冰冰的总结！\n";
+            // 🌟 核心修改：赋予 AI 记忆库全自动管理权限
+            formatRule += "【记忆库全自动管理机制】：你拥有一个本地记忆库。你可以通过输出标签来自主管理记忆（必须放在回复最末尾）：\n";
+            formatRule += "1. 新增：`<write_memory type=\"daily\" importance=\"1-10\">日记内容</write_memory>` (核心设定用 `type=\"permanent\" title=\"标题\"`)。\n";
+            formatRule += "2. 更新/去重：如果发现某条记忆有新进展，或记重复了，使用 `<update_memory key=\"对应记忆的Key\">修改后的完整内容</update_memory>`。\n";
+            formatRule += "3. 删除：如果某条记忆完全失效或多余，使用 `<delete_memory key=\"对应记忆的Key\"></delete_memory>`。\n";
+            formatRule += "注意：记忆的Key就是记忆档案中方括号里的内容（如 `2023-10-24` 或 `某个标题`）。必须用第一人称带有温度地写！\n";
+
             formatRule += "【点歌机制】：如果用户在聊天中明确要求你放首歌、听音乐，或者剧情氛围需要，你可以在回复的最末尾加上 `<play_music>歌曲名 歌手名</play_music>`。系统会自动在后台为你们播放。例如：`<play_music>七里香 周杰伦</play_music>`。如果没有相关要求，绝对不要输出此标签！\n";
 
             if (autoPhoto) {
@@ -508,18 +514,19 @@ ${historyText}`;
 
             const recentMemories = window.PhoneAPI?.EchoVault?.dream?.() || [];
             if (recentMemories.length > 0) {
-                dynamicPrompt += "\n【EchoVault 你的近期记忆】\n这是你最近几天写下的日记，用来帮你回忆最近发生的事：\n" + recentMemories.map(m => `[${m.date}]\n${m.content}`).join("\n\n") + "\n";
+                // 🌟 核心修改：明确告知 AI 记忆的 Key 是方括号里的内容
+                dynamicPrompt += "\n【EchoVault 你的近期记忆】\n这是你最近几天写下的日记（方括号内为该记忆的 Key，可用于更新或删除）：\n" + recentMemories.map(m => `[${m.date}]\n${m.content}`).join("\n\n") + "\n";
             }
 
             if (accessibleVault.length > 0) {
-                const recentVault = accessibleVault.slice(-5).map(v => `[${v.date}] ${v.source}: ${v.content}`).join('\n');
-                dynamicPrompt += `\n【长期记忆档案】：以下是你脑海中深刻的长期记忆，请在对话中自然地保持连贯：\n${recentVault}\n`;
+                const recentVault = accessibleVault.slice(-5).map(v => `[${v.id}] ${v.source}: ${v.content}`).join('\n');
+                dynamicPrompt += `\n【长期记忆档案】：以下是你脑海中深刻的长期记忆（方括号内为该记忆的 Key，可用于更新或删除）：\n${recentVault}\n`;
 
                 if (hasNewUserMsg) {
                     const recallTriggers = ['你还记得', '昨天', '上次', '之前', '那个事', '还记得', '那次'];
                     const needsRecall = recallTriggers.some(t => latestUserText.includes(t));
                     if (needsRecall && accessibleVault.length > 5) {
-                        const extendedVault = accessibleVault.slice(-20).map(v => `[${v.date}] ${v.source}: ${v.content}`).join('\n');
+                        const extendedVault = accessibleVault.slice(-20).map(v => `[${v.id}] ${v.source}: ${v.content}`).join('\n');
                         dynamicPrompt += `\n【系统提示(记忆检索触发)】：用户似乎在试图唤醒你的某段记忆。以下是你的扩展记忆库，请检索是否有相关内容，并以你的口吻作出回应：\n${extendedVault}\n`;
                     }
                 }
@@ -571,6 +578,7 @@ ${historyText}`;
                 } else { throw err; }
             }
 
+            // 🌟 核心修改：解析新增记忆
             let memoryRegex = /<write_memory(.*?)>([\s\S]*?)<\/write_memory>/gi;
             let memMatch;
             while ((memMatch = memoryRegex.exec(rawReply)) !== null) {
@@ -583,6 +591,32 @@ ${historyText}`;
                 if (window.Config?.currentAppId === 'memory_vault' && window.PhoneUI?.renderMemoryVault) window.PhoneUI.renderMemoryVault();
             }
             rawReply = rawReply.replace(/<write_memory[\s\S]*?<\/write_memory>/gi, '').trim();
+
+            // 🌟 核心修改：解析更新记忆
+            let updateRegex = /<update_memory(.*?)>([\s\S]*?)<\/update_memory>/gi;
+            let upMatch;
+            while ((upMatch = updateRegex.exec(rawReply)) !== null) {
+                const attrs = upMatch[1]; const content = upMatch[2].trim();
+                const keyMatch = attrs.match(/key="([^"]+)"/i);
+                if (keyMatch && content) {
+                    window.PhoneAPI?.EchoVault?.updateMemory(keyMatch[1], content);
+                    if (window.Config?.currentAppId === 'memory_vault' && window.PhoneUI?.renderMemoryVault) window.PhoneUI.renderMemoryVault();
+                }
+            }
+            rawReply = rawReply.replace(/<update_memory[\s\S]*?<\/update_memory>/gi, '').trim();
+
+            // 🌟 核心修改：解析删除记忆
+            let deleteRegex = /<delete_memory(.*?)>([\s\S]*?)<\/delete_memory>|<delete_memory(.*?)\/>/gi;
+            let delMatch;
+            while ((delMatch = deleteRegex.exec(rawReply)) !== null) {
+                const attrs = delMatch[1] || delMatch[3];
+                const keyMatch = attrs.match(/key="([^"]+)"/i);
+                if (keyMatch) {
+                    window.PhoneAPI?.EchoVault?.deleteMemory(keyMatch[1]);
+                    if (window.Config?.currentAppId === 'memory_vault' && window.PhoneUI?.renderMemoryVault) window.PhoneUI.renderMemoryVault();
+                }
+            }
+            rawReply = rawReply.replace(/<delete_memory[\s\S]*?<\/delete_memory>/gi, '').replace(/<delete_memory[\s\S]*?\/>/gi, '').trim();
 
             let musicQuery = null;
             const musicMatch = rawReply.match(/<play_music>([\s\S]*?)<\/play_music>/i);
@@ -690,7 +724,13 @@ ${historyText}`;
             formatRule += `【字数与细节强制要求】：每次回复**必须不少于 ${minWords} 字**（不包含思维链的字数）！请尽情展开环境渲染、细腻的动作刻画和深度的心理描写，让场景充满画面感。绝对禁止像微信聊天那样只发短对话，必须像长篇小说的一段一样丰满！\n`;
             formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。严禁重复心声，必须产生全新心理活动！\n";
             
-            formatRule += "【主动记忆机制】：你拥有一个本地记忆库。当你觉得某段对话、某个约定或你的某种感受值得被记住时，请在回复最末尾使用 `<write_memory type=\"daily\" importance=\"1-10\">你的日记原文</write_memory>` 来主动写日记。如果是永不遗忘的核心设定，使用 `type=\"permanent\" title=\"标题\"`。注意：必须用第一人称带有温度地写，绝对禁止写成冷冰冰的总结！\n";
+            // 🌟 核心修改：赋予 AI 记忆库全自动管理权限
+            formatRule += "【记忆库全自动管理机制】：你拥有一个本地记忆库。你可以通过输出标签来自主管理记忆（必须放在回复最末尾）：\n";
+            formatRule += "1. 新增：`<write_memory type=\"daily\" importance=\"1-10\">日记内容</write_memory>` (核心设定用 `type=\"permanent\" title=\"标题\"`)。\n";
+            formatRule += "2. 更新/去重：如果发现某条记忆有新进展，或记重复了，使用 `<update_memory key=\"对应记忆的Key\">修改后的完整内容</update_memory>`。\n";
+            formatRule += "3. 删除：如果某条记忆完全失效或多余，使用 `<delete_memory key=\"对应记忆的Key\"></delete_memory>`。\n";
+            formatRule += "注意：记忆的Key就是记忆档案中方括号里的内容（如 `2023-10-24` 或 `某个标题`）。必须用第一人称带有温度地写！\n";
+
             formatRule += "【点歌机制】：如果用户在剧情中明确要求你放首歌、听音乐，或者剧情氛围需要，你可以在回复的最末尾加上 `<play_music>歌曲名 歌手名</play_music>`。系统会自动在后台为你们播放。例如：`<play_music>七里香 周杰伦</play_music>`。如果没有相关要求，绝对不要输出此标签！\n";
 
             if (banEmoji) formatRule += "【最高禁令】：绝对不允许使用任何 Emoji、颜文字、波浪号(~)，违者抹杀！\n";
@@ -710,18 +750,19 @@ ${historyText}`;
 
             const recentMemories = window.PhoneAPI?.EchoVault?.dream?.() || [];
             if (recentMemories.length > 0) {
-                dynamicPrompt += "\n【EchoVault 你的近期记忆】\n这是你最近几天写下的日记，用来帮你回忆最近发生的事：\n" + recentMemories.map(m => `[${m.date}]\n${m.content}`).join("\n\n") + "\n";
+                // 🌟 核心修改：明确告知 AI 记忆的 Key 是方括号里的内容
+                dynamicPrompt += "\n【EchoVault 你的近期记忆】\n这是你最近几天写下的日记（方括号内为该记忆的 Key，可用于更新或删除）：\n" + recentMemories.map(m => `[${m.date}]\n${m.content}`).join("\n\n") + "\n";
             }
 
             if (accessibleVault.length > 0) {
-                const recentVault = accessibleVault.slice(-5).map(v => `[${v.date}] ${v.source}: ${v.content}`).join('\n');
-                dynamicPrompt += `\n【长期记忆档案】：以下是你脑海中深刻的长期记忆，请在对话中自然地保持连贯：\n${recentVault}\n`;
+                const recentVault = accessibleVault.slice(-5).map(v => `[${v.id}] ${v.source}: ${v.content}`).join('\n');
+                dynamicPrompt += `\n【长期记忆档案】：以下是你脑海中深刻的长期记忆（方括号内为该记忆的 Key，可用于更新或删除）：\n${recentVault}\n`;
 
                 if (hasNewUserMsg) {
                     const recallTriggers = ['你还记得', '昨天', '上次', '之前', '那个事', '还记得', '那次'];
                     const needsRecall = recallTriggers.some(t => latestUserText.includes(t));
                     if (needsRecall && accessibleVault.length > 5) {
-                        const extendedVault = accessibleVault.slice(-20).map(v => `[${v.date}] ${v.source}: ${v.content}`).join('\n');
+                        const extendedVault = accessibleVault.slice(-20).map(v => `[${v.id}] ${v.source}: ${v.content}`).join('\n');
                         dynamicPrompt += `\n【系统提示(记忆检索触发)】：用户似乎在试图唤醒你的某段记忆。以下是你的扩展记忆库，请检索是否有相关内容，并以你的口吻作出回应：\n${extendedVault}\n`;
                     }
                 }
@@ -762,6 +803,7 @@ ${historyText}`;
                 } else { throw err; }
             }
 
+            // 🌟 核心修改：解析新增记忆
             let memoryRegex = /<write_memory(.*?)>([\s\S]*?)<\/write_memory>/gi;
             let memMatch;
             while ((memMatch = memoryRegex.exec(rawReply)) !== null) {
@@ -774,6 +816,32 @@ ${historyText}`;
                 if (window.Config?.currentAppId === 'memory_vault' && window.PhoneUI?.renderMemoryVault) window.PhoneUI.renderMemoryVault();
             }
             rawReply = rawReply.replace(/<write_memory[\s\S]*?<\/write_memory>/gi, '').trim();
+
+            // 🌟 核心修改：解析更新记忆
+            let updateRegex = /<update_memory(.*?)>([\s\S]*?)<\/update_memory>/gi;
+            let upMatch;
+            while ((upMatch = updateRegex.exec(rawReply)) !== null) {
+                const attrs = upMatch[1]; const content = upMatch[2].trim();
+                const keyMatch = attrs.match(/key="([^"]+)"/i);
+                if (keyMatch && content) {
+                    window.PhoneAPI?.EchoVault?.updateMemory(keyMatch[1], content);
+                    if (window.Config?.currentAppId === 'memory_vault' && window.PhoneUI?.renderMemoryVault) window.PhoneUI.renderMemoryVault();
+                }
+            }
+            rawReply = rawReply.replace(/<update_memory[\s\S]*?<\/update_memory>/gi, '').trim();
+
+            // 🌟 核心修改：解析删除记忆
+            let deleteRegex = /<delete_memory(.*?)>([\s\S]*?)<\/delete_memory>|<delete_memory(.*?)\/>/gi;
+            let delMatch;
+            while ((delMatch = deleteRegex.exec(rawReply)) !== null) {
+                const attrs = delMatch[1] || delMatch[3];
+                const keyMatch = attrs.match(/key="([^"]+)"/i);
+                if (keyMatch) {
+                    window.PhoneAPI?.EchoVault?.deleteMemory(keyMatch[1]);
+                    if (window.Config?.currentAppId === 'memory_vault' && window.PhoneUI?.renderMemoryVault) window.PhoneUI.renderMemoryVault();
+                }
+            }
+            rawReply = rawReply.replace(/<delete_memory[\s\S]*?<\/delete_memory>/gi, '').replace(/<delete_memory[\s\S]*?\/>/gi, '').trim();
 
             let musicQuery = null;
             const musicMatch = rawReply.match(/<play_music>([\s\S]*?)<\/play_music>/i);

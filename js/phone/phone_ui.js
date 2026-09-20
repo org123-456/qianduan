@@ -26,7 +26,17 @@ item.content = `<img src="${safeUrl}" class="chat-sticker">`;
 });
 }
 listEl.innerHTML = window.Apps[appId].renderList(renderData);
-setTimeout(() => { listEl.scrollTop = listEl.scrollHeight; }, 100);
+
+// 🌟 修复：让外层容器自动滚到底部！
+setTimeout(() => { 
+    if (appId === 'wechat') {
+        const pageChat = document.getElementById('page-chat');
+        if (pageChat) pageChat.scrollTop = pageChat.scrollHeight;
+    } else {
+        if (listEl) listEl.scrollTop = listEl.scrollHeight; 
+    }
+}, 100);
+
 if (appId === 'wechat') this.updateHomeWidget();
 } else if (appId === 'gallery') {
 this.renderGallery();
@@ -294,7 +304,12 @@ thoughtHtml = `<div class="story-thought-icon" onclick="window.PhoneUI.showThoug
 html += `<div class="story-item ${isMe ? 'me' : 'other'}"><img class="story-avatar" src="${avatar}"><div class="story-content-wrapper"><div class="story-name-row"><span class="story-name">${name}</span>${thoughtHtml}</div><div class="story-bubble markdown-body" onclick="if(window.PhoneEngine) window.PhoneEngine.openMsgMenu(${idx}, '${item.sender}')">${parsed}</div></div></div>`;
 });
 listEl.innerHTML = html;
-setTimeout(() => { listEl.scrollTop = listEl.scrollHeight; }, 100);
+
+// 🌟 修复：线下故事也让外层容器自动滚到底部！
+setTimeout(() => { 
+    const winContent = document.getElementById('app-window-content');
+    if (winContent) winContent.scrollTop = winContent.scrollHeight;
+}, 100);
 },
 
 escapeHtml(str) {
@@ -479,7 +494,7 @@ if (activeTab) activeTab.classList.add('active');
 if (activeSec) activeSec.classList.add('active');
 },
 
-// 🌟 终极修复：线下故事的 Flex 布局高度锁死，确保输入框沉底且内容可滑动
+// 🌟 核心修复：线下故事的 Flex 布局高度锁死，确保输入框沉底且内容可滑动
 openApp(appId, appName) {
 if (window.Config) window.Config.currentAppId = appId;
 const titleEl = document.getElementById('app-window-title');

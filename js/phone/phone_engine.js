@@ -486,7 +486,6 @@ ${historyText}`;
             formatRule += "【微信连发机制】：不限制气泡数量，请务必把你想说的话完整说完！系统会根据换行符切分微信气泡。绝对不要把所有话挤在同一行！\n";
             formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。\n【心声强制规则】：**绝对严禁再次提及‘小手机’、‘实验对象/实验品’、‘修东西’等老调重弹的内容！** 此刻的心声必须严格聚焦在【你对用户刚刚发的具体内容最私密、最真实的心理反应】！\n";
             
-            // 🌟 核心修改：赋予 AI 记忆库全自动管理权限
             formatRule += "【记忆库全自动管理机制】：你拥有一个本地记忆库。你可以通过输出标签来自主管理记忆（必须放在回复最末尾）：\n";
             formatRule += "1. 新增：`<write_memory type=\"daily\" importance=\"1-10\">日记内容</write_memory>` (核心设定用 `type=\"permanent\" title=\"标题\"`)。\n";
             formatRule += "2. 更新/去重：如果发现某条记忆有新进展，或记重复了，使用 `<update_memory key=\"对应记忆的Key\">修改后的完整内容</update_memory>`。\n";
@@ -514,7 +513,6 @@ ${historyText}`;
 
             const recentMemories = window.PhoneAPI?.EchoVault?.dream?.() || [];
             if (recentMemories.length > 0) {
-                // 🌟 核心修改：明确告知 AI 记忆的 Key 是方括号里的内容
                 dynamicPrompt += "\n【EchoVault 你的近期记忆】\n这是你最近几天写下的日记（方括号内为该记忆的 Key，可用于更新或删除）：\n" + recentMemories.map(m => `[${m.date}]\n${m.content}`).join("\n\n") + "\n";
             }
 
@@ -563,8 +561,18 @@ ${historyText}`;
                 }
             });
 
+            // 🌟 核心修改：判断最后一句是不是用户发的，如果是，就不发催促指令！
             if (!isRegen && !hasNewUserMsg) {
-                messages.push({ role: "user", content: "【系统指令】：我没有说话。请你顺着刚才的话题继续连发微信补充，或者开启一个新话题。" });
+                let lastSender = 'other';
+                for (let i = recentItems.length - 1; i >= 0; i--) {
+                    if (recentItems[i].sender !== 'typing') {
+                        lastSender = recentItems[i].sender;
+                        break;
+                    }
+                }
+                if (lastSender !== 'me') {
+                    messages.push({ role: "user", content: "【系统指令】：我没有说话。请你顺着刚才的话题继续连发微信补充，或者开启一个新话题。" });
+                }
             }
 
             let rawReply = "";
@@ -578,7 +586,6 @@ ${historyText}`;
                 } else { throw err; }
             }
 
-            // 🌟 核心修改：解析新增记忆
             let memoryRegex = /<write_memory(.*?)>([\s\S]*?)<\/write_memory>/gi;
             let memMatch;
             while ((memMatch = memoryRegex.exec(rawReply)) !== null) {
@@ -592,7 +599,6 @@ ${historyText}`;
             }
             rawReply = rawReply.replace(/<write_memory[\s\S]*?<\/write_memory>/gi, '').trim();
 
-            // 🌟 核心修改：解析更新记忆
             let updateRegex = /<update_memory(.*?)>([\s\S]*?)<\/update_memory>/gi;
             let upMatch;
             while ((upMatch = updateRegex.exec(rawReply)) !== null) {
@@ -605,7 +611,6 @@ ${historyText}`;
             }
             rawReply = rawReply.replace(/<update_memory[\s\S]*?<\/update_memory>/gi, '').trim();
 
-            // 🌟 核心修改：解析删除记忆
             let deleteRegex = /<delete_memory(.*?)>([\s\S]*?)<\/delete_memory>|<delete_memory(.*?)\/>/gi;
             let delMatch;
             while ((delMatch = deleteRegex.exec(rawReply)) !== null) {
@@ -724,7 +729,6 @@ ${historyText}`;
             formatRule += `【字数与细节强制要求】：每次回复**必须不少于 ${minWords} 字**（不包含思维链的字数）！请尽情展开环境渲染、细腻的动作刻画和深度的心理描写，让场景充满画面感。绝对禁止像微信聊天那样只发短对话，必须像长篇小说的一段一样丰满！\n`;
             formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。严禁重复心声，必须产生全新心理活动！\n";
             
-            // 🌟 核心修改：赋予 AI 记忆库全自动管理权限
             formatRule += "【记忆库全自动管理机制】：你拥有一个本地记忆库。你可以通过输出标签来自主管理记忆（必须放在回复最末尾）：\n";
             formatRule += "1. 新增：`<write_memory type=\"daily\" importance=\"1-10\">日记内容</write_memory>` (核心设定用 `type=\"permanent\" title=\"标题\"`)。\n";
             formatRule += "2. 更新/去重：如果发现某条记忆有新进展，或记重复了，使用 `<update_memory key=\"对应记忆的Key\">修改后的完整内容</update_memory>`。\n";
@@ -750,7 +754,6 @@ ${historyText}`;
 
             const recentMemories = window.PhoneAPI?.EchoVault?.dream?.() || [];
             if (recentMemories.length > 0) {
-                // 🌟 核心修改：明确告知 AI 记忆的 Key 是方括号里的内容
                 dynamicPrompt += "\n【EchoVault 你的近期记忆】\n这是你最近几天写下的日记（方括号内为该记忆的 Key，可用于更新或删除）：\n" + recentMemories.map(m => `[${m.date}]\n${m.content}`).join("\n\n") + "\n";
             }
 
@@ -789,8 +792,18 @@ ${historyText}`;
                 if (item.sender !== 'typing') { messages.push({ role: item.sender === 'me' ? 'user' : 'assistant', content: item.content || "" }); }
             });
 
+            // 🌟 核心修改：判断最后一句是不是用户发的，如果是，就不发催促指令！
             if (!isRegen && !hasNewUserMsg) {
-                messages.push({ role: "user", content: "【系统强制指令】：我（用户）当前没有任何动作或对话，可能正在安静等待，也可能已经离开了当前场景。请你完全以你的视角，顺着刚才的剧情继续往下描写（比如你接下来的行动、独自一人的状态、或是场景的过渡）。必须严格保持字数底线和小说画面感，不要向我提问，不要等待我回复！" });
+                let lastSender = 'other';
+                for (let i = recentItems.length - 1; i >= 0; i--) {
+                    if (recentItems[i].sender !== 'typing') {
+                        lastSender = recentItems[i].sender;
+                        break;
+                    }
+                }
+                if (lastSender !== 'me') {
+                    messages.push({ role: "user", content: "【系统强制指令】：我（用户）当前没有任何动作或对话，可能正在安静等待，也可能已经离开了当前场景。请你完全以你的视角，顺着刚才的剧情继续往下描写（比如你接下来的行动、独自一人的状态、或是场景的过渡）。必须严格保持字数底线和小说画面感，不要向我提问，不要等待我回复！" });
+                }
             }
 
             let rawReply = "";
@@ -803,7 +816,6 @@ ${historyText}`;
                 } else { throw err; }
             }
 
-            // 🌟 核心修改：解析新增记忆
             let memoryRegex = /<write_memory(.*?)>([\s\S]*?)<\/write_memory>/gi;
             let memMatch;
             while ((memMatch = memoryRegex.exec(rawReply)) !== null) {
@@ -817,7 +829,6 @@ ${historyText}`;
             }
             rawReply = rawReply.replace(/<write_memory[\s\S]*?<\/write_memory>/gi, '').trim();
 
-            // 🌟 核心修改：解析更新记忆
             let updateRegex = /<update_memory(.*?)>([\s\S]*?)<\/update_memory>/gi;
             let upMatch;
             while ((upMatch = updateRegex.exec(rawReply)) !== null) {
@@ -830,7 +841,6 @@ ${historyText}`;
             }
             rawReply = rawReply.replace(/<update_memory[\s\S]*?<\/update_memory>/gi, '').trim();
 
-            // 🌟 核心修改：解析删除记忆
             let deleteRegex = /<delete_memory(.*?)>([\s\S]*?)<\/delete_memory>|<delete_memory(.*?)\/>/gi;
             let delMatch;
             while ((delMatch = deleteRegex.exec(rawReply)) !== null) {

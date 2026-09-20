@@ -479,7 +479,7 @@ if (activeTab) activeTab.classList.add('active');
 if (activeSec) activeSec.classList.add('active');
 },
 
-// 🌟 核心修复：线下故事输入框绝对沉底，文字不被遮挡
+// 🌟 终极修复：线下故事的 Flex 布局高度锁死，确保输入框沉底且内容可滑动
 openApp(appId, appName) {
 if (window.Config) window.Config.currentAppId = appId;
 const titleEl = document.getElementById('app-window-title');
@@ -490,10 +490,13 @@ if (!titleEl || !winEl || !contentEl) return;
 
 titleEl.innerText = appName;
 winEl.classList.add('open');
+
+// 重置样式
 contentEl.style.padding = '20px';
 contentEl.style.background = 'transparent';
 contentEl.style.display = 'block';
 contentEl.style.flexDirection = 'row';
+contentEl.style.height = 'auto';
 
 if (appId === 'diary') { winEl.classList.add('fullscreen-mode'); } else { winEl.classList.remove('fullscreen-mode'); }
 
@@ -501,18 +504,19 @@ if (appId === 'novel') {
 contentEl.style.padding = '0';
 contentEl.style.display = 'flex';
 contentEl.style.flexDirection = 'column';
+contentEl.style.height = '100%'; // 🌟 关键：强制占满剩余高度
 contentEl.innerHTML = `
-<div id="novel-content-list" class="story-bg" onclick="window.PhoneUI.closeStoryMenu();"></div>
-<div style="position: relative; flex-shrink: 0; background: var(--window-bg); padding: 10px 15px 20px 15px; z-index: 20;">
+<div id="novel-content-list" class="story-bg" onclick="window.PhoneUI.closeStoryMenu();" style="flex: 1; overflow-y: auto; min-height: 0; padding: 20px 15px;"></div>
+<div style="position: relative; flex-shrink: 0; background: var(--window-bg); padding: 10px 15px 20px 15px; z-index: 20; border-top: 1px solid var(--border-color);">
     <div id="story-plus-menu" class="story-menu" style="bottom: 100%; margin-bottom: 0;">
         <div class="story-menu-item" onclick="window.PhoneUI.openWbToggleModal('offline');window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-puzzle-piece" style="color:#2a9d8f;"></i></div><div class="text">规则挂载</div></div>
         <div class="story-menu-item" onclick="if(window.PhoneEngine) window.PhoneEngine.extractMemory('novel');window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-brain"></i></div><div class="text">提取记忆</div></div>
         <div class="story-menu-item" onclick="if(window.PhoneEngine) window.PhoneEngine.washMemory('novel');window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-broom" style="color:#f4a261;"></i></div><div class="text">记忆洗地</div></div>
         <div class="story-menu-item" onclick="window.PhoneUI.openArchiveModal();window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-floppy-disk"></i></div><div class="text">存档室</div></div>
     </div>
-    <div class="story-input-bar" style="margin: 0; box-shadow: 0 5px 20px rgba(0,0,0,0.05);">
+    <div class="story-input-bar" style="margin: 0; padding: 0; box-shadow: none; border: none; background: transparent; display: flex; align-items: flex-end; gap: 10px;">
         <div class="icon-btn" id="btn-story-plus" onclick="window.PhoneUI.toggleStoryMenu();"><i class="ph ph-plus-circle"></i></div>
-        <textarea id="novel-input" class="story-textarea" placeholder="书写你们的故事..." onclick="window.PhoneUI.closeStoryMenu();"></textarea>
+        <textarea id="novel-input" class="story-textarea" placeholder="书写你们的故事..." onclick="window.PhoneUI.closeStoryMenu();" style="background: var(--input-bg); padding: 10px 15px; border-radius: 20px; border: 1px solid var(--border-color);"></textarea>
         <button class="story-send-btn" onclick="if(window.PhoneEngine) window.PhoneEngine.sendNovelMessage();window.PhoneUI.closeStoryMenu();"><i class="ph-fill ph-paper-plane-right"></i></button>
     </div>
 </div>`;

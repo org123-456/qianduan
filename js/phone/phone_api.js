@@ -62,7 +62,6 @@ export const PhoneAPI = {
         }
     },
 
-    // 🌟 修复：强制从备份拉取记忆
     EchoVault: {
         getData() {
             const raw = localStorage.getItem('echovault_data');
@@ -121,6 +120,24 @@ export const PhoneAPI = {
             this.saveData(data);
             return true;
         },
+        /* 🌟 新增：供 AI 全自动更新记忆的底层方法 */
+        updateMemory(key, newContent) {
+            const data = this.getData();
+            let updated = false;
+            if (data.permanent[key]) { data.permanent[key].content = newContent; updated = true; } 
+            else if (data.daily[key]) { data.daily[key].content = newContent; updated = true; }
+            if (updated) this.saveData(data);
+            return updated;
+        },
+        /* 🌟 新增：供 AI 全自动删除记忆的底层方法 */
+        deleteMemory(key) {
+            const data = this.getData();
+            let deleted = false;
+            if (data.permanent[key]) { delete data.permanent[key]; deleted = true; }
+            if (data.daily[key]) { delete data.daily[key]; deleted = true; }
+            if (deleted) this.saveData(data);
+            return deleted;
+        },
         dream() {
             const data = this.getData();
             const dates = Object.keys(data.daily).sort((a, b) => new Date(b) - new Date(a));
@@ -170,7 +187,6 @@ export const PhoneAPI = {
                 const val = isCheckbox ? el.checked : el.value.trim();
                 const oldVal = localStorage.getItem(key);
                 localStorage.setItem(key, val);
-                // 🌟 修复：如果用户在设置里手动改了 URL，就删掉长按存的本地图，让 URL 生效
                 if (key.startsWith('bg_') && val !== oldVal && this.LocalDB) {
                     this.LocalDB.delete(key);
                 }
@@ -212,7 +228,6 @@ export const PhoneAPI = {
         } catch (error) {}
     },
     
-    // 🌟 修复：双通道壁纸渲染逻辑 (优先用 IndexedDB 本地长按图，没有再用 URL)
     applyUITheme() {
         let globalBg = localStorage.getItem('bg_global'); 
         let chatBg = localStorage.getItem('bg_chat');
@@ -350,7 +365,6 @@ export const PhoneAPI = {
     saveFavorite(text, source, sender) { const favs = this.getFavorites(); favs.push({ id: 'fav_' + Date.now(), content: text, source: source, sender: sender, time: new Date().toISOString().split('T')[0] }); localStorage.setItem('starry_favorites', JSON.stringify(favs)); this.showToast('⭐ 已存入星海收藏夹！'); },
     deleteFavorite(id) { if (!confirm('确定删除吗？')) return; let favs = this.getFavorites(); favs = favs.filter(f => f.id !== id); localStorage.setItem('starry_favorites', JSON.stringify(favs)); if (window.PhoneUI && window.PhoneUI.renderAppContent) window.PhoneUI.renderAppContent('favorites'); this.showToast('🗑️ 已删除'); },
 
-    // 🌟 修复：去除 HTML 中 onclick 里的可选链 '?.'，确保手机浏览器不报错
     async syncToCloud() {
         this.showToast("☁️ 正在上传存档至 Supabase 数据库...");
         try {

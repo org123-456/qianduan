@@ -4,9 +4,9 @@ const roleId = window.Config?.currentContactId;
 if (!roleId) return;
 
 let data = window.Config?.phoneData?.[roleId]?.[appId];
-if (!data && appId !== 'gallery' && appId !== 'memory_vault') return;
+if (!data && appId !== 'gallery' && appId !== 'memory_vault' && appId !== 'moments') return;
 
-if (appId !== 'gallery' && appId !== 'memory_vault' && data && data.items && data.items.length > 50) {
+if (appId !== 'gallery' && appId !== 'memory_vault' && appId !== 'moments' && data && data.items && data.items.length > 50) {
 data = { ...data, items: data.items.slice(-50) };
 }
 
@@ -38,6 +38,8 @@ this.renderGallery();
 this.renderSettings();
 } else if (appId === 'worldbook') {
 this.renderWorldbook();
+} else if (appId === 'moments') {
+this.renderMoments();
 }
 },
 
@@ -554,7 +556,129 @@ html += '</div>'; contentEl.innerHTML = html;
 this.renderSettings();
 } else if (appId === 'worldbook') {
 this.renderWorldbook();
+} else if (appId === 'moments') {
+// 🌟 渲染情侣空间 (朋友圈)
+this.renderMoments();
 }
+},
+
+/* 🌟 情侣空间 (朋友圈) 渲染逻辑 */
+renderMoments() {
+    const contentEl = document.getElementById('app-window-content');
+    if (!contentEl) return;
+    
+    const myAvatar = localStorage.getItem('my_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa';
+    const taAvatar = localStorage.getItem('ta_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=TA&backgroundColor=e8f0fa';
+    const myName = localStorage.getItem('my_name') || '我';
+    const taName = localStorage.getItem('char_name') || 'TA';
+    const coverImg = localStorage.getItem('bg_moments_cover') || 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?q=80&w=1000&auto=format&fit=crop';
+    
+    // UI 演示假数据
+    let feedHtml = `
+        <div class="moment-card">
+            <img class="moment-avatar" src="${myAvatar}">
+            <div class="moment-body">
+                <div class="moment-name">${myName}</div>
+                <div class="moment-text">今天数学课听得我头都要炸了！！！好想吃宵夜啊啊啊</div>
+                <div class="moment-footer">
+                    <span>2分钟前</span>
+                    <div class="moment-actions">
+                        <i class="ph ph-heart"></i>
+                        <i class="ph ph-chat-circle"></i>
+                    </div>
+                </div>
+                <div class="moment-comments-area">
+                    <div class="comment-item"><i class="ph-fill ph-heart" style="color: var(--danger-color); font-size: 12px;"></i> ${taName}</div>
+                    <div class="comment-item"><span class="c-name">${taName}:</span> 笨。哪题不会，拍过来我教你。吃宵夜的话，我顺路给你带。</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="moment-card">
+            <img class="moment-avatar" src="${taAvatar}">
+            <div class="moment-body">
+                <div class="moment-name">${taName}</div>
+                <div class="moment-text">某人今天肚子疼，还非要喝冰奶茶，记仇。</div>
+                <div class="moment-footer">
+                    <span>1小时前</span>
+                    <div class="moment-actions">
+                        <i class="ph-fill ph-heart" style="color: var(--danger-color);"></i>
+                        <i class="ph ph-chat-circle"></i>
+                    </div>
+                </div>
+                <div class="moment-comments-area">
+                    <div class="comment-item"><i class="ph-fill ph-heart" style="color: var(--danger-color); font-size: 12px;"></i> ${myName}</div>
+                    <div class="comment-item"><span class="c-name">${myName}:</span> 我错了嘛！下次不敢了QAQ</div>
+                    <div class="comment-item"><span class="c-name">${taName}:</span> 呵，你的下次不敢我听过八百遍了。</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    contentEl.innerHTML = `
+        <div class="moments-cover long-pressable" data-img="bg_moments_cover" style="background-image: url('${coverImg}')">
+            <div class="moments-avatars">
+                <span style="color: white; font-weight: bold; text-shadow: 0 2px 5px rgba(0,0,0,0.8); margin-right: 5px;">${myName} & ${taName}</span>
+                <img src="${taAvatar}">
+                <img class="my-avatar" src="${myAvatar}">
+            </div>
+        </div>
+        
+        <div class="status-panel">
+            <div class="status-half">
+                <div class="status-title"><i class="ph-fill ph-user"></i> ${myName}的状态</div>
+                <div class="status-item">
+                    <span>心情打卡</span>
+                    <select style="padding: 2px 5px; border-radius: 4px; font-size: 11px; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color);">
+                        <option>☀️ 开心</option>
+                        <option>🌧️ 委屈</option>
+                        <option>💢 生气</option>
+                        <option>🥱 好困</option>
+                    </select>
+                </div>
+                <div class="status-item">
+                    <span>🩸 特殊时期</span>
+                    <label class="switch" style="transform: scale(0.7); margin-right: -10px;">
+                        <input type="checkbox">
+                        <span class="slider" style="background-color: #ccc;"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="status-divider"></div>
+            <div class="status-half">
+                <div class="status-title"><i class="ph-fill ph-activity"></i> ${taName}的潮汐</div>
+                <div class="status-item">
+                    <span>当前阶段</span>
+                    <span style="color: #f4a261; font-weight: bold;">[ 蓄积期 ]</span>
+                </div>
+                <div class="status-item" title="热度">
+                    <span>🔥</span>
+                    <div class="tide-bar-bg"><div class="tide-bar-fill" style="width: 60%; background: #e76f51;"></div></div>
+                </div>
+                <div class="status-item" title="控制力">
+                    <span>🛡️</span>
+                    <div class="tide-bar-bg"><div class="tide-bar-fill" style="width: 40%; background: #2a9d8f;"></div></div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="padding-bottom: 80px;">
+            ${feedHtml}
+        </div>
+        
+        <div class="fab-post" onclick="window.PhoneUI.openPostModal()"><i class="ph ph-camera"></i></div>
+    `;
+    
+    this.bindLongPresses();
+},
+
+openPostModal() {
+    document.getElementById('post-moment-bg').classList.add('show');
+    document.getElementById('post-moment-modal').classList.add('show');
+},
+closePostModal() {
+    document.getElementById('post-moment-bg').classList.remove('show');
+    document.getElementById('post-moment-modal').classList.remove('show');
 },
 
 renderSettings() {

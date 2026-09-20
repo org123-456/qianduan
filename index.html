@@ -125,11 +125,12 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
     bottom: 0;
     overflow-y: auto; 
     -webkit-overflow-scrolling: touch; 
-    padding: 100px 15px 180px 15px; 
+    padding: 100px 15px 0px 15px; 
     display: flex; 
     flex-direction: column; 
     gap: 18px; 
 }
+#app-content-list::after { content: ''; display: block; min-height: 180px; flex-shrink: 0; }
 
 .card { background: var(--card-bg); border-radius: 28px; padding: 22px; margin-bottom: 18px; box-shadow: 0 12px 30px rgba(90,140,200,.12); border: 1px solid rgba(255,255,255,.6); min-width: 0; overflow-wrap: anywhere;}
 [data-theme="dark"] .card { border-color: var(--border-color); }
@@ -172,11 +173,15 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 [data-theme="dark"] .chat-msg.left .chat-bubble { background: var(--chat-left-bg); color: var(--text-main); }
 [data-theme="dark"] .chat-msg.right .chat-bubble { background: var(--chat-right-bg); color: var(--text-main); }
 
-/* 🌟 修复：彻底删除占位符的 height，防止短消息被强行撑高导致重叠 */
-.chat-avatar-placeholder { width: 44px; flex-shrink: 0; background: transparent !important; box-shadow: none !important; border: none !important; }
-/* 🌟 修复：减小连续消息的负边距，让气泡贴紧但不重叠 */
-.chat-msg.consecutive { margin-top: -10px; }
+/* 🌟 修复：头像占位符完全透明无边框 */
+.chat-avatar-placeholder { width: 44px; height: 44px; flex-shrink: 0; background: transparent !important; box-shadow: none !important; border: none !important; }
+
+/* 🌟 终极修复：彻底解决连续气泡重叠问题！ */
+/* 将负边距缩小到 -4px，配合父容器的 gap:18px，最终气泡之间的间距是 14px，既紧凑又绝对不会重叠！ */
+.chat-msg.consecutive { margin-top: -4px; } 
 .chat-msg.consecutive .chat-bubble { border-radius: 22px; }
+.chat-msg.left.consecutive .chat-bubble { border-top-left-radius: 6px; }
+.chat-msg.right.consecutive .chat-bubble { border-top-right-radius: 6px; }
 
 .chat-bubble:has(.chat-sticker) { background: transparent !important; box-shadow: none !important; padding: 0 !important; font-size: 0 !important; color: transparent !important; }
 .chat-sticker { max-width: 130px; border-radius: 8px; display: block; margin-top: 0 !important; }
@@ -251,7 +256,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 .ev-body { font-size: 14px; line-height: 1.6; color: var(--text-main); white-space: pre-wrap; word-break: break-word;}
 .ev-permanent-card .ev-card-header { color: var(--primary-color); font-weight: bold; }
 .ev-empty { text-align: center; color: var(--text-sub); margin-top: 50px; font-size: 14px; }
-/* 🌟 记忆库操作按钮样式 */
 .ev-actions { position: absolute; top: 12px; right: 15px; display: flex; gap: 12px; color: var(--text-sub); font-size: 18px; }
 .ev-actions i { cursor: pointer; transition: 0.2s; }
 .ev-actions i:active { transform: scale(0.8); color: var(--primary-color); }
@@ -682,7 +686,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 </div>
 </div>
 
-<!-- 🌟 记忆库专属编辑弹窗 -->
 <div id="ev-edit-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeEvEdit()"></div>
 <div id="ev-edit-modal" class="thought-modal" style="padding: 20px; z-index: 9001;">
     <div class="thought-header"><i class="ph-fill ph-pencil-simple"></i> 编辑记忆 (手动去重)</div>

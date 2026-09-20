@@ -117,6 +117,7 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 #page-home, #page-mine { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 100px 15px 110px 15px; }
 #page-chat { position: absolute; inset: 0; overflow: hidden; padding: 0; background-image: var(--bg-image-chat); background-size: cover; background-position: center; background-attachment: fixed; }
 
+/* 🌟 聊天列表：移除 gap，完全依赖精准的 margin */
 #app-content-list { 
     position: absolute;
     top: 0;
@@ -128,7 +129,6 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
     padding: 100px 15px 0px 15px; 
     display: flex; 
     flex-direction: column; 
-    gap: 18px; 
 }
 #app-content-list::after { content: ''; display: block; min-height: 180px; flex-shrink: 0; }
 
@@ -160,25 +160,57 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #dcecff; color: var(--text-main); font-family: var(--global-font); }
 [data-theme="dark"] input, [data-theme="dark"] textarea, [data-theme="dark"] select { background: rgba(20,35,55,.9); color: #dcecff; border-color: var(--border-color); }
 
-/* 🌟 聊天气泡核心修复 */
-.chat-msg { display: flex; align-items: flex-start; gap: 12px; }
-.chat-msg.right { flex-direction: row-reverse; }
-.chat-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: var(--icon-bg); flex-shrink: 0; box-shadow: 0 6px 15px rgba(90,140,200,.18); }
-.chat-content-box { display: flex; flex-direction: column; max-width: 72%; }
+/* 🌟 聊天气泡核心修复：绝对定位头像 + 精确 Margin */
+.chat-msg { 
+    position: relative; 
+    display: flex; 
+    align-items: flex-start; 
+    margin-bottom: 24px; /* 不同人说话的大间距 */
+    width: 100%;
+}
+.chat-msg.left { padding-left: 56px; }
+.chat-msg.right { padding-right: 56px; justify-content: flex-end; }
+
+/* 头像绝对定位，不再干扰气泡高度 */
+.chat-avatar { 
+    position: absolute; 
+    top: 0; 
+    width: 44px; 
+    height: 44px; 
+    border-radius: 50%; 
+    object-fit: cover; 
+    background: var(--icon-bg); 
+    box-shadow: 0 6px 15px rgba(90,140,200,.18); 
+}
+.chat-msg.left .chat-avatar { left: 0; }
+.chat-msg.right .chat-avatar { right: 0; }
+
+/* 隐藏占位符，因为我们用 padding 留出了头像空间 */
+.chat-avatar-placeholder { display: none !important; }
+
+.chat-content-box { display: flex; flex-direction: column; max-width: 85%; }
 .chat-msg.right .chat-content-box { align-items: flex-end; }
-.chat-bubble { min-height: 24px; padding: 12px 16px; border-radius: 22px; font-size: 15px; line-height: 1.6; word-wrap: break-word; box-shadow: 0 6px 18px rgba(90,140,200,.12); cursor: pointer; transition: 0.2s;}
+
+.chat-bubble { 
+    min-height: 24px; 
+    padding: 12px 16px; 
+    border-radius: 22px; 
+    font-size: 15px; 
+    line-height: 1.6; 
+    word-wrap: break-word; 
+    box-shadow: 0 6px 18px rgba(90,140,200,.12); 
+    cursor: pointer; 
+    transition: 0.2s;
+}
 .chat-bubble:active { opacity: 0.7; }
 .chat-msg.left .chat-bubble { background: linear-gradient(135deg, #ffffff, #edf7ff); color: #33495f; border-top-left-radius: 6px; }
 .chat-msg.right .chat-bubble { background: linear-gradient(135deg, #9dccff, #6fa8dc); color: white; border-top-right-radius: 6px; }
 [data-theme="dark"] .chat-msg.left .chat-bubble { background: var(--chat-left-bg); color: var(--text-main); }
 [data-theme="dark"] .chat-msg.right .chat-bubble { background: var(--chat-right-bg); color: var(--text-main); }
 
-/* 🌟 修复：头像占位符完全透明无边框 */
-.chat-avatar-placeholder { width: 44px; height: 44px; flex-shrink: 0; background: transparent !important; box-shadow: none !important; border: none !important; }
-
-/* 🌟 终极修复：彻底解决连续气泡重叠问题！ */
-/* 将负边距缩小到 -4px，配合父容器的 gap:18px，最终气泡之间的间距是 14px，既紧凑又绝对不会重叠！ */
-.chat-msg.consecutive { margin-top: -4px; } 
+/* 🌟 连续消息：同一个人说话的小间距 */
+/* 24px(上一条的bottom) - 16px(这一条的top) = 8px 的完美间距，绝对不会重叠！ */
+.chat-msg.consecutive { margin-top: -16px; } 
 .chat-msg.consecutive .chat-bubble { border-radius: 22px; }
 .chat-msg.left.consecutive .chat-bubble { border-top-left-radius: 6px; }
 .chat-msg.right.consecutive .chat-bubble { border-top-right-radius: 6px; }

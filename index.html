@@ -159,24 +159,31 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #dcecff; color: var(--text-main); font-family: var(--global-font); }
 [data-theme="dark"] input, [data-theme="dark"] textarea, [data-theme="dark"] select { background: rgba(20,35,55,.9); color: #dcecff; border-color: var(--border-color); }
 
+/* 🌟 终极气泡修复：彻底干掉时间戳和负边距！ */
 .chat-msg { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 4px; }
 .chat-msg:not(.consecutive) { margin-top: 16px; }
-.chat-msg.consecutive { margin-top: 0; }
+.chat-msg.consecutive { margin-top: 0; } /* 0 边距，绝不重叠 */
 .chat-msg.right { flex-direction: row-reverse; }
+
 .chat-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: var(--icon-bg); flex-shrink: 0; box-shadow: 0 6px 15px rgba(90,140,200,.18); }
 .chat-avatar-placeholder { width: 44px; height: 0; flex-shrink: 0; background: transparent !important; box-shadow: none !important; border: none !important; }
+
 .chat-content-box { display: flex; flex-direction: column; max-width: 72%; }
 .chat-msg.right .chat-content-box { align-items: flex-end; }
+
 .chat-bubble { min-height: 24px; padding: 12px 16px; border-radius: 22px; font-size: 15px; line-height: 1.6; word-wrap: break-word; box-shadow: 0 6px 18px rgba(90,140,200,.12); cursor: pointer; transition: 0.2s;}
 .chat-bubble:active { opacity: 0.7; }
 .chat-msg.left .chat-bubble { background: linear-gradient(135deg, #ffffff, #edf7ff); color: #33495f; border-top-left-radius: 6px; }
 .chat-msg.right .chat-bubble { background: linear-gradient(135deg, #9dccff, #6fa8dc); color: white; border-top-right-radius: 6px; }
 [data-theme="dark"] .chat-msg.left .chat-bubble { background: var(--chat-left-bg); color: var(--text-main); }
 [data-theme="dark"] .chat-msg.right .chat-bubble { background: var(--chat-right-bg); color: var(--text-main); }
-.chat-msg.consecutive { margin-top: -12px; }
+
 .chat-msg.consecutive .chat-bubble { border-radius: 22px; }
 .chat-msg.left.consecutive .chat-bubble { border-top-left-radius: 6px; }
 .chat-msg.right.consecutive .chat-bubble { border-top-right-radius: 6px; }
+
+/* 🌟 听你的，直接干掉时间戳，世界清静了！ */
+.chat-time { display: none !important; }
 
 .chat-bubble:has(.chat-sticker) { background: transparent !important; box-shadow: none !important; padding: 0 !important; font-size: 0 !important; color: transparent !important; }
 .chat-sticker { max-width: 130px; border-radius: 8px; display: block; margin-top: 0 !important; }
@@ -184,8 +191,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 .markdown-body em { color: var(--primary-color); font-style: italic; background: rgba(107, 139, 189, 0.1); padding: 0 4px; border-radius: 4px; }
 .chat-msg.right .markdown-body em { color: var(--secondary-color); background: rgba(255,255,255,0.1); }
 .markdown-body img:not(.chat-sticker) { max-width: 100%; border-radius: 8px; display: block; margin-top: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-.chat-time { font-size: 11px; color: #9bb2ca; margin-top: 6px; padding: 0 4px; }
-.chat-msg.consecutive .chat-time { display: none; }
 
 .chat-input-bar { position: absolute; bottom: 105px; left: 12px; right: 12px; height: 54px; background: rgba(255,255,255,.95); border-radius: 30px; display: flex; align-items: center; padding: 0 16px; gap: 12px; box-shadow: 0 10px 30px rgba(90,140,200,.2); z-index: 10; margin: 0; }
 [data-theme="dark"] .chat-input-bar { background: var(--input-bg); }

@@ -114,13 +114,9 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 .page { position: absolute; inset: 0; display: none; flex-direction: column; background: transparent; }
 .page.active { display: flex; }
 
-/* 首页和Mine页需要整体滚动 */
 #page-home, #page-mine { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 100px 15px 110px 15px; }
-
-/* 🌟 线上聊天页核心修复：容器焊死，内部列表滚动 */
 #page-chat { position: absolute; inset: 0; overflow: hidden; padding: 0; background-image: var(--bg-image-chat); background-size: cover; background-position: center; background-attachment: fixed; }
 
-/* 🌟 聊天列表：绝对定位撑满全屏，底部预留 180px 超大安全距离，确保消息能滑到输入框上方 */
 #app-content-list { 
     position: absolute;
     top: 0;
@@ -163,7 +159,7 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #dcecff; color: var(--text-main); font-family: var(--global-font); }
 [data-theme="dark"] input, [data-theme="dark"] textarea, [data-theme="dark"] select { background: rgba(20,35,55,.9); color: #dcecff; border-color: var(--border-color); }
 
-/* 聊天气泡 */
+/* 🌟 聊天气泡核心修复 */
 .chat-msg { display: flex; align-items: flex-start; gap: 12px; }
 .chat-msg.right { flex-direction: row-reverse; }
 .chat-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: var(--icon-bg); flex-shrink: 0; box-shadow: 0 6px 15px rgba(90,140,200,.18); }
@@ -175,10 +171,13 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 .chat-msg.right .chat-bubble { background: linear-gradient(135deg, #9dccff, #6fa8dc); color: white; border-top-right-radius: 6px; }
 [data-theme="dark"] .chat-msg.left .chat-bubble { background: var(--chat-left-bg); color: var(--text-main); }
 [data-theme="dark"] .chat-msg.right .chat-bubble { background: var(--chat-right-bg); color: var(--text-main); }
-/* 🌟 修复聊天气泡旁的白方块：强制透明无边框 */
-.chat-avatar-placeholder { width: 44px; height: 44px; flex-shrink: 0; background: transparent !important; box-shadow: none !important; border: none !important; }
-.chat-msg.consecutive { margin-top: -14px; }
+
+/* 🌟 修复：彻底删除占位符的 height，防止短消息被强行撑高导致重叠 */
+.chat-avatar-placeholder { width: 44px; flex-shrink: 0; background: transparent !important; box-shadow: none !important; border: none !important; }
+/* 🌟 修复：减小连续消息的负边距，让气泡贴紧但不重叠 */
+.chat-msg.consecutive { margin-top: -10px; }
 .chat-msg.consecutive .chat-bubble { border-radius: 22px; }
+
 .chat-bubble:has(.chat-sticker) { background: transparent !important; box-shadow: none !important; padding: 0 !important; font-size: 0 !important; color: transparent !important; }
 .chat-sticker { max-width: 130px; border-radius: 8px; display: block; margin-top: 0 !important; }
 .markdown-body p { margin: 0; padding: 0; }
@@ -188,7 +187,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 .chat-time { font-size: 11px; color: #9bb2ca; margin-top: 6px; padding: 0 4px; }
 .chat-msg.consecutive .chat-time { display: none; }
 
-/* 🌟 线上聊天输入框：绝对定位在底部导航栏上方 */
 .chat-input-bar { position: absolute; bottom: 105px; left: 12px; right: 12px; height: 54px; background: rgba(255,255,255,.95); border-radius: 30px; display: flex; align-items: center; padding: 0 16px; gap: 12px; box-shadow: 0 10px 30px rgba(90,140,200,.2); z-index: 10; margin: 0; }
 [data-theme="dark"] .chat-input-bar { background: var(--input-bg); }
 .chat-input-bar input { flex: 1; border: none; background: transparent; outline: none; font-size: 15px; color: #33495f; font-family: var(--global-font); }
@@ -253,6 +251,10 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 .ev-body { font-size: 14px; line-height: 1.6; color: var(--text-main); white-space: pre-wrap; word-break: break-word;}
 .ev-permanent-card .ev-card-header { color: var(--primary-color); font-weight: bold; }
 .ev-empty { text-align: center; color: var(--text-sub); margin-top: 50px; font-size: 14px; }
+/* 🌟 记忆库操作按钮样式 */
+.ev-actions { position: absolute; top: 12px; right: 15px; display: flex; gap: 12px; color: var(--text-sub); font-size: 18px; }
+.ev-actions i { cursor: pointer; transition: 0.2s; }
+.ev-actions i:active { transform: scale(0.8); color: var(--primary-color); }
 
 /* 记忆星海 */
 #page-memory { overflow: hidden; padding: 0; }
@@ -324,7 +326,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 .viewer-download { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 16px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
 .viewer-download:active { background: rgba(255,255,255,0.4); }
 
-/* 🌟 恢复：系统设置页专属样式 */
 .settings-tabs { display: flex; background: var(--input-bg); border-radius: 16px; padding: 5px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);}
 .settings-tab { flex: 1; text-align: center; padding: 10px; font-size: 13px; font-weight: bold; color: var(--text-sub); border-radius: 12px; cursor: pointer; transition: 0.3s; }
 .settings-tab.active { background: var(--primary-color); color: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -337,7 +338,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 .preset-btn.del { background: var(--danger-color); box-shadow: 0 4px 10px rgba(255,123,156,0.3); }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-/* 🌟 恢复：线下故事 (Novel) 专属样式 */
 .story-menu { position: absolute; left: 15px; right: 15px; background: var(--input-bg); border-radius: 20px; padding: 15px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); transform: translateY(20px); opacity: 0; pointer-events: none; transition: 0.3s; z-index: 100; border: 1px solid var(--border-color); }
 .story-menu.show { transform: translateY(-10px); opacity: 1; pointer-events: auto; }
 .story-menu-item { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; }
@@ -358,7 +358,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 .story-bubble { font-size: 15px; line-height: 1.6; color: var(--text-main); text-align: justify; word-wrap: break-word; overflow-wrap: anywhere; min-width: 0; }
 .story-item.me .story-bubble { color: var(--text-main); }
 
-/* 🌟 恢复：Mine 页专属样式 */
 .memory-card { background: linear-gradient(135deg, #f4a261, #e76f51); border-radius: 20px; padding: 20px; display: flex; align-items: center; gap: 15px; color: white; cursor: pointer; box-shadow: 0 10px 25px rgba(231, 111, 81, 0.3); transition: transform 0.2s; margin-top: 20px;}
 .memory-card:active { transform: scale(0.97); }
 .mc-icon { width: 48px; height: 48px; background: rgba(255,255,255,0.2); border-radius: 14px; display: flex; justify-content: center; align-items: center; font-size: 24px; flex-shrink: 0; backdrop-filter: blur(5px); }
@@ -377,12 +376,9 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 </head>
 <body>
 
-<!-- 全局隐藏的文件上传框 (用于长按换图) -->
 <input type="file" id="global-file-input" accept="image/*" style="display:none">
-
 <div id="toast"><i class="ph-fill ph-check-circle" style="color: #4ade80;"></i> <span id="toast-msg">提示</span></div>
 
-<!-- 弹窗区 -->
 <div id="api-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeApiModal()"></div>
 <div id="api-modal" class="api-modal thought-modal">
 <div class="thought-header"><i class="ph-fill ph-cpu"></i> 系统控制舱</div>
@@ -401,7 +397,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 </button>
 </div>
 
-<!-- 倒数日编辑面板 -->
 <div id="cd-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeCdSheet()"></div>
 <div id="cd-modal" class="thought-modal" style="padding: 20px;">
 <div class="thought-header"><i class="ph-fill ph-calendar-star"></i> 编辑倒数日</div>
@@ -426,7 +421,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 <button class="btn-refresh" onclick="window.PhoneUI.closeWbToggleModal()" style="margin-top: 0;">完成</button>
 </div>
 
-<!-- 传纸条 弹窗 -->
 <div id="note-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeNoteModal()"></div>
 <div id="note-modal" class="thought-modal" style="padding: 20px; z-index: 9001;">
 <div class="thought-header"><i class="ph-fill ph-paper-plane-tilt"></i> 传纸条</div>
@@ -437,7 +431,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 </div>
 </div>
 
-<!-- 共听歌单 弹窗 -->
 <div id="playlist-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.togglePlaylist()"></div>
 <div id="playlist-modal" class="thought-modal" style="padding: 20px; z-index: 9001;">
 <div class="thought-header"><span><i class="ph-fill ph-playlist"></i> 共听歌单</span></div>
@@ -445,11 +438,9 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 <button class="btn-refresh" onclick="window.PhoneUI.togglePlaylist()" style="margin-top: 15px;">关闭</button>
 </div>
 
-<!-- 全局音频播放器 -->
 <audio id="shared-audio-player" src=""></audio>
 
 <div id="app-container">
-<!-- 🌟 顶部栏：API 按钮优雅融入 -->
 <div class="top-bar">
     <div style="display: flex; gap: 10px;">
         <div class="menu-btn" onclick="window.PhoneUI.toggleTheme()"><i class="ph-fill ph-moon" id="theme-icon"></i></div>
@@ -461,12 +452,8 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 
 <div class="page-container" id="scroll-box">
 
-<!-- 首页 -->
 <div id="page-home" class="page">
-    
-    <!-- 第一排：天数 + 时钟日历 -->
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-        <!-- 左侧：相爱天数 -->
         <div class="neo-card" style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px 10px;">
             <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 12px;">
                 <img id="home-my-avatar" class="long-pressable" data-img="my_avatar" src="https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa" style="width: 42px; height: 42px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; cursor: pointer;">
@@ -479,22 +466,16 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
                 <span style="font-size: 12px; color: var(--text-sub); font-weight: bold;">天</span>
             </div>
         </div>
-
-        <!-- 右侧：时钟 + 迷你日历 -->
         <div class="neo-card" style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 15px 10px;">
             <div id="home-time" style="font-size: 32px; font-weight: bold; color: var(--text-main); letter-spacing: 1px;">00:00</div>
             <div id="home-date" style="font-size: 10px; color: var(--text-sub); font-weight: bold; margin-bottom: 5px;">2026.09.19</div>
             <div id="home-cal-grid" class="mini-cal"></div>
         </div>
     </div>
-
-    <!-- 第二排：拍立得相框 -->
     <div class="neo-card polaroid-widget long-pressable" data-img="home_polaroid" style="margin-bottom: 16px;">
         <img id="polaroid-img" class="polaroid-photo" src="https://images.unsplash.com/photo-1522093007474-d86e9bf7ba6f?q=80&w=600&auto=format&fit=crop">
         <div class="polaroid-text" id="polaroid-text">“回忆正在加载中...”</div>
     </div>
-
-    <!-- 第三排：倒数日小组件 -->
     <div class="neo-card countdown-widget" onclick="window.PhoneUI.openCdSheet()" style="margin-bottom: 16px;">
         <div class="cd-left">
             <div class="cd-title" id="cd-title-display">见到你</div>
@@ -506,8 +487,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
             <span class="cd-suf" id="cd-suf-display">天</span>
         </div>
     </div>
-
-    <!-- 第四排：传纸条 -->
     <div class="neo-card note-widget" onclick="window.PhoneUI.openNoteModal()" style="margin-bottom: 20px;">
         <div class="note-tape"></div>
         <div class="note-header">
@@ -516,8 +495,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
         </div>
         <div class="note-content" id="note-content">“今天也要开心哦！”</div>
     </div>
-
-    <!-- 第五排：App Grid -->
     <div class="app-grid">
         <div class="app-icon" onclick="window.PhoneUI.openApp('novel', '线下故事')">
             <div class="icon neo-card"><i class="ph-fill ph-book-open" style="color: var(--text-sub);"></i></div>
@@ -534,7 +511,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
     </div>
 </div>
 
-<!-- Memory 页 -->
 <div id="page-memory" class="page">
 <div class="starry-sea-bg" id="starry-sea-bg"></div>
 <div class="floating-bubbles" id="floating-bubbles">
@@ -551,11 +527,9 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 <span class="text">相册</span>
 </div>
 </div>
-<!-- 必须要有这个容器，否则星海碎片无法生成 -->
 <div id="memory-fragments-container"></div>
 </div>
 
-<!-- Chat 页 -->
 <div id="page-chat" class="page">
 <div id="app-content-list"></div>
 
@@ -592,7 +566,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 </form>
 </div>
 
-<!-- Together 页 -->
 <div id="page-together" class="page" style="background: var(--bg-gradient-start);">
     <div style="padding: 60px 20px 20px; text-align: center; color: var(--text-main);">
         <div id="music-title" style="font-size: 22px; font-weight: bold;">等待点歌...</div>
@@ -625,7 +598,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
     </div>
 </div>
 
-<!-- Mine 页 -->
 <div id="page-mine" class="page">
 <div class="card" style="text-align: center; padding: 40px 20px; color: var(--text-main); position: relative;">
 <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa" id="mine-avatar-display" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 15px; border: 3px solid var(--primary-color); object-fit: cover;">
@@ -645,7 +617,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 
 </div>
 
-<!-- 底栏 -->
 <div class="bottom-nav">
 <div class="nav-item active" onclick="switchTab(0)"><div class="icon"><i class="ph ph-house"></i></div><div class="text">Home</div></div>
 <div class="nav-item" onclick="switchTab(1)"><div class="icon"><i class="ph ph-images"></i></div><div class="text">Memory</div></div>
@@ -709,6 +680,18 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 <button class="btn-refresh" id="custom-prompt-cancel" style="flex: 1; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0; box-shadow: none;">取消</button>
 <button class="btn-refresh" id="custom-prompt-confirm" style="flex: 1; margin-top: 0;">确定保存</button>
 </div>
+</div>
+
+<!-- 🌟 记忆库专属编辑弹窗 -->
+<div id="ev-edit-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeEvEdit()"></div>
+<div id="ev-edit-modal" class="thought-modal" style="padding: 20px; z-index: 9001;">
+    <div class="thought-header"><i class="ph-fill ph-pencil-simple"></i> 编辑记忆 (手动去重)</div>
+    <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 10px; font-weight: bold;" id="ev-edit-date">2023-10-24</div>
+    <textarea id="ev-edit-content" style="width: 100%; height: 250px; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 14px; resize: none; outline: none; margin-bottom: 15px; font-family: inherit; line-height: 1.6;"></textarea>
+    <div style="display: flex; gap: 10px;">
+        <button class="btn-refresh" onclick="window.PhoneUI.closeEvEdit()" style="flex: 1; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0; box-shadow: none;">取消</button>
+        <button class="btn-refresh" onclick="window.PhoneUI.saveEvEdit()" style="flex: 1; margin-top: 0;">保存修改</button>
+    </div>
 </div>
 
 <div id="app-window" class="app-window" style="z-index: 1000;">

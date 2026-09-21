@@ -1,12 +1,14 @@
 export const PhoneUI = {
+currentMomentsTab: 'feed', // 🌟 新增：记录当前情侣空间停留在哪个 Tab
+
 renderAppContent(appId) {
 const roleId = window.Config?.currentContactId;
 if (!roleId) return;
 
 let data = window.Config?.phoneData?.[roleId]?.[appId];
-if (!data && appId !== 'gallery' && appId !== 'memory_vault' && appId !== 'moments') return;
+if (!data && appId !== 'gallery' && appId !== 'memory_vault' && appId !== 'moments' && appId !== 'favorites') return;
 
-if (appId !== 'gallery' && appId !== 'memory_vault' && appId !== 'moments' && data && data.items && data.items.length > 50) {
+if (appId !== 'gallery' && appId !== 'memory_vault' && appId !== 'moments' && appId !== 'favorites' && data && data.items && data.items.length > 50) {
 data = { ...data, items: data.items.slice(-50) };
 }
 
@@ -38,25 +40,14 @@ this.renderGallery();
 this.renderSettings();
 } else if (appId === 'worldbook') {
 this.renderWorldbook();
+} else if (appId === 'moments') {
+this.renderMoments();
 } else if (appId === 'favorites') {
-// 🌟 收藏夹逻辑移到这里，因为 Mine 页没了，它现在是一个弹窗 App 了
-this.renderFavorites();
+// 🌟 修复：如果 API 调用了 renderAppContent('favorites')，我们把它重定向到情侣空间重绘
+if (this.currentMomentsTab === 'favorites') {
+    this.renderMoments();
 }
-},
-
-// 🌟 新增：单独渲染收藏夹的方法
-renderFavorites() {
-    const contentEl = document.getElementById('app-window-content');
-    if (!contentEl) return;
-    const favs = window.PhoneAPI ? window.PhoneAPI.getFavorites() : [];
-    let html = '<div style="padding:10px 5px;">';
-    if (favs.length === 0) { html += `<div style="text-align:center;color:var(--text-sub);padding:50px 0;"><i class="ph-fill ph-star" style="font-size:48px;color:var(--border-color);margin-bottom:15px;"></i><br>空空如也<br>快去聊天记录长按消息收藏吧！</div>`; } else {
-    [...favs].reverse().forEach(fav => {
-    let content = window.marked ? window.marked.parse(fav.content || '') : (fav.content || '');
-    html += `<div class="card" style="position:relative;padding-right:40px;"><div style="font-size:12px;color:var(--primary-color);margin-bottom:5px;font-weight:bold;">${this.escapeHtml(fav.time)} · ${this.escapeHtml(fav.source)}</div><div class="markdown-body" style="font-size:14px;">${content}</div><div onclick="if(window.PhoneAPI) window.PhoneAPI.deleteFavorite('${this.escapeHtml(fav.id)}')" style="position:absolute;right:15px;top:50%;transform:translateY(-50%);color:var(--danger-color);font-size:20px;cursor:pointer;padding:5px;"><i class="ph ph-trash"></i></div></div>`;
-    });
-    }
-    html += '</div>'; contentEl.innerHTML = html;
+}
 },
 
 async updateHomeWidget() {
@@ -567,7 +558,13 @@ this.renderWorldbook();
 }
 },
 
-/* 🌟 情侣空间 (朋友圈) 渲染逻辑 - 渲染到主页面 */
+/* 🌟 修复：切换情侣空间内部的 Tab */
+switchMomentsTab(tab) {
+    this.currentMomentsTab = tab;
+    this.renderMoments();
+},
+
+/* 🌟 情侣空间 (朋友圈) 渲染逻辑 */
 renderMoments() {
     const contentEl = document.getElementById('moments-content-area');
     if (!contentEl) return;
@@ -576,51 +573,72 @@ renderMoments() {
     const taAvatar = localStorage.getItem('ta_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=TA&backgroundColor=e8f0fa';
     const myName = localStorage.getItem('my_name') || '我';
     const taName = localStorage.getItem('char_name') || 'TA';
+    
+    // 🌟 修复3：通过 CSS 变量加载封面图，长按换图瞬间生效！
     const coverImg = localStorage.getItem('bg_moments_cover') || 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?q=80&w=1000&auto=format&fit=crop';
+    document.documentElement.style.setProperty('--bg-image-moments-cover', `url('${coverImg}')`);
     
-    let feedHtml = `
-        <div class="moment-card">
-            <img class="moment-avatar" src="${myAvatar}">
-            <div class="moment-body">
-                <div class="moment-name">${myName}</div>
-                <div class="moment-text">今天数学课听得我头都要炸了！！！好想吃宵夜啊啊啊</div>
-                <div class="moment-footer">
-                    <span>2分钟前</span>
-                    <div class="moment-actions">
-                        <i class="ph ph-heart"></i>
-                        <i class="ph ph-chat-circle"></i>
+    const currentTab = this.currentMomentsTab || 'feed';
+    let bottomHtml = '';
+    
+    // 🌟 修复4：无缝切换朋友圈动态和星海收藏夹
+    if (currentTab === 'feed') {
+        bottomHtml = `
+            <div class="moment-card">
+                <img class="moment-avatar" src="${myAvatar}">
+                <div class="moment-body">
+                    <div class="moment-name">${myName}</div>
+                    <div class="moment-text">今天数学课听得我头都要炸了！！！好想吃宵夜啊啊啊</div>
+                    <div class="moment-footer">
+                        <span>2分钟前</span>
+                        <div class="moment-actions">
+                            <i class="ph ph-heart"></i>
+                            <i class="ph ph-chat-circle"></i>
+                        </div>
+                    </div>
+                    <div class="moment-comments-area">
+                        <div class="comment-item"><i class="ph-fill ph-heart" style="color: var(--danger-color); font-size: 12px;"></i> ${taName}</div>
+                        <div class="comment-item"><span class="c-name">${taName}:</span> 笨。哪题不会，拍过来我教你。吃宵夜的话，我顺路给你带。</div>
                     </div>
                 </div>
-                <div class="moment-comments-area">
-                    <div class="comment-item"><i class="ph-fill ph-heart" style="color: var(--danger-color); font-size: 12px;"></i> ${taName}</div>
-                    <div class="comment-item"><span class="c-name">${taName}:</span> 笨。哪题不会，拍过来我教你。吃宵夜的话，我顺路给你带。</div>
-                </div>
             </div>
-        </div>
-        
-        <div class="moment-card">
-            <img class="moment-avatar" src="${taAvatar}">
-            <div class="moment-body">
-                <div class="moment-name">${taName}</div>
-                <div class="moment-text">某人今天肚子疼，还非要喝冰奶茶，记仇。</div>
-                <div class="moment-footer">
-                    <span>1小时前</span>
-                    <div class="moment-actions">
-                        <i class="ph-fill ph-heart" style="color: var(--danger-color);"></i>
-                        <i class="ph ph-chat-circle"></i>
+            
+            <div class="moment-card">
+                <img class="moment-avatar" src="${taAvatar}">
+                <div class="moment-body">
+                    <div class="moment-name">${taName}</div>
+                    <div class="moment-text">某人今天肚子疼，还非要喝冰奶茶，记仇。</div>
+                    <div class="moment-footer">
+                        <span>1小时前</span>
+                        <div class="moment-actions">
+                            <i class="ph-fill ph-heart" style="color: var(--danger-color);"></i>
+                            <i class="ph ph-chat-circle"></i>
+                        </div>
+                    </div>
+                    <div class="moment-comments-area">
+                        <div class="comment-item"><i class="ph-fill ph-heart" style="color: var(--danger-color); font-size: 12px;"></i> ${myName}</div>
+                        <div class="comment-item"><span class="c-name">${myName}:</span> 我错了嘛！下次不敢了QAQ</div>
+                        <div class="comment-item"><span class="c-name">${taName}:</span> 呵，你的下次不敢我听过八百遍了。</div>
                     </div>
                 </div>
-                <div class="moment-comments-area">
-                    <div class="comment-item"><i class="ph-fill ph-heart" style="color: var(--danger-color); font-size: 12px;"></i> ${myName}</div>
-                    <div class="comment-item"><span class="c-name">${myName}:</span> 我错了嘛！下次不敢了QAQ</div>
-                    <div class="comment-item"><span class="c-name">${taName}:</span> 呵，你的下次不敢我听过八百遍了。</div>
-                </div>
             </div>
-        </div>
-    `;
-    
+        `;
+    } else if (currentTab === 'favorites') {
+        const favs = window.PhoneAPI ? window.PhoneAPI.getFavorites() : [];
+        bottomHtml = '<div style="padding:10px 5px;">';
+        if (favs.length === 0) { 
+            bottomHtml += `<div style="text-align:center;color:var(--text-sub);padding:50px 0;"><i class="ph-fill ph-star" style="font-size:48px;color:var(--border-color);margin-bottom:15px;"></i><br>空空如也<br>快去聊天记录长按消息收藏吧！</div>`; 
+        } else {
+            [...favs].reverse().forEach(fav => {
+                let content = window.marked ? window.marked.parse(fav.content || '') : (fav.content || '');
+                bottomHtml += `<div class="card" style="position:relative;padding-right:40px;"><div style="font-size:12px;color:var(--primary-color);margin-bottom:5px;font-weight:bold;">${this.escapeHtml(fav.time)} · ${this.escapeHtml(fav.source)}</div><div class="markdown-body" style="font-size:14px;">${content}</div><div onclick="if(window.PhoneAPI) window.PhoneAPI.deleteFavorite('${this.escapeHtml(fav.id)}'); event.stopPropagation();" style="position:absolute;right:15px;top:50%;transform:translateY(-50%);color:var(--danger-color);font-size:20px;cursor:pointer;padding:5px;"><i class="ph ph-trash"></i></div></div>`;
+            });
+        }
+        bottomHtml += '</div>';
+    }
+
     contentEl.innerHTML = `
-        <div class="moments-cover long-pressable" data-img="bg_moments_cover" style="background-image: url('${coverImg}')">
+        <div class="moments-cover long-pressable" data-img="bg_moments_cover">
             <div class="moments-cover-info">
                 <div class="moments-avatar-wrap">
                     <img src="${myAvatar}">
@@ -674,14 +692,14 @@ renderMoments() {
         </div>
         
         <div class="moments-menu-bar">
-            <div class="moments-menu-item" onclick="window.PhoneUI.openApp('favorites', '星海收藏夹')"><i class="ph-fill ph-star"></i> 星海收藏夹</div>
+            <div class="moments-menu-item ${currentTab === 'feed' ? 'active' : ''}" onclick="window.PhoneUI.switchMomentsTab('feed')"><i class="${currentTab === 'feed' ? 'ph-fill' : 'ph'} ph-camera"></i> 朋友圈动态</div>
+            <div class="moments-menu-item ${currentTab === 'favorites' ? 'active' : ''}" onclick="window.PhoneUI.switchMomentsTab('favorites')"><i class="${currentTab === 'favorites' ? 'ph-fill' : 'ph'} ph-star"></i> 星海收藏夹</div>
             <div class="moments-menu-item" onclick="window.PhoneAPI.showToast('愿望清单模块开发中...')"><i class="ph-fill ph-list-heart"></i> 愿望清单</div>
             <div class="moments-menu-item" onclick="window.PhoneAPI.showToast('恋爱家规模块开发中...')"><i class="ph-fill ph-scroll"></i> 恋爱家规</div>
-            <div class="moments-menu-item" onclick="window.PhoneAPI.showToast('纪念日模块开发中...')"><i class="ph-fill ph-calendar-heart"></i> 纪念日</div>
         </div>
 
         <div style="padding-bottom: 80px;">
-            ${feedHtml}
+            ${bottomHtml}
         </div>
     `;
     

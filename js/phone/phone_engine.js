@@ -89,7 +89,7 @@ export const PhoneEngine = {
     },
 
     sendImageMsg() {
-        this.closeMsgMenu();
+        PhoneEngine.closeMsgMenu();
         const input = document.createElement('input');
         input.type = 'file'; input.accept = 'image/*';
         input.onchange = async (e) => {
@@ -125,7 +125,7 @@ export const PhoneEngine = {
     },
 
     sendFileMsg() {
-        this.closeMsgMenu();
+        PhoneEngine.closeMsgMenu();
         const input = document.createElement('input');
         input.type = 'file';
         input.onchange = async (e) => {
@@ -174,12 +174,12 @@ export const PhoneEngine = {
         const content = `[发送了表情包：${name}]\n![${name}](${url})`;
         chatItems.push({ sender: 'me', content: content, time: timeStr, date: dateStr });
         localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-        if (targetApp === 'novel') { PhoneUI.renderNovelContent(); this.sendNovelMessage(false); } 
-        else { PhoneUI.renderAppContent('wechat'); this.sendChatMessage(false); }
+        if (targetApp === 'novel') { PhoneUI.renderNovelContent(); PhoneEngine.sendNovelMessage(false); } 
+        else { PhoneUI.renderAppContent('wechat'); PhoneEngine.sendChatMessage(false); }
     },
 
     async favoriteMsg() {
-        this.closeMsgMenu();
+        PhoneEngine.closeMsgMenu();
         if (this.currentMsgIndex < 0) return;
         const roleId = Config?.currentContactId;
         const targetApp = (window.Config?.currentAppId === 'novel') ? 'novel' : 'wechat';
@@ -193,7 +193,7 @@ export const PhoneEngine = {
     },
 
     async aiSummarizeMsg() {
-        this.closeMsgMenu();
+        PhoneEngine.closeMsgMenu();
         if (this.currentMsgIndex < 0) return;
         const roleId = Config?.currentContactId;
         const targetApp = (window.Config?.currentAppId === 'novel') ? 'novel' : 'wechat';
@@ -250,7 +250,7 @@ ${historyText}`;
     },
 
     async washMemory(sourceApp) {
-        this.closeMsgMenu();
+        PhoneEngine.closeMsgMenu();
         if (!confirm("⚠️ 确定要进行【记忆洗地】吗？\nAI将把当前所有聊天记录拆解成多段长期记忆，随后【清空】当前聊天界面！")) return;
         PhoneAPI.showToast("🧹 正在进行记忆洗地，请稍候...");
         try {
@@ -295,7 +295,7 @@ ${historyText}`;
     },
 
     async editMsg() {
-        this.closeMsgMenu();
+        PhoneEngine.closeMsgMenu();
         if (this.currentMsgIndex < 0) return;
         const roleId = Config?.currentContactId;
         const targetApp = (window.Config?.currentAppId === 'novel') ? 'novel' : 'wechat';
@@ -314,7 +314,7 @@ ${historyText}`;
     },
 
     deleteMsg() {
-        this.closeMsgMenu();
+        PhoneEngine.closeMsgMenu();
         if (this.currentMsgIndex < 0) return;
         const roleId = Config?.currentContactId;
         const targetApp = (window.Config?.currentAppId === 'novel') ? 'novel' : 'wechat';
@@ -329,7 +329,7 @@ ${historyText}`;
     },
 
     regenMsg() {
-        this.closeMsgMenu();
+        PhoneEngine.closeMsgMenu();
         if (this.currentMsgIndex < 0) return;
         const roleId = Config?.currentContactId;
         const targetApp = (window.Config?.currentAppId === 'novel') ? 'novel' : 'wechat';
@@ -337,8 +337,8 @@ ${historyText}`;
         if (Config?.phoneData?.[roleId]?.[targetApp]?.items) {
             Config.phoneData[roleId][targetApp].items.splice(realIndex);
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-            if (targetApp === 'novel') { PhoneUI.renderNovelContent(); this.sendNovelMessage(true); } 
-            else { PhoneUI.renderAppContent('wechat'); this.sendChatMessage(true); }
+            if (targetApp === 'novel') { PhoneUI.renderNovelContent(); PhoneEngine.sendNovelMessage(true); } 
+            else { PhoneUI.renderAppContent('wechat'); PhoneEngine.sendChatMessage(true); }
         }
     },
 
@@ -384,7 +384,7 @@ ${historyText}`;
         try {
             const b64Json = await PhoneAPI.generateImageAPI(prompt);
             PhoneAPI.showToast("✨ 画作已生成，正在冲洗入册...");
-            const finalB64 = await this.compressImage(b64Json);
+            const finalB64 = await PhoneEngine.compressImage(b64Json);
             const roleId = Config?.currentContactId;
             if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
             if (!Config.phoneData[roleId].gallery) Config.phoneData[roleId].gallery = { items: [] };
@@ -509,7 +509,7 @@ ${historyText}`;
             let accessibleVault = allVault;
             if (!shareMemory) accessibleVault = allVault.filter(v => v.isCore || v.source === '线上微信');
 
-            if (latestUserText) dynamicPrompt += this._scanKeywords(latestUserText);
+            if (latestUserText) dynamicPrompt += PhoneEngine._scanKeywords(latestUserText);
 
             const recentMemories = window.PhoneAPI?.EchoVault?.dream?.() || [];
             if (recentMemories.length > 0) {
@@ -534,7 +534,7 @@ ${historyText}`;
                 const novelItems = Config?.phoneData?.[roleId]?.novel?.items || [];
                 if (novelItems.length > 0) {
                     const recentNovel = novelItems.slice(-8).map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
-                    dynamicPrompt += `\n【跨频道记忆联动】：以下是你们最近在[线下故事]中发生的剧情，请在当前的微信回复中自然体现出你记得这些对话：\n${recentNovel}\n`;
+                    dynamicPrompt += `\n【跨频道记忆联动】：以下是你们最近在[线下故事]中发生的剧情，请在当前的微信回复中自然体现出你记得这些对话：\n${recentWechat}\n`;
                 }
             }
 
@@ -659,7 +659,7 @@ ${historyText}`;
                 try {
                     PhoneAPI.showToast("📸 他正在拍照，请稍候...");
                     const b64Json = await PhoneAPI.generateImageAPI(photoPrompt);
-                    const finalB64 = await this.compressImage(b64Json);
+                    const finalB64 = await PhoneEngine.compressImage(b64Json);
                     chatItems.pop();
                     chatItems.push({ sender: 'other', content: `![图片](${finalB64})`, time: timeStr, date: dateStr, innerThought: "（拍张照给她看看吧...）" });
                     if (!Config.phoneData[roleId].gallery) Config.phoneData[roleId].gallery = { items: [] };
@@ -749,7 +749,7 @@ ${historyText}`;
             let accessibleVault = allVault;
             if (!shareMemory) accessibleVault = allVault.filter(v => v.isCore || v.source === '线下故事');
 
-            if (latestUserText) dynamicPrompt += this._scanKeywords(latestUserText);
+            if (latestUserText) dynamicPrompt += PhoneEngine._scanKeywords(latestUserText);
 
             const recentMemories = window.PhoneAPI?.EchoVault?.dream?.() || [];
             if (recentMemories.length > 0) {
@@ -880,7 +880,6 @@ ${historyText}`;
             PhoneUI.renderNovelContent(); localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
         }
     },
-
     async generateDiary(dateStr) {
         const contentAreaEl = document.getElementById('diary-content-area');
         if (!contentAreaEl) return;
@@ -949,7 +948,7 @@ ${historyText}`;
 
     _proactiveTimer: null,
 
-    // 1. 导入 TXT 文件 (支持多本，存入书架)
+    // 1. 导入 TXT 文件 (支持多本，存入书架，自动识别 GBK 乱码)
     importBook(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -957,12 +956,9 @@ ${historyText}`;
         const title = file.name.replace('.txt', '');
         const bookId = 'book_' + Date.now();
         document.getElementById('reader-header-title').innerText = "解析中...";
-        PhoneAPI.showToast("📚 正在将书籍存入书架...");
+        PhoneAPI.showToast("📚 正在解析并存入书架...");
         
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            const text = e.target.result;
-            
+        const processText = async (text) => {
             try {
                 const blob = new Blob([text], { type: 'text/plain' });
                 await window.PhoneAPI.LocalDB.set(bookId, blob);
@@ -983,7 +979,20 @@ ${historyText}`;
                 PhoneAPI.showToast("⚠️ 导入失败：" + err.message);
             }
         };
-        reader.readAsText(file);
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            let text = e.target.result;
+            // 智能判定：如果前1000个字符里出现了乱码符号 ，说明是 GBK 编码
+            if (text.indexOf('') !== -1 && text.indexOf('') < 1000) {
+                const readerGBK = new FileReader();
+                readerGBK.onload = (e2) => { processText(e2.target.result); };
+                readerGBK.readAsText(file, 'gbk'); // 用中文字符集重新读取
+            } else {
+                processText(text); // UTF-8 正常，直接处理
+            }
+        };
+        reader.readAsText(file, 'utf-8'); // 默认先用 utf-8 读
         event.target.value = '';
     },
 
@@ -1015,11 +1024,12 @@ ${historyText}`;
                 const progress = book.offsets.length > 1 ? `已读 ${book.currentIndex + 1} 页` : '未读';
                 html += `
                 <div class="book-wrap" onclick="window.PhoneEngine.openBook('${book.id}')">
+                    <!-- 🌟 修复：把删除按钮移到封面外面，防止被 overflow:hidden 吞掉 -->
+                    <div class="book-del-btn" onclick="event.stopPropagation(); window.PhoneEngine.deleteBook('${book.id}')"><i class="ph ph-x"></i></div>
                     <div class="book-cover-3d">
-                        ${this.escapeHtml(book.title).substring(0, 8)}
-                        <div class="book-del-btn" onclick="event.stopPropagation(); window.PhoneEngine.deleteBook('${book.id}')"><i class="ph ph-x"></i></div>
+                        ${PhoneUI.escapeHtml(book.title).substring(0, 8)}
                     </div>
-                    <div class="book-title-ui">${this.escapeHtml(book.title)}</div>
+                    <div class="book-title-ui">${PhoneUI.escapeHtml(book.title)}</div>
                     <div class="book-progress-ui">${progress}</div>
                 </div>`;
             });
@@ -1046,9 +1056,9 @@ ${historyText}`;
         let html = '<div style="padding-bottom: 40px;">';
         [...notebook].reverse().forEach(item => {
             if(item.type === 'highlight') {
-                html += `<div style="margin-bottom: 25px; padding: 15px; background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);"><div style="font-size:12px; color:var(--text-sub); font-weight:bold; margin-bottom:8px;">《${this.escapeHtml(item.bookTitle)}》</div><span class="highlight-text" style="font-size: 16px; line-height: 1.6;">${this.escapeHtml(item.quote)}</span></div>`;
+                html += `<div style="margin-bottom: 25px; padding: 15px; background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);"><div style="font-size:12px; color:var(--text-sub); font-weight:bold; margin-bottom:8px;">《${PhoneUI.escapeHtml(item.bookTitle)}》</div><span class="highlight-text" style="font-size: 16px; line-height: 1.6;">${PhoneUI.escapeHtml(item.quote)}</span></div>`;
             } else {
-                html += `<div style="margin-bottom: 25px; padding: 15px; background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);"><div style="font-size:12px; color:var(--text-sub); font-weight:bold; margin-bottom:8px;">《${this.escapeHtml(item.bookTitle)}》</div><mark class="quote-mark" style="font-size: 16px; line-height: 1.6;">${this.escapeHtml(item.quote)}</mark><div class="inline-comment" style="margin-top: 10px; margin-bottom: 0;"><b><i class="ph-fill ph-chat-circle-text"></i> ${charName}：</b>${this.escapeHtml(item.comment)}</div></div>`;
+                html += `<div style="margin-bottom: 25px; padding: 15px; background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);"><div style="font-size:12px; color:var(--text-sub); font-weight:bold; margin-bottom:8px;">《${PhoneUI.escapeHtml(item.bookTitle)}》</div><mark class="quote-mark" style="font-size: 16px; line-height: 1.6;">${PhoneUI.escapeHtml(item.quote)}</mark><div class="inline-comment" style="margin-top: 10px; margin-bottom: 0;"><b><i class="ph-fill ph-chat-circle-text"></i> ${charName}：</b>${PhoneUI.escapeHtml(item.comment)}</div></div>`;
             }
         });
         html += '</div>';
@@ -1428,11 +1438,6 @@ ${myName}对书里的这段话很感兴趣，划了重点：
         } catch(e) {
             console.error("主动伴读请求失败", e);
         }
-    },
-
-    escapeHtml(str) {
-        if (str === null || str === undefined) return '';
-        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     }
 };
 

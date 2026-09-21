@@ -544,7 +544,6 @@ ${historyText}`;
 
             let messages = [{ role: "system", content: systemContent.length > 0 ? systemContent : "You are a helpful assistant." }];
 
-            // 🌟 核心修复：将上下文窗口从 20 扩大到 60，避免因为气泡切分导致短期失忆
             const MAX_CONTEXT = 60;
             const recentItems = chatItems.slice(-MAX_CONTEXT);
             let hasImage = false;
@@ -562,7 +561,6 @@ ${historyText}`;
                 }
             });
 
-            // 🌟 核心修改：判断最后一句是不是用户发的，如果是，就不发催促指令！
             if (!isRegen && !hasNewUserMsg) {
                 let lastSender = 'other';
                 for (let i = recentItems.length - 1; i >= 0; i--) {
@@ -786,7 +784,6 @@ ${historyText}`;
 
             let messages = [{ role: "system", content: systemContent.length > 0 ? systemContent : "You are a helpful assistant." }];
 
-            // 🌟 核心修复：扩大线下故事的短期记忆滑动窗口
             const MAX_CONTEXT = 60;
             const recentItems = chatItems.slice(-MAX_CONTEXT);
 
@@ -794,7 +791,6 @@ ${historyText}`;
                 if (item.sender !== 'typing') { messages.push({ role: item.sender === 'me' ? 'user' : 'assistant', content: item.content || "" }); }
             });
 
-            // 🌟 核心修改：判断最后一句是不是用户发的，如果是，就不发催促指令！
             if (!isRegen && !hasNewUserMsg) {
                 let lastSender = 'other';
                 for (let i = recentItems.length - 1; i >= 0; i--) {
@@ -944,6 +940,224 @@ ${historyText}`;
 
         } catch (error) {
             contentAreaEl.innerHTML = `<div class="notebook-empty"><i class="ph-fill ph-warning-circle" style="font-size: 48px; color: var(--danger-color); margin-bottom: 15px;"></i><p style="color: var(--danger-color);">偷看失败：${error.message}</p><button class="btn-refresh" onclick="window.PhoneUI.renderDiaryPage()" style="width: auto; padding: 10px 20px; margin-top: 15px;">返回重试</button></div>`;
+        }
+    },
+
+    /* ==========================================
+       🌟 共读时光 (SyncRead) 核心引擎 
+       ========================================== */
+
+    // 1. 导入 TXT 文件
+    importBook(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const title = file.name.replace('.txt', '');
+        document.getElementById('reader-book-title').innerText = "解析中...";
+        PhoneAPI.showToast("📚 正在解析书籍，请稍候...");
+        
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const text = e.target.result;
+            // 调用切页算法
+            const pages = await this.paginateText(text);
+            
+            if (!window.Config) window.Config = {};
+            window.Config.readerConfig = { pages, currentIndex: 0, title };
+            
+            try {
+                localStorage.setItem('reader_book_title', title);
+                localStorage.setItem('reader_book_pages', JSON.stringify(pages));
+                localStorage.setItem('reader_page_index', 0);
+            } catch(err) {
+                PhoneAPI.showToast("⚠️ 书籍太大，无法本地缓存，但本次可正常阅读");
+            }
+            
+            this.renderCurrentPage();
+            PhoneAPI.showToast("✅ 导入成功！");
+        };
+        reader.readAsText(file);
+        event.target.value = ''; // 重置 input
+    },
+
+    // 2. 加载缓存的书籍
+    loadCachedBook() {
+        const title = localStorage.getItem('reader_book_title');
+        const pagesStr = localStorage.getItem('reader_book_pages');
+        const indexStr = localStorage.getItem('reader_page_index');
+        
+        if (title && pagesStr) {
+            try {
+                if (!window.Config) window.Config = {};
+                window.Config.readerConfig = {
+                    title: title,
+                    pages: JSON.parse(pagesStr),
+                    currentIndex: parseInt(indexStr) || 0
+                };
+                this.renderCurrentPage();
+            } catch(e) {
+                console.error("加载缓存书籍失败", e);
+            }
+        }
+    },
+
+    // 3. 核心切页算法 (基于真实 DOM 高度测量)
+    async paginateText(text) {
+        const measureDiv = document.createElement('div');
+        // 模拟阅读器容器的真实样式
+        measureDiv.style.cssText = 'position:absolute; visibility:hidden; width:calc(100% - 40px); padding: 0; font-size:18px; line-height:1.8; text-align:justify; word-break:break-word; z-index:-100; top:0; left:0;';
+        document.body.appendChild(measureDiv);
+        
+        const container = document.getElementById('reader-content-area');
+        // 计算可用高度 (减去顶部 padding 20 和底部留白 80)
+        const maxHeight = container && container.clientHeight > 100 ? container.clientHeight - 100 : window.innerHeight - 180;
+        
+        const paragraphs = text.split(/\n+/).filter(p => p.trim().length > 0);
+        const pages = [];
+        let currentPageHtml = '';
+        
+        for (let i = 0; i < paragraphs.length; i++) {
+            const pText = paragraphs[i].trim();
+            const p = `<p style="margin-bottom: 1em; text-indent: 2em;">${pText}</p>`;
+            
+            measureDiv.innerHTML = currentPageHtml + p;
+            
+            if (measureDiv.clientHeight > maxHeight) {
+                if (currentPageHtml === '') {
+                    // 如果单段文字超长，直接塞进一页（允许微小滚动）
+                    pages.push(p);
+                } else {
+                    pages.push(currentPageHtml);
+                    currentPageHtml = p;
+                }
+            } else {
+                currentPageHtml += p;
+            }
+            
+            // 每处理 100 段释放一下主线程，防止手机卡死
+            if (i % 100 === 0) {
+                await new Promise(r => setTimeout(r, 0));
+            }
+        }
+        if (currentPageHtml) pages.push(currentPageHtml);
+        
+        document.body.removeChild(measureDiv);
+        return pages;
+    },
+
+    // 4. 渲染当前页
+    renderCurrentPage() {
+        const config = window.Config?.readerConfig;
+        if (!config || !config.pages || config.pages.length === 0) return;
+        
+        const emptyState = document.getElementById('reader-empty-state');
+        const pageContainer = document.getElementById('reader-page-container');
+        if (emptyState) emptyState.style.display = 'none';
+        if (pageContainer) pageContainer.style.display = 'block';
+        
+        document.getElementById('reader-book-title').innerText = config.title;
+        
+        if (config.currentIndex < 0) config.currentIndex = 0;
+        if (config.currentIndex >= config.pages.length) config.currentIndex = config.pages.length - 1;
+        
+        pageContainer.innerHTML = config.pages[config.currentIndex];
+        
+        const progress = Math.round(((config.currentIndex + 1) / config.pages.length) * 100);
+        document.getElementById('reader-progress').innerText = `${progress}% (${config.currentIndex + 1}/${config.pages.length})`;
+        
+        try { localStorage.setItem('reader_page_index', config.currentIndex); } catch(e) {}
+        
+        // 翻页时隐藏划线菜单和气泡
+        const menu = document.getElementById('highlight-menu');
+        const bubble = document.getElementById('companion-bubble');
+        if (menu) menu.style.display = 'none';
+        if (bubble) {
+            bubble.style.opacity = '0';
+            bubble.style.transform = 'translateY(20px)';
+        }
+    },
+
+    // 5. 翻页控制
+    prevPage() {
+        if (!window.Config?.readerConfig) return;
+        if (window.Config.readerConfig.currentIndex > 0) {
+            window.Config.readerConfig.currentIndex--;
+            this.renderCurrentPage();
+        } else {
+            PhoneAPI.showToast("已经是第一页啦");
+        }
+    },
+    
+    nextPage() {
+        if (!window.Config?.readerConfig) return;
+        if (window.Config.readerConfig.currentIndex < window.Config.readerConfig.pages.length - 1) {
+            window.Config.readerConfig.currentIndex++;
+            this.renderCurrentPage();
+        } else {
+            PhoneAPI.showToast("已经是最后一页啦");
+        }
+    },
+
+    // 6. 划线讨论 (AI 伴读核心)
+    async discussHighlight() {
+        const selection = window.getSelection();
+        const text = selection.toString().trim();
+        if (!text) return;
+        
+        document.getElementById('highlight-menu').style.display = 'none';
+        selection.removeAllRanges(); // 取消选中状态
+        
+        const bubble = document.getElementById('companion-bubble');
+        const bubbleText = document.getElementById('companion-bubble-text');
+        const companionName = document.getElementById('companion-name');
+        if (!bubble || !bubbleText || !companionName) return;
+        
+        const charName = localStorage.getItem('char_name') || 'TA';
+        companionName.innerText = charName;
+        bubbleText.innerHTML = '<i class="ph-fill ph-spinner spin-anim"></i> 正在思考...';
+        
+        bubble.style.opacity = '1';
+        bubble.style.transform = 'translateY(0)';
+        
+        try {
+            const title = window.Config?.readerConfig?.title || '未知书籍';
+            const persona = localStorage.getItem('char_persona') || '';
+            const myName = localStorage.getItem('my_name') || '我';
+            
+            const prompt = `【系统指令】：你和${myName}正在一起看小说《${title}》。
+${myName}对书里的这段话很感兴趣，划了重点：
+“${text}”
+
+请你以【${charName}】的身份，针对这句话给出你的反应或吐槽。
+要求：
+1. 极度符合你的人设（${persona}）。
+2. 就像你正趴在${myName}肩膀上一起看书，在TA耳边轻声说话。
+3. 必须非常简短，在 20-50 字以内。
+4. 绝对不要输出任何动作描写、表情符号（Emoji），直接说出你的台词！`;
+
+            const reply = await PhoneAPI.chatWithAI([{ role: 'user', content: prompt }]);
+            const finalReply = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+            
+            bubbleText.innerText = finalReply;
+            
+            // 🌟 自动存入记忆库！
+            if (window.PhoneAPI && window.PhoneAPI.EchoVault) {
+                const memoryContent = `我们在看《${title}》时，看到“${text}”这句话，我说道：“${finalReply}”`;
+                window.PhoneAPI.EchoVault.write(memoryContent, 'daily', 6, `共读时光`, text.substring(0, 10));
+            }
+            
+            // 8秒后自动隐藏气泡
+            setTimeout(() => {
+                bubble.style.opacity = '0';
+                bubble.style.transform = 'translateY(20px)';
+            }, 8000);
+            
+        } catch(e) {
+            bubbleText.innerText = "“唔……有点走神了，没看清。”";
+            setTimeout(() => {
+                bubble.style.opacity = '0';
+                bubble.style.transform = 'translateY(20px)';
+            }, 3000);
         }
     }
 };

@@ -689,10 +689,7 @@ renderMoments() {
         <div class="moments-menu-bar">
             <div class="moments-menu-item ${currentTab === 'feed' ? 'active' : ''}" onclick="window.PhoneUI.switchMomentsTab('feed')"><i class="${currentTab === 'feed' ? 'ph-fill' : 'ph'} ph-camera"></i> 朋友圈动态</div>
             <div class="moments-menu-item ${currentTab === 'favorites' ? 'active' : ''}" onclick="window.PhoneUI.switchMomentsTab('favorites')"><i class="${currentTab === 'favorites' ? 'ph-fill' : 'ph'} ph-star"></i> 星海收藏夹</div>
-            
-            <!-- 🌟 核心新增：共读时光入口 -->
             <div class="moments-menu-item" onclick="window.PhoneUI.openReader()"><i class="ph-fill ph-book-open-text"></i> 共读时光</div>
-            
             <div class="moments-menu-item" onclick="window.PhoneAPI.showToast('恋爱家规模块开发中...')"><i class="ph-fill ph-scroll"></i> 恋爱家规</div>
         </div>
 
@@ -704,14 +701,12 @@ renderMoments() {
     this.bindLongPresses();
 },
 
-/* 🌟 新增：共读时光 (阅读器) UI 逻辑 */
 openReader() {
     const readerEl = document.getElementById('app-reader');
     if (readerEl) {
         readerEl.classList.add('open');
         this.initReaderSwipe();
         this.bindReaderSelection();
-        // 如果引擎里已经写好了加载书籍的方法，就调用它
         if (window.PhoneEngine && window.PhoneEngine.loadCachedBook) {
             window.PhoneEngine.loadCachedBook();
         }
@@ -739,13 +734,10 @@ initReaderSwipe() {
         const diffX = endX - startX;
         const diffY = endY - startY;
         
-        // 必须是明显的横向滑动，防止上下滑动被误判
         if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
             if (diffX > 0) {
-                // 向右滑 -> 上一页
                 if (window.PhoneEngine && window.PhoneEngine.prevPage) window.PhoneEngine.prevPage();
             } else {
-                // 向左滑 -> 下一页
                 if (window.PhoneEngine && window.PhoneEngine.nextPage) window.PhoneEngine.nextPage();
             }
         }
@@ -760,18 +752,23 @@ bindReaderSelection() {
 
     document.addEventListener('selectionchange', () => {
         const selection = window.getSelection();
-        // 确保是在阅读器打开的状态下
         const readerEl = document.getElementById('app-reader');
         if (!readerEl || !readerEl.classList.contains('open')) return;
 
         if (selection.toString().trim().length > 0 && area.contains(selection.anchorNode)) {
-            const range = selection.getRangeAt(0);
-            const rect = range.getBoundingClientRect();
-            
-            // 显示菜单在选区正上方
+            // 🌟 核心修复：放弃跟随文字（会被系统自带菜单遮挡）
+            // 改为在屏幕底部中央固定悬浮，样式更精美
             menu.style.display = 'block';
-            menu.style.top = Math.max(10, rect.top - 50) + 'px';
-            menu.style.left = Math.max(10, rect.left + (rect.width / 2) - 50) + 'px';
+            menu.style.position = 'fixed';
+            menu.style.top = 'auto';
+            menu.style.bottom = '80px'; // 固定在翻页栏上方
+            menu.style.left = '50%';
+            menu.style.transform = 'translateX(-50%)';
+            menu.style.background = 'linear-gradient(135deg, #8bc6ff, #4f81bd)';
+            menu.style.borderRadius = '25px';
+            menu.style.border = '2px solid #fff';
+            menu.style.boxShadow = '0 8px 20px rgba(80,140,210,0.4)';
+            menu.style.zIndex = '2000';
         } else {
             menu.style.display = 'none';
         }

@@ -89,7 +89,7 @@ export const PhoneEngine = {
     },
 
     sendImageMsg() {
-        this.closeMsgMenu();
+        PhoneEngine.closeMsgMenu();
         const input = document.createElement('input');
         input.type = 'file'; input.accept = 'image/*';
         input.onchange = async (e) => {
@@ -125,7 +125,7 @@ export const PhoneEngine = {
     },
 
     sendFileMsg() {
-        this.closeMsgMenu();
+        PhoneEngine.closeMsgMenu();
         const input = document.createElement('input');
         input.type = 'file';
         input.onchange = async (e) => {
@@ -174,12 +174,12 @@ export const PhoneEngine = {
         const content = `[发送了表情包：${name}]\n![${name}](${url})`;
         chatItems.push({ sender: 'me', content: content, time: timeStr, date: dateStr });
         localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-        if (targetApp === 'novel') { PhoneUI.renderNovelContent(); this.sendNovelMessage(false); } 
-        else { PhoneUI.renderAppContent('wechat'); this.sendChatMessage(false); }
+        if (targetApp === 'novel') { PhoneUI.renderNovelContent(); PhoneEngine.sendNovelMessage(false); } 
+        else { PhoneUI.renderAppContent('wechat'); PhoneEngine.sendChatMessage(false); }
     },
 
     async favoriteMsg() {
-        this.closeMsgMenu();
+        PhoneEngine.closeMsgMenu();
         if (this.currentMsgIndex < 0) return;
         const roleId = Config?.currentContactId;
         const targetApp = (window.Config?.currentAppId === 'novel') ? 'novel' : 'wechat';
@@ -193,7 +193,7 @@ export const PhoneEngine = {
     },
 
     async aiSummarizeMsg() {
-        this.closeMsgMenu();
+        PhoneEngine.closeMsgMenu();
         if (this.currentMsgIndex < 0) return;
         const roleId = Config?.currentContactId;
         const targetApp = (window.Config?.currentAppId === 'novel') ? 'novel' : 'wechat';
@@ -250,7 +250,7 @@ ${historyText}`;
     },
 
     async washMemory(sourceApp) {
-        this.closeMsgMenu();
+        PhoneEngine.closeMsgMenu();
         if (!confirm("⚠️ 确定要进行【记忆洗地】吗？\nAI将把当前所有聊天记录拆解成多段长期记忆，随后【清空】当前聊天界面！")) return;
         PhoneAPI.showToast("🧹 正在进行记忆洗地，请稍候...");
         try {
@@ -295,7 +295,7 @@ ${historyText}`;
     },
 
     async editMsg() {
-        this.closeMsgMenu();
+        PhoneEngine.closeMsgMenu();
         if (this.currentMsgIndex < 0) return;
         const roleId = Config?.currentContactId;
         const targetApp = (window.Config?.currentAppId === 'novel') ? 'novel' : 'wechat';
@@ -314,7 +314,7 @@ ${historyText}`;
     },
 
     deleteMsg() {
-        this.closeMsgMenu();
+        PhoneEngine.closeMsgMenu();
         if (this.currentMsgIndex < 0) return;
         const roleId = Config?.currentContactId;
         const targetApp = (window.Config?.currentAppId === 'novel') ? 'novel' : 'wechat';
@@ -329,7 +329,7 @@ ${historyText}`;
     },
 
     regenMsg() {
-        this.closeMsgMenu();
+        PhoneEngine.closeMsgMenu();
         if (this.currentMsgIndex < 0) return;
         const roleId = Config?.currentContactId;
         const targetApp = (window.Config?.currentAppId === 'novel') ? 'novel' : 'wechat';
@@ -337,8 +337,8 @@ ${historyText}`;
         if (Config?.phoneData?.[roleId]?.[targetApp]?.items) {
             Config.phoneData[roleId][targetApp].items.splice(realIndex);
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-            if (targetApp === 'novel') { PhoneUI.renderNovelContent(); this.sendNovelMessage(true); } 
-            else { PhoneUI.renderAppContent('wechat'); this.sendChatMessage(true); }
+            if (targetApp === 'novel') { PhoneUI.renderNovelContent(); PhoneEngine.sendNovelMessage(true); } 
+            else { PhoneUI.renderAppContent('wechat'); PhoneEngine.sendChatMessage(true); }
         }
     },
 
@@ -384,7 +384,7 @@ ${historyText}`;
         try {
             const b64Json = await PhoneAPI.generateImageAPI(prompt);
             PhoneAPI.showToast("✨ 画作已生成，正在冲洗入册...");
-            const finalB64 = await this.compressImage(b64Json);
+            const finalB64 = await PhoneEngine.compressImage(b64Json);
             const roleId = Config?.currentContactId;
             if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
             if (!Config.phoneData[roleId].gallery) Config.phoneData[roleId].gallery = { items: [] };
@@ -509,7 +509,7 @@ ${historyText}`;
             let accessibleVault = allVault;
             if (!shareMemory) accessibleVault = allVault.filter(v => v.isCore || v.source === '线上微信');
 
-            if (latestUserText) dynamicPrompt += this._scanKeywords(latestUserText);
+            if (latestUserText) dynamicPrompt += PhoneEngine._scanKeywords(latestUserText);
 
             const recentMemories = window.PhoneAPI?.EchoVault?.dream?.() || [];
             if (recentMemories.length > 0) {
@@ -534,7 +534,7 @@ ${historyText}`;
                 const novelItems = Config?.phoneData?.[roleId]?.novel?.items || [];
                 if (novelItems.length > 0) {
                     const recentNovel = novelItems.slice(-8).map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
-                    dynamicPrompt += `\n【跨频道记忆联动】：以下是你们最近在[线下故事]中发生的剧情，请在当前的微信回复中自然体现出你记得这些对话：\n${recentWechat}\n`;
+                    dynamicPrompt += `\n【跨频道记忆联动】：以下是你们最近在[线下故事]中发生的剧情，请在当前的微信回复中自然体现出你记得这些对话：\n${recentNovel}\n`;
                 }
             }
 
@@ -659,7 +659,7 @@ ${historyText}`;
                 try {
                     PhoneAPI.showToast("📸 他正在拍照，请稍候...");
                     const b64Json = await PhoneAPI.generateImageAPI(photoPrompt);
-                    const finalB64 = await this.compressImage(b64Json);
+                    const finalB64 = await PhoneEngine.compressImage(b64Json);
                     chatItems.pop();
                     chatItems.push({ sender: 'other', content: `![图片](${finalB64})`, time: timeStr, date: dateStr, innerThought: "（拍张照给她看看吧...）" });
                     if (!Config.phoneData[roleId].gallery) Config.phoneData[roleId].gallery = { items: [] };
@@ -749,7 +749,7 @@ ${historyText}`;
             let accessibleVault = allVault;
             if (!shareMemory) accessibleVault = allVault.filter(v => v.isCore || v.source === '线下故事');
 
-            if (latestUserText) dynamicPrompt += this._scanKeywords(latestUserText);
+            if (latestUserText) dynamicPrompt += PhoneEngine._scanKeywords(latestUserText);
 
             const recentMemories = window.PhoneAPI?.EchoVault?.dream?.() || [];
             if (recentMemories.length > 0) {
@@ -978,12 +978,13 @@ ${historyText}`;
                 localStorage.setItem('reader_bookshelf', JSON.stringify(bookshelf));
                 
                 PhoneAPI.showToast("✅ 导入成功！");
-                this.renderBookshelf();
+                PhoneEngine.renderBookshelf();
             } catch(err) {
                 PhoneAPI.showToast("⚠️ 导入失败：" + err.message);
             }
         };
         reader.readAsText(file);
+        // 修复：清空 value 保证下次选同一个文件也能触发
         event.target.value = '';
     },
 
@@ -1016,10 +1017,10 @@ ${historyText}`;
                 html += `
                 <div class="book-wrap" onclick="window.PhoneEngine.openBook('${book.id}')">
                     <div class="book-cover-3d">
-                        ${this.escapeHtml(book.title).substring(0, 8)}
+                        ${PhoneUI.escapeHtml(book.title).substring(0, 8)}
                         <div class="book-del-btn" onclick="event.stopPropagation(); window.PhoneEngine.deleteBook('${book.id}')"><i class="ph ph-x"></i></div>
                     </div>
-                    <div class="book-title-ui">${this.escapeHtml(book.title)}</div>
+                    <div class="book-title-ui">${PhoneUI.escapeHtml(book.title)}</div>
                     <div class="book-progress-ui">${progress}</div>
                 </div>`;
             });
@@ -1046,16 +1047,16 @@ ${historyText}`;
         let html = '<div style="padding-bottom: 40px;">';
         [...notebook].reverse().forEach(item => {
             if(item.type === 'highlight') {
-                html += `<div style="margin-bottom: 25px; padding: 15px; background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);"><div style="font-size:12px; color:var(--text-sub); font-weight:bold; margin-bottom:8px;">《${this.escapeHtml(item.bookTitle)}》</div><span class="highlight-text" style="font-size: 16px; line-height: 1.6;">${this.escapeHtml(item.quote)}</span></div>`;
+                html += `<div style="margin-bottom: 25px; padding: 15px; background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);"><div style="font-size:12px; color:var(--text-sub); font-weight:bold; margin-bottom:8px;">《${PhoneUI.escapeHtml(item.bookTitle)}》</div><span class="highlight-text" style="font-size: 16px; line-height: 1.6;">${PhoneUI.escapeHtml(item.quote)}</span></div>`;
             } else {
-                html += `<div style="margin-bottom: 25px; padding: 15px; background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);"><div style="font-size:12px; color:var(--text-sub); font-weight:bold; margin-bottom:8px;">《${this.escapeHtml(item.bookTitle)}》</div><mark class="quote-mark" style="font-size: 16px; line-height: 1.6;">${this.escapeHtml(item.quote)}</mark><div class="inline-comment" style="margin-top: 10px; margin-bottom: 0;"><b><i class="ph-fill ph-chat-circle-text"></i> ${charName}：</b>${this.escapeHtml(item.comment)}</div></div>`;
+                html += `<div style="margin-bottom: 25px; padding: 15px; background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);"><div style="font-size:12px; color:var(--text-sub); font-weight:bold; margin-bottom:8px;">《${PhoneUI.escapeHtml(item.bookTitle)}》</div><mark class="quote-mark" style="font-size: 16px; line-height: 1.6;">${PhoneUI.escapeHtml(item.quote)}</mark><div class="inline-comment" style="margin-top: 10px; margin-bottom: 0;"><b><i class="ph-fill ph-chat-circle-text"></i> ${charName}：</b>${PhoneUI.escapeHtml(item.comment)}</div></div>`;
             }
         });
         html += '</div>';
         container.innerHTML = html;
         
         // 清理伴读定时器
-        clearTimeout(this._proactiveTimer);
+        clearTimeout(PhoneEngine._proactiveTimer);
     },
 
     // 3. 打开指定书籍
@@ -1085,7 +1086,7 @@ ${historyText}`;
             if (window.PhoneUI && window.PhoneUI.showReadingView) {
                 window.PhoneUI.showReadingView(book.title);
             }
-            this.renderCurrentPage();
+            PhoneEngine.renderCurrentPage();
         } catch(e) {
             PhoneAPI.showToast("打开失败：" + e.message);
         }
@@ -1104,7 +1105,7 @@ ${historyText}`;
         if (window.PhoneAPI && window.PhoneAPI.LocalDB) {
             window.PhoneAPI.LocalDB.delete(bookId);
         }
-        this.renderBookshelf();
+        PhoneEngine.renderBookshelf();
     },
 
     // 5. 核心：二分法惰性切页 (包含旁批和高亮的高度计算)
@@ -1165,7 +1166,7 @@ ${historyText}`;
 
     // 6. 渲染当前页 (动态注入高亮与段评)
     renderCurrentPage() {
-        clearTimeout(this._proactiveTimer); // 翻页时清理旧的伴读定时器
+        clearTimeout(PhoneEngine._proactiveTimer); // 翻页时清理旧的伴读定时器
         
         const config = window.Config?.readerConfig;
         if (!config || !config.text) return;
@@ -1180,10 +1181,10 @@ ${historyText}`;
         
         // 惰性计算下一页起点
         if (config.currentIndex === config.offsets.length - 1 && startOffset < config.text.length) {
-            const nextOffset = this.calculatePageEnd(config.text, startOffset, config.id, charName);
+            const nextOffset = PhoneEngine.calculatePageEnd(config.text, startOffset, config.id, charName);
             if (nextOffset > startOffset) {
                 config.offsets.push(nextOffset);
-                this._saveBookProgress(config);
+                PhoneEngine._saveBookProgress(config);
             }
         }
         
@@ -1213,7 +1214,7 @@ ${historyText}`;
         
         const progress = Math.min(100, Math.round((endOffset / config.text.length) * 100));
         document.getElementById('reader-progress').innerText = `已读 ${progress}%`;
-        this._saveBookProgress(config);
+        PhoneEngine._saveBookProgress(config);
         
         const menu = document.getElementById('highlight-menu');
         const bubble = document.getElementById('companion-bubble');
@@ -1221,8 +1222,8 @@ ${historyText}`;
         if (bubble) { bubble.style.opacity = '0'; bubble.style.transform = 'translateY(20px)'; }
         
         // 🌟 开启主动伴读倒计时 (停留10秒触发)
-        this._proactiveTimer = setTimeout(() => {
-            this._triggerProactiveCompanion();
+        PhoneEngine._proactiveTimer = setTimeout(() => {
+            PhoneEngine._triggerProactiveCompanion();
         }, 10000);
     },
 
@@ -1240,7 +1241,7 @@ ${historyText}`;
         if (!window.Config?.readerConfig) return;
         if (window.Config.readerConfig.currentIndex > 0) {
             window.Config.readerConfig.currentIndex--;
-            this.renderCurrentPage();
+            PhoneEngine.renderCurrentPage();
         } else { PhoneAPI.showToast("已经是第一页啦"); }
     },
     
@@ -1250,7 +1251,7 @@ ${historyText}`;
         const currentEndOffset = config.offsets[config.currentIndex + 1] || config.text.length;
         if (currentEndOffset < config.text.length) {
             config.currentIndex++;
-            this.renderCurrentPage();
+            PhoneEngine.renderCurrentPage();
         } else { PhoneAPI.showToast("全书完！"); }
     },
 
@@ -1277,10 +1278,10 @@ ${historyText}`;
         highlights.push(text);
         localStorage.setItem(`book_highlights_${config.id}`, JSON.stringify(highlights));
         
-        this._saveToNotebook(config.title, text, '', 'highlight');
+        PhoneEngine._saveToNotebook(config.title, text, '', 'highlight');
         
         PhoneAPI.showToast("🖍️ 已划线并收录至摘录本！");
-        this.renderCurrentPage(); // 重新渲染以显示荧光笔
+        PhoneEngine.renderCurrentPage(); // 重新渲染以显示荧光笔
     },
 
     // 8. 划线讨论并生成永久段评
@@ -1341,13 +1342,13 @@ ${myName}对书里的这段话很感兴趣，划了重点：
             localStorage.setItem(`book_comments_${config.id}`, JSON.stringify(comments));
             
             // 存入摘录本
-            this._saveToNotebook(config.title, text, finalReply, 'comment');
+            PhoneEngine._saveToNotebook(config.title, text, finalReply, 'comment');
             
             // 核心机制：作废当前页之后的所有排版缓存！
             config.offsets = config.offsets.slice(0, config.currentIndex + 1);
-            this._saveBookProgress(config);
+            PhoneEngine._saveBookProgress(config);
             
-            this.renderCurrentPage();
+            PhoneEngine.renderCurrentPage();
             
             setTimeout(() => {
                 bubble.style.opacity = '0';
@@ -1417,7 +1418,6 @@ ${myName}对书里的这段话很感兴趣，划了重点：
                 
                 // 点击气泡，收录为旁批！
                 bubble.onclick = () => {
-                    // 取本页的第一段作为引用
                     const firstPara = pageText.split('\n').filter(p=>p.trim())[0];
                     const quote = firstPara.length > 50 ? firstPara.substring(0, 50) + '...' : firstPara;
                     
@@ -1425,12 +1425,11 @@ ${myName}对书里的这段话很感兴趣，划了重点：
                     comments.push({ quote: quote, comment: finalReply });
                     localStorage.setItem(`book_comments_${config.id}`, JSON.stringify(comments));
                     
-                    this._saveToNotebook(config.title, quote, finalReply, 'comment');
+                    PhoneEngine._saveToNotebook(config.title, quote, finalReply, 'comment');
                     
-                    // 重排
                     config.offsets = config.offsets.slice(0, config.currentIndex + 1);
-                    this._saveBookProgress(config);
-                    this.renderCurrentPage();
+                    PhoneEngine._saveBookProgress(config);
+                    PhoneEngine.renderCurrentPage();
                     
                     bubble.style.opacity = '0';
                     bubble.style.transform = 'translateY(20px)';

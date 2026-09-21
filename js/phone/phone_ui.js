@@ -38,9 +38,25 @@ this.renderGallery();
 this.renderSettings();
 } else if (appId === 'worldbook') {
 this.renderWorldbook();
-} else if (appId === 'moments') {
-this.renderMoments();
+} else if (appId === 'favorites') {
+// 🌟 收藏夹逻辑移到这里，因为 Mine 页没了，它现在是一个弹窗 App 了
+this.renderFavorites();
 }
+},
+
+// 🌟 新增：单独渲染收藏夹的方法
+renderFavorites() {
+    const contentEl = document.getElementById('app-window-content');
+    if (!contentEl) return;
+    const favs = window.PhoneAPI ? window.PhoneAPI.getFavorites() : [];
+    let html = '<div style="padding:10px 5px;">';
+    if (favs.length === 0) { html += `<div style="text-align:center;color:var(--text-sub);padding:50px 0;"><i class="ph-fill ph-star" style="font-size:48px;color:var(--border-color);margin-bottom:15px;"></i><br>空空如也<br>快去聊天记录长按消息收藏吧！</div>`; } else {
+    [...favs].reverse().forEach(fav => {
+    let content = window.marked ? window.marked.parse(fav.content || '') : (fav.content || '');
+    html += `<div class="card" style="position:relative;padding-right:40px;"><div style="font-size:12px;color:var(--primary-color);margin-bottom:5px;font-weight:bold;">${this.escapeHtml(fav.time)} · ${this.escapeHtml(fav.source)}</div><div class="markdown-body" style="font-size:14px;">${content}</div><div onclick="if(window.PhoneAPI) window.PhoneAPI.deleteFavorite('${this.escapeHtml(fav.id)}')" style="position:absolute;right:15px;top:50%;transform:translateY(-50%);color:var(--danger-color);font-size:20px;cursor:pointer;padding:5px;"><i class="ph ph-trash"></i></div></div>`;
+    });
+    }
+    html += '</div>'; contentEl.innerHTML = html;
 },
 
 async updateHomeWidget() {
@@ -543,27 +559,17 @@ contentEl.innerHTML = `
 <div id="vault-content-area" style="padding-bottom: 80px;"></div>`;
 this.renderMemoryVault();
 } else if (appId === 'favorites') {
-const favs = window.PhoneAPI ? window.PhoneAPI.getFavorites() : [];
-let html = '<div style="padding:10px 5px;">';
-if (favs.length === 0) { html += `<div style="text-align:center;color:var(--text-sub);padding:50px 0;"><i class="ph-fill ph-star" style="font-size:48px;color:var(--border-color);margin-bottom:15px;"></i><br>空空如也<br>快去聊天记录长按消息收藏吧！</div>`; } else {
-[...favs].reverse().forEach(fav => {
-let content = window.marked ? window.marked.parse(fav.content || '') : (fav.content || '');
-html += `<div class="card" style="position:relative;padding-right:40px;"><div style="font-size:12px;color:var(--primary-color);margin-bottom:5px;font-weight:bold;">${this.escapeHtml(fav.time)} · ${this.escapeHtml(fav.source)}</div><div class="markdown-body" style="font-size:14px;">${content}</div><div onclick="if(window.PhoneAPI) window.PhoneAPI.deleteFavorite('${this.escapeHtml(fav.id)}')" style="position:absolute;right:15px;top:50%;transform:translateY(-50%);color:var(--danger-color);font-size:20px;cursor:pointer;padding:5px;"><i class="ph ph-trash"></i></div></div>`;
-});
-}
-html += '</div>'; contentEl.innerHTML = html;
+this.renderFavorites();
 } else if (appId === 'settings') {
 this.renderSettings();
 } else if (appId === 'worldbook') {
 this.renderWorldbook();
-} else if (appId === 'moments') {
-this.renderMoments();
 }
 },
 
-/* 🌟 情侣空间 (朋友圈) 渲染逻辑 */
+/* 🌟 情侣空间 (朋友圈) 渲染逻辑 - 渲染到主页面 */
 renderMoments() {
-    const contentEl = document.getElementById('app-window-content');
+    const contentEl = document.getElementById('moments-content-area');
     if (!contentEl) return;
     
     const myAvatar = localStorage.getItem('my_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa';
@@ -668,17 +674,15 @@ renderMoments() {
         </div>
         
         <div class="moments-menu-bar">
-            <div class="moments-menu-item" onclick="window.PhoneAPI.showToast('愿望清单模块开发中...')"><i class="ph-fill ph-star"></i> 愿望清单</div>
+            <div class="moments-menu-item" onclick="window.PhoneUI.openApp('favorites', '星海收藏夹')"><i class="ph-fill ph-star"></i> 星海收藏夹</div>
+            <div class="moments-menu-item" onclick="window.PhoneAPI.showToast('愿望清单模块开发中...')"><i class="ph-fill ph-list-heart"></i> 愿望清单</div>
             <div class="moments-menu-item" onclick="window.PhoneAPI.showToast('恋爱家规模块开发中...')"><i class="ph-fill ph-scroll"></i> 恋爱家规</div>
             <div class="moments-menu-item" onclick="window.PhoneAPI.showToast('纪念日模块开发中...')"><i class="ph-fill ph-calendar-heart"></i> 纪念日</div>
-            <div class="moments-menu-item" onclick="window.PhoneAPI.showToast('更多功能敬请期待...')"><i class="ph-fill ph-dots-three-circle"></i> 更多</div>
         </div>
 
         <div style="padding-bottom: 80px;">
             ${feedHtml}
         </div>
-        
-        <div class="fab-post" onclick="window.PhoneUI.openPostModal()"><i class="ph ph-camera"></i></div>
     `;
     
     this.bindLongPresses();

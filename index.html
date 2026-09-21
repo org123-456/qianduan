@@ -403,6 +403,36 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 .chat-bubble { font-size:14px; padding: 10px 14px; }
 .notebook-scroll-area { padding-left:16px; padding-right:16px; }
 }
+
+/* ================= 书架与阅读器专属样式 ================= */
+.bookshelf-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px 15px; padding: 10px 5px; }
+.book-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; position: relative; transition: 0.2s; }
+.book-wrap:active { transform: scale(0.95); }
+
+/* 拟物化 3D 书本封面 */
+.book-cover-3d { width: 100%; aspect-ratio: 3/4; border-radius: 4px 12px 12px 4px; box-shadow: inset 4px 0 10px rgba(0,0,0,0.1), 3px 5px 15px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; padding: 10px; position: relative; background: linear-gradient(135deg, #5b86e5, #36d1dc); color: white; text-align: center; font-weight: bold; font-size: 15px; writing-mode: vertical-rl; letter-spacing: 2px; text-shadow: 0 2px 4px rgba(0,0,0,0.3); overflow: hidden; }
+/* 书脊阴影 */
+.book-cover-3d::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 12px; background: linear-gradient(90deg, rgba(255,255,255,0.25), rgba(0,0,0,0.15)); border-radius: 4px 0 0 4px; }
+
+/* 专属摘录本的特殊样式 */
+.notebook-special { background: linear-gradient(135deg, #ff9a9e, #fecfef); color: #d6336c; text-shadow: none; }
+
+.book-title-ui { font-size: 12px; font-weight: bold; text-align: center; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--text-main); line-height: 1.4; }
+.book-progress-ui { font-size: 10px; color: var(--text-sub); font-family: monospace; }
+.book-del-btn { position: absolute; top: -10px; right: -10px; background: var(--danger-color); color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; justify-content: center; align-items: center; font-size: 14px; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+
+/* 荧光笔划线与旁批样式 */
+.highlight-text { background-color: rgba(255, 215, 0, 0.35); border-bottom: 2px solid #ffd700; padding: 0 2px; border-radius: 2px; color: inherit; }
+[data-theme="dark"] .highlight-text { background-color: rgba(255, 215, 0, 0.2); border-bottom-color: rgba(255, 215, 0, 0.6); }
+
+.inline-comment { background: rgba(111,168,220,0.15); border-left: 3px solid var(--primary-color); padding: 10px 12px; margin: 10px 0 20px 0; font-size: 15px; color: #4f81bd; border-radius: 0 8px 8px 0; font-family: sans-serif; line-height: 1.6; }
+[data-theme="dark"] .inline-comment { background: rgba(111,168,220,0.1); color: #8fc5ff; }
+
+/* 双轨悬浮菜单 */
+.dual-menu-container { position: fixed; display: none; bottom: 80px; left: 50%; transform: translateX(-50%); background: var(--input-bg); border-radius: 25px; padding: 5px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); border: 1px solid var(--border-color); z-index: 2000; align-items: center; gap: 5px; }
+.dual-menu-btn { background: none; border: none; padding: 8px 16px; font-size: 13px; font-weight: bold; border-radius: 20px; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: 0.2s; }
+.dual-menu-btn.discuss { color: #fff; background: linear-gradient(135deg, #8bc6ff, #4f81bd); }
+.dual-menu-btn.highlight { color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
 </style>
 </head>
 <body>
@@ -731,50 +761,61 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 <div class="app-window-content" id="app-window-content"></div>
 </div>
 
-<!-- ================= 共读时光 (全屏沉浸阅读器) ================= -->
+<!-- ================= 共读时光 (书架 + 阅读器) ================= -->
 <div id="app-reader" class="app-window" style="z-index: 1001; background-color: #f4ecd8; color: #333;">
     <!-- 顶部导航 -->
     <div class="app-window-header" style="background: rgba(244, 236, 216, 0.9); border-bottom: 1px solid rgba(0,0,0,0.05);">
-        <div class="app-window-back" onclick="document.getElementById('app-reader').classList.remove('open')" style="color: #333;">
+        <div class="app-window-back" onclick="window.PhoneUI.closeReader()" style="color: #333;">
             <i class="ph ph-caret-left"></i>
         </div>
-        <div class="app-window-title" id="reader-book-title" style="color: #333; font-size: 15px;">共读时光 - 暂无书籍</div>
-        <div style="margin-left: auto; cursor: pointer; color: #333; font-size: 24px; padding: 5px;" onclick="document.getElementById('book-upload').click()">
+        <div class="app-window-title" id="reader-header-title" style="color: #333; font-size: 15px;">共读书架</div>
+        <div id="btn-add-book" style="margin-left: auto; cursor: pointer; color: #333; font-size: 24px; padding: 5px;" onclick="document.getElementById('book-upload').click()">
             <i class="ph ph-folder-plus"></i>
         </div>
         <input type="file" id="book-upload" accept=".txt" style="display: none;" onchange="window.PhoneEngine.importBook(event)">
     </div>
 
-    <!-- 阅读区 -->
-    <div id="reader-content-area" class="app-window-content" style="padding: 20px 20px 80px 20px; font-size: 18px; line-height: 1.8; overflow-y: hidden; position: relative;">
-        
-        <!-- 空状态 -->
-        <div id="reader-empty-state" style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0.5;">
-            <i class="ph-fill ph-books" style="font-size: 64px; margin-bottom: 15px;"></i>
-            <p>点击右上角导入小说 (TXT)</p>
-            <p style="font-size: 12px; margin-top: 5px;">大侦探已经准备好陪你吐槽了</p>
+    <!-- 书架视图 -->
+    <div id="reader-bookshelf-view" class="app-window-content" style="padding: 20px; display: block;">
+        <div id="bookshelf-list" class="bookshelf-grid">
+            <!-- 专属摘录本 (固定在第一位) -->
+            <div class="book-wrap" onclick="window.PhoneAPI.showToast('摘录本正在装订中...')">
+                <div class="book-cover-3d notebook-special">
+                    <i class="ph-fill ph-bookmarks" style="font-size: 24px; margin-bottom: 8px;"></i>
+                    我的摘录本
+                </div>
+                <div class="book-title-ui" style="color: var(--primary-color);">高光与吐槽</div>
+            </div>
+            <!-- 其他导入的小说由 JS 渲染 -->
         </div>
+    </div>
 
+    <!-- 阅读视图 (默认隐藏) -->
+    <div id="reader-reading-view" class="app-window-content" style="padding: 20px 20px 80px 20px; font-size: 18px; line-height: 1.8; overflow-y: hidden; position: relative; display: none;">
         <!-- 文本显示区 -->
-        <div id="reader-page-container" style="display: none; height: 100%; text-align: justify;"></div>
-
-        <!-- AI 伴读悬浮气泡 -->
+        <div id="reader-page-container" style="height: 100%; text-align: justify; word-break: break-word;"></div>
+        
+        <!-- AI 主动伴读悬浮气泡 -->
         <div id="companion-bubble" style="position: absolute; bottom: 20px; right: 20px; max-width: 75%; background: var(--primary-color); color: #fff; padding: 12px 16px; border-radius: 20px 20px 0 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); font-size: 14px; opacity: 0; transform: translateY(20px); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); pointer-events: none; z-index: 100;">
             <div style="font-weight: bold; font-size: 12px; opacity: 0.8; margin-bottom: 4px;" id="companion-name">大侦探</div>
             <div id="companion-bubble-text">...</div>
         </div>
     </div>
 
-    <!-- 底部进度与翻页控制 -->
-    <div class="reader-footer" style="position: absolute; bottom: 0; left: 0; right: 0; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: rgba(244, 236, 216, 0.9); border-top: 1px solid rgba(0,0,0,0.05); font-size: 12px; color: #888; z-index: 50;">
+    <!-- 底部进度与翻页控制 (阅读时显示) -->
+    <div id="reader-footer" class="reader-footer" style="position: absolute; bottom: 0; left: 0; right: 0; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: rgba(244, 236, 216, 0.9); border-top: 1px solid rgba(0,0,0,0.05); font-size: 12px; color: #888; z-index: 50; display: none;">
         <button class="icon-btn" onclick="window.PhoneEngine.prevPage()" style="color: #555; background: none; border: none; font-size: 14px; display: flex; align-items: center; gap: 4px; cursor: pointer;"><i class="ph ph-caret-left"></i> 上一页</button>
         <span id="reader-progress">0%</span>
         <button class="icon-btn" onclick="window.PhoneEngine.nextPage()" style="color: #555; background: none; border: none; font-size: 14px; display: flex; align-items: center; gap: 4px; cursor: pointer;">下一页 <i class="ph ph-caret-right"></i></button>
     </div>
 
-    <!-- 划线讨论菜单 (隐藏) -->
-    <div id="highlight-menu" style="position: absolute; display: none; background: #333; color: #fff; border-radius: 8px; padding: 5px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 200;">
-        <button onclick="window.PhoneEngine.discussHighlight()" style="background: none; border: none; color: #fff; padding: 8px 15px; font-size: 14px; display: flex; align-items: center; gap: 5px; cursor: pointer;">
+    <!-- 双轨划线菜单 (底部居中悬浮) -->
+    <div id="highlight-menu" class="dual-menu-container">
+        <button class="dual-menu-btn highlight" onclick="window.PhoneEngine.saveHighlight()">
+            <i class="ph-fill ph-highlighter-circle"></i> 划线收藏
+        </button>
+        <div style="width: 1px; height: 20px; background: var(--border-color);"></div>
+        <button class="dual-menu-btn discuss" onclick="window.PhoneEngine.discussHighlight()">
             <i class="ph-fill ph-chat-circle-text"></i> 和他讨论
         </button>
     </div>

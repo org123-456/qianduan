@@ -764,15 +764,18 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 <!-- ================= 共读时光 (书架 + 阅读器) ================= -->
 <div id="app-reader" class="app-window" style="z-index: 1001; background-color: #f4ecd8; color: #333;">
     <!-- 顶部导航 -->
-    <div class="app-window-header" style="background: rgba(244, 236, 216, 0.9); border-bottom: 1px solid rgba(0,0,0,0.05);">
-        <div class="app-window-back" onclick="window.PhoneUI.closeReader()" style="color: #333;">
+    <div class="app-window-header" style="position: relative; z-index: 50; background: rgba(244, 236, 216, 0.9); border-bottom: 1px solid rgba(0,0,0,0.05);">
+        <div class="app-window-back" onclick="window.PhoneUI.handleReaderBack()" style="color: #333; padding: 10px; margin-left: -10px; cursor: pointer;">
             <i class="ph ph-caret-left"></i>
         </div>
         <div class="app-window-title" id="reader-header-title" style="color: #333; font-size: 15px;">共读书架</div>
-        <div id="btn-add-book" style="margin-left: auto; cursor: pointer; color: #333; font-size: 24px; padding: 5px;" onclick="document.getElementById('book-upload').click()">
+        
+        <!-- 🌟 核心修复：使用 label 穿透触发隐藏的 input，解决手机浏览器拦截问题 -->
+        <label id="btn-add-book" for="book-upload" style="margin-left: auto; cursor: pointer; color: #333; font-size: 24px; padding: 10px; margin-right: -10px;">
             <i class="ph ph-folder-plus"></i>
-        </div>
-        <input type="file" id="book-upload" accept=".txt" style="display: none;" onchange="window.PhoneEngine.importBook(event)">
+        </label>
+        <!-- 🌟 核心修复：使用 position 移出屏幕外代替 display:none -->
+        <input type="file" id="book-upload" accept=".txt" style="position: absolute; left: -9999px; opacity: 0;" onchange="window.PhoneEngine.importBook(event)">
     </div>
 
     <!-- 书架视图 -->

@@ -91,7 +91,6 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 .cd-num { font-size: 32px; font-weight: 800; line-height: 1; text-shadow: 0 4px 10px rgba(111,168,220,0.3); }
 .cd-suf { font-size: 12px; font-weight: bold; }
 
-/* 🌟 修复：给纸条卡片增加最小高度，防止内容被遮挡 */
 .note-widget { position: relative; padding: 25px 20px 20px 20px; cursor: pointer; overflow: hidden; display: flex; flex-direction: column; gap: 12px; margin-top: 10px; min-height: 120px; height: auto;}
 .note-tape { position: absolute; top: -8px; left: 50%; width: 80px; height: 22px; background: rgba(255,255,255,0.5); box-shadow: 0 2px 5px rgba(0,0,0,0.05); transform: translateX(-50%) rotate(-2deg); z-index: 2; pointer-events: none;}
 [data-theme="dark"] .note-tape { background: rgba(255,255,255,0.1); }
@@ -116,7 +115,6 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 .page { position: absolute; inset: 0; display: none; flex-direction: column; background: transparent; }
 .page.active { display: flex; }
 
-/* 🌟 修复：减小 Home 页和 Moments 页的顶部留白，从 100px 减到 70px */
 #page-home, #page-moments { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 70px 15px 110px 15px; }
 #page-chat { position: absolute; inset: 0; overflow: hidden; padding: 0; background-image: var(--bg-image-chat); background-size: cover; background-position: center; background-attachment: fixed; }
 
@@ -360,8 +358,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 .story-bubble { font-size: 15px; line-height: 1.6; color: var(--text-main); text-align: justify; word-wrap: break-word; overflow-wrap: anywhere; min-width: 0; }
 .story-item.me .story-bubble { color: var(--text-main); }
 
-/* 🌟 情侣空间 (朋友圈) 专属样式 */
-/* 🌟 修复3：使用 CSS 变量绑定封面图，长按换图瞬间生效！ */
 .moments-cover { width: calc(100% + 30px); height: 240px; background-size: cover; background-position: center; position: relative; border-radius: 0 0 24px 24px; margin-top: -100px; margin-left: -15px; margin-bottom: 40px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); background-image: var(--bg-image-moments-cover) !important;}
 .moments-cover-info { position: absolute; bottom: -30px; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 20px; z-index: 2; }
 .moments-avatar-wrap { display: flex; align-items: center; gap: 10px; }
@@ -373,7 +369,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 .moments-menu-item { background: var(--card-bg); border: 1px solid var(--border-color); padding: 10px 15px; border-radius: 16px; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: bold; color: var(--text-main); white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.05); cursor: pointer; transition: 0.2s; }
 .moments-menu-item:active { transform: scale(0.95); }
 .moments-menu-item i { font-size: 18px; color: var(--primary-color); }
-/* 🌟 修复4：菜单高亮样式 */
 .moments-menu-item.active { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
 .moments-menu-item.active i { color: #fff; }
 
@@ -689,7 +684,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 <div id="archive-list" style="overflow-y: auto; max-height: 40vh; display: flex; flex-direction: column; gap: 10px;"></div>
 </div>
 
-<!-- 🌟 修复：盲盒背景毛玻璃效果 -->
 <div id="blindbox-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeBlindBox()" style="background: rgba(0,0,0,0.15); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);"></div>
 <div id="blindbox-modal" class="blindbox-modal">
 <i class="ph-fill ph-shooting-star blindbox-icon"></i>
@@ -735,6 +729,55 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 <div id="app-window" class="app-window" style="z-index: 1000;">
 <div class="app-window-header"><div class="app-window-back" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div><div class="app-window-title" id="app-window-title">应用</div></div>
 <div class="app-window-content" id="app-window-content"></div>
+</div>
+
+<!-- ================= 共读时光 (全屏沉浸阅读器) ================= -->
+<div id="app-reader" class="app-window" style="z-index: 1001; background-color: #f4ecd8; color: #333;">
+    <!-- 顶部导航 -->
+    <div class="app-window-header" style="background: rgba(244, 236, 216, 0.9); border-bottom: 1px solid rgba(0,0,0,0.05);">
+        <div class="app-window-back" onclick="document.getElementById('app-reader').classList.remove('open')" style="color: #333;">
+            <i class="ph ph-caret-left"></i>
+        </div>
+        <div class="app-window-title" id="reader-book-title" style="color: #333; font-size: 15px;">共读时光 - 暂无书籍</div>
+        <div style="margin-left: auto; cursor: pointer; color: #333; font-size: 24px; padding: 5px;" onclick="document.getElementById('book-upload').click()">
+            <i class="ph ph-folder-plus"></i>
+        </div>
+        <input type="file" id="book-upload" accept=".txt" style="display: none;" onchange="window.PhoneEngine.importBook(event)">
+    </div>
+
+    <!-- 阅读区 -->
+    <div id="reader-content-area" class="app-window-content" style="padding: 20px 20px 80px 20px; font-size: 18px; line-height: 1.8; overflow-y: hidden; position: relative;">
+        
+        <!-- 空状态 -->
+        <div id="reader-empty-state" style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0.5;">
+            <i class="ph-fill ph-books" style="font-size: 64px; margin-bottom: 15px;"></i>
+            <p>点击右上角导入小说 (TXT)</p>
+            <p style="font-size: 12px; margin-top: 5px;">大侦探已经准备好陪你吐槽了</p>
+        </div>
+
+        <!-- 文本显示区 -->
+        <div id="reader-page-container" style="display: none; height: 100%; text-align: justify;"></div>
+
+        <!-- AI 伴读悬浮气泡 -->
+        <div id="companion-bubble" style="position: absolute; bottom: 20px; right: 20px; max-width: 75%; background: var(--primary-color); color: #fff; padding: 12px 16px; border-radius: 20px 20px 0 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); font-size: 14px; opacity: 0; transform: translateY(20px); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); pointer-events: none; z-index: 100;">
+            <div style="font-weight: bold; font-size: 12px; opacity: 0.8; margin-bottom: 4px;" id="companion-name">大侦探</div>
+            <div id="companion-bubble-text">...</div>
+        </div>
+    </div>
+
+    <!-- 底部进度与翻页控制 -->
+    <div class="reader-footer" style="position: absolute; bottom: 0; left: 0; right: 0; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: rgba(244, 236, 216, 0.9); border-top: 1px solid rgba(0,0,0,0.05); font-size: 12px; color: #888; z-index: 50;">
+        <button class="icon-btn" onclick="window.PhoneEngine.prevPage()" style="color: #555; background: none; border: none; font-size: 14px; display: flex; align-items: center; gap: 4px; cursor: pointer;"><i class="ph ph-caret-left"></i> 上一页</button>
+        <span id="reader-progress">0%</span>
+        <button class="icon-btn" onclick="window.PhoneEngine.nextPage()" style="color: #555; background: none; border: none; font-size: 14px; display: flex; align-items: center; gap: 4px; cursor: pointer;">下一页 <i class="ph ph-caret-right"></i></button>
+    </div>
+
+    <!-- 划线讨论菜单 (隐藏) -->
+    <div id="highlight-menu" style="position: absolute; display: none; background: #333; color: #fff; border-radius: 8px; padding: 5px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 200;">
+        <button onclick="window.PhoneEngine.discussHighlight()" style="background: none; border: none; color: #fff; padding: 8px 15px; font-size: 14px; display: flex; align-items: center; gap: 5px; cursor: pointer;">
+            <i class="ph-fill ph-chat-circle-text"></i> 和他讨论
+        </button>
+    </div>
 </div>
 
 </div>

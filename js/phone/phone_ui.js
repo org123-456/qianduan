@@ -1,5 +1,5 @@
 export const PhoneUI = {
-currentMomentsTab: 'feed', // 🌟 新增：记录当前情侣空间停留在哪个 Tab
+currentMomentsTab: 'feed', 
 
 renderAppContent(appId) {
 const roleId = window.Config?.currentContactId;
@@ -723,10 +723,24 @@ closeReader() {
     const readerEl = document.getElementById('app-reader');
     if (readerEl) {
         readerEl.classList.remove('open');
-        // 清理后台伴读定时器
         if (window.PhoneEngine && window.PhoneEngine._proactiveTimer) {
             clearTimeout(window.PhoneEngine._proactiveTimer);
         }
+    }
+},
+
+// 🌟 修复：处理返回按钮逻辑
+handleReaderBack() {
+    const readingView = document.getElementById('reader-reading-view');
+    // 如果当前在阅读界面，就退回书架
+    if (readingView && readingView.style.display === 'block') {
+        this.showBookshelf();
+        if (window.PhoneEngine && window.PhoneEngine._proactiveTimer) {
+            clearTimeout(window.PhoneEngine._proactiveTimer);
+        }
+    } else {
+        // 如果在书架，就关闭整个阅读器
+        this.closeReader();
     }
 },
 
@@ -792,7 +806,6 @@ bindReaderSelection() {
         if (!readerEl || !readerEl.classList.contains('open')) return;
 
         if (selection.toString().trim().length > 0 && area.contains(selection.anchorNode)) {
-            // 🌟 修复：使用 display: flex 让双按钮并排显示！
             menu.style.display = 'flex';
         } else {
             menu.style.display = 'none';

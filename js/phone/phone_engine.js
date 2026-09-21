@@ -534,7 +534,7 @@ ${historyText}`;
                 const novelItems = Config?.phoneData?.[roleId]?.novel?.items || [];
                 if (novelItems.length > 0) {
                     const recentNovel = novelItems.slice(-8).map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
-                    dynamicPrompt += `\n【跨频道记忆联动】：以下是你们最近在[线下故事]中发生的剧情，请在当前的微信回复中自然体现出你记得这些事：\n${recentNovel}\n`;
+                    dynamicPrompt += `\n【跨频道记忆联动】：以下是你们最近在[线下故事]中发生的剧情，请在当前的微信回复中自然体现出你记得这些对话：\n${recentWechat}\n`;
                 }
             }
 
@@ -944,168 +944,356 @@ ${historyText}`;
     },
 
     /* ==========================================
-       🌟 共读时光 (SyncRead) 核心引擎 
+       🌟 共读时光 (SyncRead) 书架与段评引擎 
        ========================================== */
 
-    // 1. 导入 TXT 文件
+    _proactiveTimer: null,
+
+    // 1. 导入 TXT 文件 (支持多本，存入书架)
     importBook(event) {
         const file = event.target.files[0];
         if (!file) return;
         
         const title = file.name.replace('.txt', '');
-        document.getElementById('reader-book-title').innerText = "解析中...";
-        PhoneAPI.showToast("📚 正在解析书籍，请稍候...");
+        const bookId = 'book_' + Date.now();
+        document.getElementById('reader-header-title').innerText = "解析中...";
+        PhoneAPI.showToast("📚 正在将书籍存入书架...");
         
         const reader = new FileReader();
         reader.onload = async (e) => {
             const text = e.target.result;
-            // 调用切页算法
-            const pages = await this.paginateText(text);
-            
-            if (!window.Config) window.Config = {};
-            window.Config.readerConfig = { pages, currentIndex: 0, title };
             
             try {
-                localStorage.setItem('reader_book_title', title);
-                localStorage.setItem('reader_book_pages', JSON.stringify(pages));
-                localStorage.setItem('reader_page_index', 0);
+                const blob = new Blob([text], { type: 'text/plain' });
+                await window.PhoneAPI.LocalDB.set(bookId, blob);
+                
+                let bookshelf = JSON.parse(localStorage.getItem('reader_bookshelf') || '[]');
+                bookshelf.push({
+                    id: bookId,
+                    title: title,
+                    offsets: [0],
+                    currentIndex: 0,
+                    lastRead: Date.now()
+                });
+                localStorage.setItem('reader_bookshelf', JSON.stringify(bookshelf));
+                
+                PhoneAPI.showToast("✅ 导入成功！");
+                this.renderBookshelf();
             } catch(err) {
-                PhoneAPI.showToast("⚠️ 书籍太大，无法本地缓存，但本次可正常阅读");
+                PhoneAPI.showToast("⚠️ 导入失败：" + err.message);
             }
-            
-            this.renderCurrentPage();
-            PhoneAPI.showToast("✅ 导入成功！");
         };
         reader.readAsText(file);
-        event.target.value = ''; // 重置 input
+        event.target.value = '';
     },
 
-    // 2. 加载缓存的书籍
-    loadCachedBook() {
-        const title = localStorage.getItem('reader_book_title');
-        const pagesStr = localStorage.getItem('reader_book_pages');
-        const indexStr = localStorage.getItem('reader_page_index');
+    // 2. 渲染书架
+    renderBookshelf() {
+        const listEl = document.getElementById('bookshelf-list');
+        if (!listEl) return;
         
-        if (title && pagesStr) {
-            try {
-                if (!window.Config) window.Config = {};
-                window.Config.readerConfig = {
-                    title: title,
-                    pages: JSON.parse(pagesStr),
-                    currentIndex: parseInt(indexStr) || 0
-                };
-                this.renderCurrentPage();
-            } catch(e) {
-                console.error("加载缓存书籍失败", e);
+        document.getElementById('reader-header-title').innerText = "共读书架";
+        
+        const bookshelf = JSON.parse(localStorage.getItem('reader_bookshelf') || '[]').sort((a, b) => b.lastRead - a.lastRead);
+        
+        let html = `
+            <div class="book-wrap" onclick="window.PhoneEngine.openNotebook()">
+                <div class="book-cover-3d notebook-special">
+                    <div style="display:flex; flex-direction:column; align-items:center;">
+                        <i class="ph-fill ph-bookmarks" style="font-size: 24px; margin-bottom: 8px;"></i>
+                        我的摘录本
+                    </div>
+                </div>
+                <div class="book-title-ui" style="color: var(--primary-color);">高光与吐槽</div>
+            </div>
+        `;
+
+        if (bookshelf.length === 0) {
+            html += `<div style="grid-column: 1 / -1; text-align: center; color: var(--text-sub); margin-top: 50px;"><i class="ph-fill ph-books" style="font-size: 48px; margin-bottom: 10px;"></i><br>书架空空如也，点击右上角导入小说</div>`;
+        } else {
+            bookshelf.forEach(book => {
+                const progress = book.offsets.length > 1 ? `已读 ${book.currentIndex + 1} 页` : '未读';
+                html += `
+                <div class="book-wrap" onclick="window.PhoneEngine.openBook('${book.id}')">
+                    <div class="book-cover-3d">
+                        ${this.escapeHtml(book.title).substring(0, 8)}
+                        <div class="book-del-btn" onclick="event.stopPropagation(); window.PhoneEngine.deleteBook('${book.id}')"><i class="ph ph-x"></i></div>
+                    </div>
+                    <div class="book-title-ui">${this.escapeHtml(book.title)}</div>
+                    <div class="book-progress-ui">${progress}</div>
+                </div>`;
+            });
+        }
+        listEl.innerHTML = html;
+    },
+
+    // 打开摘录本
+    openNotebook() {
+        if (window.PhoneUI && window.PhoneUI.showReadingView) {
+            window.PhoneUI.showReadingView("我的摘录本");
+        }
+        document.getElementById('reader-footer').style.display = 'none'; // 隐藏翻页栏
+        
+        const container = document.getElementById('reader-page-container');
+        const notebook = JSON.parse(localStorage.getItem('reader_notebook') || '[]');
+        const charName = localStorage.getItem('char_name') || 'TA';
+        
+        if(notebook.length === 0) {
+            container.innerHTML = `<div style="text-align:center; margin-top:100px; color:var(--text-sub);"><i class="ph-fill ph-highlighter-circle" style="font-size:48px; margin-bottom:10px;"></i><br>还没有划线摘录哦~</div>`;
+            return;
+        }
+        
+        let html = '<div style="padding-bottom: 40px;">';
+        [...notebook].reverse().forEach(item => {
+            if(item.type === 'highlight') {
+                html += `<div style="margin-bottom: 25px; padding: 15px; background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);"><div style="font-size:12px; color:var(--text-sub); font-weight:bold; margin-bottom:8px;">《${this.escapeHtml(item.bookTitle)}》</div><span class="highlight-text" style="font-size: 16px; line-height: 1.6;">${this.escapeHtml(item.quote)}</span></div>`;
+            } else {
+                html += `<div style="margin-bottom: 25px; padding: 15px; background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);"><div style="font-size:12px; color:var(--text-sub); font-weight:bold; margin-bottom:8px;">《${this.escapeHtml(item.bookTitle)}》</div><mark class="quote-mark" style="font-size: 16px; line-height: 1.6;">${this.escapeHtml(item.quote)}</mark><div class="inline-comment" style="margin-top: 10px; margin-bottom: 0;"><b><i class="ph-fill ph-chat-circle-text"></i> ${charName}：</b>${this.escapeHtml(item.comment)}</div></div>`;
             }
+        });
+        html += '</div>';
+        container.innerHTML = html;
+        
+        // 清理伴读定时器
+        clearTimeout(this._proactiveTimer);
+    },
+
+    // 3. 打开指定书籍
+    async openBook(bookId) {
+        const bookshelf = JSON.parse(localStorage.getItem('reader_bookshelf') || '[]');
+        const book = bookshelf.find(b => b.id === bookId);
+        if (!book) return;
+        
+        PhoneAPI.showToast("📖 正在打开书本...");
+        try {
+            const blob = await window.PhoneAPI.LocalDB.get(bookId);
+            if (!blob) throw new Error("找不到书籍正文文件");
+            const text = await blob.text();
+            
+            book.lastRead = Date.now();
+            localStorage.setItem('reader_bookshelf', JSON.stringify(bookshelf));
+            
+            if (!window.Config) window.Config = {};
+            window.Config.readerConfig = {
+                id: book.id,
+                title: book.title,
+                text: text,
+                offsets: book.offsets || [0],
+                currentIndex: book.currentIndex || 0
+            };
+            
+            if (window.PhoneUI && window.PhoneUI.showReadingView) {
+                window.PhoneUI.showReadingView(book.title);
+            }
+            this.renderCurrentPage();
+        } catch(e) {
+            PhoneAPI.showToast("打开失败：" + e.message);
         }
     },
 
-    // 3. 核心切页算法 (基于真实 DOM 高度测量)
-    async paginateText(text) {
+    // 4. 删除书籍
+    deleteBook(bookId) {
+        if (!confirm("确定要从书架移除这本书吗？相关的旁批和进度也会被删除！")) return;
+        
+        let bookshelf = JSON.parse(localStorage.getItem('reader_bookshelf') || '[]');
+        bookshelf = bookshelf.filter(b => b.id !== bookId);
+        localStorage.setItem('reader_bookshelf', JSON.stringify(bookshelf));
+        
+        localStorage.removeItem(`book_comments_${bookId}`);
+        localStorage.removeItem(`book_highlights_${bookId}`);
+        if (window.PhoneAPI && window.PhoneAPI.LocalDB) {
+            window.PhoneAPI.LocalDB.delete(bookId);
+        }
+        this.renderBookshelf();
+    },
+
+    // 5. 核心：二分法惰性切页 (包含旁批和高亮的高度计算)
+    calculatePageEnd(text, startOffset, bookId, charName) {
         const measureDiv = document.createElement('div');
-        // 模拟阅读器容器的真实样式
         measureDiv.style.cssText = 'position:absolute; visibility:hidden; width:calc(100% - 40px); padding: 0; font-size:18px; line-height:1.8; text-align:justify; word-break:break-word; z-index:-100; top:0; left:0;';
         document.body.appendChild(measureDiv);
         
         const container = document.getElementById('reader-content-area');
-        // 计算可用高度 (减去顶部 padding 20 和底部留白 80)
         const maxHeight = container && container.clientHeight > 100 ? container.clientHeight - 100 : window.innerHeight - 180;
         
-        const paragraphs = text.split(/\n+/).filter(p => p.trim().length > 0);
-        const pages = [];
-        let currentPageHtml = '';
+        const maxChars = Math.min(1200, text.length - startOffset);
+        let low = 1; let high = maxChars; let best = low;
         
-        for (let i = 0; i < paragraphs.length; i++) {
-            const pText = paragraphs[i].trim();
-            const p = `<p style="margin-bottom: 1em; text-indent: 2em;">${pText}</p>`;
+        // 🌟 核心：计算高度时，必须把旁批和高亮的 HTML 也塞进去，否则排版会溢出屏幕！
+        const formatTextWithEnhancements = (str) => {
+            const comments = JSON.parse(localStorage.getItem(`book_comments_${bookId}`) || '[]');
+            const highlights = JSON.parse(localStorage.getItem(`book_highlights_${bookId}`) || '[]');
+            let paragraphs = str.split('\n').filter(p => p.trim());
+            return paragraphs.map(p => {
+                let pText = p; let commentsHtml = '';
+                // 注入高亮
+                highlights.forEach(h => {
+                    if (pText.includes(h)) pText = pText.replace(h, `<span class="highlight-text">${h}</span>`);
+                });
+                // 注入旁批
+                comments.forEach(c => {
+                    if (pText.includes(c.quote)) {
+                        pText = pText.replace(c.quote, `<mark class="quote-mark">${c.quote}</mark>`);
+                        commentsHtml += `<div class="inline-comment"><b><i class="ph-fill ph-chat-circle-text"></i> ${charName}：</b>${c.comment}</div>`;
+                    }
+                });
+                return `<p style="margin-bottom: 1em; text-indent: 2em;">${pText}</p>${commentsHtml}`;
+            }).join('');
+        };
+
+        while (low <= high) {
+            let mid = Math.floor((low + high) / 2);
+            let testStr = text.substring(startOffset, startOffset + mid);
+            measureDiv.innerHTML = formatTextWithEnhancements(testStr);
             
-            measureDiv.innerHTML = currentPageHtml + p;
-            
-            if (measureDiv.clientHeight > maxHeight) {
-                if (currentPageHtml === '') {
-                    // 如果单段文字超长，直接塞进一页（允许微小滚动）
-                    pages.push(p);
-                } else {
-                    pages.push(currentPageHtml);
-                    currentPageHtml = p;
-                }
-            } else {
-                currentPageHtml += p;
-            }
-            
-            // 每处理 100 段释放一下主线程，防止手机卡死
-            if (i % 100 === 0) {
-                await new Promise(r => setTimeout(r, 0));
+            if (measureDiv.clientHeight <= maxHeight) {
+                best = mid; low = mid + 1;
+            } else { high = mid - 1; }
+        }
+        document.body.removeChild(measureDiv);
+        
+        let finalOffset = startOffset + best;
+        if (finalOffset < text.length) {
+            const punctuations = ['。', '！', '？', '”', '…', '，', '、', '\n', '”'];
+            for (let i = 0; i < 50; i++) {
+                let char = text.charAt(finalOffset - i - 1);
+                if (punctuations.includes(char)) { finalOffset = finalOffset - i; break; }
             }
         }
-        if (currentPageHtml) pages.push(currentPageHtml);
-        
-        document.body.removeChild(measureDiv);
-        return pages;
+        return finalOffset;
     },
 
-    // 4. 渲染当前页
+    // 6. 渲染当前页 (动态注入高亮与段评)
     renderCurrentPage() {
+        clearTimeout(this._proactiveTimer); // 翻页时清理旧的伴读定时器
+        
         const config = window.Config?.readerConfig;
-        if (!config || !config.pages || config.pages.length === 0) return;
+        if (!config || !config.text) return;
         
-        const emptyState = document.getElementById('reader-empty-state');
         const pageContainer = document.getElementById('reader-page-container');
-        if (emptyState) emptyState.style.display = 'none';
-        if (pageContainer) pageContainer.style.display = 'block';
-        
-        document.getElementById('reader-book-title').innerText = config.title;
+        if (!pageContainer) return;
         
         if (config.currentIndex < 0) config.currentIndex = 0;
-        if (config.currentIndex >= config.pages.length) config.currentIndex = config.pages.length - 1;
         
-        pageContainer.innerHTML = config.pages[config.currentIndex];
+        let startOffset = config.offsets[config.currentIndex];
+        const charName = localStorage.getItem('char_name') || 'TA';
         
-        const progress = Math.round(((config.currentIndex + 1) / config.pages.length) * 100);
-        document.getElementById('reader-progress').innerText = `${progress}% (${config.currentIndex + 1}/${config.pages.length})`;
+        // 惰性计算下一页起点
+        if (config.currentIndex === config.offsets.length - 1 && startOffset < config.text.length) {
+            const nextOffset = this.calculatePageEnd(config.text, startOffset, config.id, charName);
+            if (nextOffset > startOffset) {
+                config.offsets.push(nextOffset);
+                this._saveBookProgress(config);
+            }
+        }
         
-        try { localStorage.setItem('reader_page_index', config.currentIndex); } catch(e) {}
+        const endOffset = config.offsets[config.currentIndex + 1] || config.text.length;
+        const pageText = config.text.substring(startOffset, endOffset);
         
-        // 翻页时隐藏划线菜单和气泡
+        // 🌟 核心：注入高亮与旁批 HTML
+        const comments = JSON.parse(localStorage.getItem(`book_comments_${config.id}`) || '[]');
+        const highlights = JSON.parse(localStorage.getItem(`book_highlights_${config.id}`) || '[]');
+        let html = '';
+        
+        pageText.split('\n').filter(p => p.trim()).forEach(p => {
+            let pText = p; let commentsHtml = '';
+            highlights.forEach(h => {
+                if (pText.includes(h)) pText = pText.replace(h, `<span class="highlight-text">${h}</span>`);
+            });
+            comments.forEach(c => {
+                if (pText.includes(c.quote)) {
+                    pText = pText.replace(c.quote, `<mark class="quote-mark">${c.quote}</mark>`);
+                    commentsHtml += `<div class="inline-comment"><b><i class="ph-fill ph-chat-circle-text"></i> ${charName}：</b>${c.comment}</div>`;
+                }
+            });
+            html += `<p style="margin-bottom: 1em; text-indent: 2em;">${pText}</p>${commentsHtml}`;
+        });
+        
+        pageContainer.innerHTML = html;
+        
+        const progress = Math.min(100, Math.round((endOffset / config.text.length) * 100));
+        document.getElementById('reader-progress').innerText = `已读 ${progress}%`;
+        this._saveBookProgress(config);
+        
         const menu = document.getElementById('highlight-menu');
         const bubble = document.getElementById('companion-bubble');
         if (menu) menu.style.display = 'none';
-        if (bubble) {
-            bubble.style.opacity = '0';
-            bubble.style.transform = 'translateY(20px)';
+        if (bubble) { bubble.style.opacity = '0'; bubble.style.transform = 'translateY(20px)'; }
+        
+        // 🌟 开启主动伴读倒计时 (停留10秒触发)
+        this._proactiveTimer = setTimeout(() => {
+            this._triggerProactiveCompanion();
+        }, 10000);
+    },
+
+    _saveBookProgress(config) {
+        let bookshelf = JSON.parse(localStorage.getItem('reader_bookshelf') || '[]');
+        const idx = bookshelf.findIndex(b => b.id === config.id);
+        if (idx !== -1) {
+            bookshelf[idx].offsets = config.offsets;
+            bookshelf[idx].currentIndex = config.currentIndex;
+            localStorage.setItem('reader_bookshelf', JSON.stringify(bookshelf));
         }
     },
 
-    // 5. 翻页控制
     prevPage() {
         if (!window.Config?.readerConfig) return;
         if (window.Config.readerConfig.currentIndex > 0) {
             window.Config.readerConfig.currentIndex--;
             this.renderCurrentPage();
-        } else {
-            PhoneAPI.showToast("已经是第一页啦");
-        }
+        } else { PhoneAPI.showToast("已经是第一页啦"); }
     },
     
     nextPage() {
         if (!window.Config?.readerConfig) return;
-        if (window.Config.readerConfig.currentIndex < window.Config.readerConfig.pages.length - 1) {
-            window.Config.readerConfig.currentIndex++;
+        const config = window.Config.readerConfig;
+        const currentEndOffset = config.offsets[config.currentIndex + 1] || config.text.length;
+        if (currentEndOffset < config.text.length) {
+            config.currentIndex++;
             this.renderCurrentPage();
-        } else {
-            PhoneAPI.showToast("已经是最后一页啦");
-        }
+        } else { PhoneAPI.showToast("全书完！"); }
     },
 
-    // 6. 划线讨论 (AI 伴读核心)
-    async discussHighlight() {
+    _saveToNotebook(bookTitle, quote, comment, type) {
+        let notebook = JSON.parse(localStorage.getItem('reader_notebook') || '[]');
+        notebook.push({ bookTitle, quote, comment, type, date: Date.now() });
+        localStorage.setItem('reader_notebook', JSON.stringify(notebook));
+    },
+
+    // 7. 划线收藏 (纯高亮)
+    saveHighlight() {
         const selection = window.getSelection();
-        const text = selection.toString().trim();
+        let text = selection.toString().trim().replace(/\n/g, '');
         if (!text) return;
+        if(text.length > 200) text = text.substring(0, 200);
         
         document.getElementById('highlight-menu').style.display = 'none';
-        selection.removeAllRanges(); // 取消选中状态
+        selection.removeAllRanges(); 
+        
+        const config = window.Config?.readerConfig;
+        if(!config) return;
+        
+        let highlights = JSON.parse(localStorage.getItem(`book_highlights_${config.id}`) || '[]');
+        highlights.push(text);
+        localStorage.setItem(`book_highlights_${config.id}`, JSON.stringify(highlights));
+        
+        this._saveToNotebook(config.title, text, '', 'highlight');
+        
+        PhoneAPI.showToast("🖍️ 已划线并收录至摘录本！");
+        this.renderCurrentPage(); // 重新渲染以显示荧光笔
+    },
+
+    // 8. 划线讨论并生成永久段评
+    async discussHighlight() {
+        const selection = window.getSelection();
+        let text = selection.toString().trim();
+        if (!text) return;
+        
+        text = text.replace(/\n/g, '');
+        if(text.length > 100) text = text.substring(0, 100);
+        
+        document.getElementById('highlight-menu').style.display = 'none';
+        selection.removeAllRanges(); 
         
         const bubble = document.getElementById('companion-bubble');
         const bubbleText = document.getElementById('companion-bubble-text');
@@ -1119,12 +1307,14 @@ ${historyText}`;
         bubble.style.opacity = '1';
         bubble.style.transform = 'translateY(0)';
         
+        const config = window.Config?.readerConfig;
+        if(!config) return;
+        
         try {
-            const title = window.Config?.readerConfig?.title || '未知书籍';
             const persona = localStorage.getItem('char_persona') || '';
             const myName = localStorage.getItem('my_name') || '我';
             
-            const prompt = `【系统指令】：你和${myName}正在一起看小说《${title}》。
+            const prompt = `【系统指令】：你和${myName}正在一起看小说《${config.title}》。
 ${myName}对书里的这段话很感兴趣，划了重点：
 “${text}”
 
@@ -1140,17 +1330,29 @@ ${myName}对书里的这段话很感兴趣，划了重点：
             
             bubbleText.innerText = finalReply;
             
-            // 🌟 自动存入记忆库！
             if (window.PhoneAPI && window.PhoneAPI.EchoVault) {
-                const memoryContent = `我们在看《${title}》时，看到“${text}”这句话，我说道：“${finalReply}”`;
+                const memoryContent = `我们在看《${config.title}》时，看到“${text}”这句话，我说道：“${finalReply}”`;
                 window.PhoneAPI.EchoVault.write(memoryContent, 'daily', 6, `共读时光`, text.substring(0, 10));
             }
             
-            // 8秒后自动隐藏气泡
+            // 存为本书的永久旁批
+            let comments = JSON.parse(localStorage.getItem(`book_comments_${config.id}`) || '[]');
+            comments.push({ quote: text, comment: finalReply });
+            localStorage.setItem(`book_comments_${config.id}`, JSON.stringify(comments));
+            
+            // 存入摘录本
+            this._saveToNotebook(config.title, text, finalReply, 'comment');
+            
+            // 核心机制：作废当前页之后的所有排版缓存！
+            config.offsets = config.offsets.slice(0, config.currentIndex + 1);
+            this._saveBookProgress(config);
+            
+            this.renderCurrentPage();
+            
             setTimeout(() => {
                 bubble.style.opacity = '0';
                 bubble.style.transform = 'translateY(20px)';
-            }, 8000);
+            }, 6000);
             
         } catch(e) {
             bubbleText.innerText = "“唔……有点走神了，没看清。”";
@@ -1158,6 +1360,94 @@ ${myName}对书里的这段话很感兴趣，划了重点：
                 bubble.style.opacity = '0';
                 bubble.style.transform = 'translateY(20px)';
             }, 3000);
+        }
+    },
+
+    // 9. 智能主动伴读 (防烧 Token 机制)
+    async _triggerProactiveCompanion() {
+        const lastTime = localStorage.getItem('reader_last_proactive') || 0;
+        // 冷却时间：5 分钟
+        if (Date.now() - lastTime < 5 * 60 * 1000) return;
+
+        const config = window.Config?.readerConfig;
+        if (!config || !config.text) return;
+
+        const startOffset = config.offsets[config.currentIndex];
+        const endOffset = config.offsets[config.currentIndex + 1] || config.text.length;
+        const pageText = config.text.substring(startOffset, endOffset).trim();
+        
+        // 内容太少不触发
+        if(pageText.length < 50) return;
+
+        try {
+            const charName = localStorage.getItem('char_name') || 'TA';
+            const persona = localStorage.getItem('char_persona') || '';
+            const myName = localStorage.getItem('my_name') || '我';
+
+            const prompt = `【系统指令】：你和${myName}正在一起看小说《${config.title}》。
+用户目前正在阅读这一页的内容：
+“${pageText}”
+
+请你以【${charName}】的身份（人设：${persona}）陪TA一起看。
+【重要判定】：如果这一页有明显的剧情冲突、高潮、槽点、或者有趣的细节，请你给出 20 字以内的简短吐槽（就像在耳边轻声说话）。
+【省钱机制】：如果这一页只是普通的过渡描写，很平淡无聊，没有什么可吐槽的，请你**直接且仅输出四个大写字母：PASS**。绝对不要多说废话！`;
+
+            const reply = await PhoneAPI.chatWithAI([{ role: 'user', content: prompt }]);
+            const finalReply = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+            if (finalReply === 'PASS' || finalReply.includes('PASS')) {
+                // 平淡剧情，不打扰，重置 CD
+                localStorage.setItem('reader_last_proactive', Date.now());
+                return;
+            }
+
+            // 有吐槽！弹出气泡
+            localStorage.setItem('reader_last_proactive', Date.now());
+            
+            const bubble = document.getElementById('companion-bubble');
+            const bubbleText = document.getElementById('companion-bubble-text');
+            const companionName = document.getElementById('companion-name');
+            if (bubble && bubbleText && companionName) {
+                companionName.innerText = charName;
+                bubbleText.innerText = finalReply;
+                
+                bubble.style.opacity = '1';
+                bubble.style.transform = 'translateY(0)';
+                bubble.style.pointerEvents = 'auto'; // 允许点击
+                
+                // 点击气泡，收录为旁批！
+                bubble.onclick = () => {
+                    // 取本页的第一段作为引用
+                    const firstPara = pageText.split('\n').filter(p=>p.trim())[0];
+                    const quote = firstPara.length > 50 ? firstPara.substring(0, 50) + '...' : firstPara;
+                    
+                    let comments = JSON.parse(localStorage.getItem(`book_comments_${config.id}`) || '[]');
+                    comments.push({ quote: quote, comment: finalReply });
+                    localStorage.setItem(`book_comments_${config.id}`, JSON.stringify(comments));
+                    
+                    this._saveToNotebook(config.title, quote, finalReply, 'comment');
+                    
+                    // 重排
+                    config.offsets = config.offsets.slice(0, config.currentIndex + 1);
+                    this._saveBookProgress(config);
+                    this.renderCurrentPage();
+                    
+                    bubble.style.opacity = '0';
+                    bubble.style.transform = 'translateY(20px)';
+                    bubble.style.pointerEvents = 'none';
+                    PhoneAPI.showToast("✅ 已将 TA 的吐槽收录为旁批！");
+                };
+
+                // 8秒后自动消失
+                setTimeout(() => {
+                    bubble.style.opacity = '0';
+                    bubble.style.transform = 'translateY(20px)';
+                    bubble.style.pointerEvents = 'none';
+                    bubble.onclick = null;
+                }, 8000);
+            }
+        } catch(e) {
+            console.error("主动伴读请求失败", e);
         }
     }
 };

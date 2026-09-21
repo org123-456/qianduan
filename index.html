@@ -114,7 +114,8 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 .page { position: absolute; inset: 0; display: none; flex-direction: column; background: transparent; }
 .page.active { display: flex; }
 
-#page-home, #page-mine { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 100px 15px 110px 15px; }
+/* 🌟 将原先的 page-mine 替换为 page-moments，允许滚动 */
+#page-home, #page-moments { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 100px 15px 110px 15px; }
 #page-chat { position: absolute; inset: 0; overflow: hidden; padding: 0; background-image: var(--bg-image-chat); background-size: cover; background-position: center; background-attachment: fixed; }
 
 #app-content-list { 
@@ -159,10 +160,9 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #dcecff; color: var(--text-main); font-family: var(--global-font); }
 [data-theme="dark"] input, [data-theme="dark"] textarea, [data-theme="dark"] select { background: rgba(20,35,55,.9); color: #dcecff; border-color: var(--border-color); }
 
-/* 🌟 终极气泡修复：彻底干掉时间戳和负边距！ */
 .chat-msg { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 4px; }
 .chat-msg:not(.consecutive) { margin-top: 16px; }
-.chat-msg.consecutive { margin-top: 0; } /* 0 边距，绝不重叠 */
+.chat-msg.consecutive { margin-top: 0; }
 .chat-msg.right { flex-direction: row-reverse; }
 
 .chat-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: var(--icon-bg); flex-shrink: 0; box-shadow: 0 6px 15px rgba(90,140,200,.18); }
@@ -182,7 +182,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 .chat-msg.left.consecutive .chat-bubble { border-top-left-radius: 6px; }
 .chat-msg.right.consecutive .chat-bubble { border-top-right-radius: 6px; }
 
-/* 🌟 听你的，直接干掉时间戳，世界清静了！ */
 .chat-time { display: none !important; }
 
 .chat-bubble:has(.chat-sticker) { background: transparent !important; box-shadow: none !important; padding: 0 !important; font-size: 0 !important; color: transparent !important; }
@@ -359,16 +358,9 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 .story-bubble { font-size: 15px; line-height: 1.6; color: var(--text-main); text-align: justify; word-wrap: break-word; overflow-wrap: anywhere; min-width: 0; }
 .story-item.me .story-bubble { color: var(--text-main); }
 
-.memory-card { background: linear-gradient(135deg, #f4a261, #e76f51); border-radius: 20px; padding: 20px; display: flex; align-items: center; gap: 15px; color: white; cursor: pointer; box-shadow: 0 10px 25px rgba(231, 111, 81, 0.3); transition: transform 0.2s; margin-top: 20px;}
-.memory-card:active { transform: scale(0.97); }
-.mc-icon { width: 48px; height: 48px; background: rgba(255,255,255,0.2); border-radius: 14px; display: flex; justify-content: center; align-items: center; font-size: 24px; flex-shrink: 0; backdrop-filter: blur(5px); }
-.mc-info { flex: 1; }
-.mc-title { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
-.mc-desc { font-size: 12px; opacity: 0.9; }
-.mc-arrow { font-size: 20px; opacity: 0.8; }
-
 /* 🌟 情侣空间 (朋友圈) 专属样式 */
-.moments-cover { width: 100%; height: 180px; background-size: cover; background-position: center; position: relative; border-radius: 0 0 24px 24px; margin-top: -20px; margin-left: -20px; width: calc(100% + 40px); margin-bottom: 40px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+/* 负 margin 顶到屏幕最上方，穿透 padding */
+.moments-cover { width: calc(100% + 30px); height: 240px; background-size: cover; background-position: center; position: relative; border-radius: 0 0 24px 24px; margin-top: -100px; margin-left: -15px; margin-bottom: 40px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
 /* 🌟 左右分离的头像布局 */
 .moments-cover-info { position: absolute; bottom: -30px; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 20px; z-index: 2; }
 .moments-avatar-wrap { display: flex; align-items: center; gap: 10px; }
@@ -404,7 +396,7 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 [data-theme="dark"] .moment-comments-area { background: rgba(255,255,255,0.05); }
 .comment-item span.c-name { color: var(--secondary-color); font-weight: bold; }
 
-.fab-post { position: absolute; bottom: 30px; right: 20px; width: 54px; height: 54px; border-radius: 27px; background: linear-gradient(135deg, #8bc6ff, #4f81bd); color: #fff; display: flex; justify-content: center; align-items: center; font-size: 24px; box-shadow: 0 8px 20px rgba(80,140,210,0.4); cursor: pointer; z-index: 50; transition: 0.2s; }
+.fab-post { position: fixed; bottom: 100px; right: 20px; width: 54px; height: 54px; border-radius: 27px; background: linear-gradient(135deg, #8bc6ff, #4f81bd); color: #fff; display: flex; justify-content: center; align-items: center; font-size: 24px; box-shadow: 0 8px 20px rgba(80,140,210,0.4); cursor: pointer; z-index: 50; transition: 0.2s; }
 .fab-post:active { transform: scale(0.9); }
 
 @media(max-width:360px){
@@ -545,10 +537,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
             <div class="icon neo-card"><i class="ph-fill ph-globe-hemisphere-west" style="color: #f4a261;"></i></div>
             <div class="name">世界书</div>
         </div>
-        <div class="app-icon" onclick="window.PhoneUI.openApp('moments', '情侣空间')">
-            <div class="icon neo-card"><i class="ph-fill ph-aperture" style="color: #a78bfa;"></i></div>
-            <div class="name">情侣空间</div>
-        </div>
         <div class="app-icon" onclick="window.PhoneUI.openApp('settings', '系统设置')">
             <div class="icon neo-card"><i class="ph-fill ph-gear" style="color: var(--primary-color);"></i></div>
             <div class="name">系统设置</div>
@@ -643,31 +631,21 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
     </div>
 </div>
 
-<div id="page-mine" class="page">
-<div class="card" style="text-align: center; padding: 40px 20px; color: var(--text-main); position: relative;">
-<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa" id="mine-avatar-display" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 15px; border: 3px solid var(--primary-color); object-fit: cover;">
-<h3 style="color: var(--primary-color); margin-bottom: 5px;" id="mine-name-display">我</h3>
-<p style="font-size: 12px; color: var(--text-sub);">你的专属空间</p>
-</div>
-
-<div class="memory-card" style="background: linear-gradient(135deg, #f4a261, #e76f51);" onclick="window.PhoneUI.openApp('favorites', '星海收藏夹')">
-<div class="mc-icon"><i class="ph-fill ph-star"></i></div>
-<div class="mc-info">
-<div class="mc-title">星海收藏夹</div>
-<div class="mc-desc">管理你摘录的绝美金句</div>
-</div>
-<i class="ph ph-caret-right mc-arrow"></i>
-</div>
+<!-- 🌟 将 Mine 替换为 Moments -->
+<div id="page-moments" class="page">
+    <div id="moments-content-area"></div>
+    <div class="fab-post" onclick="window.PhoneUI.openPostModal()"><i class="ph ph-camera"></i></div>
 </div>
 
 </div>
 
+<!-- 🌟 底栏：将 Mine 替换为 Space -->
 <div class="bottom-nav">
 <div class="nav-item active" onclick="switchTab(0)"><div class="icon"><i class="ph ph-house"></i></div><div class="text">Home</div></div>
 <div class="nav-item" onclick="switchTab(1)"><div class="icon"><i class="ph ph-images"></i></div><div class="text">Memory</div></div>
 <div class="nav-item center-btn" onclick="switchTab(2)"><div class="center-circle"><div class="icon"><i class="ph-fill ph-chat-circle-dots"></i></div></div></div>
 <div class="nav-item" onclick="switchTab(3)"><div class="icon"><i class="ph ph-headphones"></i></div><div class="text">Together</div></div>
-<div class="nav-item" onclick="switchTab(4)"><div class="icon"><i class="ph ph-user"></i></div><div class="text">Mine</div></div>
+<div class="nav-item" onclick="switchTab(4)"><div class="icon"><i class="ph ph-planet"></i></div><div class="text">Space</div></div>
 </div>
 
 <div id="action-bg" class="action-sheet-bg" onclick="window.PhoneEngine.closeMsgMenu()"></div>
@@ -792,11 +770,9 @@ function switchTab(index) {
         window.PhoneUI.renderAppContent('wechat');
     }
 
-    if(index === 4) {
-        const avatar = localStorage.getItem('my_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa';
-        const name = localStorage.getItem('my_name') || '我';
-        document.getElementById('mine-avatar-display').src = avatar;
-        document.getElementById('mine-name-display').innerText = name;
+    // 🌟 原来的 Mine 逻辑去掉了，现在 index 4 是 Moments
+    if(index === 4 && window.PhoneUI) {
+        window.PhoneUI.renderMoments();
     }
 
     navItems.forEach((nav, i) => {

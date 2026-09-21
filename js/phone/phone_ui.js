@@ -701,24 +701,60 @@ renderMoments() {
     this.bindLongPresses();
 },
 
+/* ==========================================
+   🌟 共读时光 (SyncRead) UI 逻辑 
+   ========================================== */
+
 openReader() {
     const readerEl = document.getElementById('app-reader');
     if (readerEl) {
         readerEl.classList.add('open');
         this.initReaderSwipe();
         this.bindReaderSelection();
-        if (window.PhoneEngine && window.PhoneEngine.loadCachedBook) {
-            window.PhoneEngine.loadCachedBook();
+        
+        this.showBookshelf();
+        if (window.PhoneEngine && window.PhoneEngine.renderBookshelf) {
+            window.PhoneEngine.renderBookshelf();
         }
     }
 },
 
+closeReader() {
+    const readerEl = document.getElementById('app-reader');
+    if (readerEl) {
+        readerEl.classList.remove('open');
+        // 清理后台伴读定时器
+        if (window.PhoneEngine && window.PhoneEngine._proactiveTimer) {
+            clearTimeout(window.PhoneEngine._proactiveTimer);
+        }
+    }
+},
+
+showBookshelf() {
+    document.getElementById('reader-bookshelf-view').style.display = 'block';
+    document.getElementById('reader-reading-view').style.display = 'none';
+    document.getElementById('reader-footer').style.display = 'none';
+    document.getElementById('reader-header-title').innerText = "共读书架";
+    document.getElementById('btn-add-book').style.display = 'block';
+    
+    if (window.PhoneEngine && window.PhoneEngine._proactiveTimer) {
+        clearTimeout(window.PhoneEngine._proactiveTimer);
+    }
+},
+
+showReadingView(title) {
+    document.getElementById('reader-bookshelf-view').style.display = 'none';
+    document.getElementById('reader-reading-view').style.display = 'block';
+    document.getElementById('reader-footer').style.display = 'flex';
+    document.getElementById('reader-header-title').innerText = title || "阅读中";
+    document.getElementById('btn-add-book').style.display = 'none';
+},
+
 initReaderSwipe() {
-    const area = document.getElementById('reader-content-area');
+    const area = document.getElementById('reader-reading-view');
     if (!area || this._readerSwipeBound) return;
     
-    let startX = 0;
-    let startY = 0;
+    let startX = 0; let startY = 0;
     
     area.addEventListener('touchstart', (e) => {
         if (e.changedTouches[0]) {
@@ -756,19 +792,8 @@ bindReaderSelection() {
         if (!readerEl || !readerEl.classList.contains('open')) return;
 
         if (selection.toString().trim().length > 0 && area.contains(selection.anchorNode)) {
-            // 🌟 核心修复：放弃跟随文字（会被系统自带菜单遮挡）
-            // 改为在屏幕底部中央固定悬浮，样式更精美
-            menu.style.display = 'block';
-            menu.style.position = 'fixed';
-            menu.style.top = 'auto';
-            menu.style.bottom = '80px'; // 固定在翻页栏上方
-            menu.style.left = '50%';
-            menu.style.transform = 'translateX(-50%)';
-            menu.style.background = 'linear-gradient(135deg, #8bc6ff, #4f81bd)';
-            menu.style.borderRadius = '25px';
-            menu.style.border = '2px solid #fff';
-            menu.style.boxShadow = '0 8px 20px rgba(80,140,210,0.4)';
-            menu.style.zIndex = '2000';
+            // 🌟 修复：使用 display: flex 让双按钮并排显示！
+            menu.style.display = 'flex';
         } else {
             menu.style.display = 'none';
         }

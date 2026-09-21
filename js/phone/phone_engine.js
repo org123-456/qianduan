@@ -544,7 +544,8 @@ ${historyText}`;
 
             let messages = [{ role: "system", content: systemContent.length > 0 ? systemContent : "You are a helpful assistant." }];
 
-            const MAX_CONTEXT = 20;
+            // 🌟 核心修复：将上下文窗口从 20 扩大到 60，避免因为气泡切分导致短期失忆
+            const MAX_CONTEXT = 60;
             const recentItems = chatItems.slice(-MAX_CONTEXT);
             let hasImage = false;
 
@@ -785,7 +786,8 @@ ${historyText}`;
 
             let messages = [{ role: "system", content: systemContent.length > 0 ? systemContent : "You are a helpful assistant." }];
 
-            const MAX_CONTEXT = 20;
+            // 🌟 核心修复：扩大线下故事的短期记忆滑动窗口
+            const MAX_CONTEXT = 60;
             const recentItems = chatItems.slice(-MAX_CONTEXT);
 
             recentItems.forEach(item => {

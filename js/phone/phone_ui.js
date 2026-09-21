@@ -43,7 +43,6 @@ this.renderWorldbook();
 } else if (appId === 'moments') {
 this.renderMoments();
 } else if (appId === 'favorites') {
-// 🌟 修复：如果 API 调用了 renderAppContent('favorites')，我们把它重定向到情侣空间重绘
 if (this.currentMomentsTab === 'favorites') {
     this.renderMoments();
 }
@@ -558,13 +557,11 @@ this.renderWorldbook();
 }
 },
 
-/* 🌟 修复：切换情侣空间内部的 Tab */
 switchMomentsTab(tab) {
     this.currentMomentsTab = tab;
     this.renderMoments();
 },
 
-/* 🌟 情侣空间 (朋友圈) 渲染逻辑 */
 renderMoments() {
     const contentEl = document.getElementById('moments-content-area');
     if (!contentEl) return;
@@ -574,14 +571,12 @@ renderMoments() {
     const myName = localStorage.getItem('my_name') || '我';
     const taName = localStorage.getItem('char_name') || 'TA';
     
-    // 🌟 修复3：通过 CSS 变量加载封面图，长按换图瞬间生效！
     const coverImg = localStorage.getItem('bg_moments_cover') || 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?q=80&w=1000&auto=format&fit=crop';
     document.documentElement.style.setProperty('--bg-image-moments-cover', `url('${coverImg}')`);
     
     const currentTab = this.currentMomentsTab || 'feed';
     let bottomHtml = '';
     
-    // 🌟 修复4：无缝切换朋友圈动态和星海收藏夹
     if (currentTab === 'feed') {
         bottomHtml = `
             <div class="moment-card">
@@ -694,7 +689,10 @@ renderMoments() {
         <div class="moments-menu-bar">
             <div class="moments-menu-item ${currentTab === 'feed' ? 'active' : ''}" onclick="window.PhoneUI.switchMomentsTab('feed')"><i class="${currentTab === 'feed' ? 'ph-fill' : 'ph'} ph-camera"></i> 朋友圈动态</div>
             <div class="moments-menu-item ${currentTab === 'favorites' ? 'active' : ''}" onclick="window.PhoneUI.switchMomentsTab('favorites')"><i class="${currentTab === 'favorites' ? 'ph-fill' : 'ph'} ph-star"></i> 星海收藏夹</div>
-            <div class="moments-menu-item" onclick="window.PhoneAPI.showToast('愿望清单模块开发中...')"><i class="ph-fill ph-list-heart"></i> 愿望清单</div>
+            
+            <!-- 🌟 核心新增：共读时光入口 -->
+            <div class="moments-menu-item" onclick="window.PhoneUI.openReader()"><i class="ph-fill ph-book-open-text"></i> 共读时光</div>
+            
             <div class="moments-menu-item" onclick="window.PhoneAPI.showToast('恋爱家规模块开发中...')"><i class="ph-fill ph-scroll"></i> 恋爱家规</div>
         </div>
 
@@ -704,6 +702,81 @@ renderMoments() {
     `;
     
     this.bindLongPresses();
+},
+
+/* 🌟 新增：共读时光 (阅读器) UI 逻辑 */
+openReader() {
+    const readerEl = document.getElementById('app-reader');
+    if (readerEl) {
+        readerEl.classList.add('open');
+        this.initReaderSwipe();
+        this.bindReaderSelection();
+        // 如果引擎里已经写好了加载书籍的方法，就调用它
+        if (window.PhoneEngine && window.PhoneEngine.loadCachedBook) {
+            window.PhoneEngine.loadCachedBook();
+        }
+    }
+},
+
+initReaderSwipe() {
+    const area = document.getElementById('reader-content-area');
+    if (!area || this._readerSwipeBound) return;
+    
+    let startX = 0;
+    let startY = 0;
+    
+    area.addEventListener('touchstart', (e) => {
+        if (e.changedTouches[0]) {
+            startX = e.changedTouches[0].screenX;
+            startY = e.changedTouches[0].screenY;
+        }
+    }, { passive: true });
+    
+    area.addEventListener('touchend', (e) => {
+        if (!e.changedTouches[0]) return;
+        const endX = e.changedTouches[0].screenX;
+        const endY = e.changedTouches[0].screenY;
+        const diffX = endX - startX;
+        const diffY = endY - startY;
+        
+        // 必须是明显的横向滑动，防止上下滑动被误判
+        if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
+            if (diffX > 0) {
+                // 向右滑 -> 上一页
+                if (window.PhoneEngine && window.PhoneEngine.prevPage) window.PhoneEngine.prevPage();
+            } else {
+                // 向左滑 -> 下一页
+                if (window.PhoneEngine && window.PhoneEngine.nextPage) window.PhoneEngine.nextPage();
+            }
+        }
+    });
+    this._readerSwipeBound = true;
+},
+
+bindReaderSelection() {
+    const area = document.getElementById('reader-page-container');
+    const menu = document.getElementById('highlight-menu');
+    if (!area || !menu || this._selectionBound) return;
+
+    document.addEventListener('selectionchange', () => {
+        const selection = window.getSelection();
+        // 确保是在阅读器打开的状态下
+        const readerEl = document.getElementById('app-reader');
+        if (!readerEl || !readerEl.classList.contains('open')) return;
+
+        if (selection.toString().trim().length > 0 && area.contains(selection.anchorNode)) {
+            const range = selection.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+            
+            // 显示菜单在选区正上方
+            menu.style.display = 'block';
+            menu.style.top = Math.max(10, rect.top - 50) + 'px';
+            menu.style.left = Math.max(10, rect.left + (rect.width / 2) - 50) + 'px';
+        } else {
+            menu.style.display = 'none';
+        }
+    });
+    this._selectionBound = true;
 },
 
 openPostModal() {

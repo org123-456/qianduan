@@ -39,6 +39,7 @@ color-scheme: light dark;
 --bg-image-chat: none;
 --bg-image-diary-cover: url('https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=1000&auto=format&fit=crop');
 --bg-image-diary-page: url('https://www.transparenttextures.com/patterns/cream-paper.png');
+--bg-image-moments-cover: url('https://images.unsplash.com/photo-1518609878373-06d740f60d8b?q=80&w=1000&auto=format&fit=crop');
 --global-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -90,7 +91,8 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 .cd-num { font-size: 32px; font-weight: 800; line-height: 1; text-shadow: 0 4px 10px rgba(111,168,220,0.3); }
 .cd-suf { font-size: 12px; font-weight: bold; }
 
-.note-widget { position: relative; padding: 25px 20px 20px 20px; cursor: pointer; overflow: hidden; display: flex; flex-direction: column; gap: 12px; margin-top: 10px;}
+/* 🌟 修复：给纸条卡片增加最小高度，防止内容被遮挡 */
+.note-widget { position: relative; padding: 25px 20px 20px 20px; cursor: pointer; overflow: hidden; display: flex; flex-direction: column; gap: 12px; margin-top: 10px; min-height: 120px; height: auto;}
 .note-tape { position: absolute; top: -8px; left: 50%; width: 80px; height: 22px; background: rgba(255,255,255,0.5); box-shadow: 0 2px 5px rgba(0,0,0,0.05); transform: translateX(-50%) rotate(-2deg); z-index: 2; pointer-events: none;}
 [data-theme="dark"] .note-tape { background: rgba(255,255,255,0.1); }
 .note-header { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-sub); z-index: 1;}
@@ -114,8 +116,8 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 .page { position: absolute; inset: 0; display: none; flex-direction: column; background: transparent; }
 .page.active { display: flex; }
 
-/* 🌟 将原先的 page-mine 替换为 page-moments，允许滚动 */
-#page-home, #page-moments { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 100px 15px 110px 15px; }
+/* 🌟 修复：减小 Home 页和 Moments 页的顶部留白，从 100px 减到 70px */
+#page-home, #page-moments { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 70px 15px 110px 15px; }
 #page-chat { position: absolute; inset: 0; overflow: hidden; padding: 0; background-image: var(--bg-image-chat); background-size: cover; background-position: center; background-attachment: fixed; }
 
 #app-content-list { 
@@ -359,20 +361,21 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 .story-item.me .story-bubble { color: var(--text-main); }
 
 /* 🌟 情侣空间 (朋友圈) 专属样式 */
-/* 负 margin 顶到屏幕最上方，穿透 padding */
-.moments-cover { width: calc(100% + 30px); height: 240px; background-size: cover; background-position: center; position: relative; border-radius: 0 0 24px 24px; margin-top: -100px; margin-left: -15px; margin-bottom: 40px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-/* 🌟 左右分离的头像布局 */
+/* 🌟 修复3：使用 CSS 变量绑定封面图，长按换图瞬间生效！ */
+.moments-cover { width: calc(100% + 30px); height: 240px; background-size: cover; background-position: center; position: relative; border-radius: 0 0 24px 24px; margin-top: -100px; margin-left: -15px; margin-bottom: 40px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); background-image: var(--bg-image-moments-cover) !important;}
 .moments-cover-info { position: absolute; bottom: -30px; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 20px; z-index: 2; }
 .moments-avatar-wrap { display: flex; align-items: center; gap: 10px; }
 .moments-avatar-wrap img { width: 64px; height: 64px; border-radius: 50%; border: 3px solid var(--window-bg); object-fit: cover; background: var(--icon-bg); box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
 .moments-name { font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: 15px; }
 
-/* 🌟 横向滑动的目录栏 */
 .moments-menu-bar { display: flex; gap: 12px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
 .moments-menu-bar::-webkit-scrollbar { display: none; }
 .moments-menu-item { background: var(--card-bg); border: 1px solid var(--border-color); padding: 10px 15px; border-radius: 16px; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: bold; color: var(--text-main); white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.05); cursor: pointer; transition: 0.2s; }
 .moments-menu-item:active { transform: scale(0.95); }
 .moments-menu-item i { font-size: 18px; color: var(--primary-color); }
+/* 🌟 修复4：菜单高亮样式 */
+.moments-menu-item.active { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+.moments-menu-item.active i { color: #fff; }
 
 .status-panel { background: var(--card-bg); border-radius: 20px; padding: 15px; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(90,140,200,0.1); border: 1px solid rgba(255,255,255,0.6); display: flex; gap: 15px; }
 [data-theme="dark"] .status-panel { border-color: var(--border-color); }
@@ -631,7 +634,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
     </div>
 </div>
 
-<!-- 🌟 将 Mine 替换为 Moments -->
 <div id="page-moments" class="page">
     <div id="moments-content-area"></div>
     <div class="fab-post" onclick="window.PhoneUI.openPostModal()"><i class="ph ph-camera"></i></div>
@@ -639,7 +641,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 
 </div>
 
-<!-- 🌟 底栏：将 Mine 替换为 Space -->
 <div class="bottom-nav">
 <div class="nav-item active" onclick="switchTab(0)"><div class="icon"><i class="ph ph-house"></i></div><div class="text">Home</div></div>
 <div class="nav-item" onclick="switchTab(1)"><div class="icon"><i class="ph ph-images"></i></div><div class="text">Memory</div></div>
@@ -688,7 +689,8 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 <div id="archive-list" style="overflow-y: auto; max-height: 40vh; display: flex; flex-direction: column; gap: 10px;"></div>
 </div>
 
-<div id="blindbox-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeBlindBox()"></div>
+<!-- 🌟 修复：盲盒背景毛玻璃效果 -->
+<div id="blindbox-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeBlindBox()" style="background: rgba(0,0,0,0.15); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);"></div>
 <div id="blindbox-modal" class="blindbox-modal">
 <i class="ph-fill ph-shooting-star blindbox-icon"></i>
 <div class="blindbox-text" id="blindbox-text">“回忆碎片加载中...”</div>
@@ -716,7 +718,6 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
     </div>
 </div>
 
-<!-- 🌟 朋友圈：发动态弹窗 -->
 <div id="post-moment-bg" class="action-sheet-bg" onclick="window.PhoneUI.closePostModal()"></div>
 <div id="post-moment-modal" class="thought-modal" style="padding: 20px; z-index: 9001;">
     <div class="thought-header"><i class="ph-fill ph-camera"></i> 发送动态</div>
@@ -770,7 +771,6 @@ function switchTab(index) {
         window.PhoneUI.renderAppContent('wechat');
     }
 
-    // 🌟 原来的 Mine 逻辑去掉了，现在 index 4 是 Moments
     if(index === 4 && window.PhoneUI) {
         window.PhoneUI.renderMoments();
     }

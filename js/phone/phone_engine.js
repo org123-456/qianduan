@@ -941,8 +941,8 @@ ${historyText}`;
             contentAreaEl.innerHTML = `<div class="notebook-empty"><i class="ph-fill ph-warning-circle" style="font-size: 48px; color: var(--danger-color); margin-bottom: 15px;"></i><p style="color: var(--danger-color);">偷看失败：${error.message}</p><button class="btn-refresh" onclick="window.PhoneUI.renderDiaryPage()" style="width: auto; padding: 10px 20px; margin-top: 15px;">返回重试</button></div>`;
         }
     },
-
-    /* ==========================================
+	  
+	/* ==========================================
        🌟 共读时光 (SyncRead) 书架与段评引擎 
        ========================================== */
 
@@ -983,16 +983,16 @@ ${historyText}`;
         const reader = new FileReader();
         reader.onload = (e) => {
             let text = e.target.result;
-            // 智能判定：如果前1000个字符里出现了乱码符号 ，说明是 GBK 编码
+            // 智能判定：如果前1000个字符里出现了乱码符号，说明是 GBK 编码
             if (text.indexOf('') !== -1 && text.indexOf('') < 1000) {
                 const readerGBK = new FileReader();
                 readerGBK.onload = (e2) => { processText(e2.target.result); };
-                readerGBK.readAsText(file, 'gbk'); // 用中文字符集重新读取
+                readerGBK.readAsText(file, 'gbk'); 
             } else {
-                processText(text); // UTF-8 正常，直接处理
+                processText(text); 
             }
         };
-        reader.readAsText(file, 'utf-8'); // 默认先用 utf-8 读
+        reader.readAsText(file, 'utf-8'); 
         event.target.value = '';
     },
 
@@ -1024,7 +1024,6 @@ ${historyText}`;
                 const progress = book.offsets.length > 1 ? `已读 ${book.currentIndex + 1} 页` : '未读';
                 html += `
                 <div class="book-wrap" onclick="window.PhoneEngine.openBook('${book.id}')">
-                    <!-- 🌟 修复：把删除按钮移到封面外面，防止被 overflow:hidden 吞掉 -->
                     <div class="book-del-btn" onclick="event.stopPropagation(); window.PhoneEngine.deleteBook('${book.id}')"><i class="ph ph-x"></i></div>
                     <div class="book-cover-3d">
                         ${PhoneUI.escapeHtml(book.title).substring(0, 8)}
@@ -1037,12 +1036,13 @@ ${historyText}`;
         listEl.innerHTML = html;
     },
 
-    // 打开摘录本
+    // 打开摘录本 (🌟 修复无法滑动)
     openNotebook() {
         if (window.PhoneUI && window.PhoneUI.showReadingView) {
             window.PhoneUI.showReadingView("我的摘录本");
         }
         document.getElementById('reader-footer').style.display = 'none'; 
+        document.getElementById('reader-reading-view').style.overflowY = 'auto'; // 🌟 解锁滑动
         
         const container = document.getElementById('reader-page-container');
         const notebook = JSON.parse(localStorage.getItem('reader_notebook') || '[]');
@@ -1094,6 +1094,7 @@ ${historyText}`;
             if (window.PhoneUI && window.PhoneUI.showReadingView) {
                 window.PhoneUI.showReadingView(book.title);
             }
+            document.getElementById('reader-reading-view').style.overflowY = 'hidden'; // 🌟 重新锁死滑动
             PhoneEngine.renderCurrentPage();
         } catch(e) {
             PhoneAPI.showToast("打开失败：" + e.message);
@@ -1263,11 +1264,14 @@ ${historyText}`;
         localStorage.setItem('reader_notebook', JSON.stringify(notebook));
     },
 
+    // 7. 划线收藏 (纯高亮) - 🌟 修复跨段落匹配失败
     saveHighlight() {
         const selection = window.getSelection();
-        let text = selection.toString().trim().replace(/\n/g, '');
+        let text = selection.toString().trim();
         if (!text) return;
-        if(text.length > 200) text = text.substring(0, 200);
+        
+        text = text.split('\n')[0].trim(); // 只取第一段
+        if(text.length > 60) text = text.substring(0, 60); 
         
         document.getElementById('highlight-menu').style.display = 'none';
         selection.removeAllRanges(); 
@@ -1285,13 +1289,14 @@ ${historyText}`;
         PhoneEngine.renderCurrentPage(); 
     },
 
+    // 8. 划线讨论并生成永久段评 (🌟 完美接入 cache_control 缓存机制)
     async discussHighlight() {
         const selection = window.getSelection();
         let text = selection.toString().trim();
         if (!text) return;
         
-        text = text.replace(/\n/g, '');
-        if(text.length > 100) text = text.substring(0, 100);
+        text = text.split('\n')[0].trim(); // 只取第一段
+        if(text.length > 60) text = text.substring(0, 60);
         
         document.getElementById('highlight-menu').style.display = 'none';
         selection.removeAllRanges(); 
@@ -1315,20 +1320,31 @@ ${historyText}`;
             const persona = localStorage.getItem('char_persona') || '';
             const myName = localStorage.getItem('my_name') || '我';
             
-            const prompt = `【系统指令】：你和${myName}正在一起看小说《${config.title}》。
-${myName}对书里的这段话很感兴趣，划了重点：
-“${text}”
-
-请你以【${charName}】的身份，针对这句话给出你的反应或吐槽。
-要求：
-1. 极度符合你的人设（${persona}）。
-2. 就像你正趴在${myName}肩膀上一起看书，在TA耳边轻声说话。
-3. 必须非常简短，在 20-50 字以内。
-4. 绝对不要输出任何动作描写、表情符号（Emoji），直接说出你的台词！`;
-
-            const reply = await PhoneAPI.chatWithAI([{ role: 'user', content: prompt }]);
-            const finalReply = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+            // 🌟 拆分 Prompt，打上缓存标签
+            const stablePrompt = `你扮演${charName}。以下是你的核心人设：\n${persona}\n\n【系统指令】：你和${myName}正在一起看小说《${config.title}》。`;
+            const dynamicPrompt = `就像你正趴在${myName}肩膀上一起看书，在TA耳边轻声说话。必须非常简短，在 20-50 字以内。绝对不要输出任何动作描写、表情符号（Emoji），直接说出你的台词！`;
             
+            let systemContent = [
+                { type: "text", text: stablePrompt, cache_control: { type: "ephemeral" } },
+                { type: "text", text: dynamicPrompt }
+            ];
+
+            let messages = [
+                { role: "system", content: systemContent },
+                { role: "user", content: `${myName}对书里的这段话很感兴趣，划了重点：\n“${text}”\n\n请针对这句话给出你的反应或吐槽。` }
+            ];
+
+            let rawReply = "";
+            try {
+                rawReply = await PhoneAPI.chatWithAI(messages);
+            } catch (err) {
+                if (err.message.includes('content must be a string') || err.message.includes('cache_control')) {
+                    messages[0].content = stablePrompt + "\n" + dynamicPrompt;
+                    rawReply = await PhoneAPI.chatWithAI(messages);
+                } else { throw err; }
+            }
+
+            const finalReply = rawReply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
             bubbleText.innerText = finalReply;
             
             if (window.PhoneAPI && window.PhoneAPI.EchoVault) {
@@ -1361,34 +1377,51 @@ ${myName}对书里的这段话很感兴趣，划了重点：
         }
     },
 
+    // 9. 智能主动伴读 (🌟 完美接入 cache_control 缓存机制)
     async _triggerProactiveCompanion() {
         const lastTime = localStorage.getItem('reader_last_proactive') || 0;
-        if (Date.now() - lastTime < 5 * 60 * 1000) return;
+        if (Date.now() - lastTime < 5 * 60 * 1000) return; // 5分钟冷却
 
         const config = window.Config?.readerConfig;
         if (!config || !config.text) return;
 
         const startOffset = config.offsets[config.currentIndex];
         const endOffset = config.offsets[config.currentIndex + 1] || config.text.length;
-        const pageText = config.text.substring(startOffset, endOffset).trim();
+        let pageText = config.text.substring(startOffset, endOffset).trim();
         
         if(pageText.length < 50) return;
+        if(pageText.length > 300) pageText = "..." + pageText.substring(pageText.length - 300); // 截取最后300字
 
         try {
             const charName = localStorage.getItem('char_name') || 'TA';
             const persona = localStorage.getItem('char_persona') || '';
             const myName = localStorage.getItem('my_name') || '我';
 
-            const prompt = `【系统指令】：你和${myName}正在一起看小说《${config.title}》。
-用户目前正在阅读这一页的内容：
-“${pageText}”
+            // 🌟 拆分 Prompt，打上缓存标签
+            const stablePrompt = `你扮演${charName}。以下是你的核心人设：\n${persona}\n\n【系统指令】：你和${myName}正在一起看小说《${config.title}》。`;
+            const dynamicPrompt = `就像你正趴在${myName}肩膀上一起看书，在TA耳边轻声说话。`;
 
-请你以【${charName}】的身份（人设：${persona}）陪TA一起看。
-【重要判定】：如果这一页有明显的剧情冲突、高潮、槽点、或者有趣的细节，请你给出 20 字以内的简短吐槽（就像在耳边轻声说话）。
-【省钱机制】：如果这一页只是普通的过渡描写，很平淡无聊，没有什么可吐槽的，请你**直接且仅输出四个大写字母：PASS**。绝对不要多说废话！`;
+            let systemContent = [
+                { type: "text", text: stablePrompt, cache_control: { type: "ephemeral" } },
+                { type: "text", text: dynamicPrompt }
+            ];
 
-            const reply = await PhoneAPI.chatWithAI([{ role: 'user', content: prompt }]);
-            const finalReply = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+            let messages = [
+                { role: "system", content: systemContent },
+                { role: "user", content: `用户目前正在阅读这一页的内容：\n“${pageText}”\n\n【重要判定】：如果这一页有明显的剧情冲突、高潮、槽点、或者有趣的细节，请你给出 20 字以内的简短吐槽。如果这一页只是普通的过渡描写，很平淡无聊，没有什么可吐槽的，请你**直接且仅输出四个大写字母：PASS**。绝对不要多说废话！` }
+            ];
+
+            let rawReply = "";
+            try {
+                rawReply = await PhoneAPI.chatWithAI(messages);
+            } catch (err) {
+                if (err.message.includes('content must be a string') || err.message.includes('cache_control')) {
+                    messages[0].content = stablePrompt + "\n" + dynamicPrompt;
+                    rawReply = await PhoneAPI.chatWithAI(messages);
+                } else { throw err; }
+            }
+
+            const finalReply = rawReply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 
             if (finalReply === 'PASS' || finalReply.includes('PASS')) {
                 localStorage.setItem('reader_last_proactive', Date.now());
@@ -1442,3 +1475,5 @@ ${myName}对书里的这段话很感兴趣，划了重点：
 };
 
 if (typeof window !== 'undefined') { window.PhoneEngine = PhoneEngine; }
+
+                                

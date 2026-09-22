@@ -12,10 +12,9 @@ const PhoneEngine = {
     ...ReaderEngine
 };
 
-// 兼容旧版的发送拦截逻辑（微信统一走 sendChatMessage）
+// 兼容旧版的发送逻辑
 const legacySendUserMsgOnly = PhoneEngine.sendUserMsgOnly;
 PhoneEngine.sendUserMsgOnly = (...args) => {
-    if (Config.currentAppId === 'wechat') return;
     return legacySendUserMsgOnly?.(...args);
 };
 
@@ -47,4 +46,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.PhoneUI) window.PhoneUI.renderAppContent('wechat');
         console.log('✅ 聊天记录和设置已成功加载！');
     }, 300);
+});
+
+// 监听全局回车键
+document.addEventListener('keydown', (e) => {
+    const chatInput = document.getElementById('chat-input');
+    const novelInput = document.getElementById('novel-input');
+    
+    // 微信聊天：按回车把消息发到屏幕上 (不触发AI回复，Shift+Enter换行)
+    if (e.key === 'Enter' && !e.shiftKey && document.activeElement === chatInput) {
+        e.preventDefault(); 
+        if (window.PhoneEngine) window.PhoneEngine.sendUserMsgOnly();
+        if (window.PhoneUI) window.PhoneUI.closeChatMenu();
+    }
+    
+    // 线下故事：按回车把消息发到屏幕上
+    if (e.key === 'Enter' && !e.shiftKey && document.activeElement === novelInput) {
+        e.preventDefault();
+        if (window.PhoneEngine) window.PhoneEngine.sendUserMsgOnly();
+    }
 });

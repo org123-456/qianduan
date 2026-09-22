@@ -412,15 +412,15 @@ export const ChatEngine = {
                     inputEl.value = '';
                     hasNewUserMsg = true;
                     latestUserText = text;
-                } else if (chatItems.length > 0) {
-                    const lastItem = chatItems[chatItems.length - 1];
-                    if (lastItem.sender === 'me' && lastItem.content) {
-                        chatItems.pop();
-                        inputEl.value = lastItem.content;
-                        hasNewUserMsg = true;
-                        latestUserText = lastItem.content;
-                        chatItems.push({ sender: 'me', content: latestUserText, time: timeStr, date: dateStr });
-                        inputEl.value = '';
+                } else {
+                    // 如果输入框是空的，说明用户已经通过回车把消息发到界面上了
+                    // 我们去历史记录里找最后一句用户说的话作为触发词
+                    for (let i = chatItems.length - 1; i >= 0; i--) {
+                        if (chatItems[i].sender === 'me' && !chatItems[i].content.includes('![图片]')) {
+                            latestUserText = chatItems[i].content;
+                            hasNewUserMsg = true; 
+                            break;
+                        }
                     }
                 }
             }
@@ -445,7 +445,16 @@ export const ChatEngine = {
             const systemPrompt = localStorage.getItem('system_prompt') || '';
             const charPersona = localStorage.getItem('char_persona') || '';
             
-            let stablePrompt = `【系统时间感知】当前现实时间：${new Date().toLocaleString()}\n`;
+            // 恢复精准的时间感知
+            const currentNow = new Date();
+            const curHour = currentNow.getHours(); const curMin = currentNow.getMinutes();
+            const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+            const curWeek = '星期' + weekDays[currentNow.getDay()];
+            let timePhase = "深夜";
+            if (curHour >= 5 && curHour < 9) timePhase = "清晨"; else if (curHour >= 9 && curHour < 12) timePhase = "上午"; else if (curHour >= 12 && curHour < 14) timePhase = "中午"; else if (curHour >= 14 && curHour < 18) timePhase = "下午"; else if (curHour >= 18 && curHour < 23) timePhase = "晚上";
+            
+            let stablePrompt = `【系统时间感知】：当前现实时间是 ${currentNow.getFullYear()}年${currentNow.getMonth()+1}月${currentNow.getDate()}日 ${curWeek}，${timePhase} ${curHour.toString().padStart(2, '0')}:${curMin.toString().padStart(2, '0')}。请自然地感知当前时间，如果用户问你时间，请准确回答。\n\n`;
+            
             if (systemPrompt) stablePrompt += `【系统核心指令】：\n${systemPrompt}\n\n`;
             if (charPersona) stablePrompt += `【角色设定】：\n${charPersona}\n\n`;
 
@@ -468,7 +477,6 @@ export const ChatEngine = {
                 dynamicPrompt += `\n【长期记忆档案】：\n${recentVault}\n`;
             }
 
-            // ⚠️ 核心修复：把丢失的上下文循环补回来了！AI 终于恢复记忆了！
             let messages = [{ role: 'system', content: stablePrompt + (dynamicPrompt || '') }];
             const MAX_CONTEXT = 60;
             const recentItems = chatItems.slice(-MAX_CONTEXT);
@@ -485,7 +493,6 @@ export const ChatEngine = {
                 }
             });
 
-            // 如果用户没说话，顺着话题聊
             if (!isRegen && !hasNewUserMsg) {
                 messages.push({ role: "user", content: "【系统指令】：我没有说话。请你顺着刚才的话题继续连发微信补充，或者开启一个新话题。" });
             }
@@ -509,7 +516,6 @@ export const ChatEngine = {
         } catch (error) {
             PhoneAPI.showToast(error.message);
             chatItems.pop();
-            if (hasNewUserMsg) chatItems.pop();
             PhoneUI.renderAppContent('wechat');
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
         }
@@ -529,6 +535,13 @@ export const ChatEngine = {
                     chatItems.push({ sender: 'me', content: text, time: new Date().toLocaleTimeString(), date: new Date().toISOString().slice(0, 10) });
                     inputEl.value = '';
                     latestUserText = text;
+                } else {
+                    for (let i = chatItems.length - 1; i >= 0; i--) {
+                        if (chatItems[i].sender === 'me') {
+                            latestUserText = chatItems[i].content;
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -538,11 +551,18 @@ export const ChatEngine = {
             const systemPrompt = localStorage.getItem('system_prompt') || '';
             const charPersona = localStorage.getItem('char_persona') || '';
             
-            let stablePrompt = `${systemPrompt}\n${charPersona}\n`;
+            const currentNow = new Date();
+            const curHour = currentNow.getHours(); const curMin = currentNow.getMinutes();
+            const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+            const curWeek = '星期' + weekDays[currentNow.getDay()];
+            let timePhase = "深夜";
+            if (curHour >= 5 && curHour < 9) timePhase = "清晨"; else if (curHour >= 9 && curHour < 12) timePhase = "上午"; else if (curHour >= 12 && curHour < 14) timePhase = "中午"; else if (curHour >= 14 && curHour < 18) timePhase = "下午"; else if (curHour >= 18 && curHour < 23) timePhase = "晚上";
+            
+            let stablePrompt = `【系统时间感知】：当前现实时间是 ${currentNow.getFullYear()}年${currentNow.getMonth()+1}月${currentNow.getDate()}日 ${curWeek}，${timePhase} ${curHour.toString().padStart(2, '0')}:${curMin.toString().padStart(2, '0')}。\n\n`;
+            stablePrompt += `${systemPrompt}\n${charPersona}\n`;
             stablePrompt += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。\n";
             stablePrompt += "【最高禁令】：绝对禁止输出任何分析过程、思考步骤！直接输出剧情！\n";
 
-            // 同样补回小说的上下文记忆
             let messages = [{ role: 'system', content: stablePrompt }];
             const MAX_CONTEXT = 60;
             const recentItems = chatItems.slice(-MAX_CONTEXT);

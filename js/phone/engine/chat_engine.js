@@ -224,7 +224,7 @@ export const ChatEngine = {
             const rawText = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```.*?/g, '').replace(/```/g, '').trim();
             const summaryList = rawText.split('|||').map(s => s.trim()).filter(Boolean);
             const editText = summaryList.join('\n\n');
-            const confirmText = await PhoneUI.showCustomPrompt('✨ AI 提取���记忆与关键词，请核对修改（格式：内容###关键词）：', editText);
+            const confirmText = await PhoneUI.showCustomPrompt('✨ AI 提取了记忆与关键词，请核对修改（格式：内容###关键词）：', editText);
             if (confirmText && confirmText.trim() !== '') {
                 const finalItems = confirmText.split('\n').map(s => s.trim()).filter(Boolean);
                 const vaultItems = finalItems.map(item => {
@@ -403,6 +403,7 @@ export const ChatEngine = {
         const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
         const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
+        // 融合了 patch 补丁：恢复被 sendUserMsgOnly 清空的输入
         if (!isRegen) {
             const inputEl = document.getElementById('chat-input');
             if (inputEl) {
@@ -412,6 +413,16 @@ export const ChatEngine = {
                     inputEl.value = '';
                     hasNewUserMsg = true;
                     latestUserText = text;
+                } else if (chatItems.length > 0) {
+                    const lastItem = chatItems[chatItems.length - 1];
+                    if (lastItem.sender === 'me' && lastItem.content) {
+                        chatItems.pop();
+                        inputEl.value = lastItem.content;
+                        hasNewUserMsg = true;
+                        latestUserText = lastItem.content;
+                        chatItems.push({ sender: 'me', content: latestUserText, time: timeStr, date: dateStr });
+                        inputEl.value = '';
+                    }
                 }
             }
         } else {
@@ -434,12 +445,21 @@ export const ChatEngine = {
             const shareMemory = localStorage.getItem('share_memory') === 'true';
             const systemPrompt = localStorage.getItem('system_prompt') || '';
             const charPersona = localStorage.getItem('char_persona') || '';
+            
             let stablePrompt = `【系统时间感知】当前现实时间：${new Date().toLocaleString()}\n`;
             if (systemPrompt) stablePrompt += `【系统核心指令】：\n${systemPrompt}\n\n`;
             if (charPersona) stablePrompt += `【角色设定】：\n${charPersona}\n\n`;
+
+            // 完美补回丢失的约束，防止爆思维链
+            let formatRule = "【最高禁令】：绝对禁止输出任何分析过程、思考步骤、任务拆解！不要出现“好，这条消息的上下文是”等字眼！直接输出角色的台词！\n";
+            formatRule += "【微信连发机制】：不限制气泡数量，请务必把你想说的话完整说完！系统会根据换行符切分微信气泡。绝对不要把所有话挤在同一行！\n";
+            formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。\n";
+            stablePrompt += formatRule;
+
             const wbData = PhoneAPI.getWorldbookData();
             const activeOnlineWb = wbData.filter(w => w.online).map(w => w.content).join('\n');
             if (activeOnlineWb) stablePrompt += `\n【当前生效的世界书/规则插件】：\n${activeOnlineWb}\n`;
+            
             let dynamicPrompt = '';
             if (latestUserText) dynamicPrompt += this._scanKeywords(latestUserText);
             const allVault = PhoneAPI.getMemoryVault();
@@ -449,18 +469,22 @@ export const ChatEngine = {
                 const recentVault = accessibleVault.slice(-5).map(v => `[${v.id}] ${v.source}: ${v.content}`).join('\n');
                 dynamicPrompt += `\n【长期记忆档案】：\n${recentVault}\n`;
             }
+            
             let messages = [{ role: 'system', content: stablePrompt + (dynamicPrompt || '') }, { role: 'user', content: latestUserText || '请继续。' }];
             const rawReply = await PhoneAPI.chatWithAI(messages);
+            
             const innerMatch = rawReply.match(/<inner>([\s\S]*?)<\/inner>/i);
             const innerThought = innerMatch ? innerMatch[1].trim() : '（TA的心思藏得很深，什么也没看出来...）';
             let finalReply = rawReply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<inner>[\s\S]*?<\/inner>/gi, '').trim();
             if (!finalReply) finalReply = rawReply.trim();
+            
             chatItems.pop();
             const replyParts = finalReply.split('\n').map(s => s.trim()).filter(Boolean);
             replyParts.forEach((part, idx) => {
                 const thought = idx === 0 ? innerThought : '（连发消息，心声已在上一条显示）';
                 chatItems.push({ sender: 'other', content: part, time: timeStr, date: dateStr, innerThought: thought });
             });
+            
             PhoneUI.renderAppContent('wechat');
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
         } catch (error) {
@@ -494,11 +518,17 @@ export const ChatEngine = {
         try {
             const systemPrompt = localStorage.getItem('system_prompt') || '';
             const charPersona = localStorage.getItem('char_persona') || '';
-            const stablePrompt = `${systemPrompt}\n${charPersona}`;
+            
+            let stablePrompt = `${systemPrompt}\n${charPersona}\n`;
+            stablePrompt += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。\n";
+            stablePrompt += "【最高禁令】：绝对禁止输出任何分析过程、思考步骤！直接输出剧情！\n";
+
             const rawReply = await PhoneAPI.chatWithAI([{ role: 'system', content: stablePrompt }, { role: 'user', content: latestUserText || '请继续写下去。' }]);
+            
             const innerMatch = rawReply.match(/<inner>([\s\S]*?)<\/inner>/i);
             const innerThought = innerMatch ? innerMatch[1].trim() : '（TA的心思藏得很深，什么也没看出来...）';
             const finalReply = rawReply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<inner>[\s\S]*?<\/inner>/gi, '').trim();
+            
             chatItems.pop();
             chatItems.push({ sender: 'other', content: finalReply, time: new Date().toLocaleTimeString(), date: new Date().toISOString().slice(0, 10), innerThought });
             PhoneUI.renderNovelContent();
@@ -521,7 +551,7 @@ export const ChatEngine = {
             const novelItems = (Config?.phoneData?.[roleId]?.novel?.items || []).filter(i => i.date === dateStr).map(i => ({ ...i, source: '线下故事' }));
             const recentItems = [...wechatItems, ...novelItems].sort((a, b) => (a.time || '').localeCompare(b.time || '')).slice(-80);
             const historyText = recentItems.map(item => `[${item.source}] ${item.time || ''} ${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
-            const prompt = `根据以下聊天记录，写一篇符合角色设定与当天事件的个人日记：\n\n${historyText}`;
+            const prompt = `根据以下聊天记录，写一篇符合角色设定与当天事件的个人日记。绝对禁止输出分析过程，直接输出日记正文：\n\n${historyText}`;
             const reply = await PhoneAPI.chatWithAI([{ role: 'user', content: prompt }]);
             const finalDiary = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
             PhoneAPI.saveDiary(dateStr, finalDiary);

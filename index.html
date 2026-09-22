@@ -425,9 +425,36 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 .dual-menu-btn.discuss { color: #fff; background: linear-gradient(135deg, #8bc6ff, #4f81bd); }
 .dual-menu-btn.highlight { color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
 
-/* 晋江式段评抽屉与徽标 */
-.comment-badge { display: inline-flex; align-items: center; justify-content: center; background: rgba(111,168,220,0.2); color: var(--primary-color); font-size: 12px; font-weight: bold; padding: 3px 10px; border-radius: 12px; margin-left: 6px; cursor: pointer; vertical-align: middle; user-select: none; border: 1px solid rgba(111,168,220,0.4); }
-.comment-badge:active { transform: scale(0.9); }
+/* 晋江式段评抽屉与徽标 - 极致精简版 */
+.comment-badge {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    background: rgba(106, 168, 220, 0.15) !important;
+    color: var(--primary-color, #6aa8dc) !important;
+    border: 1px solid rgba(106, 168, 220, 0.3) !important;
+    border-radius: 12px !important;
+    padding: 2px 8px !important;
+    font-size: 12px !important;
+    margin-left: 6px;
+    cursor: pointer;
+    vertical-align: baseline !important;
+    line-height: 1.2 !important;
+    pointer-events: auto !important;
+    position: relative !important;
+    z-index: 100 !important;
+    user-select: none;
+    width: auto !important;
+    box-sizing: border-box;
+}
+.comment-badge i {
+    margin-right: 4px;
+    font-size: 13px !important;
+}
+.comment-badge:active {
+    transform: scale(0.9) !important;
+    background: rgba(106, 168, 220, 0.3) !important;
+}
 
 .para-drawer-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2400; opacity: 0; visibility: hidden; transition: 0.3s; }
 .para-drawer-bg.show { opacity: 1; visibility: visible; }

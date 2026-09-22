@@ -34,7 +34,6 @@ export const ChatEngine = {
             PhoneAPI?.showToast?.('✅ 已强制清除卡死的 AI 状态！');
             return;
         }
-
         PhoneAPI?.showToast?.('当前没有卡死的状态。');
     },
 
@@ -398,12 +397,12 @@ export const ChatEngine = {
         if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
         if (!Config.phoneData[roleId].wechat) Config.phoneData[roleId].wechat = { items: [] };
         const chatItems = Config.phoneData[roleId].wechat.items;
-        let hasNewUserMsg = false; let latestUserText = '';
+        let hasNewUserMsg = false; 
+        let latestUserText = '';
         const now = new Date();
         const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
         const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-        // 融合了 patch 补丁：恢复被 sendUserMsgOnly 清空的输入
         if (!isRegen) {
             const inputEl = document.getElementById('chat-input');
             if (inputEl) {
@@ -450,7 +449,6 @@ export const ChatEngine = {
             if (systemPrompt) stablePrompt += `【系统核心指令】：\n${systemPrompt}\n\n`;
             if (charPersona) stablePrompt += `【角色设定】：\n${charPersona}\n\n`;
 
-            // 完美补回丢失的约束，防止爆思维链
             let formatRule = "【最高禁令】：绝对禁止输出任何分析过程、思考步骤、任务拆解！不要出现“好，这条消息的上下文是”等字眼！直接输出角色的台词！\n";
             formatRule += "【微信连发机制】：不限制气泡数量，请务必把你想说的话完整说完！系统会根据换行符切分微信气泡。绝对不要把所有话挤在同一行！\n";
             formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。\n";
@@ -469,8 +467,29 @@ export const ChatEngine = {
                 const recentVault = accessibleVault.slice(-5).map(v => `[${v.id}] ${v.source}: ${v.content}`).join('\n');
                 dynamicPrompt += `\n【长期记忆档案】：\n${recentVault}\n`;
             }
+
+            // ⚠️ 核心修复：把丢失的上下文循环补回来了！AI 终于恢复记忆了！
+            let messages = [{ role: 'system', content: stablePrompt + (dynamicPrompt || '') }];
+            const MAX_CONTEXT = 60;
+            const recentItems = chatItems.slice(-MAX_CONTEXT);
             
-            let messages = [{ role: 'system', content: stablePrompt + (dynamicPrompt || '') }, { role: 'user', content: latestUserText || '请继续。' }];
+            recentItems.forEach((item) => {
+                if (item.sender !== 'typing') {
+                    let text = item.content;
+                    const imgMatch = text ? text.match(/^!\[.*?\]\((.*?)\)$/) : null;
+                    if (item.sender === 'me' && imgMatch) {
+                        messages.push({ role: 'user', content: [ { type: "image_url", image_url: { url: imgMatch[1] } } ] });
+                    } else {
+                        messages.push({ role: item.sender === 'me' ? 'user' : 'assistant', content: text || "" });
+                    }
+                }
+            });
+
+            // 如果用户没说话，顺着话题聊
+            if (!isRegen && !hasNewUserMsg) {
+                messages.push({ role: "user", content: "【系统指令】：我没有说话。请你顺着刚才的话题继续连发微信补充，或者开启一个新话题。" });
+            }
+            
             const rawReply = await PhoneAPI.chatWithAI(messages);
             
             const innerMatch = rawReply.match(/<inner>([\s\S]*?)<\/inner>/i);
@@ -523,7 +542,21 @@ export const ChatEngine = {
             stablePrompt += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。\n";
             stablePrompt += "【最高禁令】：绝对禁止输出任何分析过程、思考步骤！直接输出剧情！\n";
 
-            const rawReply = await PhoneAPI.chatWithAI([{ role: 'system', content: stablePrompt }, { role: 'user', content: latestUserText || '请继续写下去。' }]);
+            // 同样补回小说的上下文记忆
+            let messages = [{ role: 'system', content: stablePrompt }];
+            const MAX_CONTEXT = 60;
+            const recentItems = chatItems.slice(-MAX_CONTEXT);
+            recentItems.forEach(item => {
+                if (item.sender !== 'typing') { 
+                    messages.push({ role: item.sender === 'me' ? 'user' : 'assistant', content: item.content || "" }); 
+                }
+            });
+
+            if (!isRegen && !latestUserText) {
+                messages.push({ role: "user", content: "【系统强制指令】：我（用户）当前没有任何动作或对话。请你顺着刚才的剧情继续往下描写。" });
+            }
+
+            const rawReply = await PhoneAPI.chatWithAI(messages);
             
             const innerMatch = rawReply.match(/<inner>([\s\S]*?)<\/inner>/i);
             const innerThought = innerMatch ? innerMatch[1].trim() : '（TA的心思藏得很深，什么也没看出来...）';

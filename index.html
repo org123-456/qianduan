@@ -12,757 +12,321 @@
 <link rel="manifest" href="manifest.json">
 
 <title>Claire & Claude</title>
+
+<!-- 引入外部依赖 -->
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Long+Cang&display=swap');
+<!-- 引入分离出去的 CSS 文件 (确保你的 CSS 文件放在 css/style.css) -->
+<link rel="stylesheet" href="css/style.css">
 
-:root {
-color-scheme: light dark;
---primary-color: #6fa8dc;
---secondary-color: #4f81bd;
---bg-gradient-start: #dff1ff;
---bg-gradient-end: #f7fbff;
---card-bg: rgba(255,255,255,0.85);
---text-main: #27364b;
---text-sub: #8fa5bd;
---danger-color: #ff7b9c;
---window-bg: #f4f9ff;
---border-color: #dcecff;
---chat-left-bg: #ffffff;
---chat-right-bg: #dceeff;
---input-bg: rgba(255,255,255,0.9);
---icon-bg: #ffffff;
---story-bg: #f8fcff;
---bg-image-global: none;
---bg-image-chat: none;
---bg-image-diary-cover: url('https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=1000&auto=format&fit=crop');
---bg-image-diary-page: url('https://www.transparenttextures.com/patterns/cream-paper.png');
---bg-image-moments-cover: url('https://images.unsplash.com/photo-1518609878373-06d740f60d8b?q=80&w=1000&auto=format&fit=crop');
---global-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-}
-
-[data-theme="dark"] {
---primary-color: #8fc5ff;
---secondary-color: #b8dcff;
---bg-gradient-start: #101827;
---bg-gradient-end: #0b1220;
---card-bg: rgba(25,35,55,0.85);
---text-main: #e7f1ff;
---text-sub: #94a8c2;
---danger-color: #ff8fa8;
---window-bg: #101827;
---border-color: #273750;
---chat-left-bg: #18263d;
---chat-right-bg: #21456d;
---input-bg: rgba(20,30,45,0.9);
---icon-bg: #18263d;
---story-bg: #101827;
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; transition: background-color 0.3s, border-color 0.3s, color 0.3s; max-width: 100vw; }
-html, body { width: 100%; height: 100%; overflow: hidden; position: fixed; top: 0; left: 0; overscroll-behavior: none; }
-body { font-family: var(--global-font); background-color: var(--bg-gradient-start); background-image: var(--bg-image-global, linear-gradient(180deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%)); background-size: cover; background-position: center; display: flex; justify-content: center; align-items: center; }
-[data-theme="dark"] body::before { content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.55); z-index: -1; pointer-events: none; }
-#app-container { width: 100%; height: 100%; max-width: 430px; position: relative; display: flex; flex-direction: column; overflow: hidden; }
-
-.neo-card { background: var(--card-bg); border-radius: 24px; box-shadow: -4px -4px 12px rgba(255, 255, 255, 0.6), 4px 4px 12px rgba(160, 190, 220, 0.3); border: 1px solid rgba(255, 255, 255, 0.8); transition: transform 0.2s, box-shadow 0.2s; }
-.neo-card:active { transform: scale(0.97); box-shadow: -2px -2px 8px rgba(255, 255, 255, 0.6), 2px 2px 8px rgba(160, 190, 220, 0.3); }
-[data-theme="dark"] .neo-card { box-shadow: -4px -4px 12px rgba(45, 65, 90, 0.5), 4px 4px 12px rgba(10, 15, 25, 0.6); border: 1px solid rgba(50, 70, 100, 0.5); }
-
-.holding { outline: 2px dashed var(--primary-color); outline-offset: 4px; animation: pulse-hold 0.5s ease-in-out; }
-@keyframes pulse-hold { 0% { transform: scale(1); } 100% { transform: scale(0.95); } }
-@keyframes heartbeat { 0% { transform: scale(1); } 15% { transform: scale(1.25); } 30% { transform: scale(1); } 45% { transform: scale(1.15); } 60% { transform: scale(1); } 100% { transform: scale(1); } }
-
-.mini-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; width: 100%; margin-top: 8px; font-size: 10px; color: var(--text-sub); text-align: center; }
-.mini-cal span { display: flex; justify-content: center; align-items: center; aspect-ratio: 1; border-radius: 50%; }
-.mini-cal span.today { background: var(--primary-color); color: #fff; font-weight: bold; box-shadow: 0 2px 6px rgba(111,168,220,0.5); }
-
-.polaroid-widget { padding: 12px 12px 20px 12px; display: flex; flex-direction: column; align-items: center; cursor: pointer; position: relative; overflow: hidden; }
-.polaroid-photo { width: 100%; min-height: 180px; height: auto; aspect-ratio: 4/3; object-fit: cover; border-radius: 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); background: #e2e8f0; pointer-events: none; display: block; }
-.polaroid-text { font-family: 'Long Cang', cursive; font-size: 18px; color: var(--text-main); margin-top: 15px; text-align: center; width: 100%; line-height: 1.4; pointer-events: none; }
-
-.countdown-widget { display: flex; justify-content: space-between; align-items: center; padding: 20px; cursor: pointer; }
-.cd-left { display: flex; flex-direction: column; gap: 4px; }
-.cd-title { font-size: 16px; font-weight: bold; color: var(--text-main); letter-spacing: 1px; }
-.cd-date { font-size: 11px; color: var(--text-sub); font-family: monospace; }
-.cd-right { display: flex; align-items: baseline; gap: 4px; color: var(--primary-color); }
-.cd-num { font-size: 32px; font-weight: 800; line-height: 1; text-shadow: 0 4px 10px rgba(111,168,220,0.3); }
-.cd-suf { font-size: 12px; font-weight: bold; }
-
-.note-widget { position: relative; padding: 25px 20px 20px 20px; cursor: pointer; overflow: hidden; display: flex; flex-direction: column; gap: 12px; margin-top: 10px; min-height: 120px; height: auto;}
-.note-tape { position: absolute; top: -8px; left: 50%; width: 80px; height: 22px; background: rgba(255,255,255,0.5); box-shadow: 0 2px 5px rgba(0,0,0,0.05); transform: translateX(-50%) rotate(-2deg); z-index: 2; pointer-events: none;}
-[data-theme="dark"] .note-tape { background: rgba(255,255,255,0.1); }
-.note-header { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-sub); z-index: 1;}
-.note-content { font-family: 'Long Cang', cursive; font-size: 20px; color: var(--text-main); line-height: 1.5; text-align: center; padding: 10px 0; font-weight: bold; white-space: pre-wrap; word-break: break-word; max-height: 150px; overflow-y: auto; z-index: 1;}
-.note-content::-webkit-scrollbar { display: none; }
-
-.top-bar { display: flex; justify-content: space-between; align-items: center; padding: 42px 20px 16px 20px; color: var(--primary-color); font-weight: bold; z-index: 50; background: rgba(255,255,255,.8); box-shadow: 0 8px 25px rgba(90,140,200,.12); transition: transform 0.4s; width: 100%; box-sizing: border-box;}
-.top-bar .title { font-size: 17px; font-weight: 700; letter-spacing: .5px; color: var(--secondary-color); }
-.top-bar .menu-btn { width: 34px; height: 34px; background: white; border-radius: 12px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 5px 15px rgba(100,150,200,.15); transition: 0.3s;}
-.top-bar .menu-btn.api-btn { color: var(--primary-color); font-size: 20px; }
-.top-bar .menu-btn.api-btn.loading { background: linear-gradient(135deg, #8bc6ff, #4f81bd); color: #fff; animation: pulse-fab 1.5s infinite; }
-.top-bar .menu-btn.api-btn.loading i { animation: spin-fast 1s linear infinite; }
-.top-bar .menu-btn.api-btn.error { background: var(--danger-color); color: #fff; }
-.top-bar .heart { color: var(--danger-color); font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 5px;}
-#app-container.hide-top-bar .top-bar { transform: translateY(-100%); position: absolute; width: 100%; }
-[data-theme="dark"] .top-bar { background: rgba(15,25,40,.9); }
-@keyframes spin-fast { 100% { transform: rotate(360deg); } }
-@keyframes pulse-fab { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
-
-.page-container { flex: 1; position: relative; overflow: hidden; }
-.page { position: absolute; inset: 0; display: none; flex-direction: column; background: transparent; }
-.page.active { display: flex; }
-
-/* 修复底部被遮挡的问题 */
-#page-home, #page-moments { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 85px 15px 140px 15px; }
-#page-chat { position: absolute; inset: 0; overflow: hidden; padding: 0; background-image: var(--bg-image-chat); background-size: cover; background-position: center; background-attachment: fixed; }
-
-#app-content-list { 
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    overflow-y: auto; 
-    -webkit-overflow-scrolling: touch; 
-    padding: 100px 15px 0px 15px; 
-    display: flex; 
-    flex-direction: column; 
-}
-#app-content-list::after { content: ''; display: block; min-height: 180px; flex-shrink: 0; }
-
-.card { background: var(--card-bg); border-radius: 28px; padding: 22px; margin-bottom: 18px; box-shadow: 0 12px 30px rgba(90,140,200,.12); border: 1px solid rgba(255,255,255,.6); min-width: 0; overflow-wrap: anywhere;}
-[data-theme="dark"] .card { border-color: var(--border-color); }
-
-.app-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px 15px; padding: 10px 5px; }
-.app-icon { background: transparent; box-shadow: none; padding: 0; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: 0.2s; }
-.app-icon:active { transform: scale(0.9); }
-.app-icon .icon { width: 64px; height: 64px; background: white; border-radius: 22px; display: flex; justify-content: center; align-items: center; font-size: 32px; margin-bottom: 8px; box-shadow: 0 10px 25px rgba(90,140,200,.18); overflow: hidden;}
-[data-theme="dark"] .app-icon .icon { background: var(--icon-bg); }
-.app-icon .name { font-size: 12px; font-weight: 600; color: var(--text-main); text-align: center; margin-top: 8px;}
-
-.bottom-nav { position: absolute; bottom: 20px; left: 15px; right: 15px; height: 70px; background: rgba(255,255,255,0.85); display: flex; justify-content: space-around; align-items: center; border-radius: 35px; box-shadow: 0 10px 30px rgba(90,140,200,0.15); z-index: 20; border: 1px solid rgba(255,255,255,0.8); }
-[data-theme="dark"] .bottom-nav { background: rgba(25,35,55,0.9); border-color: rgba(50,70,100,0.5); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-.nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-sub); font-size: 10px; cursor: pointer; flex: 1; transition: 0.3s; }
-.nav-item.active { color: var(--secondary-color); font-weight: bold; transform: scale(1.1); }
-.nav-item.active .icon { filter: drop-shadow(0 0 8px rgba(111,168,220,.5)); }
-.nav-item .icon { font-size: 26px; margin-bottom: 2px; }
-
-.center-btn { position: relative; }
-@keyframes loveFloat { 0%{ transform:translate(-50%, 0); } 50%{ transform:translate(-50%, -6px); } 100%{ transform:translate(-50%, 0); } }
-.center-circle { position: absolute; top: -25px; left: 50%; transform: translateX(-50%); width: 58px; height: 58px; background: linear-gradient(135deg, #8bc6ff, #4f81bd); border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 8px 25px rgba(80,140,210,.4); border: 4px solid #fff; animation: loveFloat 4s ease-in-out infinite; }
-[data-theme="dark"] .center-circle { border-color: #1a2639; }
-.center-circle .icon { font-size: 24px; color: #fff; }
-
-.btn-refresh { width: 100%; padding: 12px; background: linear-gradient(135deg, #8bc6ff, #4f81bd); color: white; border: none; border-radius: 18px !important; font-size: 16px; margin-top: 20px; display: flex; justify-content: center; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 8px 20px rgba(80,140,210,.25);}
-.btn-refresh:disabled { opacity: 0.6; cursor: not-allowed; }
-input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #dcecff; color: var(--text-main); font-family: var(--global-font); }
-[data-theme="dark"] input, [data-theme="dark"] textarea, [data-theme="dark"] select { background: rgba(20,35,55,.9); color: #dcecff; border-color: var(--border-color); }
-
-.chat-msg { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 4px; }
-.chat-msg:not(.consecutive) { margin-top: 16px; }
-.chat-msg.consecutive { margin-top: 0; }
-.chat-msg.right { flex-direction: row-reverse; }
-
-.chat-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: var(--icon-bg); flex-shrink: 0; box-shadow: 0 6px 15px rgba(90,140,200,.18); }
-.chat-avatar-placeholder { width: 44px; height: 0; flex-shrink: 0; background: transparent !important; box-shadow: none !important; border: none !important; }
-
-.chat-content-box { display: flex; flex-direction: column; max-width: 72%; }
-.chat-msg.right .chat-content-box { align-items: flex-end; }
-
-.chat-bubble { min-height: 24px; padding: 12px 16px; border-radius: 22px; font-size: 15px; line-height: 1.6; word-wrap: break-word; box-shadow: 0 6px 18px rgba(90,140,200,.12); cursor: pointer; transition: 0.2s;}
-.chat-bubble:active { opacity: 0.7; }
-.chat-msg.left .chat-bubble { background: linear-gradient(135deg, #ffffff, #edf7ff); color: #33495f; border-top-left-radius: 6px; }
-.chat-msg.right .chat-bubble { background: linear-gradient(135deg, #9dccff, #6fa8dc); color: white; border-top-right-radius: 6px; }
-[data-theme="dark"] .chat-msg.left .chat-bubble { background: var(--chat-left-bg); color: var(--text-main); }
-[data-theme="dark"] .chat-msg.right .chat-bubble { background: var(--chat-right-bg); color: var(--text-main); }
-
-.chat-msg.consecutive .chat-bubble { border-radius: 22px; }
-.chat-msg.left.consecutive .chat-bubble { border-top-left-radius: 6px; }
-.chat-msg.right.consecutive .chat-bubble { border-top-right-radius: 6px; }
-
-.chat-time { display: none !important; }
-
-.chat-bubble:has(.chat-sticker) { background: transparent !important; box-shadow: none !important; padding: 0 !important; font-size: 0 !important; color: transparent !important; }
-.chat-sticker { max-width: 130px; border-radius: 8px; display: block; margin-top: 0 !important; }
-.markdown-body p { margin: 0; padding: 0; }
-.markdown-body em { color: var(--primary-color); font-style: italic; background: rgba(107, 139, 189, 0.1); padding: 0 4px; border-radius: 4px; }
-.chat-msg.right .markdown-body em { color: var(--secondary-color); background: rgba(255,255,255,0.1); }
-.markdown-body img:not(.chat-sticker) { max-width: 100%; border-radius: 8px; display: block; margin-top: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-
-/* 将输入框改为 textarea 支持换行 */
-.chat-input-bar { position: absolute; bottom: 105px; left: 12px; right: 12px; min-height: 54px; background: rgba(255,255,255,.95); border-radius: 27px; display: flex; align-items: center; padding: 10px 16px; gap: 12px; box-shadow: 0 10px 30px rgba(90,140,200,.2); z-index: 10; margin: 0; }
-[data-theme="dark"] .chat-input-bar { background: var(--input-bg); }
-.chat-input-bar textarea { flex: 1; border: none; background: transparent; outline: none; font-size: 15px; color: #33495f; font-family: var(--global-font); resize: none; height: 24px; line-height: 24px; padding: 0; overflow-y: auto; }
-[data-theme="dark"] .chat-input-bar textarea { color: var(--text-main); }
-.chat-input-bar .icon-btn { color: #6fa8dc; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; align-self: flex-end; margin-bottom: 5px;}
-.chat-input-bar .send-btn { display: flex; justify-content: center; align-items: center; color: #fff; background: linear-gradient(135deg, #8bc6ff, #4f81bd); width: 34px; height: 34px; border-radius: 50%; font-size: 16px; margin-left: 5px; box-shadow: 0 5px 15px rgba(80,140,210,.3); margin-bottom: 0; align-self: center;}
-
-.chat-plus-menu { position: absolute; bottom: 170px; left: 10px; right: 10px; background: rgba(255,255,255,.95); border-radius: 26px; padding: 20px 15px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; box-shadow: 0 15px 40px rgba(80,130,200,.2); transform: translateY(20px) scale(0.95); opacity: 0; pointer-events: none; transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1); z-index: 89; }
-[data-theme="dark"] .chat-plus-menu { background: var(--input-bg); }
-.chat-plus-menu.show { transform: translateY(0) scale(1); opacity: 1; pointer-events: auto; }
-.chat-plus-menu .app-icon .icon { width: 50px; height: 50px; font-size: 24px; border-radius: 18px; background: linear-gradient(135deg, #f5fbff, #dceeff); }
-[data-theme="dark"] .chat-plus-menu .app-icon .icon { background: var(--icon-bg); }
-
-.sticker-item { width: calc(25% - 9px); aspect-ratio: 1; border-radius: 18px; overflow: hidden; cursor: pointer; background: rgba(255,255,255,.9); box-shadow: 0 5px 15px rgba(90,140,200,.12); transition: 0.2s; display: flex; justify-content: center; align-items: center; padding: 4px; }
-[data-theme="dark"] .sticker-item { background: var(--icon-bg); }
-.sticker-item:active { transform: scale(0.9); }
-.sticker-item img { width: 100%; height: 100%; object-fit: contain; }
-.sticker-add-btn { width: calc(25% - 9px); aspect-ratio: 1; border-radius: 18px; border: 2px dashed #9dccff; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #6fa8dc; cursor: pointer; transition: 0.2s; }
-.sticker-add-btn:active { background: var(--border-color); }
-
-#toast { position: absolute; top: -150px; left: 50%; transform: translateX(-50%); background: rgba(40,70,100,.9); color: white; padding: 12px 20px; border-radius: 25px; font-size: 13px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: top 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55); z-index: 10005; display: flex; align-items: center; gap: 8px; width: 90%; max-width: 350px; max-height: 80px; overflow: hidden; word-break: break-all; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;}
-#toast.show { top: 50px; }
-
-.typing-indicator { display: flex; align-items: center; gap: 4px; padding: 6px 4px; }
-.typing-dot { width: 6px; height: 6px; background-color: var(--primary-color); border-radius: 50%; animation: typing 1.4s infinite ease-in-out both; }
-.typing-dot:nth-child(1) { animation-delay: -0.32s; }
-.typing-dot:nth-child(2) { animation-delay: -0.16s; }
-@keyframes typing { 0%, 80%, 100% { transform: scale(0); opacity: 0.5; } 40% { transform: scale(1); opacity: 1; } }
-
-.action-sheet-bg { position: absolute; inset: 0; background: rgba(0,0,0,0.4); z-index: 9000; opacity: 0; visibility: hidden; pointer-events: none; transition: 0.3s; }
-.action-sheet-bg.show { opacity: 1; visibility: visible; pointer-events: auto; }
-
-.action-sheet { position: absolute; bottom: 0; left: 0; right: 0; background: var(--window-bg); border-radius: 20px 20px 0 0; z-index: 9001; transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1); padding: 20px 15px 30px 15px; display: flex; flex-direction: column; gap: 10px; transform: translateY(100%); visibility: hidden; opacity: 0; }
-.action-sheet.show { transform: translateY(0); visibility: visible; opacity: 1; }
-.action-btn { background: var(--icon-bg); border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: bold; color: var(--text-main); cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; }
-.action-btn:active { opacity: 0.8; }
-.action-btn.danger { color: var(--danger-color); }
-.action-btn.cancel { background: var(--icon-bg); margin-top: 5px; color: var(--text-sub);}
-
-.app-window { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--window-bg); z-index: 1000; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); display: flex; flex-direction: column; }
-.app-window.open { transform: translateX(0); }
-.app-window-header { display: flex; align-items: center; padding: 45px 20px 15px 20px; background: var(--icon-bg); box-shadow: 0 2px 10px rgba(0,0,0,0.03); z-index: 10;}
-.app-window-back { font-size: 24px; color: var(--primary-color); cursor: pointer; margin-right: 15px; display: flex; align-items: center; padding: 5px; }
-.app-window-title { font-size: 17px; font-weight: bold; color: var(--text-main); }
-.app-window-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 20px; position: relative; }
-.app-window.fullscreen-mode .app-window-header { display: none; }
-.app-window.fullscreen-mode .app-window-content { padding: 0; }
-
-.thought-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -40%) scale(0.9); width: 85%; max-height: 80vh; background: var(--input-bg); border-radius: 24px; padding: 25px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 9001; opacity: 0; visibility: hidden; transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1); display: flex; flex-direction: column; }
-.thought-modal.show { transform: translate(-50%, -50%) scale(1); opacity: 1; visibility: visible; }
-.thought-header { font-size: 16px; font-weight: bold; color: var(--primary-color); display: flex; align-items: center; gap: 8px; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;}
-.thought-content { font-size: 14px; color: var(--text-main); line-height: 1.6; overflow-y: auto; white-space: pre-wrap;}
-
-.vault-tabs { display: flex; background: var(--input-bg); border-radius: 16px; padding: 5px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);}
-.vault-tab { flex: 1; text-align: center; padding: 10px; font-size: 13px; font-weight: bold; color: var(--text-sub); border-radius: 12px; cursor: pointer; transition: 0.3s; }
-.vault-tab.active { background: #fff; color: var(--primary-color); box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-.ev-card { background: rgba(255, 255, 255, 0.85); border: 1px solid rgba(255, 255, 255, 0.8); border-radius: 16px; padding: 15px; margin-bottom: 15px; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 15px rgba(90,140,200,0.1); position: relative;}
-[data-theme="dark"] .ev-card { background: rgba(25, 35, 55, 0.85); border-color: rgba(50, 70, 100, 0.5); }
-.ev-card:active { transform: scale(0.98); }
-.ev-card-header { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-sub); margin-bottom: 10px; border-bottom: 1px dashed var(--border-color); padding-bottom: 5px; }
-.ev-body { font-size: 14px; line-height: 1.6; color: var(--text-main); white-space: pre-wrap; word-break: break-word;}
-.ev-permanent-card .ev-card-header { color: var(--primary-color); font-weight: bold; }
-.ev-empty { text-align: center; color: var(--text-sub); margin-top: 50px; font-size: 14px; }
-.ev-actions { position: absolute; top: 12px; right: 15px; display: flex; gap: 12px; color: var(--text-sub); font-size: 18px; }
-.ev-actions i { cursor: pointer; transition: 0.2s; }
-.ev-actions i:active { transform: scale(0.8); color: var(--primary-color); }
-
-#page-memory { overflow: hidden; padding: 0; }
-.starry-sea-bg { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(ellipse at bottom, #12345a 0%, #06111f 100%); z-index: -1; overflow: hidden; opacity: 0; transition: opacity 1.5s ease-in-out; }
-.starry-sea-bg.show { opacity: 1; }
-.star { position: absolute; background: #fff; border-radius: 50%; animation: twinkle infinite alternate; }
-@keyframes twinkle { 0% { opacity: 0.2; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 8px #fff; } }
-
-.floating-bubbles { position: relative; height: 100%; width: 100%; display: flex; justify-content: center; align-items: center; opacity: 0; transform: translateY(20px); transition: all 1s cubic-bezier(0.25, 1, 0.5, 1); }
-.floating-bubbles.show { opacity: 1; transform: translateY(0); }
-.glass-bubble { position: absolute; width: 110px; height: 110px; border-radius: 50%; background: rgba(130,190,255,.12); backdrop-filter: blur(12px); border: 1px solid rgba(170,220,255,.35); box-shadow: 0 10px 40px rgba(0,0,0,.35), inset 0 0 20px rgba(255,255,255,.15); display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; cursor: pointer; transition: 0.3s; animation: floatBubble 6s ease-in-out infinite; }
-.glass-bubble:active { transform: scale(0.9) !important; }
-.glass-bubble .icon { font-size: 36px; margin-bottom: 6px; color: #e8f6ff; text-shadow: 0 0 15px #8bc6ff; }
-.glass-bubble .text { font-size: 13px; font-weight: bold; letter-spacing: 1px; }
-.bubble-diary { top: 20%; left: 15%; animation-delay: 0s; background: rgba(111,168,220,.22); }
-.bubble-vault { top: 45%; right: 15%; animation-delay: -2s; background: rgba(130,150,255,.2); }
-.bubble-gallery { bottom: 20%; left: 25%; animation-delay: -4s; background: rgba(120,210,255,.18); }
-@keyframes floatBubble { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
-
-.memory-fragment { position: absolute; width: 12px; height: 12px; border-radius: 50%; background: #fff; box-shadow: 0 0 15px 4px rgba(255, 255, 255, 0.6); cursor: pointer; transition: 0.3s; animation: pulseGlow 3s infinite alternate; }
-.memory-fragment:active { transform: scale(1.5); }
-@keyframes pulseGlow { 0% { transform: scale(0.8); opacity: 0.6; box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.4); } 100% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 20px 6px rgba(255, 255, 255, 0.8); } }
-
-.blindbox-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -40%) scale(0.9); width: 85%; max-height: 70vh; overflow-y: auto; background: rgba(30, 35, 45, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 30px 25px; box-shadow: 0 15px 50px rgba(0,0,0,0.5); z-index: 1000; opacity: 0; visibility: hidden; transition: 0.4s cubic-bezier(0.25, 1, 0.5, 1); color: #fff; display: flex; flex-direction: column; align-items: center; text-align: center; }
-.blindbox-modal.show { transform: translate(-50%, -50%) scale(1); opacity: 1; visibility: visible; }
-.blindbox-modal::-webkit-scrollbar { width: 4px; }
-.blindbox-modal::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 4px; }
-.blindbox-icon { font-size: 42px; color: var(--primary-color); margin-bottom: 15px; text-shadow: 0 0 20px rgba(107, 139, 189, 0.5); }
-.blindbox-text { font-family: 'Long Cang', 'Kaiti', 'STKaiti', cursive; font-size: 24px; line-height: 1.6; margin-bottom: 20px; letter-spacing: 1px;}
-.blindbox-meta { font-size: 12px; color: rgba(255,255,255,0.5); font-family: monospace; }
-
-.diary-cover-view { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; align-items: center; background: #081827; z-index: 20; perspective: 1200px; transition: opacity 0.5s 0.8s, visibility 0.5s 0.8s; }
-.diary-cover-view.opened { opacity: 0; visibility: hidden; pointer-events: none; }
-.diary-book-cover { width: 100%; height: 100%; background-image: var(--bg-image-diary-cover); background-size: cover; background-position: center; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; text-shadow: 0 2px 10px rgba(0,0,0,0.5); transform-origin: left center; transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; position: relative; }
-.diary-book-cover.opened { transform: rotateY(-110deg); opacity: 0; transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s 0.5s; }
-.diary-title { font-family: 'Long Cang', cursive; font-size: 38px; letter-spacing: 4px; font-weight: bold; margin-bottom: 10px; }
-.diary-hint { font-size: 12px; color: white; opacity: 0.8; letter-spacing: 1px; animation: pulseGlow 2s infinite alternate; }
-.diary-back-btn { position: absolute; top: 40px; left: 20px; width: 40px; height: 40px; background: rgba(0,0,0,0.3); backdrop-filter: blur(5px); border-radius: 50%; display: flex; justify-content: center; align-items: center; color: #fff; font-size: 24px; cursor: pointer; z-index: 30; }
-
-.diary-inside-view { position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0; transition: opacity 0.8s 0.5s; pointer-events: none; background-image: var(--bg-image-diary-page); background-size: cover; background-position: center; display: flex; flex-direction: column; }
-.diary-inside-view.opened { opacity: 1; pointer-events: auto; }
-.notebook-scroll-area { flex: 1; overflow-y: auto; padding: 80px 30px 20px 30px; } 
-.notebook-scroll-area::-webkit-scrollbar { display: none; }
-.notebook-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid rgba(80,130,180,.35); padding-bottom: 10px; margin-bottom: 20px; color: #333; }
-.notebook-date-wrap { display: flex; flex-direction: column; gap: 5px; }
-.notebook-date { font-size: 24px; font-weight: bold; font-family: 'Georgia', serif; letter-spacing: 1px; color: #4f81bd;}
-.notebook-week { font-size: 14px; font-family: 'Georgia', serif; opacity: 0.8;}
-.notebook-mood { font-size: 24px; }
-.notebook-content { font-family: 'Long Cang', 'Kaiti', 'STKaiti', cursive; font-size: clamp(18px,5vw,23px); line-height: 2.15rem; color: #39536d; text-align: justify; background: repeating-linear-gradient(transparent, transparent calc(2.15rem - 1px), rgba(100,150,200,.18) calc(2.15rem - 1px), rgba(100,150,200,.18) 2.15rem); padding-top: 5px; min-height: 100%; overflow-wrap: anywhere; word-break: break-word;}
-.notebook-content * { max-width: 100%; overflow-wrap: anywhere; }
-.notebook-content img { max-width: 100%; height: auto; }
-.notebook-empty { height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: 'Long Cang', 'Kaiti', 'STKaiti', cursive; font-size: 26px; color: rgba(0,0,0,0.4); text-align: center; }
-
-.page-turner { display: none !important; }
-.page-btn { pointer-events: auto; background: rgba(111,168,220,.15); border: 1px solid rgba(111,168,220,.3); width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; color: #4f81bd; cursor: pointer; transition: 0.2s; backdrop-filter: blur(5px); }
-.page-btn:active { transform: scale(0.9); background: rgba(0,0,0,0.1); }
-
-.gallery-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
-.gallery-item { position: relative; padding-top: 100%; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); cursor: pointer; background: var(--icon-bg); }
-.gallery-item img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
-.gallery-item:active img { transform: scale(1.05); }
-.gallery-del-btn { position: absolute; top: 5px; right: 5px; width: 24px; height: 24px; background: rgba(0,0,0,0.5); color: #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; backdrop-filter: blur(5px); z-index: 2; }
-.image-viewer { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: 0.3s; }
-.image-viewer.show { opacity: 1; visibility: visible; }
-.image-viewer img { max-width: 95%; max-height: 90%; border-radius: 12px; box-shadow: 0 0 30px rgba(0,0,0,0.5); transform: scale(0.9); transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1); }
-.image-viewer.show img { transform: scale(1); }
-.viewer-close { position: absolute; top: 40px; right: 20px; color: #fff; font-size: 32px; cursor: pointer; background: rgba(255,255,255,0.2); width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
-.viewer-download { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 16px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-.viewer-download:active { background: rgba(255,255,255,0.4); }
-
-.settings-tabs { display: flex; background: var(--input-bg); border-radius: 16px; padding: 5px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);}
-.settings-tab { flex: 1; text-align: center; padding: 10px; font-size: 13px; font-weight: bold; color: var(--text-sub); border-radius: 12px; cursor: pointer; transition: 0.3s; }
-.settings-tab.active { background: var(--primary-color); color: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-.set-section { display: none; animation: fadeIn 0.3s ease; }
-.set-section.active { display: block; }
-.engine-title { font-size: 14px; font-weight: bold; color: var(--primary-color); margin-top: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-.preset-bar { display: flex; gap: 10px; margin-bottom: 15px; }
-.preset-bar select { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); }
-.preset-btn { padding: 8px 12px; border-radius: 8px; border: none; background: var(--primary-color); color: #fff; cursor: pointer; font-size: 12px; box-shadow: 0 4px 10px rgba(111,168,220,0.3); }
-.preset-btn.del { background: var(--danger-color); box-shadow: 0 4px 10px rgba(255,123,156,0.3); }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-
-.story-menu { position: absolute; left: 15px; right: 15px; background: var(--input-bg); border-radius: 20px; padding: 15px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); transform: translateY(20px); opacity: 0; pointer-events: none; transition: 0.3s; z-index: 100; border: 1px solid var(--border-color); }
-.story-menu.show { transform: translateY(-10px); opacity: 1; pointer-events: auto; }
-.story-menu-item { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; }
-.story-menu-item .icon { width: 44px; height: 44px; border-radius: 14px; background: var(--icon-bg); display: flex; justify-content: center; align-items: center; font-size: 22px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-.story-menu-item .text { font-size: 11px; color: var(--text-main); }
-.story-textarea { flex: 1; min-height: 40px; max-height: 120px; resize: none; font-family: var(--global-font); font-size: 15px; color: var(--text-main); outline: none; line-height: 1.5; overflow-y: auto; background: transparent; border: none; }
-.story-send-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--text-main); color: var(--window-bg); border: none; display: flex; justify-content: center; align-items: center; font-size: 18px; cursor: pointer; flex-shrink: 0; }
-.story-bg { background-color: var(--story-bg); }
-.story-item { display: flex; gap: 12px; margin-bottom: 20px; }
-.story-item.me { flex-direction: row-reverse; }
-.story-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-.story-content-wrapper { display: flex; flex-direction: column; max-width: 75%; min-width: 0; }
-.story-item.me .story-content-wrapper { align-items: flex-end; }
-.story-name-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-.story-item.me .story-name-row { flex-direction: row-reverse; }
-.story-name { font-size: 12px; color: var(--text-sub); }
-.story-thought-icon { color: var(--primary-color); cursor: pointer; font-size: 14px; }
-.story-bubble { font-size: 15px; line-height: 1.6; color: var(--text-main); text-align: justify; word-wrap: break-word; overflow-wrap: anywhere; min-width: 0; }
-.story-item.me .story-bubble { color: var(--text-main); }
-
-/* 修复朋友圈顶部背景图可替换 */
-.moments-cover { width: calc(100% + 30px); height: 240px; background-size: cover; background-position: center; position: relative; border-radius: 0 0 24px 24px; margin-top: -100px; margin-left: -15px; margin-bottom: 40px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); background-image: var(--bg-image-moments-cover) !important;}
-.moments-cover-info { position: absolute; bottom: -30px; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 20px; z-index: 2; }
-.moments-avatar-wrap { display: flex; align-items: center; gap: 10px; }
-.moments-avatar-wrap img { width: 64px; height: 64px; border-radius: 50%; border: 3px solid var(--window-bg); object-fit: cover; background: var(--icon-bg); box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
-.moments-name { font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-size: 15px; }
-
-.moments-menu-bar { display: flex; gap: 12px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
-.moments-menu-bar::-webkit-scrollbar { display: none; }
-.moments-menu-item { background: var(--card-bg); border: 1px solid var(--border-color); padding: 10px 15px; border-radius: 16px; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: bold; color: var(--text-main); white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.05); cursor: pointer; transition: 0.2s; }
-.moments-menu-item:active { transform: scale(0.95); }
-.moments-menu-item i { font-size: 18px; color: var(--primary-color); }
-.moments-menu-item.active { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
-.moments-menu-item.active i { color: #fff; }
-
-.status-panel { background: var(--card-bg); border-radius: 20px; padding: 15px; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(90,140,200,0.1); border: 1px solid rgba(255,255,255,0.6); display: flex; gap: 15px; }
-[data-theme="dark"] .status-panel { border-color: var(--border-color); }
-.status-half { flex: 1; display: flex; flex-direction: column; gap: 8px; }
-.status-divider { width: 1px; background: var(--border-color); }
-.status-title { font-size: 12px; font-weight: bold; color: var(--primary-color); display: flex; align-items: center; gap: 4px; }
-.status-item { font-size: 11px; color: var(--text-main); display: flex; justify-content: space-between; align-items: center; }
-.tide-bar-bg { flex: 1; height: 6px; background: rgba(0,0,0,0.05); border-radius: 3px; margin-left: 8px; overflow: hidden; }
-[data-theme="dark"] .tide-bar-bg { background: rgba(255,255,255,0.1); }
-.tide-bar-fill { height: 100%; border-radius: 3px; }
-
-.moment-card { background: transparent; border-bottom: 1px solid var(--border-color); padding: 15px 0; display: flex; gap: 12px; }
-.moment-avatar { width: 42px; height: 42px; border-radius: 12px; object-fit: cover; flex-shrink: 0; }
-.moment-body { flex: 1; min-width: 0; }
-.moment-name { font-weight: bold; font-size: 15px; color: var(--secondary-color); margin-bottom: 4px; }
-.moment-text { font-size: 14px; color: var(--text-main); line-height: 1.5; margin-bottom: 8px; word-break: break-word; }
-.moment-img { max-width: 80%; border-radius: 8px; margin-bottom: 8px; }
-.moment-footer { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-sub); }
-.moment-actions { display: flex; gap: 15px; font-size: 16px; color: var(--text-sub); }
-.moment-comments-area { background: rgba(0,0,0,0.03); border-radius: 8px; padding: 8px 10px; margin-top: 10px; font-size: 13px; color: var(--text-main); display: flex; flex-direction: column; gap: 6px; }
-[data-theme="dark"] .moment-comments-area { background: rgba(255,255,255,0.05); }
-.comment-item span.c-name { color: var(--secondary-color); font-weight: bold; }
-
-.fab-post { position: fixed; bottom: 100px; right: 20px; width: 54px; height: 54px; border-radius: 27px; background: linear-gradient(135deg, #8bc6ff, #4f81bd); color: #fff; display: flex; justify-content: center; align-items: center; font-size: 24px; box-shadow: 0 8px 20px rgba(80,140,210,0.4); cursor: pointer; z-index: 50; transition: 0.2s; }
-.fab-post:active { transform: scale(0.9); }
-
-@media(max-width:360px){
-#app-container { max-width:100%; }
-.page { padding-left:12px; padding-right:12px; }
-.chat-bubble { font-size:14px; padding: 10px 14px; }
-.notebook-scroll-area { padding-left:16px; padding-right:16px; }
-}
-
-/* ================= 书架与阅读器专属样式 ================= */
-.bookshelf-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px 15px; padding: 10px 5px; }
-.book-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; position: relative; transition: 0.2s; }
-.book-wrap:active { transform: scale(0.95); }
-
-.book-cover-3d { width: 100%; aspect-ratio: 3/4; border-radius: 4px 12px 12px 4px; box-shadow: inset 4px 0 10px rgba(0,0,0,0.1), 3px 5px 15px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; padding: 10px; position: relative; background: linear-gradient(135deg, #5b86e5, #36d1dc); color: white; text-align: center; font-weight: bold; font-size: 15px; writing-mode: vertical-rl; letter-spacing: 2px; text-shadow: 0 2px 4px rgba(0,0,0,0.3); overflow: hidden; }
-.book-cover-3d::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 12px; background: linear-gradient(90deg, rgba(255,255,255,0.25), rgba(0,0,0,0.15)); border-radius: 4px 0 0 4px; }
-.notebook-special { background: linear-gradient(135deg, #ff9a9e, #fecfef); color: #d6336c; text-shadow: none; }
-
-.book-title-ui { font-size: 12px; font-weight: bold; text-align: center; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--text-main); line-height: 1.4; }
-.book-progress-ui { font-size: 10px; color: var(--text-sub); font-family: monospace; }
-.book-del-btn { position: absolute; top: -10px; right: -10px; background: var(--danger-color); color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; justify-content: center; align-items: center; font-size: 14px; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-
-.highlight-text { background-color: rgba(255, 215, 0, 0.35); border-bottom: 2px solid #ffd700; padding: 0 2px; border-radius: 2px; color: inherit; }
-[data-theme="dark"] .highlight-text { background-color: rgba(255, 215, 0, 0.2); border-bottom-color: rgba(255, 215, 0, 0.6); }
-
-.dual-menu-container { position: fixed; display: none; bottom: 80px; left: 50%; transform: translateX(-50%); background: var(--input-bg); border-radius: 25px; padding: 5px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); border: 1px solid var(--border-color); z-index: 2000; align-items: center; gap: 5px; }
-.dual-menu-btn { background: none; border: none; padding: 8px 16px; font-size: 13px; font-weight: bold; border-radius: 20px; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: 0.2s; }
-.dual-menu-btn.discuss { color: #fff; background: linear-gradient(135deg, #8bc6ff, #4f81bd); }
-.dual-menu-btn.highlight { color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
-
-/* 晋江式段评抽屉与徽标 - 极致精简版 */
-.comment-badge {
-    display: inline-flex !important;
-    align-items: center;
-    justify-content: center;
-    background: rgba(106, 168, 220, 0.15) !important;
-    color: var(--primary-color, #6aa8dc) !important;
-    border: 1px solid rgba(106, 168, 220, 0.3) !important;
-    border-radius: 12px !important;
-    padding: 2px 8px !important;
-    font-size: 12px !important;
-    margin-left: 6px;
-    cursor: pointer;
-    vertical-align: baseline !important;
-    line-height: 1.2 !important;
-    pointer-events: auto !important;
-    position: relative !important;
-    z-index: 100 !important;
-    user-select: none;
-    width: auto !important;
-    box-sizing: border-box;
-}
-.comment-badge i {
-    margin-right: 4px;
-    font-size: 13px !important;
-}
-.comment-badge:active {
-    transform: scale(0.9) !important;
-    background: rgba(106, 168, 220, 0.3) !important;
-}
-
-.para-drawer-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2400; opacity: 0; visibility: hidden; transition: 0.3s; }
-.para-drawer-bg.show { opacity: 1; visibility: visible; }
-.para-drawer { position: fixed; bottom: 0; left: 0; right: 0; height: 68vh; background: var(--window-bg); border-radius: 24px 24px 0 0; box-shadow: 0 -5px 30px rgba(0,0,0,0.2); z-index: 2500; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); }
-.para-drawer.open { transform: translateY(0); }
-.para-quote-box { padding: 12px 16px; background: rgba(0,0,0,0.03); border-left: 3px solid var(--primary-color); font-size: 13px; color: var(--text-sub); line-height: 1.5; font-style: italic; max-height: 60px; overflow-y: auto; }
-.para-chat-list { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
-.para-input-bar { padding: 10px 15px 20px 15px; background: var(--icon-bg); display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--border-color); }
-</style>
 </head>
 <body>
 
 <input type="file" id="global-file-input" accept="image/*" style="display:none">
 <div id="toast"><i class="ph-fill ph-check-circle" style="color: #4ade80;"></i> <span id="toast-msg">提示</span></div>
 
+<!-- ================= API 弹窗 ================= -->
 <div id="api-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeApiModal()"></div>
 <div id="api-modal" class="api-modal thought-modal">
-<div class="thought-header"><i class="ph-fill ph-cpu"></i> 系统控制舱</div>
-<div style="margin-bottom: 15px;">
-<label style="font-size: 12px; color: var(--text-sub);">秒切主引擎 (聊天/小说)</label>
-<select id="quick-main-engine" onchange="window.PhoneAPI.assignEngine('main', this.value)" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 5px;"></select>
-</div>
-<div class="card" style="padding: 15px; margin-bottom: 15px; background: var(--icon-bg);">
-<div style="font-size: 12px; color: var(--text-sub); margin-bottom: 5px;">上一次 API 状态：</div>
-<div id="api-status-text" style="font-size: 14px; font-weight: bold; color: var(--text-main); word-break: break-all;">待命</div>
-<div style="font-size: 12px; color: var(--text-sub); margin-top: 10px; margin-bottom: 5px;">消耗 Token 与缓存：</div>
-<div id="api-token-text" style="font-size: 12px; font-family: monospace; color: var(--primary-color); white-space: pre-wrap; line-height: 1.6;">0</div>
-</div>
-<button class="btn-refresh" onclick="window.PhoneEngine.cleanStuckTyping(); window.PhoneUI.closeApiModal();" style="background: var(--danger-color); margin-top: 0;">
-<i class="ph-fill ph-warning"></i> 一键解除“...”卡死
-</button>
+    <div class="thought-header"><i class="ph-fill ph-cpu"></i> 系统控制舱</div>
+    <div style="margin-bottom: 15px;">
+        <label style="font-size: 12px; color: var(--text-sub);">秒切主引擎 (聊天/小说)</label>
+        <select id="quick-main-engine" onchange="window.PhoneAPI.assignEngine('main', this.value)" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 5px;"></select>
+    </div>
+    <div class="card" style="padding: 15px; margin-bottom: 15px; background: var(--icon-bg);">
+        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 5px;">上一次 API 状态：</div>
+        <div id="api-status-text" style="font-size: 14px; font-weight: bold; color: var(--text-main); word-break: break-all;">待命</div>
+        <div style="font-size: 12px; color: var(--text-sub); margin-top: 10px; margin-bottom: 5px;">消耗 Token 与缓存：</div>
+        <div id="api-token-text" style="font-size: 12px; font-family: monospace; color: var(--primary-color); white-space: pre-wrap; line-height: 1.6;">0</div>
+    </div>
+    <button class="btn-refresh" onclick="window.PhoneEngine.cleanStuckTyping(); window.PhoneUI.closeApiModal();" style="background: var(--danger-color); margin-top: 0;">
+        <i class="ph-fill ph-warning"></i> 一键解除“...”卡死
+    </button>
 </div>
 
+<!-- ================= 其他全局弹窗 ================= -->
 <div id="cd-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeCdSheet()"></div>
 <div id="cd-modal" class="thought-modal" style="padding: 20px;">
-<div class="thought-header"><i class="ph-fill ph-calendar-star"></i> 编辑倒数日</div>
-<div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
-    <input type="text" id="cd-in-title" placeholder="标题 (如: 见到你)" maxlength="12" style="padding: 10px; border-radius: 8px;">
-    <div style="display: flex; gap: 10px;">
-        <input type="text" id="cd-in-pre" placeholder="前缀 (如: 还有)" maxlength="6" style="flex: 1; padding: 10px; border-radius: 8px;">
-        <input type="text" id="cd-in-suf" placeholder="后缀 (如: 天)" maxlength="6" style="flex: 1; padding: 10px; border-radius: 8px;">
+    <div class="thought-header"><i class="ph-fill ph-calendar-star"></i> 编辑倒数日</div>
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+        <input type="text" id="cd-in-title" placeholder="标题 (如: 见到你)" maxlength="12" style="padding: 10px; border-radius: 8px;">
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="cd-in-pre" placeholder="前缀 (如: 还有)" maxlength="6" style="flex: 1; padding: 10px; border-radius: 8px;">
+            <input type="text" id="cd-in-suf" placeholder="后缀 (如: 天)" maxlength="6" style="flex: 1; padding: 10px; border-radius: 8px;">
+        </div>
+        <input type="date" id="cd-in-date" style="padding: 10px; border-radius: 8px;">
     </div>
-    <input type="date" id="cd-in-date" style="padding: 10px; border-radius: 8px;">
-</div>
-<div style="display: flex; gap: 10px;">
-<button class="btn-refresh" onclick="window.PhoneUI.closeCdSheet()" style="flex: 1; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0; box-shadow: none;">取消</button>
-<button class="btn-refresh" onclick="window.PhoneUI.saveCdSheet()" style="flex: 1; margin-top: 0;">保存</button>
-</div>
+    <div style="display: flex; gap: 10px;">
+        <button class="btn-refresh" onclick="window.PhoneUI.closeCdSheet()" style="flex: 1; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0; box-shadow: none;">取消</button>
+        <button class="btn-refresh" onclick="window.PhoneUI.saveCdSheet()" style="flex: 1; margin-top: 0;">保存</button>
+    </div>
 </div>
 
 <div id="wb-toggle-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeWbToggleModal()"></div>
 <div id="wb-toggle-modal" class="thought-modal" style="padding: 20px; max-height: 70vh; z-index: 9001;">
-<div class="thought-header" id="wb-toggle-title"><i class="ph-fill ph-puzzle-piece"></i> 规则插件挂载</div>
-<div id="wb-toggle-list" style="overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; max-height: 40vh;"></div>
-<button class="btn-refresh" onclick="window.PhoneUI.closeWbToggleModal()" style="margin-top: 0;">完成</button>
+    <div class="thought-header" id="wb-toggle-title"><i class="ph-fill ph-puzzle-piece"></i> 规则插件挂载</div>
+    <div id="wb-toggle-list" style="overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; max-height: 40vh;"></div>
+    <button class="btn-refresh" onclick="window.PhoneUI.closeWbToggleModal()" style="margin-top: 0;">完成</button>
 </div>
 
 <div id="note-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeNoteModal()"></div>
 <div id="note-modal" class="thought-modal" style="padding: 20px; z-index: 9001;">
-<div class="thought-header"><i class="ph-fill ph-paper-plane-tilt"></i> 传纸条</div>
-<textarea id="note-input" placeholder="写下你想对TA说的话..." style="width: 100%; height: 120px; padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 18px; font-family: 'Long Cang', 'Kaiti', cursive; resize: none; outline: none; margin-bottom: 15px;"></textarea>
-<div style="display: flex; gap: 10px;">
-<button class="btn-refresh" onclick="window.PhoneUI.closeNoteModal()" style="flex: 1; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0; box-shadow: none;">取消</button>
-<button class="btn-refresh" onclick="window.PhoneUI.sendNote()" style="flex: 1; margin-top: 0;">悄悄递出</button>
-</div>
+    <div class="thought-header"><i class="ph-fill ph-paper-plane-tilt"></i> 传纸条</div>
+    <textarea id="note-input" placeholder="写下你想对TA说的话..." style="width: 100%; height: 120px; padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 18px; font-family: 'Long Cang', 'Kaiti', cursive; resize: none; outline: none; margin-bottom: 15px;"></textarea>
+    <div style="display: flex; gap: 10px;">
+        <button class="btn-refresh" onclick="window.PhoneUI.closeNoteModal()" style="flex: 1; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0; box-shadow: none;">取消</button>
+        <button class="btn-refresh" onclick="window.PhoneUI.sendNote()" style="flex: 1; margin-top: 0;">悄悄递出</button>
+    </div>
 </div>
 
 <div id="playlist-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.togglePlaylist()"></div>
 <div id="playlist-modal" class="thought-modal" style="padding: 20px; z-index: 9001;">
-<div class="thought-header"><span><i class="ph-fill ph-playlist"></i> 共听歌单</span></div>
-<div id="playlist-container" style="max-height: 50vh; overflow-y: auto;"></div>
-<button class="btn-refresh" onclick="window.PhoneUI.togglePlaylist()" style="margin-top: 15px;">关闭</button>
+    <div class="thought-header"><span><i class="ph-fill ph-playlist"></i> 共听歌单</span></div>
+    <div id="playlist-container" style="max-height: 50vh; overflow-y: auto;"></div>
+    <button class="btn-refresh" onclick="window.PhoneUI.togglePlaylist()" style="margin-top: 15px;">关闭</button>
 </div>
 
 <audio id="shared-audio-player" src=""></audio>
 
+<!-- ================= 主应用容器 ================= -->
 <div id="app-container">
-<div class="top-bar">
-    <div style="display: flex; gap: 10px;">
-        <div class="menu-btn" onclick="window.PhoneUI.toggleTheme()"><i class="ph-fill ph-moon" id="theme-icon"></i></div>
-        <div class="menu-btn api-btn" id="api-fab" onclick="window.PhoneUI.openApiModal()"><i class="ph-fill ph-cpu"></i></div>
+    <div class="top-bar">
+        <div style="display: flex; gap: 10px;">
+            <div class="menu-btn" onclick="window.PhoneUI.toggleTheme()"><i class="ph-fill ph-moon" id="theme-icon"></i></div>
+            <div class="menu-btn api-btn" id="api-fab" onclick="window.PhoneUI.openApiModal()"><i class="ph-fill ph-cpu"></i></div>
+        </div>
+        <div class="title" id="top-title">Claire & Claude</div>
+        <div class="heart"><i class="ph-fill ph-heart"></i> 100%</div>
     </div>
-    <div class="title" id="top-title">Claire & Claude</div>
-    <div class="heart"><i class="ph-fill ph-heart"></i> 100%</div>
-</div>
 
-<div class="page-container" id="scroll-box">
-
-<div id="page-home" class="page">
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-        <div class="neo-card" style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px 10px;">
-            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 12px;">
-                <img id="home-my-avatar" class="long-pressable" data-img="my_avatar" src="https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa" style="width: 42px; height: 42px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; cursor: pointer;">
-                <i class="ph-fill ph-heart" style="color: var(--danger-color); font-size: 18px; animation: heartbeat 1.5s infinite;"></i>
-                <img id="home-ta-avatar" class="long-pressable" data-img="ta_avatar" src="https://api.dicebear.com/7.x/notionists/svg?seed=TA&backgroundColor=e8f0fa" style="width: 42px; height: 42px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; cursor: pointer;">
-            </div>
-            <div style="font-size: 11px; color: var(--text-sub); font-weight: bold;">我们已经相爱了</div>
-            <div style="display: flex; align-items: baseline; gap: 4px; margin-top: 4px;">
-                <span id="home-love-days" style="font-size: 32px; font-weight: 800; color: var(--primary-color);">0</span>
-                <span style="font-size: 12px; color: var(--text-sub); font-weight: bold;">天</span>
-            </div>
-        </div>
-        <div class="neo-card" style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 15px 10px;">
-            <div id="home-time" style="font-size: 32px; font-weight: bold; color: var(--text-main); letter-spacing: 1px;">00:00</div>
-            <div id="home-date" style="font-size: 10px; color: var(--text-sub); font-weight: bold; margin-bottom: 5px;">2026.09.19</div>
-            <div id="home-cal-grid" class="mini-cal"></div>
-        </div>
-    </div>
-    <div class="neo-card polaroid-widget long-pressable" data-img="home_polaroid" style="margin-bottom: 16px;">
-        <img id="polaroid-img" class="polaroid-photo" src="https://images.unsplash.com/photo-1522093007474-d86e9bf7ba6f?q=80&w=600&auto=format&fit=crop">
-        <div class="polaroid-text" id="polaroid-text">“回忆正在加载中...”</div>
-    </div>
-    <div class="neo-card countdown-widget" onclick="window.PhoneUI.openCdSheet()" style="margin-bottom: 16px;">
-        <div class="cd-left">
-            <div class="cd-title" id="cd-title-display">见到你</div>
-            <div class="cd-date" id="cd-date-display">2025.05.09</div>
-        </div>
-        <div class="cd-right">
-            <span class="cd-suf" id="cd-pre-display">还有</span>
-            <span class="cd-num" id="cd-num-display">27</span>
-            <span class="cd-suf" id="cd-suf-display">天</span>
-        </div>
-    </div>
-    <div class="neo-card note-widget" onclick="window.PhoneUI.openNoteModal()" style="margin-bottom: 20px;">
-        <div class="note-tape"></div>
-        <div class="note-header">
-            <i class="ph-fill ph-paper-plane-tilt" style="color: var(--primary-color); font-size: 16px;"></i>
-            <span id="note-status">TA 悄悄塞给你一张纸条...</span>
-        </div>
-        <div class="note-content" id="note-content">“今天也要开心哦！”</div>
-    </div>
-    <div class="app-grid">
-        <div class="app-icon" onclick="window.PhoneUI.openApp('novel', '线下故事')">
-            <div class="icon neo-card"><i class="ph-fill ph-book-open" style="color: var(--text-sub);"></i></div>
-            <div class="name">线下故事</div>
-        </div>
-        <div class="app-icon" onclick="window.PhoneUI.openApp('worldbook', '世界书')">
-            <div class="icon neo-card"><i class="ph-fill ph-globe-hemisphere-west" style="color: #f4a261;"></i></div>
-            <div class="name">世界书</div>
-        </div>
-        <div class="app-icon" onclick="window.PhoneUI.openApp('settings', '系统设置')">
-            <div class="icon neo-card"><i class="ph-fill ph-gear" style="color: var(--primary-color);"></i></div>
-            <div class="name">系统设置</div>
-        </div>
-    </div>
-</div>
-
-<div id="page-memory" class="page">
-<div class="starry-sea-bg" id="starry-sea-bg"></div>
-<div class="floating-bubbles" id="floating-bubbles">
-<div class="glass-bubble bubble-diary" onclick="window.PhoneUI.openApp('diary', '他的日记')">
-<i class="ph-fill ph-book-bookmark icon"></i>
-<span class="text">日记</span>
-</div>
-<div class="glass-bubble bubble-vault" onclick="window.PhoneUI.openApp('memory_vault', 'EchoVault 记忆库')">
-<i class="ph-fill ph-database icon"></i>
-<span class="text">记忆库</span>
-</div>
-<div class="glass-bubble bubble-gallery" onclick="window.PhoneUI.openApp('gallery', '回忆相册')">
-<i class="ph-fill ph-polaroid-camera icon"></i>
-<span class="text">相册</span>
-</div>
-</div>
-<div id="memory-fragments-container"></div>
-</div>
-
-<div id="page-chat" class="page">
-<div id="app-content-list"></div>
-
-<div id="sticker-panel" class="chat-plus-menu" style="display: flex; flex-wrap: wrap; justify-content: flex-start; align-content: flex-start; padding: 15px; gap: 12px; overflow-y: auto; max-height: 280px; z-index: 89;"></div>
-
-<div id="chat-plus-menu" class="chat-plus-menu" style="grid-template-columns: repeat(4, 1fr);">
-<div class="app-icon" onclick="window.PhoneEngine.sendImageMsg();">
-<div class="icon"><i class="ph-fill ph-image" style="color: #4ade80;"></i></div>
-<div class="name">发图片</div>
-</div>
-<div class="app-icon" onclick="window.PhoneEngine.sendFileMsg();">
-<div class="icon"><i class="ph-fill ph-file-text" style="color: #60a5fa;"></i></div>
-<div class="name">发文件</div>
-</div>
-<div class="app-icon" onclick="window.PhoneUI.openWbToggleModal('online'); window.PhoneUI.closeChatMenu();">
-<div class="icon"><i class="ph-fill ph-puzzle-piece" style="color: #2a9d8f;"></i></div>
-<div class="name">规则挂载</div>
-</div>
-<div class="app-icon" onclick="window.PhoneEngine.extractMemory('wechat'); window.PhoneUI.closeChatMenu();">
-<div class="icon"><i class="ph-fill ph-brain" style="color: #a78bfa;"></i></div>
-<div class="name">提取记忆</div>
-</div>
-<div class="app-icon" onclick="window.PhoneEngine.washMemory('wechat'); window.PhoneUI.closeChatMenu();">
-<div class="icon"><i class="ph-fill ph-broom" style="color: #f4a261;"></i></div>
-<div class="name">记忆洗地</div>
-</div>
-</div>
-
-<!-- 修复输入框：改为 div 和 textarea，回车换行，点击发送按钮发送 -->
-<div class="chat-input-bar">
-<div class="icon-btn" onclick="window.PhoneUI.toggleChatMenu()" id="btn-plus"><i class="ph ph-plus-circle"></i></div>
-<textarea id="chat-input" placeholder="宝宝，说话..." onclick="window.PhoneUI.closeChatMenu(); window.PhoneUI.closeStickerPanel();"></textarea>
-<div class="icon-btn" style="font-size: 22px;" onclick="window.PhoneUI.toggleStickerPanel()"><i class="ph ph-smiley"></i></div>
-<div class="icon-btn send-btn" onclick="window.PhoneEngine.sendChatMessage(); window.PhoneUI.closeChatMenu(); window.PhoneUI.closeStickerPanel();"><i class="ph-fill ph-paper-plane-right"></i></div>
-</div>
-</div>
-
-<div id="page-together" class="page" style="background: var(--bg-gradient-start);">
-    <div style="padding: 60px 20px 20px; text-align: center; color: var(--text-main);">
-        <div id="music-title" style="font-size: 22px; font-weight: bold;">等待点歌...</div>
-        <div id="music-artist" style="font-size: 14px; color: var(--text-sub); margin-top: 5px;">-</div>
-    </div>
-    <div style="flex:1; display:flex; justify-content:center; align-items:center;">
-        <div style="width: 250px; height: 250px; border-radius: 50%; background: linear-gradient(135deg, #e8f4ff, #cde3ff); border: 6px solid #fff; box-shadow: 0 10px 30px rgba(90,140,200,0.2); display:flex; justify-content:center; align-items:center;">
-            <img id="music-cover" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=1000&auto=format&fit=crop" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 4px solid #fff;">
-        </div>
-    </div>
-    <div style="padding: 20px 30px 120px; color: var(--primary-color); z-index: 10; position: relative;">
-        <div style="display:flex; align-items:center; gap:12px; font-size:11px; margin-bottom: 25px; font-family: monospace;">
-            <span id="music-curr">00:00</span>
-            <div style="flex:1; height:4px; background:rgba(111,168,220,0.2); border-radius:2px; position:relative; cursor: pointer;">
-                <div id="music-progress" style="width:0%; height:100%; background:var(--primary-color); border-radius:2px; position:relative;">
-                    <div style="position:absolute; right:-5px; top:-3px; width:10px; height:10px; background:var(--primary-color); border-radius:50%; box-shadow:0 0 5px rgba(111,168,220,0.5);"></div>
+    <div class="page-container" id="scroll-box">
+        
+        <!-- 首页 -->
+        <div id="page-home" class="page">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div class="neo-card" style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px 10px;">
+                    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 12px;">
+                        <img id="home-my-avatar" class="long-pressable" data-img="my_avatar" src="https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa" style="width: 42px; height: 42px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; cursor: pointer;">
+                        <i class="ph-fill ph-heart" style="color: var(--danger-color); font-size: 18px; animation: heartbeat 1.5s infinite;"></i>
+                        <img id="home-ta-avatar" class="long-pressable" data-img="ta_avatar" src="https://api.dicebear.com/7.x/notionists/svg?seed=TA&backgroundColor=e8f0fa" style="width: 42px; height: 42px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; cursor: pointer;">
+                    </div>
+                    <div style="font-size: 11px; color: var(--text-sub); font-weight: bold;">我们已经相爱了</div>
+                    <div style="display: flex; align-items: baseline; gap: 4px; margin-top: 4px;">
+                        <span id="home-love-days" style="font-size: 32px; font-weight: 800; color: var(--primary-color);">0</span>
+                        <span style="font-size: 12px; color: var(--text-sub); font-weight: bold;">天</span>
+                    </div>
+                </div>
+                <div class="neo-card" style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 15px 10px;">
+                    <div id="home-time" style="font-size: 32px; font-weight: bold; color: var(--text-main); letter-spacing: 1px;">00:00</div>
+                    <div id="home-date" style="font-size: 10px; color: var(--text-sub); font-weight: bold; margin-bottom: 5px;">2026.09.19</div>
+                    <div id="home-cal-grid" class="mini-cal"></div>
                 </div>
             </div>
-            <span id="music-dur">00:00</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; font-size:28px;">
-            <i class="ph ph-heart" style="font-size:24px; cursor:pointer;" onclick="if(window.PhoneAPI) window.PhoneAPI.showToast('已收藏到星海！')"></i>
-            <i class="ph-fill ph-skip-back" style="cursor:pointer;" onclick="if(window.PhoneAPI) window.PhoneAPI.showToast('暂无上一首')"></i>
-            <div id="play-btn" onclick="togglePlayUI()" style="width:64px; height:64px; border-radius:50%; background:#fff; display:flex; justify-content:center; align-items:center; cursor:pointer; box-shadow: 0 8px 20px rgba(90,140,200,0.2);">
-                <i class="ph-fill ph-play" id="play-icon" style="margin-left: 4px;"></i>
+            <div class="neo-card polaroid-widget long-pressable" data-img="home_polaroid" style="margin-bottom: 16px;">
+                <img id="polaroid-img" class="polaroid-photo" src="https://images.unsplash.com/photo-1522093007474-d86e9bf7ba6f?q=80&w=600&auto=format&fit=crop">
+                <div class="polaroid-text" id="polaroid-text">“回忆正在加载中...”</div>
             </div>
-            <i class="ph-fill ph-skip-forward" style="cursor:pointer;" onclick="if(window.PhoneAPI) window.PhoneAPI.showToast('请让 AI 为你切歌')"></i>
-            <i class="ph ph-list" style="font-size:24px; cursor:pointer;" onclick="if(window.PhoneUI) window.PhoneUI.togglePlaylist()"></i>
+            <div class="neo-card countdown-widget" onclick="window.PhoneUI.openCdSheet()" style="margin-bottom: 16px;">
+                <div class="cd-left">
+                    <div class="cd-title" id="cd-title-display">见到你</div>
+                    <div class="cd-date" id="cd-date-display">2025.05.09</div>
+                </div>
+                <div class="cd-right">
+                    <span class="cd-suf" id="cd-pre-display">还有</span>
+                    <span class="cd-num" id="cd-num-display">27</span>
+                    <span class="cd-suf" id="cd-suf-display">天</span>
+                </div>
+            </div>
+            <div class="neo-card note-widget" onclick="window.PhoneUI.openNoteModal()" style="margin-bottom: 20px;">
+                <div class="note-tape"></div>
+                <div class="note-header">
+                    <i class="ph-fill ph-paper-plane-tilt" style="color: var(--primary-color); font-size: 16px;"></i>
+                    <span id="note-status">TA 悄悄塞给你一张纸条...</span>
+                </div>
+                <div class="note-content" id="note-content">“今天也要开心哦！”</div>
+            </div>
+            <div class="app-grid">
+                <div class="app-icon" onclick="window.PhoneUI.openApp('novel', '线下故事')">
+                    <div class="icon neo-card"><i class="ph-fill ph-book-open" style="color: var(--text-sub);"></i></div>
+                    <div class="name">线下故事</div>
+                </div>
+                <div class="app-icon" onclick="window.PhoneUI.openApp('worldbook', '世界书')">
+                    <div class="icon neo-card"><i class="ph-fill ph-globe-hemisphere-west" style="color: #f4a261;"></i></div>
+                    <div class="name">世界书</div>
+                </div>
+                <div class="app-icon" onclick="window.PhoneUI.openApp('settings', '系统设置')">
+                    <div class="icon neo-card"><i class="ph-fill ph-gear" style="color: var(--primary-color);"></i></div>
+                    <div class="name">系统设置</div>
+                </div>
+            </div>
         </div>
+
+        <!-- 记忆海 -->
+        <div id="page-memory" class="page">
+            <div class="starry-sea-bg" id="starry-sea-bg"></div>
+            <div class="floating-bubbles" id="floating-bubbles">
+                <div class="glass-bubble bubble-diary" onclick="window.PhoneUI.openApp('diary', '他的日记')">
+                    <i class="ph-fill ph-book-bookmark icon"></i>
+                    <span class="text">日记</span>
+                </div>
+                <div class="glass-bubble bubble-vault" onclick="window.PhoneUI.openApp('memory_vault', 'EchoVault 记忆库')">
+                    <i class="ph-fill ph-database icon"></i>
+                    <span class="text">记忆库</span>
+                </div>
+                <div class="glass-bubble bubble-gallery" onclick="window.PhoneUI.openApp('gallery', '回忆相册')">
+                    <i class="ph-fill ph-polaroid-camera icon"></i>
+                    <span class="text">相册</span>
+                </div>
+            </div>
+            <div id="memory-fragments-container"></div>
+        </div>
+
+        <!-- 聊天页 -->
+        <div id="page-chat" class="page">
+            <div id="app-content-list"></div>
+
+            <div id="sticker-panel" class="chat-plus-menu" style="display: flex; flex-wrap: wrap; justify-content: flex-start; align-content: flex-start; padding: 15px; gap: 12px; overflow-y: auto; max-height: 280px; z-index: 89;"></div>
+
+            <div id="chat-plus-menu" class="chat-plus-menu" style="grid-template-columns: repeat(4, 1fr);">
+                <div class="app-icon" onclick="window.PhoneEngine.sendImageMsg();">
+                    <div class="icon"><i class="ph-fill ph-image" style="color: #4ade80;"></i></div>
+                    <div class="name">发图片</div>
+                </div>
+                <div class="app-icon" onclick="window.PhoneEngine.sendFileMsg();">
+                    <div class="icon"><i class="ph-fill ph-file-text" style="color: #60a5fa;"></i></div>
+                    <div class="name">发文件</div>
+                </div>
+                <div class="app-icon" onclick="window.PhoneUI.openWbToggleModal('online'); window.PhoneUI.closeChatMenu();">
+                    <div class="icon"><i class="ph-fill ph-puzzle-piece" style="color: #2a9d8f;"></i></div>
+                    <div class="name">规则挂载</div>
+                </div>
+                <div class="app-icon" onclick="window.PhoneEngine.extractMemory('wechat'); window.PhoneUI.closeChatMenu();">
+                    <div class="icon"><i class="ph-fill ph-brain" style="color: #a78bfa;"></i></div>
+                    <div class="name">提取记忆</div>
+                </div>
+                <div class="app-icon" onclick="window.PhoneEngine.washMemory('wechat'); window.PhoneUI.closeChatMenu();">
+                    <div class="icon"><i class="ph-fill ph-broom" style="color: #f4a261;"></i></div>
+                    <div class="name">记忆洗地</div>
+                </div>
+            </div>
+
+            <!-- 修复后的换行输入框 -->
+            <div class="chat-input-bar">
+                <div class="icon-btn" onclick="window.PhoneUI.toggleChatMenu()" id="btn-plus"><i class="ph ph-plus-circle"></i></div>
+                <textarea id="chat-input" placeholder="宝宝，说话..." onclick="window.PhoneUI.closeChatMenu(); window.PhoneUI.closeStickerPanel();"></textarea>
+                <div class="icon-btn" style="font-size: 22px;" onclick="window.PhoneUI.toggleStickerPanel()"><i class="ph ph-smiley"></i></div>
+                <div class="icon-btn send-btn" onclick="window.PhoneEngine.sendChatMessage(); window.PhoneUI.closeChatMenu(); window.PhoneUI.closeStickerPanel();"><i class="ph-fill ph-paper-plane-right"></i></div>
+            </div>
+        </div>
+
+        <!-- 共听页 -->
+        <div id="page-together" class="page" style="background: var(--bg-gradient-start);">
+            <div style="padding: 60px 20px 20px; text-align: center; color: var(--text-main);">
+                <div id="music-title" style="font-size: 22px; font-weight: bold;">等待点歌...</div>
+                <div id="music-artist" style="font-size: 14px; color: var(--text-sub); margin-top: 5px;">-</div>
+            </div>
+            <div style="flex:1; display:flex; justify-content:center; align-items:center;">
+                <div style="width: 250px; height: 250px; border-radius: 50%; background: linear-gradient(135deg, #e8f4ff, #cde3ff); border: 6px solid #fff; box-shadow: 0 10px 30px rgba(90,140,200,0.2); display:flex; justify-content:center; align-items:center;">
+                    <img id="music-cover" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=1000&auto=format&fit=crop" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 4px solid #fff;">
+                </div>
+            </div>
+            <div style="padding: 20px 30px 120px; color: var(--primary-color); z-index: 10; position: relative;">
+                <div style="display:flex; align-items:center; gap:12px; font-size:11px; margin-bottom: 25px; font-family: monospace;">
+                    <span id="music-curr">00:00</span>
+                    <div style="flex:1; height:4px; background:rgba(111,168,220,0.2); border-radius:2px; position:relative; cursor: pointer;">
+                        <div id="music-progress" style="width:0%; height:100%; background:var(--primary-color); border-radius:2px; position:relative;">
+                            <div style="position:absolute; right:-5px; top:-3px; width:10px; height:10px; background:var(--primary-color); border-radius:50%; box-shadow:0 0 5px rgba(111,168,220,0.5);"></div>
+                        </div>
+                    </div>
+                    <span id="music-dur">00:00</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:28px;">
+                    <i class="ph ph-heart" style="font-size:24px; cursor:pointer;" onclick="if(window.PhoneAPI) window.PhoneAPI.showToast('已收藏到星海！')"></i>
+                    <i class="ph-fill ph-skip-back" style="cursor:pointer;" onclick="if(window.PhoneAPI) window.PhoneAPI.showToast('暂无上一首')"></i>
+                    <div id="play-btn" onclick="togglePlayUI()" style="width:64px; height:64px; border-radius:50%; background:#fff; display:flex; justify-content:center; align-items:center; cursor:pointer; box-shadow: 0 8px 20px rgba(90,140,200,0.2);">
+                        <i class="ph-fill ph-play" id="play-icon" style="margin-left: 4px;"></i>
+                    </div>
+                    <i class="ph-fill ph-skip-forward" style="cursor:pointer;" onclick="if(window.PhoneAPI) window.PhoneAPI.showToast('请让 AI 为你切歌')"></i>
+                    <i class="ph ph-list" style="font-size:24px; cursor:pointer;" onclick="if(window.PhoneUI) window.PhoneUI.togglePlaylist()"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- 朋友圈页 -->
+        <div id="page-moments" class="page">
+            <div id="moments-content-area"></div>
+            <div class="fab-post" onclick="window.PhoneUI.openPostModal()"><i class="ph ph-camera"></i></div>
+        </div>
+
+    </div>
+
+    <!-- 底部导航 -->
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="switchTab(0)"><div class="icon"><i class="ph ph-house"></i></div><div class="text">Home</div></div>
+        <div class="nav-item" onclick="switchTab(1)"><div class="icon"><i class="ph ph-images"></i></div><div class="text">Memory</div></div>
+        <div class="nav-item center-btn" onclick="switchTab(2)"><div class="center-circle"><div class="icon"><i class="ph-fill ph-chat-circle-dots"></i></div></div></div>
+        <div class="nav-item" onclick="switchTab(3)"><div class="icon"><i class="ph ph-headphones"></i></div><div class="text">Together</div></div>
+        <div class="nav-item" onclick="switchTab(4)"><div class="icon"><i class="ph ph-planet"></i></div><div class="text">Space</div></div>
     </div>
 </div>
 
-<div id="page-moments" class="page">
-    <div id="moments-content-area"></div>
-    <div class="fab-post" onclick="window.PhoneUI.openPostModal()"><i class="ph ph-camera"></i></div>
-</div>
-
-</div>
-
-<div class="bottom-nav">
-<div class="nav-item active" onclick="switchTab(0)"><div class="icon"><i class="ph ph-house"></i></div><div class="text">Home</div></div>
-<div class="nav-item" onclick="switchTab(1)"><div class="icon"><i class="ph ph-images"></i></div><div class="text">Memory</div></div>
-<div class="nav-item center-btn" onclick="switchTab(2)"><div class="center-circle"><div class="icon"><i class="ph-fill ph-chat-circle-dots"></i></div></div></div>
-<div class="nav-item" onclick="switchTab(3)"><div class="icon"><i class="ph ph-headphones"></i></div><div class="text">Together</div></div>
-<div class="nav-item" onclick="switchTab(4)"><div class="icon"><i class="ph ph-planet"></i></div><div class="text">Space</div></div>
-</div>
-
+<!-- ================= 各种操作抽屉 ================= -->
 <div id="action-bg" class="action-sheet-bg" onclick="window.PhoneEngine.closeMsgMenu()"></div>
 <div id="action-sheet" class="action-sheet">
-<button class="action-btn" onclick="window.PhoneEngine.favoriteMsg()"><i class="ph-fill ph-star" style="color: #f4a261;"></i> 手动摘录 (存入星海)</button>
-<button class="action-btn" onclick="window.PhoneEngine.aiSummarizeMsg()"><i class="ph-fill ph-sparkle" style="color: #a78bfa;"></i> AI 提炼 (去敏并收藏)</button>
-<button class="action-btn" onclick="window.PhoneEngine.editMsg()"><i class="ph ph-pencil-simple"></i> 编辑此消息</button>
-<button class="action-btn" id="btn-regen" onclick="window.PhoneEngine.regenMsg()"><i class="ph ph-arrows-clockwise"></i> 重新生成 (删除并重骰)</button>
-<button class="action-btn danger" onclick="window.PhoneEngine.deleteMsg()"><i class="ph ph-trash"></i> 删除此消息</button>
-<button class="action-btn cancel" onclick="window.PhoneEngine.closeMsgMenu()">取消</button>
+    <button class="action-btn" onclick="window.PhoneEngine.favoriteMsg()"><i class="ph-fill ph-star" style="color: #f4a261;"></i> 手动摘录 (存入星海)</button>
+    <button class="action-btn" onclick="window.PhoneEngine.aiSummarizeMsg()"><i class="ph-fill ph-sparkle" style="color: #a78bfa;"></i> AI 提炼 (去敏并收藏)</button>
+    <button class="action-btn" onclick="window.PhoneEngine.editMsg()"><i class="ph ph-pencil-simple"></i> 编辑此消息</button>
+    <button class="action-btn" id="btn-regen" onclick="window.PhoneEngine.regenMsg()"><i class="ph ph-arrows-clockwise"></i> 重新生成 (删除并重骰)</button>
+    <button class="action-btn danger" onclick="window.PhoneEngine.deleteMsg()"><i class="ph ph-trash"></i> 删除此消息</button>
+    <button class="action-btn cancel" onclick="window.PhoneEngine.closeMsgMenu()">取消</button>
 </div>
 
 <div id="thought-bg" class="action-sheet-bg" style="cursor: pointer;" onclick="document.getElementById('thought-bg').classList.remove('show'); document.getElementById('thought-modal').classList.remove('show');"></div>
 <div id="thought-modal" class="thought-modal">
-<div class="thought-header" style="justify-content: space-between;">
-<span style="display:flex; align-items:center; gap:8px;"><i class="ph-fill ph-cloud"></i> TA 的心声</span>
-<div style="cursor:pointer; padding:15px; margin:-15px; display:flex;" onclick="document.getElementById('thought-bg').classList.remove('show'); document.getElementById('thought-modal').classList.remove('show');">
-<i class="ph ph-x" style="color:var(--text-sub); font-size:22px;"></i>
-</div>
-</div>
-<div class="thought-content" id="thought-content"></div>
+    <div class="thought-header" style="justify-content: space-between;">
+        <span style="display:flex; align-items:center; gap:8px;"><i class="ph-fill ph-cloud"></i> TA 的心声</span>
+        <div style="cursor:pointer; padding:15px; margin:-15px; display:flex;" onclick="document.getElementById('thought-bg').classList.remove('show'); document.getElementById('thought-modal').classList.remove('show');">
+            <i class="ph ph-x" style="color:var(--text-sub); font-size:22px;"></i>
+        </div>
+    </div>
+    <div class="thought-content" id="thought-content"></div>
 </div>
 
 <div id="wb-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeWbModal()"></div>
 <div id="wb-modal" class="thought-modal" style="padding: 20px; z-index: 9001;">
-<div class="thought-header"><i class="ph-fill ph-plus-circle"></i> 编写新规则</div>
-<input type="text" id="wb-new-title" placeholder="规则名称 (如: 防八股)" style="width: 100%; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 14px; outline: none;">
-<textarea id="wb-new-content" placeholder="输入具体的规则内容，越详细越好..." style="width: 100%; padding: 12px; border-radius: 8px; min-height: 100px; resize: none; font-size: 13px; line-height: 1.5; outline: none; margin-bottom: 15px; font-family: inherit;"></textarea>
-<button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.addWorldbook()" style="margin-top: 0;">保存</button>
+    <div class="thought-header"><i class="ph-fill ph-plus-circle"></i> 编写新规则</div>
+    <input type="text" id="wb-new-title" placeholder="规则名称 (如: 防八股)" style="width: 100%; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 14px; outline: none;">
+    <textarea id="wb-new-content" placeholder="输入具体的规则内容，越详细越好..." style="width: 100%; padding: 12px; border-radius: 8px; min-height: 100px; resize: none; font-size: 13px; line-height: 1.5; outline: none; margin-bottom: 15px; font-family: inherit;"></textarea>
+    <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.addWorldbook()" style="margin-top: 0;">保存</button>
 </div>
 
 <div id="archive-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeArchiveModal()"></div>
 <div id="archive-modal" class="thought-modal" style="padding: 20px; max-height: 80vh; z-index: 9001;">
-<div class="thought-header"><i class="ph-fill ph-floppy-disk"></i> 剧情存档室 (平行宇宙)</div>
-<div style="display: flex; gap: 10px; margin-bottom: 15px;">
-<input type="text" id="archive-name" placeholder="给当前剧情起个名字..." style="flex: 1; padding: 10px; border-radius: 8px; outline: none;">
-<button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.saveArchive()" style="margin-top: 0; width: auto; padding: 0 15px;">存档</button>
-</div>
-<button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.startNewTimeline()" style="margin-top: 0; margin-bottom: 15px; background: transparent; color: var(--danger-color); border: 1px dashed var(--danger-color); box-shadow: none;"><i class="ph ph-magic-wand"></i> 开启全新时间线 (清空当前)</button>
-<div id="archive-list" style="overflow-y: auto; max-height: 40vh; display: flex; flex-direction: column; gap: 10px;"></div>
+    <div class="thought-header"><i class="ph-fill ph-floppy-disk"></i> 剧情存档室 (平行宇宙)</div>
+    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+        <input type="text" id="archive-name" placeholder="给当前剧情起个名字..." style="flex: 1; padding: 10px; border-radius: 8px; outline: none;">
+        <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.saveArchive()" style="margin-top: 0; width: auto; padding: 0 15px;">存档</button>
+    </div>
+    <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.startNewTimeline()" style="margin-top: 0; margin-bottom: 15px; background: transparent; color: var(--danger-color); border: 1px dashed var(--danger-color); box-shadow: none;"><i class="ph ph-magic-wand"></i> 开启全新时间线 (清空当前)</button>
+    <div id="archive-list" style="overflow-y: auto; max-height: 40vh; display: flex; flex-direction: column; gap: 10px;"></div>
 </div>
 
 <div id="blindbox-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeBlindBox()" style="background: rgba(0,0,0,0.15); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);"></div>
 <div id="blindbox-modal" class="blindbox-modal">
-<i class="ph-fill ph-shooting-star blindbox-icon"></i>
-<div class="blindbox-text" id="blindbox-text">“回忆碎片加载中...”</div>
-<div class="blindbox-meta" id="blindbox-meta">2023-10-24 · 线上微信</div>
+    <i class="ph-fill ph-shooting-star blindbox-icon"></i>
+    <div class="blindbox-text" id="blindbox-text">“回忆碎片加载中...”</div>
+    <div class="blindbox-meta" id="blindbox-meta">2023-10-24 · 线上微信</div>
 </div>
 
 <div id="custom-prompt-bg" class="action-sheet-bg"></div>
 <div id="custom-prompt-modal" class="thought-modal" style="padding: 20px; z-index: 9001;">
-<div class="thought-header" id="custom-prompt-title" style="font-size: 14px; line-height: 1.4;">请输入</div>
-<textarea id="custom-prompt-input" style="width: 100%; height: 220px; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 14px; resize: none; outline: none; margin-bottom: 15px; font-family: inherit; line-height: 1.6;"></textarea>
-<div style="display: flex; gap: 10px;">
-<button class="btn-refresh" id="custom-prompt-cancel" style="flex: 1; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0; box-shadow: none;">取消</button>
-<button class="btn-refresh" id="custom-prompt-confirm" style="flex: 1; margin-top: 0;">确定保存</button>
-</div>
+    <div class="thought-header" id="custom-prompt-title" style="font-size: 14px; line-height: 1.4;">请输入</div>
+    <textarea id="custom-prompt-input" style="width: 100%; height: 220px; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 14px; resize: none; outline: none; margin-bottom: 15px; font-family: inherit; line-height: 1.6;"></textarea>
+    <div style="display: flex; gap: 10px;">
+        <button class="btn-refresh" id="custom-prompt-cancel" style="flex: 1; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0; box-shadow: none;">取消</button>
+        <button class="btn-refresh" id="custom-prompt-confirm" style="flex: 1; margin-top: 0;">确定保存</button>
+    </div>
 </div>
 
 <div id="ev-edit-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeEvEdit()"></div>
@@ -791,8 +355,8 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 </div>
 
 <div id="app-window" class="app-window" style="z-index: 1000;">
-<div class="app-window-header"><div class="app-window-back" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div><div class="app-window-title" id="app-window-title">应用</div></div>
-<div class="app-window-content" id="app-window-content"></div>
+    <div class="app-window-header"><div class="app-window-back" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div><div class="app-window-title" id="app-window-title">应用</div></div>
+    <div class="app-window-content" id="app-window-content"></div>
 </div>
 
 <!-- ================= 共读时光 (书架 + 阅读器) ================= -->
@@ -866,13 +430,11 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
     </div>
 </div>
 
-</div>
-
 <script>
 function clearCacheAndReload() {
-if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister())); }
-if ('caches' in window) { caches.keys().then(keys => keys.forEach(k => caches.delete(k))); }
-window.location.href = window.location.pathname + '?t=' + Date.now();
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister())); }
+    if ('caches' in window) { caches.keys().then(keys => keys.forEach(k => caches.delete(k))); }
+    window.location.href = window.location.pathname + '?t=' + Date.now();
 }
 
 const navItems = document.querySelectorAll('.nav-item');
@@ -949,31 +511,6 @@ function togglePlayUI(forceState) {
         icon.style.marginLeft = '4px';
     }
 }
-
-document.addEventListener('DOMContentLoaded', async () => {
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    if (savedTheme === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        const themeIcon = document.getElementById('theme-icon');
-        if (themeIcon) { themeIcon.classList.remove('ph-moon'); themeIcon.classList.add('ph-sun'); }
-    }
-    if (window.PhoneAPI && window.PhoneAPI.LocalDB) await window.PhoneAPI.LocalDB.init();
-    setTimeout(() => {
-        if(window.PhoneAPI) {
-            window.PhoneAPI.refreshPresetDropdowns();
-            window.PhoneAPI.refreshPromptDropdowns();
-            window.PhoneAPI.refreshUIDropdowns();
-            window.PhoneAPI.refreshImgDropdowns();
-            window.PhoneAPI.loadSettings();
-            if(window.PhoneEngine) window.PhoneEngine.cleanStuckTyping();
-        }
-        if(window.PhoneUI) {
-            window.PhoneUI.renderAppContent('wechat');
-            window.PhoneUI.updateHomeWidget();
-            window.PhoneUI.bindLongPresses();
-        }
-    }, 500);
-});
 
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js')

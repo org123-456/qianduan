@@ -12,6 +12,15 @@ const PhoneEngine = {
     ...ReaderEngine
 };
 
+// WeChat must use one unified flow: save the input and request the AI reply
+// in sendChatMessage(). The legacy sendUserMsgOnly() is kept for the novel
+// flow, but becomes a no-op for WeChat to prevent duplicate submits.
+const legacySendUserMsgOnly = PhoneEngine.sendUserMsgOnly;
+PhoneEngine.sendUserMsgOnly = (...args) => {
+    if (Config.currentAppId === 'wechat') return;
+    return legacySendUserMsgOnly?.(...args);
+};
+
 window.Config = Config;
 window.PhoneAPI = PhoneAPI;
 window.PhoneUI = PhoneUI;
@@ -46,7 +55,8 @@ document.addEventListener('keydown', (e) => {
     const chatInput = document.getElementById('chat-input');
     if (e.key === 'Enter' && document.activeElement === chatInput) {
         e.preventDefault();
-        if (window.PhoneEngine) window.PhoneEngine.sendUserMsgOnly();
+        // One Enter = one user message + one AI request.
+        if (window.PhoneEngine) window.PhoneEngine.sendChatMessage();
         if (window.PhoneUI) window.PhoneUI.closeChatMenu();
     }
 });

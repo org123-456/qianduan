@@ -6,6 +6,98 @@ export const ReaderEngine = {
     _proactiveTimer: null,
     _activeThreadCommentId: null,
 
+    // 🌟 新增：阅读器设置状态
+    _settings: {
+        theme: 'parchment', // parchment, light, dark
+        fontSize: 18,
+        lineHeight: 1.8
+    },
+
+    // 🌟 新增：初始化加载设置
+    loadSettings() {
+        const saved = localStorage.getItem('reader_settings');
+        if (saved) {
+            try { this._settings = { ...this._settings, ...JSON.parse(saved) }; } catch(e) {}
+        }
+        this._applySettingsToDOM();
+    },
+
+    _saveSettings() {
+        localStorage.setItem('reader_settings', JSON.stringify(this._settings));
+    },
+
+    _applySettingsToDOM() {
+        const readerEl = document.getElementById('app-reader');
+        const fzDisplay = document.getElementById('reader-fz-display');
+        if (!readerEl) return;
+
+        // 应用主题
+        if (this._settings.theme === 'dark') {
+            readerEl.style.setProperty('--r-bg', '#1a1a1a');
+            readerEl.style.setProperty('--r-color', '#a0a0a0');
+        } else if (this._settings.theme === 'light') {
+            readerEl.style.setProperty('--r-bg', '#ffffff');
+            readerEl.style.setProperty('--r-color', '#333333');
+        } else {
+            readerEl.style.setProperty('--r-bg', '#f4ecd8');
+            readerEl.style.setProperty('--r-color', '#5c4b37');
+        }
+
+        // 应用字体和间距
+        readerEl.style.setProperty('--r-fz', this._settings.fontSize + 'px');
+        readerEl.style.setProperty('--r-lh', this._settings.lineHeight);
+
+        if (fzDisplay) fzDisplay.innerText = this._settings.fontSize;
+    },
+
+    // 🌟 新增：打开/关闭设置面板
+    openReaderSettings() {
+        this.loadSettings(); // 打开时确保显示最新数值
+        const bg = document.getElementById('reader-settings-bg');
+        const drawer = document.getElementById('reader-settings-drawer');
+        if (bg) bg.classList.add('show');
+        if (drawer) drawer.classList.add('show');
+    },
+
+    closeReaderSettings() {
+        const bg = document.getElementById('reader-settings-bg');
+        const drawer = document.getElementById('reader-settings-drawer');
+        if (bg) bg.classList.remove('show');
+        if (drawer) drawer.classList.remove('show');
+    },
+
+    // 🌟 新增：修改主题
+    setReaderTheme(theme) {
+        this._settings.theme = theme;
+        this._saveSettings();
+        this._applySettingsToDOM();
+    },
+
+    // 🌟 新增：修改字号
+    adjReaderFont(delta) {
+        let newSize = this._settings.fontSize + delta;
+        if (newSize < 12) newSize = 12;
+        if (newSize > 30) newSize = 30;
+        if (newSize !== this._settings.fontSize) {
+            this._settings.fontSize = newSize;
+            this._saveSettings();
+            this._applySettingsToDOM();
+            // 字体改变，需要重新计算分页
+            this.renderCurrentPage(); 
+        }
+    },
+
+    // 🌟 新增：修改行距
+    setReaderLineHeight(lh) {
+        if (this._settings.lineHeight !== lh) {
+            this._settings.lineHeight = lh;
+            this._saveSettings();
+            this._applySettingsToDOM();
+            // 行距改变，需要重新计算分页
+            this.renderCurrentPage();
+        }
+    },
+
     importBook(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -133,6 +225,10 @@ export const ReaderEngine = {
             localStorage.setItem('reader_bookshelf', JSON.stringify(bookshelf));
             if (!window.Config) window.Config = {};
             window.Config.readerConfig = { id: book.id, title: book.title, text, offsets: book.offsets || [0], currentIndex: book.currentIndex || 0 };
+            
+            // 🌟 加载设置
+            this.loadSettings();
+
             if (window.PhoneUI && window.PhoneUI.showReadingView) window.PhoneUI.showReadingView(book.title);
             const readingView = document.getElementById('reader-reading-view');
             if (readingView) readingView.style.overflowY = 'hidden';
@@ -155,7 +251,8 @@ export const ReaderEngine = {
 
     calculatePageEnd(text, startOffset, bookId) {
         const measureDiv = document.createElement('div');
-        measureDiv.style.cssText = 'position:absolute; visibility:hidden; width:calc(100% - 40px); padding: 0; font-size:18px; line-height:1.8; text-align:justify; word-break:break-word; z-index:-100;';
+        // 🌟 测量时使用当前的字体和行距设置
+        measureDiv.style.cssText = `position:absolute; visibility:hidden; width:calc(100% - 40px); padding: 0; font-size:${this._settings.fontSize}px; line-height:${this._settings.lineHeight}; text-align:justify; word-break:break-word; z-index:-100;`;
         document.body.appendChild(measureDiv);
         const container = document.getElementById('reader-content-area') || document.getElementById('reader-reading-view');
         const maxHeight = container && container.clientHeight > 100 ? container.clientHeight - 100 : window.innerHeight - 180;
@@ -205,6 +302,12 @@ export const ReaderEngine = {
         if (!pageContainer) return;
         if (config.currentIndex < 0) config.currentIndex = 0;
         let startOffset = config.offsets[config.currentIndex];
+        
+        // 🌟 如果修改了字体或行距，需要清理掉后面的 offset 缓存重新计算
+        if (config.offsets.length > config.currentIndex + 1) {
+             config.offsets = config.offsets.slice(0, config.currentIndex + 1);
+        }
+
         if (config.currentIndex === config.offsets.length - 1 && startOffset < config.text.length) {
             const nextOffset = this.calculatePageEnd(config.text, startOffset, config.id);
             if (nextOffset > startOffset) {
@@ -521,4 +624,3 @@ export const ReaderEngine = {
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     }
 };
-

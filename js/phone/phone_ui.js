@@ -16,12 +16,9 @@ export const PhoneUI = {
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     },
 
-    // 🌟 新增：切换全局主题色
     changeAppColor(color) {
         document.documentElement.setAttribute('data-color', color);
         localStorage.setItem('app_color', color);
-        
-        // 更新圆圈的选中状态
         document.querySelectorAll('.color-circle').forEach(el => el.classList.remove('active'));
         const activeCircle = document.getElementById('color-btn-' + color);
         if (activeCircle) activeCircle.classList.add('active');
@@ -411,7 +408,6 @@ export const PhoneUI = {
         const today = new Date();
         const defaultDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         
-        // 获取当前选中的颜色
         const currentColor = localStorage.getItem('app_color') || 'blue';
 
         contentEl.innerHTML = `
@@ -434,7 +430,6 @@ export const PhoneUI = {
         <div class="card">
         <h3 style="color:var(--primary-color);margin-bottom:10px;"><i class="ph-fill ph-palette"></i> UI 主题装修</h3>
         
-        <!-- 🌟 新增：全局主题色切换 -->
         <div class="engine-title"><i class="ph-fill ph-paint-brush"></i> 全局主题色</div>
         <div class="color-picker-container">
             <div id="color-btn-blue" class="color-circle c-blue ${currentColor === 'blue' ? 'active' : ''}" onclick="window.PhoneUI.changeAppColor('blue')" title="星河水"></div>

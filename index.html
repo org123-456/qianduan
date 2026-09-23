@@ -389,9 +389,9 @@
         </div>
     </div>
 
-    <!-- 🌟 新增：阅读器专属设置抽屉 -->
+    <!-- 🌟 修复：将 z-index 改为 9005，并且背景色设为实色 -->
     <div id="reader-settings-bg" class="action-sheet-bg" onclick="window.PhoneEngine.closeReaderSettings()"></div>
-    <div id="reader-settings-drawer" class="action-sheet" style="background: var(--card-bg); border-radius: 24px 24px 0 0; padding: 25px 20px; z-index: 2500;">
+    <div id="reader-settings-drawer" class="action-sheet" style="background: var(--window-bg); border-radius: 24px 24px 0 0; padding: 25px 20px; z-index: 9005;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
             <span style="font-weight:bold; font-size:16px; color: var(--text-main);">阅读设置</span>
             <i class="ph ph-x" style="font-size:20px; color: var(--text-sub); cursor:pointer;" onclick="window.PhoneEngine.closeReaderSettings()"></i>

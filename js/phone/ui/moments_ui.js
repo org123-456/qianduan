@@ -184,7 +184,12 @@ export const MomentsUI = {
         document.getElementById('reader-reading-view').style.display = 'none';
         document.getElementById('reader-footer').style.display = 'none';
         document.getElementById('reader-header-title').innerText = "共读书架";
-        document.getElementById('btn-add-book').style.display = 'block';
+        
+        // 🌟 显示导入按钮，隐藏设置按钮
+        const btnAdd = document.getElementById('btn-add-book');
+        const btnSettings = document.getElementById('btn-reader-settings');
+        if (btnAdd) btnAdd.style.display = 'block';
+        if (btnSettings) btnSettings.style.display = 'none';
         
         if (window.PhoneEngine && window.PhoneEngine._proactiveTimer) {
             clearTimeout(window.PhoneEngine._proactiveTimer);
@@ -196,7 +201,12 @@ export const MomentsUI = {
         document.getElementById('reader-reading-view').style.display = 'block';
         document.getElementById('reader-footer').style.display = 'flex';
         document.getElementById('reader-header-title').innerText = title || "阅读中";
-        document.getElementById('btn-add-book').style.display = 'none';
+        
+        // 🌟 隐藏导入按钮，显示设置按钮
+        const btnAdd = document.getElementById('btn-add-book');
+        const btnSettings = document.getElementById('btn-reader-settings');
+        if (btnAdd) btnAdd.style.display = 'none';
+        if (btnSettings) btnSettings.style.display = 'block';
     },
 
     initReaderSwipe() {

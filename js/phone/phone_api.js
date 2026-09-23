@@ -3,7 +3,6 @@ import { EchoVault } from './api/vault_api.js';
 import { CloudAPI } from './api/cloud_api.js';
 
 export const PhoneAPI = {
-    // 挂载拆分出去的模块
     LocalDB: LocalDB,
     EchoVault: EchoVault,
     ...CloudAPI,
@@ -38,7 +37,7 @@ export const PhoneAPI = {
         
         this.applyUITheme();
         
-        saveIfExist('system-prompt', 'system_prompt'); saveIfExist('char-persona', 'char_persona'); saveIfExist('novel-style', 'novel_style');
+        saveIfExist('system-prompt', 'system_prompt'); saveIfExist('char-persona', 'char_persona');
         saveIfExist('img-api-url', 'img_api_url'); saveIfExist('img-api-key', 'img_api_key'); saveIfExist('img-api-model', 'img_api_model');
         const charName = localStorage.getItem('char_name'); const myName = localStorage.getItem('my_name');
         if (charName && myName) { const titleEl = document.getElementById('top-title'); if (titleEl) titleEl.innerText = `${myName} & ${charName}`; }
@@ -59,7 +58,7 @@ export const PhoneAPI = {
             
             this.applyUITheme();
             
-            setVal('system-prompt', localStorage.getItem('system_prompt') || ''); setVal('char-persona', localStorage.getItem('char_persona') || ''); setVal('novel-style', localStorage.getItem('novel_style') || '');
+            setVal('system-prompt', localStorage.getItem('system_prompt') || ''); setVal('char-persona', localStorage.getItem('char_persona') || '');
             setVal('img-api-url', localStorage.getItem('img_api_url') || ''); setVal('img-api-key', localStorage.getItem('img_api_key') || ''); setVal('img-api-model', localStorage.getItem('img_api_model') || 'dall-e-3');
             const savedCharName = localStorage.getItem('char_name'); const savedMyName = localStorage.getItem('my_name');
             if (savedCharName && savedMyName) { const titleEl = document.getElementById('top-title'); if (titleEl) titleEl.innerText = `${savedMyName} & ${savedCharName}`; }
@@ -149,7 +148,7 @@ export const PhoneAPI = {
         if(confirm("危险操作：确定要清空所有记录吗？清空后无法恢复！")) {
             const roleId = window.Config?.currentContactId;
             if(roleId && window.Config?.phoneData?.[roleId]) {
-                window.Config.phoneData[roleId].wechat = { items: [] }; window.Config.phoneData[roleId].novel = { items: [] };
+                window.Config.phoneData[roleId].wechat = { items: [] };
                 localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
             }
             if (window.PhoneUI && window.PhoneUI.renderAppContent) window.PhoneUI.renderAppContent('wechat');
@@ -157,7 +156,6 @@ export const PhoneAPI = {
         }
     },
     
-    getWorldbookData() { return JSON.parse(localStorage.getItem('worldbook_entries') || '[]'); },
     getArchives() { return JSON.parse(localStorage.getItem('story_archives') || '[]'); },
     
     getMemoryVault() { 

@@ -13,13 +13,10 @@
 
 <title>Claire & Claude</title>
 
-<!-- 引入外部依赖 -->
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-<!-- 引入分离出去的 CSS 文件 -->
 <link rel="stylesheet" href="css/style.css">
-
 </head>
 <body>
 
@@ -140,7 +137,6 @@
                 <div class="note-content" id="note-content">“今天也要开心哦！”</div>
             </div>
             <div class="app-grid">
-                <!-- 彻底移除了线下故事和世界书，只保留系统设置 -->
                 <div class="app-icon" onclick="window.PhoneUI.openApp('settings', '系统设置')">
                     <div class="icon neo-card"><i class="ph-fill ph-gear" style="color: var(--primary-color);"></i></div>
                     <div class="name">系统设置</div>
@@ -193,12 +189,10 @@
                 </div>
             </div>
 
-            <!-- 修复后的换行输入框 -->
             <div class="chat-input-bar">
                 <div class="icon-btn" onclick="window.PhoneUI.toggleChatMenu()" id="btn-plus"><i class="ph ph-plus-circle"></i></div>
                 <textarea id="chat-input" placeholder="宝宝，说话..." onclick="window.PhoneUI.closeChatMenu(); window.PhoneUI.closeStickerPanel();"></textarea>
                 <div class="icon-btn" style="font-size: 22px;" onclick="window.PhoneUI.toggleStickerPanel()"><i class="ph ph-smiley"></i></div>
-                <!-- 点击纸飞机触发 AI 回复 -->
                 <div class="icon-btn send-btn" onclick="window.PhoneEngine.sendChatMessage(); window.PhoneUI.closeChatMenu(); window.PhoneUI.closeStickerPanel();"><i class="ph-fill ph-paper-plane-right"></i></div>
             </div>
         </div>
@@ -324,14 +318,17 @@
 </div>
 
 <!-- ================= 共读时光 (书架 + 阅读器) ================= -->
-<div id="app-reader" class="app-window" style="z-index: 1001; background-color: #f4ecd8; color: #333;">
-    <div class="app-window-header" style="position: relative; z-index: 50; background: rgba(244, 236, 216, 0.9); border-bottom: 1px solid rgba(0,0,0,0.05);">
-        <div class="app-window-back" onclick="window.PhoneUI.handleReaderBack()" style="color: #333; padding: 10px; margin-left: -10px; cursor: pointer;">
+<div id="app-reader" class="app-window" style="z-index: 1001; background-color: var(--r-bg, #f4ecd8); color: var(--r-color, #333); transition: background-color 0.3s, color 0.3s;">
+    <div class="app-window-header" style="position: relative; z-index: 50; background: transparent; border-bottom: 1px solid rgba(128,128,128,0.1);">
+        <div class="app-window-back" onclick="window.PhoneUI.handleReaderBack()" style="color: inherit; padding: 10px; margin-left: -10px; cursor: pointer;">
             <i class="ph ph-caret-left"></i>
         </div>
-        <div class="app-window-title" id="reader-header-title" style="color: #333; font-size: 15px;">共读书架</div>
+        <div class="app-window-title" id="reader-header-title" style="color: inherit; font-size: 15px; flex: 1; text-align: center;">共读书架</div>
         
-        <label id="btn-add-book" for="book-upload" style="margin-left: auto; cursor: pointer; color: #333; font-size: 24px; padding: 10px; margin-right: -10px;">
+        <!-- 🌟 新增：右上角设置按钮 -->
+        <i class="ph ph-text-aa" id="btn-reader-settings" onclick="window.PhoneEngine.openReaderSettings()" style="font-size: 22px; padding: 10px; cursor: pointer; display: none; color: inherit;"></i>
+        
+        <label id="btn-add-book" for="book-upload" style="cursor: pointer; color: inherit; font-size: 24px; padding: 10px; margin-right: -10px;">
             <i class="ph ph-folder-plus"></i>
         </label>
         <input type="file" id="book-upload" accept=".txt" style="position: absolute; left: -9999px; opacity: 0;" onchange="window.PhoneEngine.importBook(event)">
@@ -349,7 +346,7 @@
         </div>
     </div>
 
-    <div id="reader-reading-view" class="app-window-content" style="padding: 20px 20px 80px 20px; font-size: 18px; line-height: 1.8; overflow-y: hidden; position: relative; display: none;">
+    <div id="reader-reading-view" class="app-window-content" style="padding: 20px 20px 80px 20px; font-size: var(--r-fz, 18px); line-height: var(--r-lh, 1.8); overflow-y: hidden; position: relative; display: none;">
         <div id="reader-page-container" style="height: 100%; text-align: justify; word-break: break-word;"></div>
         
         <div id="companion-bubble" style="position: absolute; bottom: 20px; right: 20px; max-width: 60%; background: var(--primary-color); color: #fff; padding: 8px 12px; border-radius: 16px 16px 0 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); font-size: 12px; opacity: 0; transform: translateY(20px); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); pointer-events: auto; cursor: pointer; z-index: 100;">
@@ -358,10 +355,10 @@
         </div>
     </div>
 
-    <div id="reader-footer" class="reader-footer" style="position: absolute; bottom: 0; left: 0; right: 0; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: rgba(244, 236, 216, 0.9); border-top: 1px solid rgba(0,0,0,0.05); font-size: 12px; color: #888; z-index: 50; display: none;">
-        <button class="icon-btn" onclick="window.PhoneEngine.prevPage()" style="color: #555; background: none; border: none; font-size: 14px; display: flex; align-items: center; gap: 4px; cursor: pointer;"><i class="ph ph-caret-left"></i> 上一页</button>
+    <div id="reader-footer" class="reader-footer" style="position: absolute; bottom: 0; left: 0; right: 0; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: transparent; border-top: 1px solid rgba(128,128,128,0.1); font-size: 12px; color: inherit; opacity: 0.8; z-index: 50; display: none;">
+        <button class="icon-btn" onclick="window.PhoneEngine.prevPage()" style="color: inherit; background: none; border: none; font-size: 14px; display: flex; align-items: center; gap: 4px; cursor: pointer;"><i class="ph ph-caret-left"></i> 上一页</button>
         <span id="reader-progress">0%</span>
-        <button class="icon-btn" onclick="window.PhoneEngine.nextPage()" style="color: #555; background: none; border: none; font-size: 14px; display: flex; align-items: center; gap: 4px; cursor: pointer;">下一页 <i class="ph ph-caret-right"></i></button>
+        <button class="icon-btn" onclick="window.PhoneEngine.nextPage()" style="color: inherit; background: none; border: none; font-size: 14px; display: flex; align-items: center; gap: 4px; cursor: pointer;">下一页 <i class="ph ph-caret-right"></i></button>
     </div>
 
     <div id="highlight-menu" class="dual-menu-container">
@@ -374,7 +371,6 @@
         </button>
     </div>
 
-    <!-- 晋江式段评讨论抽屉 (半屏弹窗) -->
     <div id="para-drawer-bg" class="para-drawer-bg" onclick="window.PhoneEngine.closeThreadDrawer()"></div>
     <div id="para-comment-drawer" class="para-drawer">
         <div style="padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color);">
@@ -390,6 +386,36 @@
             <button onclick="window.PhoneEngine.sendThreadReply()" style="background: linear-gradient(135deg, #8bc6ff, #4f81bd); border: none; color: #fff; width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer;">
                 <i class="ph-fill ph-paper-plane-right"></i>
             </button>
+        </div>
+    </div>
+
+    <!-- 🌟 新增：阅读器专属设置抽屉 -->
+    <div id="reader-settings-bg" class="action-sheet-bg" onclick="window.PhoneEngine.closeReaderSettings()"></div>
+    <div id="reader-settings-drawer" class="action-sheet" style="background: var(--card-bg); border-radius: 24px 24px 0 0; padding: 25px 20px; z-index: 2500;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+            <span style="font-weight:bold; font-size:16px; color: var(--text-main);">阅读设置</span>
+            <i class="ph ph-x" style="font-size:20px; color: var(--text-sub); cursor:pointer;" onclick="window.PhoneEngine.closeReaderSettings()"></i>
+        </div>
+        
+        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">背景主题</div>
+        <div style="display:flex; gap:15px; margin-bottom: 25px;">
+            <div class="reader-theme-btn" style="background:#f4ecd8; color:#5c4b37;" onclick="window.PhoneEngine.setReaderTheme('parchment')">羊皮纸</div>
+            <div class="reader-theme-btn" style="background:#ffffff; color:#333; border: 1px solid #e2e8f0;" onclick="window.PhoneEngine.setReaderTheme('light')">白昼</div>
+            <div class="reader-theme-btn" style="background:#1a1a1a; color:#a0a0a0; border: 1px solid #333;" onclick="window.PhoneEngine.setReaderTheme('dark')">暗夜</div>
+        </div>
+        
+        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">字体大小</div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 25px; background: rgba(0,0,0,0.03); border-radius: 16px; padding: 5px 15px; border: 1px solid var(--border-color);">
+            <button class="reader-adj-btn" onclick="window.PhoneEngine.adjReaderFont(-1)">A-</button>
+            <span id="reader-fz-display" style="font-size:16px; font-weight:bold; color: var(--text-main); width: 40px; text-align:center;">18</span>
+            <button class="reader-adj-btn" onclick="window.PhoneEngine.adjReaderFont(1)">A+</button>
+        </div>
+        
+        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">排版间距</div>
+        <div style="display:flex; gap:10px;">
+            <button class="reader-btn-outline" onclick="window.PhoneEngine.setReaderLineHeight(1.5)">紧凑</button>
+            <button class="reader-btn-outline" onclick="window.PhoneEngine.setReaderLineHeight(1.8)">适中</button>
+            <button class="reader-btn-outline" onclick="window.PhoneEngine.setReaderLineHeight(2.2)">宽松</button>
         </div>
     </div>
 </div>

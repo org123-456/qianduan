@@ -483,3 +483,12 @@ input, textarea, select { background: var(--input-bg); border: 1px solid var(--b
 .reader-adj-btn:active { transform: scale(0.9); }
 .reader-btn-outline { flex: 1; background: transparent; border: 1px solid var(--border-color); padding: 12px 0; border-radius: 14px; color: var(--text-main); font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; }
 .reader-btn-outline:active { background: var(--border-color); }
+
+/* ================= 强制主题色覆盖 ================= */
+.chat-msg.right .chat-bubble { background: var(--btn-gradient) !important; }
+.chat-input-bar .send-btn { background: var(--btn-gradient) !important; }
+.center-circle { background: var(--btn-gradient) !important; border-color: var(--window-bg) !important; }
+.btn-refresh { background: var(--btn-gradient) !important; }
+.top-bar .menu-btn.api-btn.loading { background: var(--btn-gradient) !important; }
+.fab-post { background: var(--btn-gradient) !important; }
+.dual-menu-btn.discuss { background: var(--btn-gradient) !important; }

@@ -492,3 +492,15 @@ input, textarea, select { background: var(--input-bg); border: 1px solid var(--b
 .top-bar .menu-btn.api-btn.loading { background: var(--btn-gradient) !important; }
 .fab-post { background: var(--btn-gradient) !important; }
 .dual-menu-btn.discuss { background: var(--btn-gradient) !important; }
+
+/* ================= 魔法颜色圆圈的样式 ================= */
+.color-picker-container { display: flex; gap: 15px; margin-top: 10px; margin-bottom: 20px; }
+.color-circle { width: 36px; height: 36px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: 0.2s; position: relative; }
+.color-circle:active { transform: scale(0.9); }
+.color-circle.active { border-color: var(--text-main); transform: scale(1.1); }
+
+/* 赋予圆圈颜色 */
+.color-circle.c-blue { background: linear-gradient(135deg, #8AA8CE, #A4BBD8); }
+.color-circle.c-purple { background: linear-gradient(135deg, #C8B8DC, #D4C8E4); }
+.color-circle.c-pink { background: linear-gradient(135deg, #ECC8D6, #F0D2DD); }
+.color-circle.c-gold { background: linear-gradient(135deg, #EADCB0, #EDE4C0); }

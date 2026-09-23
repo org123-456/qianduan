@@ -11,6 +11,12 @@ export const PhoneUI = {
     
     currentMomentsTab: 'feed', 
 
+    // 极其关键的辅助函数，之前拆分时不小心漏掉了！
+    escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    },
+
     async updateHomeWidget() {
         try {
             const daysEl = document.getElementById('home-love-days');
@@ -237,11 +243,6 @@ export const PhoneUI = {
                 if (window.PhoneAPI) window.PhoneAPI.showToast('收到 TA 的纸条回信啦！');
             }
         } catch (error) { if (window.PhoneAPI) window.PhoneAPI.showToast('TA 好像没看到纸条...'); }
-    },
-
-    escapeHtml(str) {
-        if (str === null || str === undefined) return '';
-        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     },
 
     toggleTheme() {

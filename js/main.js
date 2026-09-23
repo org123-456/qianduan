@@ -1,7 +1,7 @@
 import { Config } from './phone/phone_config.js';
 import { PhoneAPI } from './phone/phone_api.js';
 import { PhoneUI } from './phone/phone_ui.js';
-import { PhoneEngine } from './phone/phone_engine.js'; // 直接引入打包好的总引擎
+import { PhoneEngine } from './phone/phone_engine.js'; // 引入打包好的总引擎
 import { WechatApp } from './apps/wechat.js';
 
 // 兼容旧版的发送逻辑
@@ -29,14 +29,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // ⚠️ 关键修复：确保一进页面立刻渲染微信聊天列表，解决白屏问题！
+    if (window.PhoneUI && window.PhoneUI.renderAppContent) {
+        window.PhoneUI.renderAppContent('wechat');
+    }
+
     setTimeout(() => {
         if (window.PhoneAPI) {
-            window.PhoneAPI.refreshPresetDropdowns();
-            window.PhoneAPI.refreshPromptDropdowns();
-            window.PhoneAPI.loadSettings();
+            if (window.PhoneAPI.refreshPresetDropdowns) window.PhoneAPI.refreshPresetDropdowns();
+            if (window.PhoneAPI.refreshPromptDropdowns) window.PhoneAPI.refreshPromptDropdowns();
+            if (window.PhoneAPI.loadSettings) window.PhoneAPI.loadSettings();
         }
-        if (window.PhoneUI) window.PhoneUI.renderAppContent('wechat');
-        console.log('✅ 聊天记录和设置已成功加载！');
+        console.log('✅ 设置已成功加载！');
     }, 300);
 });
 

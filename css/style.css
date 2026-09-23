@@ -436,3 +436,73 @@ input, textarea, select { background: rgba(255,255,255,.9); border: 1px solid #d
 .reader-adj-btn:active { transform: scale(0.9); }
 .reader-btn-outline { flex: 1; background: transparent; border: 1px solid var(--border-color); padding: 12px 0; border-radius: 14px; color: var(--text-main); font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; }
 .reader-btn-outline:active { background: var(--border-color); }
+
+/* ================= 神仙主题色预设 ================= */
+/* 1. 星河水 (默认蓝色) 保持原有 :root 设定即可 */
+
+/* 2. 冰晶紫 / 月光纱 */
+[data-color="purple"] {
+    --primary-color: #C8B8DC;
+    --secondary-color: #a895c4;
+    --bg-gradient-start: #F4F0FA;
+    --bg-gradient-end: #EAE4F4;
+    --border-color: #E0D8EE;
+    --chat-right-bg: #D4C8E4;
+    --danger-color: #ff8fa8;
+}
+[data-theme="dark"][data-color="purple"] {
+    --primary-color: #b09dc9;
+    --secondary-color: #cbbce0;
+    --bg-gradient-start: #1c1524;
+    --bg-gradient-end: #140e1a;
+    --border-color: #3b2d4a;
+    --chat-right-bg: #4a385e;
+}
+
+/* 3. 薄雾粉 */
+[data-color="pink"] {
+    --primary-color: #ECC8D6;
+    --secondary-color: #d6a5b8;
+    --bg-gradient-start: #FBF0F4;
+    --bg-gradient-end: #F6E6EF;
+    --border-color: #F2DCE6;
+    --chat-right-bg: #F0D2DD;
+    --danger-color: #ff7b9c;
+}
+[data-theme="dark"][data-color="pink"] {
+    --primary-color: #d6a5b8;
+    --secondary-color: #ebd1db;
+    --bg-gradient-start: #24151a;
+    --bg-gradient-end: #1a0e12;
+    --border-color: #4a2d38;
+    --chat-right-bg: #5e3846;
+}
+
+/* 4. 天光金 */
+[data-color="gold"] {
+    --primary-color: #EADCB0;
+    --secondary-color: #c9b885;
+    --bg-gradient-start: #FAF6EA;
+    --bg-gradient-end: #F4F2DE;
+    --border-color: #F0ECD0;
+    --chat-right-bg: #EDE4C0;
+    --danger-color: #ff9f43;
+}
+[data-theme="dark"][data-color="gold"] {
+    --primary-color: #c9b885;
+    --secondary-color: #e8ddb7;
+    --bg-gradient-start: #242215;
+    --bg-gradient-end: #1a180e;
+    --border-color: #4a452d;
+    --chat-right-bg: #5e5738;
+}
+
+/* 颜色选择器 UI 样式 */
+.color-picker-container { display: flex; gap: 15px; margin-top: 10px; margin-bottom: 20px; }
+.color-circle { width: 36px; height: 36px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: 0.2s; position: relative; }
+.color-circle:active { transform: scale(0.9); }
+.color-circle.active { border-color: var(--text-main); transform: scale(1.1); }
+.color-circle.c-blue { background: linear-gradient(135deg, #8AA8CE, #A4BBD8); }
+.color-circle.c-purple { background: linear-gradient(135deg, #C8B8DC, #D4C8E4); }
+.color-circle.c-pink { background: linear-gradient(135deg, #ECC8D6, #F0D2DD); }
+.color-circle.c-gold { background: linear-gradient(135deg, #EADCB0, #EDE4C0); }

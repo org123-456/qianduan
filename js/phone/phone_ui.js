@@ -4,6 +4,7 @@ import { DiaryUI } from './ui/diary_ui.js';
 import { MomentsUI } from './ui/moments_ui.js';
 
 export const PhoneUI = {
+    // 挂载你刚才完美创建的 4 个模块！
     ...ChatUI,
     ...MemoryUI,
     ...DiaryUI,
@@ -11,7 +12,7 @@ export const PhoneUI = {
     
     currentMomentsTab: 'feed', 
 
-    // 极其关键的辅助函数，之前拆分时不小心漏掉了！
+    // 核心辅助函数（之前漏掉导致白屏的罪魁祸首）
     escapeHtml(str) {
         if (str === null || str === undefined) return '';
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
@@ -254,6 +255,20 @@ export const PhoneUI = {
         if (icon) {
             if (newTheme === 'dark') { icon.classList.remove('ph-moon'); icon.classList.add('ph-sun'); } 
             else { icon.classList.remove('ph-sun'); icon.classList.add('ph-moon'); }
+        }
+    },
+
+    togglePlaylist() {
+        const bg = document.getElementById('playlist-modal-bg');
+        const modal = document.getElementById('playlist-modal');
+        if (bg && modal) {
+            if (bg.classList.contains('show')) {
+                bg.classList.remove('show');
+                modal.classList.remove('show');
+            } else {
+                bg.classList.add('show');
+                modal.classList.add('show');
+            }
         }
     },
 
@@ -524,11 +539,11 @@ export const PhoneUI = {
 
         setTimeout(() => {
             if (window.PhoneAPI) {
-                window.PhoneAPI.loadSettings();
-                window.PhoneAPI.refreshPresetDropdowns();
-                window.PhoneAPI.refreshPromptDropdowns();
-                window.PhoneAPI.refreshUIDropdowns();
-                window.PhoneAPI.refreshImgDropdowns();
+                if (window.PhoneAPI.loadSettings) window.PhoneAPI.loadSettings();
+                if (window.PhoneAPI.refreshPresetDropdowns) window.PhoneAPI.refreshPresetDropdowns();
+                if (window.PhoneAPI.refreshPromptDropdowns) window.PhoneAPI.refreshPromptDropdowns();
+                if (window.PhoneAPI.refreshUIDropdowns) window.PhoneAPI.refreshUIDropdowns();
+                if (window.PhoneAPI.refreshImgDropdowns) window.PhoneAPI.refreshImgDropdowns();
             }
         }, 50);
     },

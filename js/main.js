@@ -1,21 +1,8 @@
 import { Config } from './phone/phone_config.js';
 import { PhoneAPI } from './phone/phone_api.js';
 import { PhoneUI } from './phone/phone_ui.js';
-import { PhoneEngine as LazyPhoneEngine } from './phone/phone_engine_loader.js';
-import { ChatEngine } from './phone/engine/chat_engine.js';
-import { ReaderEngine } from './phone/engine/reader_engine.js';
-import { MemoryEngine } from './phone/engine/memory_engine.js';
-import { GalleryEngine } from './phone/engine/gallery_engine.js';
+import { PhoneEngine } from './phone/phone_engine.js'; // 直接引入打包好的总引擎
 import { WechatApp } from './apps/wechat.js';
-
-// 将所有拆分的模块组装成完整的 PhoneEngine
-const PhoneEngine = {
-    ...LazyPhoneEngine,
-    ...ChatEngine,
-    ...ReaderEngine,
-    ...MemoryEngine,
-    ...GalleryEngine
-};
 
 // 兼容旧版的发送逻辑
 const legacySendUserMsgOnly = PhoneEngine.sendUserMsgOnly;

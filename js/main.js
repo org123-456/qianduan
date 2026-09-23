@@ -4,12 +4,17 @@ import { PhoneUI } from './phone/phone_ui.js';
 import { PhoneEngine as LazyPhoneEngine } from './phone/phone_engine_loader.js';
 import { ChatEngine } from './phone/engine/chat_engine.js';
 import { ReaderEngine } from './phone/engine/reader_engine.js';
+import { MemoryEngine } from './phone/engine/memory_engine.js';
+import { GalleryEngine } from './phone/engine/gallery_engine.js';
 import { WechatApp } from './apps/wechat.js';
 
+// 将所有拆分的模块组装成完整的 PhoneEngine
 const PhoneEngine = {
     ...LazyPhoneEngine,
     ...ChatEngine,
-    ...ReaderEngine
+    ...ReaderEngine,
+    ...MemoryEngine,
+    ...GalleryEngine
 };
 
 // 兼容旧版的发送逻辑

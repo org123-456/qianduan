@@ -36,8 +36,6 @@ export const ChatUI = {
             this.renderGallery();
         } else if (appId === 'settings') {
             this.renderSettings();
-        } else if (appId === 'worldbook') {
-            this.renderWorldbook();
         } else if (appId === 'moments') {
             this.renderMoments();
         } else if (appId === 'favorites') {
@@ -45,42 +43,6 @@ export const ChatUI = {
                 this.renderMoments();
             }
         }
-    },
-
-    renderNovelContent() {
-        const listEl = document.getElementById('novel-content-list');
-        if (!listEl) return;
-        const roleId = window.Config?.currentContactId;
-        if (!roleId) return;
-        const items = window.Config?.phoneData?.[roleId]?.novel?.items || [];
-
-        const myAvatar = localStorage.getItem('my_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa';
-        const taAvatar = localStorage.getItem('ta_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=TA&backgroundColor=e8f0fa';
-        const myName = localStorage.getItem('my_name') || '我';
-        const taName = localStorage.getItem('char_name') || 'TA';
-
-        let html = '';
-        items.forEach((item, idx) => {
-            if (item.sender === 'typing') {
-                html += `<div class="story-item other typing" style="opacity:0.6;"><img class="story-avatar" src="${taAvatar}"><div class="story-content-wrapper"><div class="story-name-row"><span class="story-name">${taName}</span></div><div class="story-bubble">...</div></div></div>`;
-                return;
-            }
-            const isMe = item.sender === 'me';
-            const avatar = isMe ? myAvatar : taAvatar;
-            const name = isMe ? myName : taName;
-            let parsed = window.marked ? window.marked.parse(item.content || '') : (item.content || '');
-            let thoughtHtml = '';
-            if (!isMe && item.innerThought) {
-                thoughtHtml = `<div class="story-thought-icon" onclick="window.PhoneUI.showThought(${idx}, 'novel'); event.stopPropagation();"><i class="ph-fill ph-cloud"></i></div>`;
-            }
-            html += `<div class="story-item ${isMe ? 'me' : 'other'}"><img class="story-avatar" src="${avatar}"><div class="story-content-wrapper"><div class="story-name-row"><span class="story-name">${name}</span>${thoughtHtml}</div><div class="story-bubble markdown-body" onclick="if(window.PhoneEngine) window.PhoneEngine.openMsgMenu(${idx}, '${item.sender}')">${parsed}</div></div></div>`;
-        });
-        listEl.innerHTML = html;
-
-        setTimeout(() => { 
-            const listEl = document.getElementById('novel-content-list');
-            if (listEl) listEl.scrollTop = listEl.scrollHeight;
-        }, 100);
     },
 
     toggleChatMenu() {
@@ -143,25 +105,10 @@ export const ChatUI = {
         panel.innerHTML = html;
     },
 
-    toggleStoryMenu() {
-        const menu = document.getElementById('story-plus-menu');
-        const btn = document.getElementById('btn-story-plus');
-        if (!menu || !btn) return;
-        if (menu.classList.contains('show')) { this.closeStoryMenu(); } else { menu.classList.add('show'); btn.style.transform = 'rotate(45deg)'; }
-    },
-
-    closeStoryMenu() {
-        const menu = document.getElementById('story-plus-menu');
-        const btn = document.getElementById('btn-story-plus');
-        if (menu) menu.classList.remove('show');
-        if (btn) btn.style.transform = 'rotate(0deg)';
-    },
-
-    showThought(index, forceApp) {
+    showThought(index) {
         const roleId = window.Config?.currentContactId;
         if (!roleId) return;
-        const targetApp = forceApp || (window.Config?.currentAppId === 'novel' ? 'novel' : 'wechat');
-        const appData = window.Config?.phoneData?.[roleId]?.[targetApp];
+        const appData = window.Config?.phoneData?.[roleId]?.wechat;
         if (!appData || !Array.isArray(appData.items)) return;
         const realIndex = Number(index);
         if (!Number.isInteger(realIndex) || realIndex < 0 || realIndex >= appData.items.length) return;

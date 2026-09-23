@@ -4,7 +4,6 @@ import { DiaryUI } from './ui/diary_ui.js';
 import { MomentsUI } from './ui/moments_ui.js';
 
 export const PhoneUI = {
-    // 挂载你刚才完美创建的 4 个模块！
     ...ChatUI,
     ...MemoryUI,
     ...DiaryUI,
@@ -12,7 +11,6 @@ export const PhoneUI = {
     
     currentMomentsTab: 'feed', 
 
-    // 核心辅助函数（之前漏掉导致白屏的罪魁祸首）
     escapeHtml(str) {
         if (str === null || str === undefined) return '';
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
@@ -272,32 +270,6 @@ export const PhoneUI = {
         }
     },
 
-    openWbToggleModal(mode) {
-        const listEl = document.getElementById('wb-toggle-list');
-        const titleEl = document.getElementById('wb-toggle-title');
-        if (!listEl || !titleEl) return;
-        titleEl.innerHTML = `<i class="ph-fill ph-puzzle-piece"></i> 规则插件挂载 (${mode === 'online' ? '线上微信' : '线下故事'})`;
-        const wbData = window.PhoneAPI ? window.PhoneAPI.getWorldbookData() : [];
-        let html = '';
-        wbData.forEach(wb => {
-            const isChecked = mode === 'online' ? wb.online : wb.offline;
-            html += `<div style="display:flex;justify-content:space-between;align-items:center;background:var(--icon-bg);padding:12px;border-radius:12px;border:1px solid var(--border-color);"><div style="font-size:13px;font-weight:bold;color:var(--text-main);">${this.escapeHtml(wb.title)}</div><label class="switch"><input type="checkbox" ${isChecked ? 'checked' : ''} onchange="if(window.PhoneAPI) window.PhoneAPI.toggleWorldbook('${this.escapeHtml(wb.id)}','${mode}',this.checked)"><span class="slider"></span></label></div>`;
-        });
-        if (wbData.length === 0) { html = `<div style="text-align:center;color:var(--text-sub);padding:20px 0;">暂无规则，请去 Home 页【世界书】添加！</div>`; }
-        listEl.innerHTML = html;
-        const bg = document.getElementById('wb-toggle-modal-bg');
-        const modal = document.getElementById('wb-toggle-modal');
-        if (bg) bg.classList.add('show');
-        if (modal) modal.classList.add('show');
-    },
-
-    closeWbToggleModal() {
-        const bg = document.getElementById('wb-toggle-modal-bg');
-        const modal = document.getElementById('wb-toggle-modal');
-        if (bg) bg.classList.remove('show');
-        if (modal) modal.classList.remove('show');
-    },
-
     openArchiveModal() {
         this.renderArchiveList();
         const bg = document.getElementById('archive-modal-bg');
@@ -389,28 +361,7 @@ export const PhoneUI = {
 
         if (appId === 'diary') { winEl.classList.add('fullscreen-mode'); } else { winEl.classList.remove('fullscreen-mode'); }
 
-        if (appId === 'novel') {
-            contentEl.style.padding = '0';
-            contentEl.style.display = 'flex';
-            contentEl.style.flexDirection = 'column';
-            contentEl.style.overflow = 'hidden'; 
-            contentEl.innerHTML = `
-            <div id="novel-content-list" class="story-bg" onclick="window.PhoneUI.closeStoryMenu();" style="flex: 1; overflow-y: auto; min-height: 0; padding: 20px 15px;"></div>
-            <div style="position: relative; flex-shrink: 0; background: var(--window-bg); padding: 10px 15px 20px 15px; z-index: 20; border-top: 1px solid var(--border-color);">
-                <div id="story-plus-menu" class="story-menu" style="bottom: 100%; margin-bottom: 0;">
-                    <div class="story-menu-item" onclick="window.PhoneUI.openWbToggleModal('offline');window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-puzzle-piece" style="color:#2a9d8f;"></i></div><div class="text">规则挂载</div></div>
-                    <div class="story-menu-item" onclick="if(window.PhoneEngine) window.PhoneEngine.extractMemory('novel');window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-brain"></i></div><div class="text">提取记忆</div></div>
-                    <div class="story-menu-item" onclick="if(window.PhoneEngine) window.PhoneEngine.washMemory('novel');window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-broom" style="color:#f4a261;"></i></div><div class="text">记忆洗地</div></div>
-                    <div class="story-menu-item" onclick="window.PhoneUI.openArchiveModal();window.PhoneUI.closeStoryMenu();"><div class="icon"><i class="ph-fill ph-floppy-disk"></i></div><div class="text">存档室</div></div>
-                </div>
-                <div class="story-input-bar" style="margin: 0; padding: 0; box-shadow: none; border: none; background: transparent; display: flex; align-items: flex-end; gap: 10px;">
-                    <div class="icon-btn" id="btn-story-plus" onclick="window.PhoneUI.toggleStoryMenu();"><i class="ph ph-plus-circle"></i></div>
-                    <textarea id="novel-input" class="story-textarea" placeholder="书写你们的故事..." onclick="window.PhoneUI.closeStoryMenu();" style="background: var(--input-bg); padding: 10px 15px; border-radius: 20px; border: 1px solid var(--border-color);"></textarea>
-                    <button class="story-send-btn" onclick="if(window.PhoneEngine) window.PhoneEngine.sendNovelMessage();window.PhoneUI.closeStoryMenu();"><i class="ph-fill ph-paper-plane-right"></i></button>
-                </div>
-            </div>`;
-            this.renderNovelContent();
-        } else if (appId === 'diary') {
+        if (appId === 'diary') {
             const diaryTitle = localStorage.getItem('diary_title') || 'His Diary';
             contentEl.innerHTML = `<div id="diary-cover-view" class="diary-cover-view"><div class="diary-book-cover long-pressable" data-img="bg_diary_cover" id="diary-book-cover" onclick="window.PhoneUI.unlockDiary()"><div class="diary-title">${this.escapeHtml(diaryTitle)}</div><div class="diary-hint">点击翻开日记</div></div><div class="diary-back-btn" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div></div><div id="diary-inside-view" class="diary-inside-view" ontouchstart="window.PhoneUI.handleSwipeStart(event)" ontouchend="window.PhoneUI.handleSwipeEnd(event)"><div class="diary-back-btn" onclick="window.PhoneUI.closeApp()" style="top:20px;left:15px;background:rgba(0,0,0,0.1);color:#333;z-index:50;"><i class="ph ph-caret-left"></i></div><div id="diary-content-area" style="display:flex;flex-direction:column;height:100%;"></div></div>`;
             this.renderDiaryPage();
@@ -426,8 +377,6 @@ export const PhoneUI = {
             this.renderFavorites();
         } else if (appId === 'settings') {
             this.renderSettings();
-        } else if (appId === 'worldbook') {
-            this.renderWorldbook();
         }
     },
 
@@ -493,7 +442,6 @@ export const PhoneUI = {
         <div class="preset-bar"><select id="prompt-preset-select" onchange="if(window.PhoneAPI) window.PhoneAPI.loadPromptPreset()"></select><button class="preset-btn" onclick="if(window.PhoneAPI) window.PhoneAPI.savePromptPreset()">存为预设</button><button class="preset-btn del" onclick="if(window.PhoneAPI) window.PhoneAPI.deletePromptPreset()">删除</button></div>
         <div style="margin-bottom:15px;"><label style="font-size:12px;color:var(--text-main);font-weight:bold;">1. 系统指令 (防八股/核心规则)</label><textarea id="system-prompt" rows="4" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:10px;border-radius:8px;resize:vertical;font-size:12px;margin-top:4px;"></textarea></div>
         <div style="margin-bottom:15px;"><label style="font-size:12px;color:var(--text-main);font-weight:bold;">2. 角色人设 (性格/背景/口吻)</label><textarea id="char-persona" rows="6" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:10px;border-radius:8px;resize:vertical;font-size:12px;margin-top:4px;"></textarea></div>
-        <div style="margin-bottom:5px;"><label style="font-size:12px;color:var(--text-main);font-weight:bold;">3. 线下文风 (小说模式专属要求)</label><textarea id="novel-style" rows="4" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:10px;border-radius:8px;resize:vertical;font-size:12px;margin-top:4px;"></textarea></div>
         </div>
         <div class="card">
         <h3 style="color:var(--primary-color);margin-bottom:15px;"><i class="ph-fill ph-toggle-left"></i> 功能开关</h3>
@@ -546,29 +494,6 @@ export const PhoneUI = {
                 if (window.PhoneAPI.refreshImgDropdowns) window.PhoneAPI.refreshImgDropdowns();
             }
         }, 50);
-    },
-
-    renderWorldbook() {
-        const contentEl = document.getElementById('app-window-content');
-        if (!contentEl) return;
-        const wbData = window.PhoneAPI ? window.PhoneAPI.getWorldbookData() : [];
-        let wbHtml = '';
-        wbData.forEach(wb => {
-            const deleteBtn = wb.isCustom ? `<div class="wb-delete-btn" onclick="if(window.PhoneAPI) window.PhoneAPI.deleteWorldbook('${this.escapeHtml(wb.id)}')"><i class="ph ph-trash"></i></div>` : '';
-            wbHtml += `<div class="wb-card"><div class="wb-header"><span class="wb-title">${this.escapeHtml(wb.title)}</span>${deleteBtn}</div><div class="wb-content">${wb.content || ''}</div></div>`;
-        });
-        contentEl.innerHTML = `
-        <div class="card" style="margin-bottom:20px;">
-        <h3 style="font-size:14px;color:var(--primary-color);margin-bottom:10px;"><i class="ph-fill ph-text-aa"></i> 线下小说字数底线</h3>
-        <div style="display:flex;align-items:center;gap:10px;">
-        <input type="number" id="novel-min-words" value="${localStorage.getItem('novel_min_words') || '150'}" oninput="if(window.PhoneAPI) window.PhoneAPI.saveNovelWords()" style="width:80px;padding:8px;border:1px solid var(--border-color);border-radius:8px;text-align:center;background:var(--icon-bg);color:var(--text-main);">
-        <span style="font-size:12px;color:var(--text-sub);">字 (打字自动保存)</span>
-        </div>
-        </div>
-        <h3 style="font-size:14px;color:var(--primary-color);margin-bottom:10px;margin-left:5px;"><i class="ph-fill ph-puzzle-piece"></i> 规则插件库</h3>
-        ${wbHtml}
-        <button class="btn-refresh" onclick="window.PhoneUI.openWbModal()" style="margin-top:10px;margin-bottom:30px;background:transparent;color:var(--primary-color);border:1px dashed var(--primary-color);"><i class="ph ph-plus"></i> 添加自定义规则</button>
-        `;
     },
 
     fillPresetData() {

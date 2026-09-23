@@ -17,7 +17,7 @@
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-<!-- 引入分离出去的 CSS 文件 (确保你的 CSS 文件放在 css/style.css) -->
+<!-- 引入分离出去的 CSS 文件 -->
 <link rel="stylesheet" href="css/style.css">
 
 </head>
@@ -31,7 +31,7 @@
 <div id="api-modal" class="api-modal thought-modal">
     <div class="thought-header"><i class="ph-fill ph-cpu"></i> 系统控制舱</div>
     <div style="margin-bottom: 15px;">
-        <label style="font-size: 12px; color: var(--text-sub);">秒切主引擎 (聊天/小说)</label>
+        <label style="font-size: 12px; color: var(--text-sub);">当前语言引擎</label>
         <select id="quick-main-engine" onchange="window.PhoneAPI.assignEngine('main', this.value)" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 5px;"></select>
     </div>
     <div class="card" style="padding: 15px; margin-bottom: 15px; background: var(--icon-bg);">
@@ -61,13 +61,6 @@
         <button class="btn-refresh" onclick="window.PhoneUI.closeCdSheet()" style="flex: 1; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0; box-shadow: none;">取消</button>
         <button class="btn-refresh" onclick="window.PhoneUI.saveCdSheet()" style="flex: 1; margin-top: 0;">保存</button>
     </div>
-</div>
-
-<div id="wb-toggle-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeWbToggleModal()"></div>
-<div id="wb-toggle-modal" class="thought-modal" style="padding: 20px; max-height: 70vh; z-index: 9001;">
-    <div class="thought-header" id="wb-toggle-title"><i class="ph-fill ph-puzzle-piece"></i> 规则插件挂载</div>
-    <div id="wb-toggle-list" style="overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; max-height: 40vh;"></div>
-    <button class="btn-refresh" onclick="window.PhoneUI.closeWbToggleModal()" style="margin-top: 0;">完成</button>
 </div>
 
 <div id="note-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeNoteModal()"></div>
@@ -147,14 +140,7 @@
                 <div class="note-content" id="note-content">“今天也要开心哦！”</div>
             </div>
             <div class="app-grid">
-                <div class="app-icon" onclick="window.PhoneUI.openApp('novel', '线下故事')">
-                    <div class="icon neo-card"><i class="ph-fill ph-book-open" style="color: var(--text-sub);"></i></div>
-                    <div class="name">线下故事</div>
-                </div>
-                <div class="app-icon" onclick="window.PhoneUI.openApp('worldbook', '世界书')">
-                    <div class="icon neo-card"><i class="ph-fill ph-globe-hemisphere-west" style="color: #f4a261;"></i></div>
-                    <div class="name">世界书</div>
-                </div>
+                <!-- 彻底移除了线下故事和世界书，只保留系统设置 -->
                 <div class="app-icon" onclick="window.PhoneUI.openApp('settings', '系统设置')">
                     <div class="icon neo-card"><i class="ph-fill ph-gear" style="color: var(--primary-color);"></i></div>
                     <div class="name">系统设置</div>
@@ -197,10 +183,6 @@
                     <div class="icon"><i class="ph-fill ph-file-text" style="color: #60a5fa;"></i></div>
                     <div class="name">发文件</div>
                 </div>
-                <div class="app-icon" onclick="window.PhoneUI.openWbToggleModal('online'); window.PhoneUI.closeChatMenu();">
-                    <div class="icon"><i class="ph-fill ph-puzzle-piece" style="color: #2a9d8f;"></i></div>
-                    <div class="name">规则挂载</div>
-                </div>
                 <div class="app-icon" onclick="window.PhoneEngine.extractMemory('wechat'); window.PhoneUI.closeChatMenu();">
                     <div class="icon"><i class="ph-fill ph-brain" style="color: #a78bfa;"></i></div>
                     <div class="name">提取记忆</div>
@@ -216,6 +198,7 @@
                 <div class="icon-btn" onclick="window.PhoneUI.toggleChatMenu()" id="btn-plus"><i class="ph ph-plus-circle"></i></div>
                 <textarea id="chat-input" placeholder="宝宝，说话..." onclick="window.PhoneUI.closeChatMenu(); window.PhoneUI.closeStickerPanel();"></textarea>
                 <div class="icon-btn" style="font-size: 22px;" onclick="window.PhoneUI.toggleStickerPanel()"><i class="ph ph-smiley"></i></div>
+                <!-- 点击纸飞机触发 AI 回复 -->
                 <div class="icon-btn send-btn" onclick="window.PhoneEngine.sendChatMessage(); window.PhoneUI.closeChatMenu(); window.PhoneUI.closeStickerPanel();"><i class="ph-fill ph-paper-plane-right"></i></div>
             </div>
         </div>
@@ -291,25 +274,6 @@
         </div>
     </div>
     <div class="thought-content" id="thought-content"></div>
-</div>
-
-<div id="wb-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeWbModal()"></div>
-<div id="wb-modal" class="thought-modal" style="padding: 20px; z-index: 9001;">
-    <div class="thought-header"><i class="ph-fill ph-plus-circle"></i> 编写新规则</div>
-    <input type="text" id="wb-new-title" placeholder="规则名称 (如: 防八股)" style="width: 100%; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 14px; outline: none;">
-    <textarea id="wb-new-content" placeholder="输入具体的规则内容，越详细越好..." style="width: 100%; padding: 12px; border-radius: 8px; min-height: 100px; resize: none; font-size: 13px; line-height: 1.5; outline: none; margin-bottom: 15px; font-family: inherit;"></textarea>
-    <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.addWorldbook()" style="margin-top: 0;">保存</button>
-</div>
-
-<div id="archive-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeArchiveModal()"></div>
-<div id="archive-modal" class="thought-modal" style="padding: 20px; max-height: 80vh; z-index: 9001;">
-    <div class="thought-header"><i class="ph-fill ph-floppy-disk"></i> 剧情存档室 (平行宇宙)</div>
-    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-        <input type="text" id="archive-name" placeholder="给当前剧情起个名字..." style="flex: 1; padding: 10px; border-radius: 8px; outline: none;">
-        <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.saveArchive()" style="margin-top: 0; width: auto; padding: 0 15px;">存档</button>
-    </div>
-    <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.startNewTimeline()" style="margin-top: 0; margin-bottom: 15px; background: transparent; color: var(--danger-color); border: 1px dashed var(--danger-color); box-shadow: none;"><i class="ph ph-magic-wand"></i> 开启全新时间线 (清空当前)</button>
-    <div id="archive-list" style="overflow-y: auto; max-height: 40vh; display: flex; flex-direction: column; gap: 10px;"></div>
 </div>
 
 <div id="blindbox-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeBlindBox()" style="background: rgba(0,0,0,0.15); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);"></div>

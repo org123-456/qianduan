@@ -2,15 +2,9 @@ import { Config } from '../phone_config.js';
 import { PhoneAPI } from '../phone_api.js';
 import { PhoneUI } from '../phone_ui.js';
 
-// ============================================================================
-// 1. 自动加载 Three.js 依赖
-// ============================================================================
 import * as Three from 'https://esm.sh/three@0.160.0';
 import { TrackballControls } from 'https://esm.sh/three@0.160.0/examples/jsm/controls/TrackballControls.js';
 
-// ============================================================================
-// 2. 原汁原味的 3D 星海引擎核心代码 (保持不变)
-// ============================================================================
 function ringLayout(items, hash) {
   const placed=[];
   for(const item of [...items].sort((a,b)=>b.radius-a.radius||a.id.localeCompare(b.id))){
@@ -589,10 +583,41 @@ function createRenderer(container, opts) {
   
   window.addEventListener("resize", resize);
   load();
+  
+  // 🌟 星系隔离功能 (暴露给外部调用)
+  function frameFamily(fIds) {
+    const selected = sprites.filter((s) => fIds && fIds.has(s.n.id));
+    if (!selected.length) return;
+    const box = new T.Box3();
+    selected.forEach((s) => box.expandByPoint(shape !== "free" ? new T.Vector3() : s.base));
+    const center = box.getCenter(new T.Vector3());
+    let radius = 20;
+    selected.forEach((s) => radius = Math.max(radius, (shape === "ring" ? s.ring.length() : shape === "spiral" ? s.orbit.radius : s.base.distanceTo(center)) + s.r * (shape !== "free" ? (s.n.kind === "core" ? 3 : .6) : 1)));
+    const halfFov = Math.atan(Math.tan(targetFov * Math.PI / 360) * Math.min(0.65, camera.aspect * 0.9));
+    const distance = Math.max(100, radius / Math.sin(halfFov) * 1.2);
+    controls.maxDistance = Math.max(820, distance * 1.2);
+    const direction = camera.position.clone().sub(controls.target).normalize();
+    flyTo(center.clone().addScaledVector(direction, distance), center, 0.065);
+  }
+
   return {
     setShape(value) { chosenShape = ["spiral","ring"].includes(value) ? value : "free"; shape = familyIds ? "free" : chosenShape; clearFocus(); spiralPaused = false; idleSpin = !familyIds; arrangeSpiral(); flyTo(overviewPosition(), CORE_POS, 0.065); },
-    refresh: load, // 🌟 暴露给外部的热更新方法
+    refresh: load,
     resetView() { clearFocus(); spiralPaused = false; idleSpin = !familyIds; flyTo(overviewPosition(), CORE_POS, 0.075); },
+    // 🌟 隔离查看某个星系
+    setFamily(ids) {
+      clearFocus();
+      familyIds = ids ? new Set(ids) : null;
+      shape = familyIds ? "free" : chosenShape;
+      idleSpin = !familyIds;
+      spiralPaused = false;
+      arrangeSpiral();
+      if (familyIds) frameFamily(familyIds);
+      else {
+        controls.maxDistance = expanded ? 820 : 260;
+        flyTo(overviewPosition(), CORE_POS, 0.065);
+      }
+    },
     destroy() { alive = false; cancelAnimationFrame(raf); window.removeEventListener("resize", resize); renderer.dispose(); container.removeChild(renderer.domElement); }
   };
 }
@@ -617,13 +642,12 @@ function createMemorySky(host, {data, title='记忆星穹', background, onOpen}=
 }
 
 // ============================================================================
-// 3. 核心业务逻辑 (包含热更新、收藏夹接入)
+// 3. 核心业务逻辑 (包含热更新、收藏夹接入、星系切换)
 // ============================================================================
 export const MemoryEngine = {
     skyInstance: null,
     skyConfig: null,
 
-    // 🌟 组装星空数据 (EchoVault + 收藏夹)
     _buildSkyData() {
         let evData = { daily: {}, permanent: {} };
         if (window.PhoneAPI && window.PhoneAPI.EchoVault) {
@@ -637,7 +661,6 @@ export const MemoryEngine = {
         const nodes = [];
         let idCounter = 1;
 
-        // 1. EchoVault 日常记忆
         Object.keys(evData.daily).forEach(date => {
             const item = evData.daily[date];
             nodes.push({
@@ -652,7 +675,6 @@ export const MemoryEngine = {
             });
         });
 
-        // 2. EchoVault 锚点记忆
         Object.keys(evData.permanent).forEach(key => {
             const item = evData.permanent[key];
             nodes.push({
@@ -667,7 +689,6 @@ export const MemoryEngine = {
             });
         });
 
-        // 3. 接入你的【收藏夹】！
         favs.forEach(fav => {
             nodes.push({
                 id: 'fav_' + fav.id,
@@ -676,7 +697,7 @@ export const MemoryEngine = {
                 content: fav.content,
                 kind: 'event',
                 importance: 3,
-                valence: 0.8, // 收藏的通常是开心的
+                valence: 0.8, 
                 arousal: 0.6
             });
         });
@@ -689,13 +710,11 @@ export const MemoryEngine = {
         const softlinks = [];
         const families = [];
 
-        // 时光轨连线
         const eventNodes = nodes.filter(n => n.kind === 'event').sort((a,b) => new Date(a.date) - new Date(b.date));
         for (let i = 0; i < eventNodes.length - 1; i++) {
             links.push([eventNodes[i].id, eventNodes[i+1].id]);
         }
 
-        // 标签星座连线
         const tagMap = {};
         nodes.forEach(n => {
             if (n.title && n.title !== '日常回忆' && n.title !== '⭐ 闪光碎片') {
@@ -720,7 +739,6 @@ export const MemoryEngine = {
             }
         });
 
-        // 🌟 收藏夹专属星座连线！
         const favNodes = nodes.filter(n => n.id.startsWith('fav_')).map(n => n.id);
         if (favNodes.length > 1) {
             families.push({
@@ -743,7 +761,6 @@ export const MemoryEngine = {
         
         const skyData = this._buildSkyData();
 
-        // 🌟 热更新机制：如果宇宙已经存在，只刷新星星，不毁灭宇宙！(修复卡死Bug)
         if (this.skyInstance) {
             this.skyConfig.data = skyData;
             this.skyInstance.refresh();
@@ -780,6 +797,24 @@ export const MemoryEngine = {
         this.skyInstance = createMemorySky(container, this.skyConfig);
     },
 
+    // 🌟 星系隔离功能
+    focusGalaxy(type) {
+        if (!this.skyInstance || !this.skyConfig) return;
+        if (type === 'all') {
+            this.skyInstance.setFamily(null);
+        } else if (type === 'vault') {
+            const vaultIds = this.skyConfig.data.nodes.filter(n => !n.id.startsWith('fav_')).map(n => n.id);
+            this.skyInstance.setFamily(vaultIds);
+        } else if (type === 'fav') {
+            const favIds = this.skyConfig.data.nodes.filter(n => n.id.startsWith('fav_')).map(n => n.id);
+            if (favIds.length === 0) {
+                if (window.PhoneAPI) window.PhoneAPI.showToast("收藏夹还是空的哦，快去聊天里长按收藏吧！");
+                return;
+            }
+            this.skyInstance.setFamily(favIds);
+        }
+    },
+
     _scanKeywords(userText) {
         if (!userText) return '';
         const vault = PhoneAPI.getMemoryVault() || [];
@@ -793,7 +828,6 @@ export const MemoryEngine = {
         return triggeredMemories.length > 0 ? `\n【系统提示(关键词触发)】：用户刚才的话触动了你的某段记忆：\n${triggeredMemories.slice(0, 3).join('\n')}\n` : '';
     },
 
-    // 自动复盘
     async autoManageMemory() {
         const roleId = Config?.currentContactId;
         const items = Config?.phoneData?.[roleId]?.wechat?.items || [];
@@ -875,7 +909,7 @@ DEL###要删除的记忆ID
 
             if (added > 0 || updated > 0 || deleted > 0) {
                 PhoneAPI.showToast(`✨ TA在心里默默整理了记忆... (新增${added} 修改${updated} 删除${deleted})`);
-                this.initSky(); // 🌟 热更新宇宙，不卡死！
+                this.initSky(); 
             }
         } catch(e) {
             console.error("Auto memory failed:", e);
@@ -915,7 +949,7 @@ arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏),
                     };
                 });
                 PhoneAPI.saveToMemoryVault(vaultItems, sourceApp === 'wechat' ? '线上微信' : '线下故事');
-                this.initSky(); // 🌟 提取完热更新
+                this.initSky(); 
             }
         } catch (e) { alert('记忆提取失败：' + e.message); }
     },
@@ -960,7 +994,7 @@ arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏),
                 if (sourceApp === 'novel') PhoneUI.renderNovelContent?.();
                 else PhoneUI.renderAppContent?.('wechat');
                 PhoneAPI.showToast('🧹 洗地完成！界面已清空，情绪记忆已入库。');
-                this.initSky(); // 🌟 洗地完热更新
+                this.initSky(); 
             }
         } catch (e) { alert('洗地失败：' + e.message); }
     },

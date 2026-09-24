@@ -1,532 +1,128 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="light">
+<html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#dff1ff">
-<meta name="color-scheme" content="light dark">
-<meta name="supported-color-schemes" content="light dark">
-<link rel="manifest" href="manifest.json">
-
-<title>Claire & Claude</title>
-
-<script src="https://unpkg.com/@phosphor-icons/web"></script>
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
-<link rel="stylesheet" href="css/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Memory Sky</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-
-<input type="file" id="global-file-input" accept="image/*" style="display:none">
-<div id="toast"><i class="ph-fill ph-check-circle" style="color: #4ade80;"></i> <span id="toast-msg">提示</span></div>
-
-<!-- ================= API 弹窗 ================= -->
-<div id="api-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeApiModal()"></div>
-<div id="api-modal" class="api-modal thought-modal">
-    <div class="thought-header"><i class="ph-fill ph-cpu"></i> 系统控制舱</div>
-    <div style="margin-bottom: 15px;">
-        <label style="font-size: 12px; color: var(--text-sub);">当前语言引擎</label>
-        <select id="quick-main-engine" onchange="window.PhoneAPI.assignEngine('main', this.value)" style="width: 100%; padding: 8px; border-radius: 8px; margin-top: 5px;"></select>
-    </div>
-    <div class="card" style="padding: 15px; margin-bottom: 15px; background: var(--icon-bg);">
-        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 5px;">上一次 API 状态：</div>
-        <div id="api-status-text" style="font-size: 14px; font-weight: bold; color: var(--text-main); word-break: break-all;">待命</div>
-        <div style="font-size: 12px; color: var(--text-sub); margin-top: 10px; margin-bottom: 5px;">消耗 Token 与缓存：</div>
-        <div id="api-token-text" style="font-size: 12px; font-family: monospace; color: var(--primary-color); white-space: pre-wrap; line-height: 1.6;">0</div>
-    </div>
-    <button class="btn-refresh" onclick="window.PhoneEngine.cleanStuckTyping(); window.PhoneUI.closeApiModal();" style="background: var(--danger-color); margin-top: 0;">
-        <i class="ph-fill ph-warning"></i> 一键解除“...”卡死
-    </button>
-</div>
-
-<!-- ================= 其他全局弹窗 ================= -->
-<div id="cd-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeCdSheet()"></div>
-<div id="cd-modal" class="thought-modal" style="padding: 20px;">
-    <div class="thought-header"><i class="ph-fill ph-calendar-star"></i> 编辑倒数日</div>
-    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
-        <input type="text" id="cd-in-title" placeholder="标题 (如: 见到你)" maxlength="12" style="padding: 10px; border-radius: 8px;">
-        <div style="display: flex; gap: 10px;">
-            <input type="text" id="cd-in-pre" placeholder="前缀 (如: 还有)" maxlength="6" style="flex: 1; padding: 10px; border-radius: 8px;">
-            <input type="text" id="cd-in-suf" placeholder="后缀 (如: 天)" maxlength="6" style="flex: 1; padding: 10px; border-radius: 8px;">
-        </div>
-        <input type="date" id="cd-in-date" style="padding: 10px; border-radius: 8px;">
-    </div>
-    <div style="display: flex; gap: 10px;">
-        <button class="btn-refresh" onclick="window.PhoneUI.closeCdSheet()" style="flex: 1; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0; box-shadow: none;">取消</button>
-        <button class="btn-refresh" onclick="window.PhoneUI.saveCdSheet()" style="flex: 1; margin-top: 0;">保存</button>
-    </div>
-</div>
-
-<div id="note-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeNoteModal()"></div>
-<div id="note-modal" class="thought-modal" style="padding: 20px; z-index: 9001;">
-    <div class="thought-header"><i class="ph-fill ph-paper-plane-tilt"></i> 传纸条</div>
-    <textarea id="note-input" placeholder="写下你想对TA说的话..." style="width: 100%; height: 120px; padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 18px; font-family: 'Long Cang', 'Kaiti', cursive; resize: none; outline: none; margin-bottom: 15px;"></textarea>
-    <div style="display: flex; gap: 10px;">
-        <button class="btn-refresh" onclick="window.PhoneUI.closeNoteModal()" style="flex: 1; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0; box-shadow: none;">取消</button>
-        <button class="btn-refresh" onclick="window.PhoneUI.sendNote()" style="flex: 1; margin-top: 0;">悄悄递出</button>
-    </div>
-</div>
-
-<div id="playlist-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.togglePlaylist()"></div>
-<div id="playlist-modal" class="thought-modal" style="padding: 20px; z-index: 9001;">
-    <div class="thought-header"><span><i class="ph-fill ph-playlist"></i> 共听歌单</span></div>
-    <div id="playlist-container" style="max-height: 50vh; overflow-y: auto;"></div>
-    <button class="btn-refresh" onclick="window.PhoneUI.togglePlaylist()" style="margin-top: 15px;">关闭</button>
-</div>
-
-<audio id="shared-audio-player" src=""></audio>
-
-<!-- ================= 主应用容器 ================= -->
-<div id="app-container">
-    <div class="top-bar">
-        <div style="display: flex; gap: 10px;">
-            <div class="menu-btn" onclick="window.PhoneUI.toggleTheme()"><i class="ph-fill ph-moon" id="theme-icon"></i></div>
-            <div class="menu-btn api-btn" id="api-fab" onclick="window.PhoneUI.openApiModal()"><i class="ph-fill ph-cpu"></i></div>
-        </div>
-        <div class="title" id="top-title">Claire & Claude</div>
-        <div class="heart"><i class="ph-fill ph-heart"></i> 100%</div>
-    </div>
-
-    <div class="page-container" id="scroll-box">
+    <div id="phone-container">
         
-        <!-- 首页 -->
-        <div id="page-home" class="page">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-                <div class="neo-card" style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px 10px;">
-                    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 12px;">
-                        <img id="home-my-avatar" class="long-pressable" data-img="my_avatar" src="https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa" style="width: 42px; height: 42px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; cursor: pointer;">
-                        <i class="ph-fill ph-heart" style="color: var(--danger-color); font-size: 18px; animation: heartbeat 1.5s infinite;"></i>
-                        <img id="home-ta-avatar" class="long-pressable" data-img="ta_avatar" src="https://api.dicebear.com/7.x/notionists/svg?seed=TA&backgroundColor=e8f0fa" style="width: 42px; height: 42px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; cursor: pointer;">
-                    </div>
-                    <div style="font-size: 11px; color: var(--text-sub); font-weight: bold;">我们已经相爱了</div>
-                    <div style="display: flex; align-items: baseline; gap: 4px; margin-top: 4px;">
-                        <span id="home-love-days" style="font-size: 32px; font-weight: 800; color: var(--primary-color);">0</span>
-                        <span style="font-size: 12px; color: var(--text-sub); font-weight: bold;">天</span>
-                    </div>
-                </div>
-                <div class="neo-card" style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 15px 10px;">
-                    <div id="home-time" style="font-size: 32px; font-weight: bold; color: var(--text-main); letter-spacing: 1px;">00:00</div>
-                    <div id="home-date" style="font-size: 10px; color: var(--text-sub); font-weight: bold; margin-bottom: 5px;">2026.09.19</div>
-                    <div id="home-cal-grid" class="mini-cal"></div>
-                </div>
+        <!-- ================= 顶栏 (新增了设置小齿轮) ================= -->
+        <header id="top-header">
+            <div class="header-title">Memory Sky</div>
+            <div class="header-actions">
+                <button id="api-toggle-btn" class="icon-btn" title="切换API">🔌</button>
+                <button id="theme-toggle-btn" class="icon-btn" title="切换主题">🌙</button>
+                <!-- 系统设置挪到这里了 -->
+                <button id="settings-toggle-btn" class="icon-btn" title="系统设置">⚙️</button>
             </div>
-            <div class="neo-card polaroid-widget long-pressable" data-img="home_polaroid" style="margin-bottom: 16px;">
-                <img id="polaroid-img" class="polaroid-photo" src="https://images.unsplash.com/photo-1522093007474-d86e9bf7ba6f?q=80&w=600&auto=format&fit=crop">
-                <div class="polaroid-text" id="polaroid-text">“回忆正在加载中...”</div>
-            </div>
-            <div class="neo-card countdown-widget" onclick="window.PhoneUI.openCdSheet()" style="margin-bottom: 16px;">
-                <div class="cd-left">
-                    <div class="cd-title" id="cd-title-display">见到你</div>
-                    <div class="cd-date" id="cd-date-display">2025.05.09</div>
-                </div>
-                <div class="cd-right">
-                    <span class="cd-suf" id="cd-pre-display">还有</span>
-                    <span class="cd-num" id="cd-num-display">27</span>
-                    <span class="cd-suf" id="cd-suf-display">天</span>
-                </div>
-            </div>
-            <div class="neo-card note-widget" onclick="window.PhoneUI.openNoteModal()" style="margin-bottom: 20px;">
-                <div class="note-tape"></div>
-                <div class="note-header">
-                    <i class="ph-fill ph-paper-plane-tilt" style="color: var(--primary-color); font-size: 16px;"></i>
-                    <span id="note-status">TA 悄悄塞给你一张纸条...</span>
-                </div>
-                <div class="note-content" id="note-content">“今天也要开心哦！”</div>
-            </div>
-            <div class="app-grid">
-                <div class="app-icon" onclick="window.PhoneUI.openApp('settings', '系统设置')">
-                    <div class="icon neo-card"><i class="ph-fill ph-gear" style="color: var(--primary-color);"></i></div>
-                    <div class="name">系统设置</div>
-                </div>
-            </div>
-        </div>
+        </header>
 
-        <!-- 🌟 重新设计的记忆海 (相框封面 + 星海内部) -->
-        <div id="page-memory" class="page" style="padding: 0; overflow: hidden;">
+        <!-- ================= 核心内容区 ================= -->
+        <main id="app-main">
             
-            <!-- 1. 记忆画廊封面 (相框展示) -->
-            <div id="memory-cover-view" class="memory-cover-view">
-                <div class="memory-frame-wrap">
-                    <img id="memory-frame-photo" class="long-pressable" data-img="memory_frame_photo" src="https://images.unsplash.com/photo-1518609878373-06d740f60d8b?q=80&w=1000&auto=format&fit=crop" alt="专属相框">
-                    <div class="memory-frame-text">Our Memories</div>
+            <!-- 1. 首页 (Home) -->
+            <div id="home-app" class="app-page active">
+                <!-- 日常组件：日历、倒计时、纸条等 -->
+                <div class="home-widgets">
+                    <h2>欢迎回来</h2>
+                    <div class="widget countdown-widget">距离纪念日还有 100 天</div>
+                    <div class="widget note-widget">记得按时吃饭哦~</div>
                 </div>
-                <div class="memory-enter-btn" onclick="window.PhoneUI.enterStarrySea()">
-                    <i class="ph-fill ph-shooting-star"></i> 潜入星海
-                </div>
+                <!-- 删除了原来占地方的系统设置按钮 -->
             </div>
 
-            <!-- 2. 真正的星海内部 -->
-            <div id="memory-inside-view" class="memory-inside-view">
-                <div class="diary-back-btn" onclick="window.PhoneUI.exitStarrySea()" style="top: 40px; left: 20px; z-index: 50; background: rgba(255,255,255,0.1);"><i class="ph ph-caret-left"></i></div>
-                <div class="starry-sea-bg" id="starry-sea-bg"></div>
-                <div class="floating-bubbles" id="floating-bubbles">
-                    <div class="glass-bubble bubble-diary" onclick="window.PhoneUI.openApp('diary', '他的日记')">
-                        <i class="ph-fill ph-book-bookmark icon"></i>
-                        <span class="text">日记</span>
+            <!-- 2. 记忆 (Memory) - 已清空，专心做 3D 星海 -->
+            <div id="memory-app" class="app-page hidden">
+                <div class="memory-desktop">
+                    <div class="photo-frame" id="memory-frame">
+                        <!-- 默认相框图片 -->
+                        <img src="assets/default-memory.jpg" alt="Memory" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiM0NDQiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZmlsbD0iI2ZmZiIgZHk9Ii4zZW0iIHRleHQtYW5jaG9yPSJtaWRkbGUiPuaYr+a1t+ebuOahhjwvdGV4dD48L3N2Zz4='">
+                        <div class="frame-glass"></div>
                     </div>
-                    <div class="glass-bubble bubble-vault" onclick="window.PhoneUI.openApp('memory_vault', 'EchoVault 记忆库')">
-                        <i class="ph-fill ph-database icon"></i>
-                        <span class="text">记忆库</span>
+                    <button class="dive-btn" id="dive-sky-btn">潜入记忆星海</button>
+                </div>
+                <!-- 3D星海容器，默认隐藏 -->
+                <div id="memory-sky-container" class="hidden"></div>
+            </div>
+
+            <!-- 3. 聊天 (Chat) -->
+            <div id="chat-app" class="app-page hidden">
+                <div id="chat-messages">
+                    <!-- 聊天气泡列表 -->
+                </div>
+                <div id="chat-input-area">
+                    <textarea id="chat-input" placeholder="发消息..."></textarea>
+                    <button id="send-btn">发送</button>
+                </div>
+            </div>
+
+            <!-- 4. 同频 (Together) -->
+            <div id="together-app" class="app-page hidden">
+                <div class="together-widgets">
+                    <h2>一起听歌</h2>
+                    <!-- 听歌组件 -->
+                </div>
+            </div>
+
+            <!-- 5. 空间 (Space) - 删除了家规，换成了日记和朋友圈双Tab -->
+            <div id="space-app" class="app-page hidden">
+                <!-- 空间顶部 Tab 切换 -->
+                <div class="space-tabs">
+                    <button class="space-tab active" onclick="switchSpaceTab('diary')">我们的日记</button>
+                    <button class="space-tab" onclick="switchSpaceTab('moments')">朋友圈动态</button>
+                </div>
+                
+                <!-- 空间内容区 -->
+                <div class="space-content">
+                    <!-- 日记模块 -->
+                    <div id="space-diary-view" class="space-view active">
+                        <div id="diary-list-container"></div>
+                        <button id="write-diary-btn" class="float-btn">✏️ 写日记</button>
                     </div>
-                    <div class="glass-bubble bubble-gallery" onclick="window.PhoneUI.openApp('gallery', '回忆相册')">
-                        <i class="ph-fill ph-polaroid-camera icon"></i>
-                        <span class="text">相册</span>
+                    
+                    <!-- 朋友圈模块 -->
+                    <div id="space-moments-view" class="space-view hidden">
+                        <div id="moments-feed"></div>
+                        <button id="post-moment-btn" class="float-btn">📷 发动态</button>
                     </div>
                 </div>
-                <div id="memory-fragments-container"></div>
-            </div>
-        </div>
-
-        <!-- 聊天页 -->
-        <div id="page-chat" class="page">
-            <div id="app-content-list"></div>
-
-            <div id="sticker-panel" class="chat-plus-menu" style="display: flex; flex-wrap: wrap; justify-content: flex-start; align-content: flex-start; padding: 15px; gap: 12px; overflow-y: auto; max-height: 280px; z-index: 89;"></div>
-
-            <div id="chat-plus-menu" class="chat-plus-menu" style="grid-template-columns: repeat(4, 1fr);">
-                <div class="app-icon" onclick="window.PhoneEngine.sendImageMsg();">
-                    <div class="icon"><i class="ph-fill ph-image" style="color: #4ade80;"></i></div>
-                    <div class="name">发图片</div>
-                </div>
-                <div class="app-icon" onclick="window.PhoneEngine.sendFileMsg();">
-                    <div class="icon"><i class="ph-fill ph-file-text" style="color: #60a5fa;"></i></div>
-                    <div class="name">发文件</div>
-                </div>
-                <div class="app-icon" onclick="window.PhoneEngine.extractMemory('wechat'); window.PhoneUI.closeChatMenu();">
-                    <div class="icon"><i class="ph-fill ph-brain" style="color: #a78bfa;"></i></div>
-                    <div class="name">提取记忆</div>
-                </div>
-                <div class="app-icon" onclick="window.PhoneEngine.washMemory('wechat'); window.PhoneUI.closeChatMenu();">
-                    <div class="icon"><i class="ph-fill ph-broom" style="color: #f4a261;"></i></div>
-                    <div class="name">记忆洗地</div>
-                </div>
             </div>
 
-            <div class="chat-input-bar">
-                <div class="icon-btn" onclick="window.PhoneUI.toggleChatMenu()" id="btn-plus"><i class="ph ph-plus-circle"></i></div>
-                <textarea id="chat-input" placeholder="宝宝，说话..." onclick="window.PhoneUI.closeChatMenu(); window.PhoneUI.closeStickerPanel();"></textarea>
-                <div class="icon-btn" style="font-size: 22px;" onclick="window.PhoneUI.toggleStickerPanel()"><i class="ph ph-smiley"></i></div>
-                <div class="icon-btn send-btn" onclick="window.PhoneEngine.sendChatMessage(); window.PhoneUI.closeChatMenu(); window.PhoneUI.closeStickerPanel();"><i class="ph-fill ph-paper-plane-right"></i></div>
-            </div>
-        </div>
+        </main>
 
-        <!-- 共听页 -->
-        <div id="page-together" class="page" style="background: var(--bg-gradient-start);">
-            <div style="padding: 60px 20px 20px; text-align: center; color: var(--text-main);">
-                <div id="music-title" style="font-size: 22px; font-weight: bold;">等待点歌...</div>
-                <div id="music-artist" style="font-size: 14px; color: var(--text-sub); margin-top: 5px;">-</div>
-            </div>
-            <div style="flex:1; display:flex; justify-content:center; align-items:center;">
-                <div style="width: 250px; height: 250px; border-radius: 50%; background: linear-gradient(135deg, #e8f4ff, #cde3ff); border: 6px solid #fff; box-shadow: 0 10px 30px rgba(90,140,200,0.2); display:flex; justify-content:center; align-items:center;">
-                    <img id="music-cover" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=1000&auto=format&fit=crop" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 4px solid #fff;">
-                </div>
-            </div>
-            <div style="padding: 20px 30px 120px; color: var(--primary-color); z-index: 10; position: relative;">
-                <div style="display:flex; align-items:center; gap:12px; font-size:11px; margin-bottom: 25px; font-family: monospace;">
-                    <span id="music-curr">00:00</span>
-                    <div style="flex:1; height:4px; background:rgba(111,168,220,0.2); border-radius:2px; position:relative; cursor: pointer;">
-                        <div id="music-progress" style="width:0%; height:100%; background:var(--primary-color); border-radius:2px; position:relative;">
-                            <div style="position:absolute; right:-5px; top:-3px; width:10px; height:10px; background:var(--primary-color); border-radius:50%; box-shadow:0 0 5px rgba(111,168,220,0.5);"></div>
-                        </div>
-                    </div>
-                    <span id="music-dur">00:00</span>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center; font-size:28px;">
-                    <i class="ph ph-heart" style="font-size:24px; cursor:pointer;" onclick="if(window.PhoneAPI) window.PhoneAPI.showToast('已收藏到星海！')"></i>
-                    <i class="ph-fill ph-skip-back" style="cursor:pointer;" onclick="if(window.PhoneAPI) window.PhoneAPI.showToast('暂无上一首')"></i>
-                    <div id="play-btn" onclick="togglePlayUI()" style="width:64px; height:64px; border-radius:50%; background:#fff; display:flex; justify-content:center; align-items:center; cursor:pointer; box-shadow: 0 8px 20px rgba(90,140,200,0.2);">
-                        <i class="ph-fill ph-play" id="play-icon" style="margin-left: 4px;"></i>
-                    </div>
-                    <i class="ph-fill ph-skip-forward" style="cursor:pointer;" onclick="if(window.PhoneAPI) window.PhoneAPI.showToast('请让 AI 为你切歌')"></i>
-                    <i class="ph ph-list" style="font-size:24px; cursor:pointer;" onclick="if(window.PhoneUI) window.PhoneUI.togglePlaylist()"></i>
-                </div>
-            </div>
-        </div>
-
-        <!-- 朋友圈页 -->
-        <div id="page-moments" class="page">
-            <div id="moments-content-area"></div>
-            <div class="fab-post" onclick="window.PhoneUI.openPostModal()"><i class="ph ph-camera"></i></div>
-        </div>
+        <!-- ================= 底栏导航 (保留你原本的排版) ================= -->
+        <nav id="bottom-nav">
+            <button class="nav-item active" data-target="home-app">🏠<br>首页</button>
+            <button class="nav-item" data-target="memory-app">✨<br>记忆</button>
+            <!-- 中间的 Chat 按钮 -->
+            <button class="nav-item chat-btn" data-target="chat-app">💬</button>
+            <button class="nav-item" data-target="together-app">🎧<br>同频</button>
+            <button class="nav-item" data-target="space-app">🪐<br>空间</button>
+        </nav>
 
     </div>
 
-    <!-- 底部导航 -->
-    <div class="bottom-nav">
-        <div class="nav-item active" onclick="switchTab(0)"><div class="icon"><i class="ph ph-house"></i></div><div class="text">Home</div></div>
-        <div class="nav-item" onclick="switchTab(1)"><div class="icon"><i class="ph ph-images"></i></div><div class="text">Memory</div></div>
-        <div class="nav-item center-btn" onclick="switchTab(2)"><div class="center-circle"><div class="icon"><i class="ph-fill ph-chat-circle-dots"></i></div></div></div>
-        <div class="nav-item" onclick="switchTab(3)"><div class="icon"><i class="ph ph-headphones"></i></div><div class="text">Together</div></div>
-        <div class="nav-item" onclick="switchTab(4)"><div class="icon"><i class="ph ph-planet"></i></div><div class="text">Space</div></div>
-    </div>
-</div>
-
-<!-- ================= 各种操作抽屉 ================= -->
-<div id="action-bg" class="action-sheet-bg" onclick="window.PhoneEngine.closeMsgMenu()"></div>
-<div id="action-sheet" class="action-sheet">
-    <button class="action-btn" onclick="window.PhoneEngine.favoriteMsg()"><i class="ph-fill ph-star" style="color: #f4a261;"></i> 手动摘录 (存入星海)</button>
-    <button class="action-btn" onclick="window.PhoneEngine.aiSummarizeMsg()"><i class="ph-fill ph-sparkle" style="color: #a78bfa;"></i> AI 提炼 (去敏并收藏)</button>
-    <button class="action-btn" onclick="window.PhoneEngine.editMsg()"><i class="ph ph-pencil-simple"></i> 编辑此消息</button>
-    <button class="action-btn" id="btn-regen" onclick="window.PhoneEngine.regenMsg()"><i class="ph ph-arrows-clockwise"></i> 重新生成 (删除并重骰)</button>
-    <button class="action-btn danger" onclick="window.PhoneEngine.deleteMsg()"><i class="ph ph-trash"></i> 删除此消息</button>
-    <button class="action-btn cancel" onclick="window.PhoneEngine.closeMsgMenu()">取消</button>
-</div>
-
-<div id="thought-bg" class="action-sheet-bg" style="cursor: pointer;" onclick="document.getElementById('thought-bg').classList.remove('show'); document.getElementById('thought-modal').classList.remove('show');"></div>
-<div id="thought-modal" class="thought-modal">
-    <div class="thought-header" style="justify-content: space-between;">
-        <span style="display:flex; align-items:center; gap:8px;"><i class="ph-fill ph-cloud"></i> TA 的心声</span>
-        <div style="cursor:pointer; padding:15px; margin:-15px; display:flex;" onclick="document.getElementById('thought-bg').classList.remove('show'); document.getElementById('thought-modal').classList.remove('show');">
-            <i class="ph ph-x" style="color:var(--text-sub); font-size:22px;"></i>
-        </div>
-    </div>
-    <div class="thought-content" id="thought-content"></div>
-</div>
-
-<div id="blindbox-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeBlindBox()" style="background: rgba(0,0,0,0.15); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);"></div>
-<div id="blindbox-modal" class="blindbox-modal">
-    <i class="ph-fill ph-shooting-star blindbox-icon"></i>
-    <div class="blindbox-text" id="blindbox-text">“回忆碎片加载中...”</div>
-    <div class="blindbox-meta" id="blindbox-meta">2023-10-24 · 线上微信</div>
-</div>
-
-<div id="custom-prompt-bg" class="action-sheet-bg"></div>
-<div id="custom-prompt-modal" class="thought-modal" style="padding: 20px; z-index: 9001;">
-    <div class="thought-header" id="custom-prompt-title" style="font-size: 14px; line-height: 1.4;">请输入</div>
-    <textarea id="custom-prompt-input" style="width: 100%; height: 220px; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 14px; resize: none; outline: none; margin-bottom: 15px; font-family: inherit; line-height: 1.6;"></textarea>
-    <div style="display: flex; gap: 10px;">
-        <button class="btn-refresh" id="custom-prompt-cancel" style="flex: 1; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0; box-shadow: none;">取消</button>
-        <button class="btn-refresh" id="custom-prompt-confirm" style="flex: 1; margin-top: 0;">确定保存</button>
-    </div>
-</div>
-
-<div id="ev-edit-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeEvEdit()"></div>
-<div id="ev-edit-modal" class="thought-modal" style="padding: 20px; z-index: 9001;">
-    <div class="thought-header"><i class="ph-fill ph-pencil-simple"></i> 编辑记忆 (手动去重)</div>
-    <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 10px; font-weight: bold;" id="ev-edit-date">2023-10-24</div>
-    <textarea id="ev-edit-content" style="width: 100%; height: 250px; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 14px; resize: none; outline: none; margin-bottom: 15px; font-family: inherit; line-height: 1.6;"></textarea>
-    <div style="display: flex; gap: 10px;">
-        <button class="btn-refresh" onclick="window.PhoneUI.closeEvEdit()" style="flex: 1; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0; box-shadow: none;">取消</button>
-        <button class="btn-refresh" onclick="window.PhoneUI.saveEvEdit()" style="flex: 1; margin-top: 0;">保存修改</button>
-    </div>
-</div>
-
-<div id="post-moment-bg" class="action-sheet-bg" onclick="window.PhoneUI.closePostModal()"></div>
-<div id="post-moment-modal" class="thought-modal" style="padding: 20px; z-index: 9001;">
-    <div class="thought-header"><i class="ph-fill ph-camera"></i> 发送动态</div>
-    <textarea id="post-moment-text" placeholder="这一刻的想法..." style="width: 100%; height: 120px; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 14px; resize: none; outline: none; margin-bottom: 10px;"></textarea>
-    <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center;">
-        <div class="icon-btn" style="color: var(--primary-color); font-size: 24px; cursor: pointer;"><i class="ph-fill ph-image"></i></div>
-        <span style="font-size: 12px; color: var(--text-sub);">添加图片 (暂未选择)</span>
-    </div>
-    <div style="display: flex; gap: 10px;">
-        <button class="btn-refresh" onclick="window.PhoneUI.closePostModal()" style="flex: 1; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0; box-shadow: none;">取消</button>
-        <button class="btn-refresh" onclick="window.PhoneUI.closePostModal(); window.PhoneAPI.showToast('UI演示：动态已发送！');" style="flex: 1; margin-top: 0;">发表</button>
-    </div>
-</div>
-
-<div id="app-window" class="app-window" style="z-index: 1000;">
-    <div class="app-window-header"><div class="app-window-back" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div><div class="app-window-title" id="app-window-title">应用</div></div>
-    <div class="app-window-content" id="app-window-content"></div>
-</div>
-
-<!-- ================= 共读时光 (书架 + 阅读器) ================= -->
-<div id="app-reader" class="app-window" style="z-index: 1001; background-color: var(--r-bg, #f4ecd8); color: var(--r-color, #333); transition: background-color 0.3s, color 0.3s;">
-    <div class="app-window-header" style="position: relative; z-index: 50; background: transparent; border-bottom: 1px solid rgba(128,128,128,0.1);">
-        <div class="app-window-back" onclick="window.PhoneUI.handleReaderBack()" style="color: inherit; padding: 10px; margin-left: -10px; cursor: pointer;">
-            <i class="ph ph-caret-left"></i>
-        </div>
-        <div class="app-window-title" id="reader-header-title" style="color: inherit; font-size: 15px; flex: 1; text-align: center;">共读书架</div>
-        
-        <i class="ph ph-text-aa" id="btn-reader-settings" onclick="window.PhoneEngine.openReaderSettings()" style="font-size: 22px; padding: 10px; cursor: pointer; display: none; color: inherit;"></i>
-        
-        <label id="btn-add-book" for="book-upload" style="cursor: pointer; color: inherit; font-size: 24px; padding: 10px; margin-right: -10px;">
-            <i class="ph ph-folder-plus"></i>
-        </label>
-        <input type="file" id="book-upload" accept=".txt" style="position: absolute; left: -9999px; opacity: 0;" onchange="window.PhoneEngine.importBook(event)">
-    </div>
-
-    <div id="reader-bookshelf-view" class="app-window-content" style="padding: 20px; display: block;">
-        <div id="bookshelf-list" class="bookshelf-grid">
-            <div class="book-wrap" onclick="window.PhoneEngine.openNotebook()">
-                <div class="book-cover-3d notebook-special">
-                    <i class="ph-fill ph-bookmarks" style="font-size: 24px; margin-bottom: 8px;"></i>
-                    我的摘录本
-                </div>
-                <div class="book-title-ui" style="color: var(--primary-color);">高光与吐槽</div>
-            </div>
-        </div>
-    </div>
-
-    <div id="reader-reading-view" class="app-window-content" style="padding: 20px 20px 80px 20px; font-size: var(--r-fz, 18px); line-height: var(--r-lh, 1.8); overflow-y: hidden; position: relative; display: none;">
-        <div id="reader-page-container" style="height: 100%; text-align: justify; word-break: break-word;"></div>
-        
-        <div id="companion-bubble" style="position: absolute; bottom: 20px; right: 20px; max-width: 60%; background: var(--primary-color); color: #fff; padding: 8px 12px; border-radius: 16px 16px 0 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); font-size: 12px; opacity: 0; transform: translateY(20px); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); pointer-events: auto; cursor: pointer; z-index: 100;">
-            <div style="font-weight: bold; font-size: 11px; opacity: 0.8; margin-bottom: 2px;" id="companion-name">大侦探</div>
-            <div id="companion-bubble-text">...</div>
-        </div>
-    </div>
-
-    <div id="reader-footer" class="reader-footer" style="position: absolute; bottom: 0; left: 0; right: 0; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: transparent; border-top: 1px solid rgba(128,128,128,0.1); font-size: 12px; color: inherit; opacity: 0.8; z-index: 50; display: none;">
-        <button class="icon-btn" onclick="window.PhoneEngine.prevPage()" style="color: inherit; background: none; border: none; font-size: 14px; display: flex; align-items: center; gap: 4px; cursor: pointer;"><i class="ph ph-caret-left"></i> 上一页</button>
-        <span id="reader-progress">0%</span>
-        <button class="icon-btn" onclick="window.PhoneEngine.nextPage()" style="color: inherit; background: none; border: none; font-size: 14px; display: flex; align-items: center; gap: 4px; cursor: pointer;">下一页 <i class="ph ph-caret-right"></i></button>
-    </div>
-
-    <div id="highlight-menu" class="dual-menu-container">
-        <button class="dual-menu-btn highlight" onclick="window.PhoneEngine.saveHighlight()">
-            <i class="ph-fill ph-highlighter-circle"></i> 划线收藏
-        </button>
-        <div style="width: 1px; height: 20px; background: var(--border-color);"></div>
-        <button class="dual-menu-btn discuss" onclick="window.PhoneEngine.discussHighlight()">
-            <i class="ph-fill ph-chat-circle-text"></i> 和他讨论
-        </button>
-    </div>
-
-    <div id="para-drawer-bg" class="para-drawer-bg" onclick="window.PhoneEngine.closeThreadDrawer()"></div>
-    <div id="para-comment-drawer" class="para-drawer">
-        <div style="padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color);">
-            <span style="font-weight: bold; font-size: 15px; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
-                <i class="ph-fill ph-chat-centered-text" style="color: var(--primary-color);"></i> 段落讨论沙龙
-            </span>
-            <i class="ph ph-x" style="font-size: 20px; color: var(--text-sub); cursor: pointer;" onclick="window.PhoneEngine.closeThreadDrawer()"></i>
-        </div>
-        <div class="para-quote-box" id="para-drawer-quote">引用文字...</div>
-        <div class="para-chat-list" id="para-drawer-chat"></div>
-        <div class="para-input-bar">
-            <input type="text" id="para-thread-input" placeholder="针对这段话，回怼或追问..." style="flex: 1; padding: 10px 14px; border-radius: 20px; border: 1px solid var(--border-color); outline: none; font-size: 14px;" onkeydown="if(event.key==='Enter') window.PhoneEngine.sendThreadReply()">
-            <button onclick="window.PhoneEngine.sendThreadReply()" style="background: linear-gradient(135deg, #8bc6ff, #4f81bd); border: none; color: #fff; width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer;">
-                <i class="ph-fill ph-paper-plane-right"></i>
-            </button>
-        </div>
-    </div>
-
-    <div id="reader-settings-bg" class="action-sheet-bg" onclick="window.PhoneEngine.closeReaderSettings()"></div>
-    <div id="reader-settings-drawer" class="action-sheet" style="background: var(--window-bg); border-radius: 24px 24px 0 0; padding: 25px 20px; z-index: 9005;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
-            <span style="font-weight:bold; font-size:16px; color: var(--text-main);">阅读设置</span>
-            <i class="ph ph-x" style="font-size:20px; color: var(--text-sub); cursor:pointer;" onclick="window.PhoneEngine.closeReaderSettings()"></i>
-        </div>
-        
-        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">背景主题</div>
-        <div style="display:flex; gap:15px; margin-bottom: 25px;">
-            <div class="reader-theme-btn" style="background:#f4ecd8; color:#5c4b37;" onclick="window.PhoneEngine.setReaderTheme('parchment')">羊皮纸</div>
-            <div class="reader-theme-btn" style="background:#ffffff; color:#333; border: 1px solid #e2e8f0;" onclick="window.PhoneEngine.setReaderTheme('light')">白昼</div>
-            <div class="reader-theme-btn" style="background:#1a1a1a; color:#a0a0a0; border: 1px solid #333;" onclick="window.PhoneEngine.setReaderTheme('dark')">暗夜</div>
-        </div>
-        
-        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">字体大小</div>
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 25px; background: rgba(0,0,0,0.03); border-radius: 16px; padding: 5px 15px; border: 1px solid var(--border-color);">
-            <button class="reader-adj-btn" onclick="window.PhoneEngine.adjReaderFont(-1)">A-</button>
-            <span id="reader-fz-display" style="font-size:16px; font-weight:bold; color: var(--text-main); width: 40px; text-align:center;">18</span>
-            <button class="reader-adj-btn" onclick="window.PhoneEngine.adjReaderFont(1)">A+</button>
-        </div>
-        
-        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">排版间距</div>
-        <div style="display:flex; gap:10px;">
-            <button class="reader-btn-outline" onclick="window.PhoneEngine.setReaderLineHeight(1.5)">紧凑</button>
-            <button class="reader-btn-outline" onclick="window.PhoneEngine.setReaderLineHeight(1.8)">适中</button>
-            <button class="reader-btn-outline" onclick="window.PhoneEngine.setReaderLineHeight(2.2)">宽松</button>
-        </div>
-    </div>
-</div>
-
-<script>
-function clearCacheAndReload() {
-    if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister())); }
-    if ('caches' in window) { caches.keys().then(keys => keys.forEach(k => caches.delete(k))); }
-    window.location.href = window.location.pathname + '?t=' + Date.now();
-}
-
-const navItems = document.querySelectorAll('.nav-item');
-const pages = document.querySelectorAll('.page');
-
-function switchTab(index) {
-    pages.forEach((p, i) => {
-        if (i === index) p.classList.add('active');
-        else p.classList.remove('active');
-    });
-
-    const appContainer = document.getElementById('app-container');
-    if(index === 1 || index === 3) {
-        appContainer.classList.add('hide-top-bar');
-        if(index === 1) {
-            // 🌟 每次切到记忆海，都重置为相框封面状态
-            if(window.PhoneUI && window.PhoneUI.exitStarrySea) {
-                window.PhoneUI.exitStarrySea();
-            }
+    <!-- 核心脚本引入 -->
+    <script type="module" src="js/main.js"></script>
+    
+    <!-- 空间双Tab切换的临时小脚本 -->
+    <script>
+        function switchSpaceTab(target) {
+            // 切换按钮高亮
+            document.querySelectorAll('.space-tab').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // 切换内容显示
+            document.querySelectorAll('.space-view').forEach(view => view.classList.add('hidden'));
+            document.querySelectorAll('.space-view').forEach(view => view.classList.remove('active'));
+            
+            const targetView = document.getElementById('space-' + target + '-view');
+            targetView.classList.remove('hidden');
+            targetView.classList.add('active');
         }
-    } else {
-        appContainer.classList.remove('hide-top-bar');
-    }
-
-    if(index === 2 && window.PhoneUI) {
-        window.Config.currentAppId = 'wechat';
-        window.PhoneUI.renderAppContent('wechat');
-    }
-    if(index === 4 && window.PhoneUI) window.PhoneUI.renderMoments();
-
-    navItems.forEach((nav, i) => {
-        if (i === index) nav.classList.add('active');
-        else nav.classList.remove('active');
-    });
-
-    if(window.PhoneUI && window.PhoneUI.closeChatMenu) {
-        window.PhoneUI.closeChatMenu();
-        window.PhoneUI.closeStickerPanel();
-    }
-}
-switchTab(0);
-
-function updateClock() {
-    const now = new Date();
-    const timeEl = document.getElementById('home-time');
-    const dateEl = document.getElementById('home-date');
-    if (timeEl && dateEl) {
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        timeEl.innerText = `${hours}:${minutes}`;
-        const y = now.getFullYear();
-        const m = String(now.getMonth() + 1).padStart(2, '0');
-        const d = String(now.getDate()).padStart(2, '0');
-        dateEl.innerText = `${y}.${m}.${d}`;
-    }
-}
-setInterval(updateClock, 1000);
-updateClock();
-
-let isPlaying = false;
-function togglePlayUI(forceState) {
-    const audio = document.getElementById('shared-audio-player');
-    if (!audio || !audio.src) {
-        if (window.PhoneAPI) window.PhoneAPI.showToast("当前没有正在播放的歌曲哦，快去让 TA 点一首吧~");
-        return;
-    }
-    if (typeof forceState === 'boolean') isPlaying = forceState;
-    else {
-        isPlaying = !isPlaying;
-        if (isPlaying) audio.play().catch(e => console.error("播放失败:", e));
-        else audio.pause();
-    }
-    const icon = document.getElementById('play-icon');
-    if (isPlaying) {
-        icon.classList.replace('ph-play', 'ph-pause');
-        icon.style.marginLeft = '0';
-    } else {
-        icon.classList.replace('ph-pause', 'ph-play');
-        icon.style.marginLeft = '4px';
-    }
-}
-
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js')
-        .then(() => console.log('Service Worker 注册成功！'))
-        .catch(err => console.error('Service Worker 注册失败:', err));
-}
-</script>
-<script type="module" src="js/main.js?t=60000"></script>
+    </script>
 </body>
 </html>

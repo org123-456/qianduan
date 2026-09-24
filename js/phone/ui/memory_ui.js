@@ -1,24 +1,5 @@
 export const MemoryUI = {
-    initStarrySea() {
-        const bg = document.getElementById('starry-sea-bg');
-        if (!bg) return;
-        if (bg.children.length === 0) {
-            for (let i = 0; i < 50; i++) {
-                const star = document.createElement('div');
-                star.className = 'star';
-                const size = Math.random() * 3 + 1;
-                star.style.width = size + 'px';
-                star.style.height = size + 'px';
-                star.style.left = Math.random() * 100 + '%';
-                star.style.top = Math.random() * 100 + '%';
-                star.style.animationDuration = (Math.random() * 3 + 2) + 's';
-                star.style.animationDelay = (Math.random() * 2) + 's';
-                bg.appendChild(star);
-            }
-        }
-        this.renderMemoryFragments();
-    },
-
+    // 潜入星海
     enterStarrySea() {
         const cover = document.getElementById('memory-cover-view');
         const inside = document.getElementById('memory-inside-view');
@@ -28,8 +9,14 @@ export const MemoryUI = {
             inside.classList.add('active');
             setTimeout(() => { bubbles.classList.add('show'); }, 300);
         }
+        
+        // 🌟 触发 3D 星海初始化
+        if (window.PhoneEngine && window.PhoneEngine.MemoryEngine) {
+            window.PhoneEngine.MemoryEngine.initSky();
+        }
     },
 
+    // 退出星海
     exitStarrySea() {
         const cover = document.getElementById('memory-cover-view');
         const inside = document.getElementById('memory-inside-view');
@@ -39,44 +26,6 @@ export const MemoryUI = {
             inside.classList.remove('active');
             cover.classList.remove('dive-in');
         }
-    },
-
-    renderMemoryFragments() {
-        const container = document.getElementById('memory-fragments-container');
-        if (!container || !window.PhoneAPI || !window.PhoneAPI.EchoVault) return;
-        container.innerHTML = '';
-        const evData = window.PhoneAPI.EchoVault.getData();
-        const dates = Object.keys(evData.daily);
-        if (dates.length === 0) return;
-
-        const maxFrags = Math.min(dates.length, 15);
-        const shuffled = dates.sort(() => 0.5 - Math.random()).slice(0, maxFrags);
-
-        shuffled.forEach(date => {
-            const frag = document.createElement('div');
-            frag.className = 'memory-fragment';
-            frag.style.left = (Math.random() * 80 + 10) + '%';
-            frag.style.top = (Math.random() * 80 + 10) + '%';
-            frag.style.animationDelay = (Math.random() * 2) + 's';
-            
-            frag.onclick = () => {
-                const item = evData.daily[date];
-                const textEl = document.getElementById('blindbox-text');
-                const metaEl = document.getElementById('blindbox-meta');
-                if (textEl && metaEl) {
-                    let content = item.content.replace(/---/g, '').trim();
-                    if (content.length > 100) content = content.substring(0, 100) + '...';
-                    textEl.innerText = `“${content}”`;
-                    metaEl.innerText = `${date} · ${item.tags || '日常'}`;
-                }
-                const bg = document.getElementById('blindbox-bg');
-                const modal = document.getElementById('blindbox-modal');
-                if (bg) bg.classList.add('show');
-                if (modal) modal.classList.add('show');
-                window.PhoneAPI.EchoVault.incrementHits('daily', date);
-            };
-            container.appendChild(frag);
-        });
     },
 
     closeBlindBox() {
@@ -213,5 +162,10 @@ export const MemoryUI = {
             window.PhoneAPI.showToast("🗑️ 记忆已删除");
             this.renderMemoryVault();
         }
+    },
+
+    escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     }
 };

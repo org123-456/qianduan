@@ -350,13 +350,13 @@ input, textarea, select { background: var(--input-bg); border: 1px solid var(--b
 .star { position: absolute; background: #fff; border-radius: 50%; animation: twinkle infinite alternate; }
 @keyframes twinkle { 0% { opacity: 0.2; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 8px #fff; } }
 
+/* 🌟 修复：去掉了相册气泡，保留日记和记忆库 */
 .glass-bubble { position: absolute; width: 110px; height: 110px; border-radius: 50%; background: rgba(255,255,255,.1); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.2); box-shadow: 0 10px 40px rgba(0,0,0,.35), inset 0 0 20px rgba(255,255,255,.15); display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; cursor: pointer; transition: 0.3s; animation: floatBubble 6s ease-in-out infinite; }
 .glass-bubble:active { transform: scale(0.9) !important; }
 .glass-bubble .icon { font-size: 36px; margin-bottom: 6px; color: #fff; text-shadow: 0 0 15px rgba(255,255,255,0.5); }
 .glass-bubble .text { font-size: 13px; font-weight: bold; letter-spacing: 1px; }
-.bubble-diary { top: 20%; left: 15%; animation-delay: 0s; }
-.bubble-vault { top: 45%; right: 15%; animation-delay: -2s; }
-.bubble-gallery { bottom: 20%; left: 25%; animation-delay: -4s; }
+.bubble-diary { top: 25%; left: 15%; animation-delay: 0s; }
+.bubble-vault { top: 50%; right: 15%; animation-delay: -2s; }
 @keyframes floatBubble { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
 
 .memory-fragment { position: absolute; width: 12px; height: 12px; border-radius: 50%; background: #fff; box-shadow: 0 0 15px 4px rgba(255, 255, 255, 0.6); cursor: pointer; transition: 0.3s; animation: pulseGlow 3s infinite alternate; }
@@ -395,18 +395,7 @@ input, textarea, select { background: var(--input-bg); border: 1px solid var(--b
 
 .page-turner { display: none !important; }
 
-.gallery-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
-.gallery-item { position: relative; padding-top: 100%; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); cursor: pointer; background: var(--icon-bg); }
-.gallery-item img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
-.gallery-item:active img { transform: scale(1.05); }
-.gallery-del-btn { position: absolute; top: 5px; right: 5px; width: 24px; height: 24px; background: rgba(0,0,0,0.5); color: #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; backdrop-filter: blur(5px); z-index: 2; }
-.image-viewer { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: 0.3s; }
-.image-viewer.show { opacity: 1; visibility: visible; }
-.image-viewer img { max-width: 95%; max-height: 90%; border-radius: 12px; box-shadow: 0 0 30px rgba(0,0,0,0.5); transform: scale(0.9); transition: 0.3s cubic-bezier(0.25, 1, 0.5, 1); }
-.image-viewer.show img { transform: scale(1); }
-.viewer-close { position: absolute; top: 40px; right: 20px; color: #fff; font-size: 32px; cursor: pointer; background: rgba(255,255,255,0.2); width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
-.viewer-download { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 16px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-.viewer-download:active { background: rgba(255,255,255,0.4); }
+/* ================== 清理了相册相关的样式 ================== */
 
 .settings-tabs { display: flex; background: var(--input-bg); border-radius: 16px; padding: 5px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);}
 .settings-tab { flex: 1; text-align: center; padding: 10px; font-size: 13px; font-weight: bold; color: var(--text-sub); border-radius: 12px; cursor: pointer; transition: 0.3s; }
@@ -500,28 +489,7 @@ input, textarea, select { background: var(--input-bg); border: 1px solid var(--b
 .dual-menu-btn.discuss { color: #fff; background: var(--btn-gradient); }
 .dual-menu-btn.highlight { color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
 
-/* 晋江式段评抽屉与徽标 */
-.comment-badge {
-    display: inline-flex !important;
-    align-items: center;
-    justify-content: center;
-    background: rgba(106, 168, 220, 0.15) !important;
-    color: var(--primary-color, #6aa8dc) !important;
-    border: 1px solid rgba(106, 168, 220, 0.3) !important;
-    border-radius: 12px !important;
-    padding: 2px 8px !important;
-    font-size: 12px !important;
-    margin-left: 6px;
-    cursor: pointer;
-    vertical-align: baseline !important;
-    line-height: 1.2 !important;
-    pointer-events: auto !important;
-    position: relative !important;
-    z-index: 100 !important;
-    user-select: none;
-    width: auto !important;
-    box-sizing: border-box;
-}
+.comment-badge { display: inline-flex !important; align-items: center; justify-content: center; background: rgba(106, 168, 220, 0.15) !important; color: var(--primary-color, #6aa8dc) !important; border: 1px solid rgba(106, 168, 220, 0.3) !important; border-radius: 12px !important; padding: 2px 8px !important; font-size: 12px !important; margin-left: 6px; cursor: pointer; vertical-align: baseline !important; line-height: 1.2 !important; pointer-events: auto !important; position: relative !important; z-index: 100 !important; user-select: none; width: auto !important; box-sizing: border-box; }
 .comment-badge i { margin-right: 4px; font-size: 13px !important; }
 .comment-badge:active { transform: scale(0.9) !important; background: rgba(106, 168, 220, 0.3) !important; }
 
@@ -533,7 +501,6 @@ input, textarea, select { background: var(--input-bg); border: 1px solid var(--b
 .para-chat-list { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
 .para-input-bar { padding: 10px 15px 20px 15px; background: var(--icon-bg); display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--border-color); }
 
-/* 🌟 阅读器设置面板样式 */
 .reader-theme-btn { flex: 1; text-align: center; padding: 14px 0; border-radius: 16px; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
 .reader-theme-btn:active { transform: scale(0.95); }
 .reader-adj-btn { border: none; background: transparent; font-size: 18px; font-weight: bold; cursor: pointer; color: var(--primary-color); padding: 10px 20px; transition: 0.2s; }

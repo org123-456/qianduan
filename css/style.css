@@ -537,3 +537,26 @@ input, textarea, select { background: var(--input-bg); border: 1px solid var(--b
 .ms-heading, .ms-hint, .ms-plus, .ms-gear, .ms-menu, .ms-settings, .ms-memory, .ms-status {
     display: none !important;
 }
+
+/* 星穹魔法棒按钮 */
+.sky-fab {
+    position: absolute;
+    bottom: 100px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+    font-size: 24px;
+    z-index: 50;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    cursor: pointer;
+    transition: 0.2s;
+}
+.sky-fab:active { transform: scale(0.9); }

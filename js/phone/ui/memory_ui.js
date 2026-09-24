@@ -1,138 +1,117 @@
 export const MemoryUI = {
-    switchVaultTab(tabName) {
-        if (window.Config) window.Config.memoryVaultTab = tabName;
-        document.querySelectorAll('.vault-tab').forEach(el => el.classList.remove('active'));
-        const activeTab = document.getElementById('tab-' + tabName);
-        if (activeTab) activeTab.classList.add('active');
-        this.renderMemoryVault();
+    // 🌟 修复：保留原有的 initStarrySea，但只负责生成星星，不直接显示气泡
+    initStarrySea() {
+        const bg = document.getElementById('starry-sea-bg');
+        if (!bg) return;
+        
+        if (bg.children.length === 0) {
+            for (let i = 0; i < 50; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                const size = Math.random() * 3 + 1;
+                star.style.width = size + 'px';
+                star.style.height = size + 'px';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                star.style.animationDelay = (Math.random() * 2) + 's';
+                bg.appendChild(star);
+            }
+        }
+        this.renderMemoryFragments();
     },
 
-    renderMemoryVault() {
-        const contentArea = document.getElementById('vault-content-area');
-        if (!contentArea || !window.PhoneAPI || !window.PhoneAPI.EchoVault) return;
-        const currentTab = window.Config?.memoryVaultTab || 'daily';
+    // 🌟 新增：潜入星海动画
+    enterStarrySea() {
+        const cover = document.getElementById('memory-cover-view');
+        const inside = document.getElementById('memory-inside-view');
+        const bubbles = document.getElementById('floating-bubbles');
+        
+        if (cover && inside && bubbles) {
+            cover.classList.add('dive-in'); // 相框放大透明
+            inside.classList.add('active'); // 星空浮现
+            
+            // 延迟一点点让气泡有果冻弹出的感觉
+            setTimeout(() => {
+                bubbles.classList.add('show');
+            }, 300);
+        }
+    },
+
+    // 🌟 新增：退出星海动画
+    exitStarrySea() {
+        const cover = document.getElementById('memory-cover-view');
+        const inside = document.getElementById('memory-inside-view');
+        const bubbles = document.getElementById('floating-bubbles');
+        
+        if (cover && inside && bubbles) {
+            bubbles.classList.remove('show');
+            inside.classList.remove('active');
+            cover.classList.remove('dive-in');
+        }
+    },
+
+    renderMemoryFragments() {
+        const container = document.getElementById('memory-fragments-container');
+        if (!container || !window.PhoneAPI || !window.PhoneAPI.EchoVault) return;
+        container.innerHTML = '';
         const evData = window.PhoneAPI.EchoVault.getData();
+        const dates = Object.keys(evData.daily);
+        if (dates.length === 0) return;
 
-        let html = '';
-        if (currentTab === 'daily') {
-            const dailyKeys = Object.keys(evData.daily).sort((a, b) => new Date(b) - new Date(a));
-            if (dailyKeys.length === 0) html = '<div class="ev-empty">今天还没有故事发生...</div>';
-            else {
-                dailyKeys.forEach(date => {
-                    const item = evData.daily[date];
-                    html += `<div class="ev-card"><div class="ev-card-header"><span class="ev-date">📅 ${date}</span><span class="ev-importance">重要度: ${item.importance} | 查阅: ${item.hits}</span></div><div class="ev-body">${this.escapeHtml(item.content)}</div><div class="ev-actions"><i class="ph-fill ph-star" title="设为锚点" onclick="if(window.PhoneAPI) window.PhoneAPI.toggleCoreMemory('${date}')"></i><i class="ph-fill ph-pencil-simple" title="手动编辑/去重" onclick="window.PhoneUI.openEvEdit('${date}', false)"></i><i class="ph-fill ph-trash" title="删除" onclick="if(window.PhoneAPI) window.PhoneAPI.deleteFromMemoryVault('${date}')"></i></div></div>`;
-                });
-            }
-        } else if (currentTab === 'permanent') {
-            const permKeys = Object.keys(evData.permanent);
-            if (permKeys.length === 0) html = '<div class="ev-empty">还没有钉选的核心记忆...</div>';
-            else {
-                permKeys.forEach(key => {
-                    const item = evData.permanent[key];
-                    html += `<div class="ev-card ev-permanent-card"><div class="ev-card-header"><span class="ev-title">📌 ${key}</span><span class="ev-importance">永不衰减</span></div><div class="ev-body">${this.escapeHtml(item.content)}</div><div class="ev-actions"><i class="ph ph-star" title="取消锚点" onclick="if(window.PhoneAPI) window.PhoneAPI.toggleCoreMemory('${key}')"></i><i class="ph-fill ph-pencil-simple" title="手动编辑/去重" onclick="window.PhoneUI.openEvEdit('${key}', true)"></i><i class="ph-fill ph-trash" title="删除" onclick="if(window.PhoneAPI) window.PhoneAPI.deleteFromMemoryVault('${key}')"></i></div></div>`;
-                });
-            }
-        }
-        contentArea.innerHTML = html;
+        const maxFrags = Math.min(dates.length, 15);
+        const shuffled = dates.sort(() => 0.5 - Math.random()).slice(0, maxFrags);
+
+        shuffled.forEach(date => {
+            const frag = document.createElement('div');
+            frag.className = 'memory-fragment';
+            frag.style.left = (Math.random() * 80 + 10) + '%';
+            frag.style.top = (Math.random() * 80 + 10) + '%';
+            frag.style.animationDelay = (Math.random() * 2) + 's';
+            
+            frag.onclick = () => {
+                const item = evData.daily[date];
+                const textEl = document.getElementById('blindbox-text');
+                const metaEl = document.getElementById('blindbox-meta');
+                if (textEl && metaEl) {
+                    let content = item.content.replace(/---/g, '').trim();
+                    if (content.length > 100) content = content.substring(0, 100) + '...';
+                    textEl.innerText = `“${content}”`;
+                    metaEl.innerText = `${date} · ${item.tags || '日常'}`;
+                }
+                const bg = document.getElementById('blindbox-bg');
+                const modal = document.getElementById('blindbox-modal');
+                if (bg) bg.classList.add('show');
+                if (modal) modal.classList.add('show');
+                window.PhoneAPI.EchoVault.incrementHits('daily', date);
+            };
+            container.appendChild(frag);
+        });
     },
 
-    openEvEdit(key, isPermanent) {
-        this.currentEvEditKey = key;
-        this.currentEvEditIsPerm = isPermanent;
-        const evData = window.PhoneAPI.EchoVault.getData();
-        const item = isPermanent ? evData.permanent[key] : evData.daily[key];
-        if (!item) return;
-        
-        document.getElementById('ev-edit-date').innerText = isPermanent ? `📌 锚点记忆: ${key}` : `📅 日常记忆: ${key}`;
-        document.getElementById('ev-edit-content').value = item.content || '';
-        
-        document.getElementById('ev-edit-bg').classList.add('show');
-        document.getElementById('ev-edit-modal').classList.add('show');
-    },
-
-    closeEvEdit() {
-        document.getElementById('ev-edit-bg').classList.remove('show');
-        document.getElementById('ev-edit-modal').classList.remove('show');
-    },
-
-    saveEvEdit() {
-        const key = this.currentEvEditKey;
-        const isPerm = this.currentEvEditIsPerm;
-        const newContent = document.getElementById('ev-edit-content').value.trim();
-        
-        if(!newContent) {
-            if(window.PhoneAPI) window.PhoneAPI.showToast("内容不能为空，若要删除请点击垃圾桶图标");
-            return;
-        }
-        
-        if(window.PhoneAPI && window.PhoneAPI.EchoVault) {
-            const evData = window.PhoneAPI.EchoVault.getData();
-            if(isPerm && evData.permanent[key]) {
-                evData.permanent[key].content = newContent;
-            } else if(!isPerm && evData.daily[key]) {
-                evData.daily[key].content = newContent;
-            }
-            window.PhoneAPI.EchoVault.saveData(evData);
-            if(window.PhoneAPI) window.PhoneAPI.showToast("✅ 记忆已成功修改去重！");
-            this.renderMemoryVault();
-            this.closeEvEdit();
-        }
+    closeBlindBox() {
+        const bg = document.getElementById('blindbox-bg');
+        const modal = document.getElementById('blindbox-modal');
+        if (bg) bg.classList.remove('show');
+        if (modal) modal.classList.remove('show');
     },
 
     remindEchoVault() {
-        const memory = window.PhoneAPI && window.PhoneAPI.EchoVault ? window.PhoneAPI.EchoVault.remind() : null;
-        if(memory) {
-            alert(`🌊 【命运的漂流瓶】\n捞起了一段快被遗忘的旧时光 (${memory.date}):\n\n${memory.meta.content}`);
-            this.renderMemoryVault(); 
-        } else {
-            alert("记忆库空空如也，海面上什么也没有。");
+        if (!window.PhoneAPI || !window.PhoneAPI.EchoVault) return;
+        const item = window.PhoneAPI.EchoVault.remind();
+        if (!item) { window.PhoneAPI.showToast("记忆库还是空的，快去创造回忆吧！"); return; }
+        
+        const textEl = document.getElementById('blindbox-text');
+        const metaEl = document.getElementById('blindbox-meta');
+        if (textEl && metaEl) {
+            let content = item.meta.content.replace(/---/g, '').trim();
+            if (content.length > 150) content = content.substring(0, 150) + '...';
+            textEl.innerText = `“${content}”`;
+            metaEl.innerText = `${item.date} · ${item.meta.tags || '日常'} (回忆度: ${item.score})`;
         }
-    },
-
-    renderGallery() {
-        const contentEl = document.getElementById('app-window-content');
-        if (!contentEl) return;
-        const roleId = window.Config?.currentContactId;
-        const items = window.Config?.phoneData?.[roleId]?.gallery?.items || [];
-
-        let html = `
-        <div id="image-viewer" class="image-viewer">
-        <div class="viewer-close" onclick="window.PhoneUI.closeImageViewer()"><i class="ph ph-x"></i></div>
-        <div class="viewer-download" onclick="window.PhoneUI.downloadCurrentImage()"><i class="ph ph-download-simple"></i> 保存到手机</div>
-        <img id="viewer-img" src="">
-        </div>
-        `;
-
-        if (items.length === 0) {
-            html += `<div style="text-align:center;padding:50px 0;color:var(--text-sub);"><i class="ph-fill ph-images" style="font-size:48px;color:var(--border-color);margin-bottom:10px;"></i><br>相册空空如也，快去生成第一张合照吧！</div>`;
-        } else {
-            html += `<div class="gallery-grid">`;
-            [...items].reverse().forEach(img => {
-                const safeSrc = this.escapeHtml(img.content || '');
-                const safeId = this.escapeHtml(img.id || '');
-                html += `<div class="gallery-item" onclick="window.PhoneUI.openImageViewer('${safeSrc}')"><img src="${safeSrc}"><div class="gallery-del-btn" onclick="event.stopPropagation();if(window.PhoneEngine) window.PhoneEngine.deleteGalleryImage('${safeId}')"><i class="ph ph-trash"></i></div></div>`;
-            });
-            html += '</div>';
-        }
-        contentEl.innerHTML = html;
-    },
-
-    openImageViewer(src) {
-        const viewer = document.getElementById('image-viewer');
-        const img = document.getElementById('viewer-img');
-        if (viewer && img) { img.src = src; viewer.classList.add('show'); }
-    },
-
-    closeImageViewer() {
-        const viewer = document.getElementById('image-viewer');
-        if (viewer) viewer.classList.remove('show');
-    },
-
-    downloadCurrentImage() {
-        const img = document.getElementById('viewer-img');
-        if (!img || !img.src) return;
-        const a = document.createElement('a'); a.href = img.src; a.download = 'Photo_' + Date.now() + '.jpg';
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        if (window.PhoneAPI) window.PhoneAPI.showToast('✅ 图片已保存到手机！');
+        const bg = document.getElementById('blindbox-bg');
+        const modal = document.getElementById('blindbox-modal');
+        if (bg) bg.classList.add('show');
+        if (modal) modal.classList.add('show');
     }
 };

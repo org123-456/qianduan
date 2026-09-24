@@ -3,7 +3,7 @@ import { PhoneAPI } from '../phone_api.js';
 import { PhoneUI } from '../phone_ui.js';
 
 // ============================================================================
-// 1. 自动加载 Three.js 依赖 (已修复导致系统崩溃的链接报错问题！)
+// 1. 自动加载 Three.js 依赖
 // ============================================================================
 import * as Three from 'https://esm.sh/three@0.160.0';
 import { TrackballControls } from 'https://esm.sh/three@0.160.0/examples/jsm/controls/TrackballControls.js';
@@ -615,7 +615,7 @@ function createMemorySky(host, {data, title='记忆星穹', background, onOpen}=
 }
 
 // ============================================================================
-// 3. 原本的 MemoryEngine 逻辑 (提取记忆、洗地等)
+// 3. 原本的 MemoryEngine 逻辑 (含星座连线生成)
 // ============================================================================
 export const MemoryEngine = {
     skyInstance: null,
@@ -641,12 +641,13 @@ export const MemoryEngine = {
             evData = window.PhoneAPI.EchoVault.getData();
         }
         
-        // 2. 转换为你的 3D 星海需要的节点格式
+        // 2. 转换为 3D 星海需要的节点格式
         const nodes = [];
         let idCounter = 1;
         
         // 处理日常记忆 (普通星星)
-        Object.keys(evData.daily).forEach(date => {
+        const dailyKeys = Object.keys(evData.daily).sort((a, b) => new Date(a) - new Date(b)); // 按时间排序
+        dailyKeys.forEach(date => {
             nodes.push({
                 id: String(idCounter++),
                 title: evData.daily[date].tags || '日常回忆',
@@ -676,13 +677,41 @@ export const MemoryEngine = {
         // 兜底数据
         if (nodes.length === 0) {
             nodes.push({ id: '1', title: '初次相遇', date: '2023-01-01', content: '我们的故事开始了...', kind: 'core', importance: 5 });
+            nodes.push({ id: '2', title: '日常回忆', date: '2023-01-02', content: '今天天气真好...', kind: 'event', importance: 2 });
+            nodes.push({ id: '3', title: '日常回忆', date: '2023-01-03', content: '一起去吃了好吃的...', kind: 'event', importance: 2 });
         }
 
-        // 3. 调用你的原生 3D 引擎
+        // ================= 🌟 自动生成星座连线 =================
+        const links = [];
+        const softlinks = [];
+
+        // 1. 时光轨：把所有日常记忆按时间顺序连成一条主线
+        const eventNodes = nodes.filter(n => n.kind === 'event');
+        for (let i = 0; i < eventNodes.length - 1; i++) {
+            links.push([eventNodes[i].id, eventNodes[i+1].id]);
+        }
+
+        // 2. 主题星座：把标签相同的记忆用柔和的暗线连起来
+        const tagMap = {};
+        nodes.forEach(n => {
+            if (n.title && n.title !== '日常回忆') {
+                if (!tagMap[n.title]) tagMap[n.title] = [];
+                tagMap[n.title].push(n.id);
+            }
+        });
+        Object.values(tagMap).forEach(group => {
+            if (group.length > 1) {
+                for (let i = 0; i < group.length - 1; i++) {
+                    softlinks.push([group[i], group[i+1]]);
+                }
+            }
+        });
+
+        // 3. 调用原生 3D 引擎，传入连线数据
         this.skyInstance = createMemorySky(container, {
-            data: { nodes: nodes, links: [] },
+            data: { nodes: nodes, links: links, softlinks: softlinks },
             title: '我们的记忆星穹',
-            background: '#454651', // 墨灰背景
+            background: '#050510', 
             onOpen: (node) => {
                 // 点击星星时，弹出盲盒 UI 显示具体记忆
                 const textEl = document.getElementById('blindbox-text');

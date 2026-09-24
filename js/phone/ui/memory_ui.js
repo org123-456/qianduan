@@ -39,8 +39,8 @@ export const MemoryUI = {
         const textEl = document.getElementById('blindbox-text');
         const metaEl = document.getElementById('blindbox-meta');
         if (textEl && metaEl) {
-            let content = item.meta.content.replace(/---/g, '').trim();
-            if (content.length > 150) content = content.substring(0, 150) + '...';
+            // 🌟 删除了截断逻辑
+            let content = item.meta.content.replace(/---/g, '\n').trim();
             textEl.innerText = `“${content}”`;
             metaEl.innerText = `${item.date} · ${item.meta.tags || '日常'} (回忆度: ${item.score})`;
         }
@@ -50,7 +50,6 @@ export const MemoryUI = {
         if (modal) modal.classList.add('show');
     },
 
-    // ================= 🌟 星穹控制台逻辑 (含星系切换) =================
     openSkyConsole() {
         document.getElementById('sky-console-bg').classList.add('show');
         document.getElementById('sky-console-modal').classList.add('show');
@@ -78,7 +77,6 @@ export const MemoryUI = {
         this.closeSkyConsole();
     },
 
-    // ================= 记忆库渲染逻辑 =================
     switchVaultTab(tab) {
         if (window.Config) window.Config.memoryVaultTab = tab;
         document.getElementById('tab-daily').classList.remove('active');

@@ -50,7 +50,7 @@ export const MemoryUI = {
         if (modal) modal.classList.add('show');
     },
 
-    // ================= 🌟 星穹控制台逻辑 =================
+    // ================= 🌟 星穹控制台逻辑 (含星系切换) =================
     openSkyConsole() {
         document.getElementById('sky-console-bg').classList.add('show');
         document.getElementById('sky-console-modal').classList.add('show');
@@ -68,6 +68,12 @@ export const MemoryUI = {
     resetSkyView() {
         if (window.PhoneEngine && window.PhoneEngine.skyInstance) {
             window.PhoneEngine.skyInstance.resetView();
+        }
+        this.closeSkyConsole();
+    },
+    focusGalaxy(type) {
+        if (window.PhoneEngine && typeof window.PhoneEngine.focusGalaxy === 'function') {
+            window.PhoneEngine.focusGalaxy(type);
         }
         this.closeSkyConsole();
     },

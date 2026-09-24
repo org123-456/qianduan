@@ -584,7 +584,6 @@ function createRenderer(container, opts) {
   window.addEventListener("resize", resize);
   load();
   
-  // 🌟 星系隔离功能 (暴露给外部调用)
   function frameFamily(fIds) {
     const selected = sprites.filter((s) => fIds && fIds.has(s.n.id));
     if (!selected.length) return;
@@ -604,7 +603,6 @@ function createRenderer(container, opts) {
     setShape(value) { chosenShape = ["spiral","ring"].includes(value) ? value : "free"; shape = familyIds ? "free" : chosenShape; clearFocus(); spiralPaused = false; idleSpin = !familyIds; arrangeSpiral(); flyTo(overviewPosition(), CORE_POS, 0.065); },
     refresh: load,
     resetView() { clearFocus(); spiralPaused = false; idleSpin = !familyIds; flyTo(overviewPosition(), CORE_POS, 0.075); },
-    // 🌟 隔离查看某个星系
     setFamily(ids) {
       clearFocus();
       familyIds = ids ? new Set(ids) : null;
@@ -642,7 +640,7 @@ function createMemorySky(host, {data, title='记忆星穹', background, onOpen}=
 }
 
 // ============================================================================
-// 3. 核心业务逻辑 (包含热更新、收藏夹接入、星系切换)
+// 3. 核心业务逻辑
 // ============================================================================
 export const MemoryEngine = {
     skyInstance: null,
@@ -782,8 +780,8 @@ export const MemoryEngine = {
                 const textEl = document.getElementById('blindbox-text');
                 const metaEl = document.getElementById('blindbox-meta');
                 if (textEl && metaEl) {
-                    let content = node.content.replace(/---/g, '').trim();
-                    if (content.length > 100) content = content.substring(0, 100) + '...';
+                    // 🌟 删除了截断逻辑，保证显示全文！
+                    let content = node.content.replace(/---/g, '\n').trim();
                     textEl.innerText = `“${content}”`;
                     metaEl.innerText = `${node.date || ''} · ${node.title}`;
                 }
@@ -797,7 +795,6 @@ export const MemoryEngine = {
         this.skyInstance = createMemorySky(container, this.skyConfig);
     },
 
-    // 🌟 星系隔离功能
     focusGalaxy(type) {
         if (!this.skyInstance || !this.skyConfig) return;
         if (type === 'all') {

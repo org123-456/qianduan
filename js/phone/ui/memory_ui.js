@@ -1,4 +1,6 @@
 export const MemoryUI = {
+    vaultSearchQuery: '',
+
     enterStarrySea() {
         const cover = document.getElementById('memory-cover-view');
         const inside = document.getElementById('memory-inside-view');
@@ -39,7 +41,6 @@ export const MemoryUI = {
         const textEl = document.getElementById('blindbox-text');
         const metaEl = document.getElementById('blindbox-meta');
         if (textEl && metaEl) {
-            // 🌟 删除了截断逻辑
             let content = item.meta.content.replace(/---/g, '\n').trim();
             textEl.innerText = `“${content}”`;
             metaEl.innerText = `${item.date} · ${item.meta.tags || '日常'} (回忆度: ${item.score})`;
@@ -50,9 +51,11 @@ export const MemoryUI = {
         if (modal) modal.classList.add('show');
     },
 
+    // ================= 🌟 星穹控制台逻辑 (含智能搜索) =================
     openSkyConsole() {
         document.getElementById('sky-console-bg').classList.add('show');
         document.getElementById('sky-console-modal').classList.add('show');
+        this.handleStarSearch(''); // 清空上次搜索
     },
     closeSkyConsole() {
         document.getElementById('sky-console-bg').classList.remove('show');
@@ -76,7 +79,41 @@ export const MemoryUI = {
         }
         this.closeSkyConsole();
     },
+    handleStarSearch(query) {
+        const resultsBox = document.getElementById('sky-search-results');
+        if (!resultsBox) return;
+        if (!query.trim()) { resultsBox.innerHTML = ''; return; }
+        
+        const q = query.toLowerCase();
+        const nodes = window.PhoneEngine?.skyConfig?.data?.nodes || [];
+        
+        // 模糊搜索：匹配标题、日期、正文
+        const matches = nodes.filter(n => 
+            (n.title||'').toLowerCase().includes(q) || 
+            (n.content||'').toLowerCase().includes(q) || 
+            (n.date||'').toLowerCase().includes(q)
+        ).slice(0, 5); // 最多显示5条
+        
+        if (matches.length === 0) {
+            resultsBox.innerHTML = '<div style="font-size:12px; color:var(--text-sub);">没有找到相关记忆...</div>';
+            return;
+        }
+        
+        resultsBox.innerHTML = matches.map(n => `
+            <div onclick="window.PhoneUI.focusStar('${n.id}')" style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; cursor: pointer; text-align: left; font-size: 12px; color: #fff; margin-bottom: 4px; border: 1px solid rgba(255,255,255,0.2);">
+                <div style="font-weight: bold; color: var(--primary-color); margin-bottom: 4px;">${n.date} · ${n.title}</div>
+                <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.8;">${n.content}</div>
+            </div>
+        `).join('');
+    },
+    focusStar(id) {
+        if (window.PhoneEngine && window.PhoneEngine.skyInstance) {
+            window.PhoneEngine.skyInstance.focus(id);
+        }
+        this.closeSkyConsole();
+    },
 
+    // ================= 记忆库渲染逻辑 (含搜索和一键分享) =================
     switchVaultTab(tab) {
         if (window.Config) window.Config.memoryVaultTab = tab;
         document.getElementById('tab-daily').classList.remove('active');
@@ -85,17 +122,32 @@ export const MemoryUI = {
         this.renderMemoryVault();
     },
 
+    handleVaultSearch(query) {
+        this.vaultSearchQuery = query.toLowerCase();
+        this.renderMemoryVault();
+    },
+
     renderMemoryVault() {
         const container = document.getElementById('vault-content-area');
         if (!container || !window.PhoneAPI || !window.PhoneAPI.EchoVault) return;
         const data = window.PhoneAPI.EchoVault.getData();
         const tab = window.Config?.memoryVaultTab || 'daily';
+        const query = this.vaultSearchQuery || '';
         
-        let html = '';
+        // 🌟 顶部加入搜索框
+        let html = `
+            <div style="margin-bottom: 15px;">
+                <input type="text" placeholder="🔍 搜索日期、标签、正文..." value="${query}" oninput="window.PhoneUI.handleVaultSearch(this.value)" style="width: 100%; padding: 10px 15px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 13px; outline: none;">
+            </div>
+        `;
+        
         if (tab === 'daily') {
-            const dates = Object.keys(data.daily).sort((a, b) => new Date(b) - new Date(a));
+            let dates = Object.keys(data.daily).sort((a, b) => new Date(b) - new Date(a));
+            if (query) {
+                dates = dates.filter(d => d.includes(query) || (data.daily[d].tags||'').toLowerCase().includes(query) || data.daily[d].content.toLowerCase().includes(query));
+            }
             if (dates.length === 0) {
-                html = '<div class="ev-empty"><i class="ph-fill ph-empty" style="font-size:48px;color:var(--border-color);"></i><br>暂无日常记忆</div>';
+                html += '<div class="ev-empty"><i class="ph-fill ph-empty" style="font-size:48px;color:var(--border-color);"></i><br>暂无记忆</div>';
             } else {
                 dates.forEach(date => {
                     const item = data.daily[date];
@@ -108,6 +160,7 @@ export const MemoryUI = {
                         </div>
                         <div class="ev-body">${this.escapeHtml(content)}</div>
                         <div class="ev-actions">
+                            <i class="ph-fill ph-share-network" onclick="window.PhoneUI.shareMemoryItem('${date}', 'daily')" style="color: var(--primary-color);" title="发送到聊天"></i>
                             <i class="ph-fill ph-pencil-simple" onclick="window.PhoneUI.openEvEdit('${date}', 'daily')"></i>
                             <i class="ph-fill ph-trash" onclick="window.PhoneUI.deleteMemoryItem('${date}', 'daily')"></i>
                         </div>
@@ -115,9 +168,12 @@ export const MemoryUI = {
                 });
             }
         } else {
-            const keys = Object.keys(data.permanent).sort((a, b) => new Date(data.permanent[b].created) - new Date(data.permanent[a].created));
+            let keys = Object.keys(data.permanent).sort((a, b) => new Date(data.permanent[b].created) - new Date(data.permanent[a].created));
+            if (query) {
+                keys = keys.filter(k => k.toLowerCase().includes(query) || (data.permanent[k].tags||'').toLowerCase().includes(query) || data.permanent[k].content.toLowerCase().includes(query));
+            }
             if (keys.length === 0) {
-                html = '<div class="ev-empty"><i class="ph-fill ph-empty" style="font-size:48px;color:var(--border-color);"></i><br>暂无锚点记忆</div>';
+                html += '<div class="ev-empty"><i class="ph-fill ph-empty" style="font-size:48px;color:var(--border-color);"></i><br>暂无记忆</div>';
             } else {
                 keys.forEach(key => {
                     const item = data.permanent[key];
@@ -129,6 +185,7 @@ export const MemoryUI = {
                         </div>
                         <div class="ev-body">${this.escapeHtml(item.content)}</div>
                         <div class="ev-actions">
+                            <i class="ph-fill ph-share-network" onclick="window.PhoneUI.shareMemoryItem('${key}', 'permanent')" style="color: var(--primary-color);" title="发送到聊天"></i>
                             <i class="ph-fill ph-pencil-simple" onclick="window.PhoneUI.openEvEdit('${key}', 'permanent')"></i>
                             <i class="ph-fill ph-trash" onclick="window.PhoneUI.deleteMemoryItem('${key}', 'permanent')"></i>
                         </div>
@@ -137,6 +194,25 @@ export const MemoryUI = {
             }
         }
         container.innerHTML = html;
+    },
+
+    // 🌟 一键分享到对话框
+    shareMemoryItem(key, type) {
+        if (!window.PhoneAPI || !window.PhoneAPI.EchoVault) return;
+        const data = window.PhoneAPI.EchoVault.getData();
+        const item = data[type][key];
+        if (!item) return;
+        
+        const text = `【记忆回溯】\n时间：${type === 'daily' ? key : '永久锚点'}\n标签：${item.tags || '无'}\n正文：${item.content.replace(/---/g, '\n').trim()}`;
+        
+        const input = document.getElementById('chat-input');
+        if(input) {
+            input.value = text;
+            // 自动跳回聊天界面
+            window.PhoneUI.closeApp();
+            if(typeof switchTab === 'function') switchTab(2);
+            window.PhoneAPI.showToast('已复制到聊天框，发送给TA算账吧！');
+        }
     },
 
     openEvEdit(key, type) {

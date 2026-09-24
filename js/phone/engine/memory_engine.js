@@ -600,6 +600,10 @@ function createRenderer(container, opts) {
   }
 
   return {
+    focus(id) {
+      const s = sprites.find((s2) => s2.n.id === id && (!familyIds || familyIds.has(id)));
+      if (s) focusNode(s);
+    },
     setShape(value) { chosenShape = ["spiral","ring"].includes(value) ? value : "free"; shape = familyIds ? "free" : chosenShape; clearFocus(); spiralPaused = false; idleSpin = !familyIds; arrangeSpiral(); flyTo(overviewPosition(), CORE_POS, 0.065); },
     refresh: load,
     resetView() { clearFocus(); spiralPaused = false; idleSpin = !familyIds; flyTo(overviewPosition(), CORE_POS, 0.075); },
@@ -640,7 +644,7 @@ function createMemorySky(host, {data, title='记忆星穹', background, onOpen}=
 }
 
 // ============================================================================
-// 3. 核心业务逻辑
+// 3. 核心业务逻辑 (严禁 AI 偷懒)
 // ============================================================================
 export const MemoryEngine = {
     skyInstance: null,
@@ -780,7 +784,6 @@ export const MemoryEngine = {
                 const textEl = document.getElementById('blindbox-text');
                 const metaEl = document.getElementById('blindbox-meta');
                 if (textEl && metaEl) {
-                    // 🌟 删除了截断逻辑，保证显示全文！
                     let content = node.content.replace(/---/g, '\n').trim();
                     textEl.innerText = `“${content}”`;
                     metaEl.innerText = `${node.date || ''} · ${node.title}`;
@@ -850,6 +853,7 @@ ${vaultContext}
 ${historyText}
 
 请判断是否需要新增、修改或删除记忆。
+绝不允许使用“线上聊天”、“自动总结”等废话作为关键词！关键词必须是具体的事件或物品（如：看海、吃醋、奶茶、道歉）。
 根据Russell环形情绪模型打分：
 valence (愉悦度): 0.9~1.0(极致的好), 0.5~0.7(日常开心), 0.1~0.4(微温), 0(中性), -0.1~-0.4(不舒服), -0.5~-0.7(真的痛), -0.8~-1.0(重创)。
 arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏), 0.7~0.8(强烈), 0.9~0.95(极限), 1.0(理论上限)。
@@ -922,6 +926,7 @@ DEL###要删除的记忆ID
         const historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
         try {
             const prompt = `你是一个情感记忆提取AI。请从聊天记录中抽取记忆。
+绝不允许使用“线上聊天”、“自动总结”等废话作为关键词！关键词必须是具体的事件或物品（如：看海、吃醋、奶茶、道歉）。
 根据Russell环形情绪模型打分：
 valence (愉悦度): 0.9~1.0(极致的好), 0.5~0.7(日常开心), 0.1~0.4(微温), 0(中性), -0.1~-0.4(不舒服), -0.5~-0.7(真的痛), -0.8~-1.0(重创)。
 arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏), 0.7~0.8(强烈), 0.9~0.95(极限), 1.0(理论上限)。
@@ -962,6 +967,7 @@ arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏),
         const historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
         try {
             const prompt = `请把下面聊天记录整理成记忆碎片。
+绝不允许使用“线上聊天”、“自动总结”等废话作为关键词！关键词必须是具体的事件或物品（如：看海、吃醋、奶茶、道歉）。
 根据Russell环形情绪模型打分：
 valence (愉悦度): 0.9~1.0(极致的好), 0.5~0.7(日常开心), 0.1~0.4(微温), 0(中性), -0.1~-0.4(不舒服), -0.5~-0.7(真的痛), -0.8~-1.0(重创)。
 arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏), 0.7~0.8(强烈), 0.9~0.95(极限), 1.0(理论上限)。

@@ -82,13 +82,8 @@
 <!-- ================= 主应用容器 ================= -->
 <div id="app-container">
     <div class="top-bar">
-        <!-- 左边：月亮 -->
         <div class="menu-btn" onclick="window.PhoneUI.toggleTheme()"><i class="ph-fill ph-moon" id="theme-icon"></i></div>
-        
-        <!-- 中间：标题 -->
         <div class="title" id="top-title">Claire & Claude</div>
-        
-        <!-- 右边：API 和 设置 -->
         <div style="display: flex; gap: 10px;">
             <div class="menu-btn api-btn" id="api-fab" onclick="window.PhoneUI.openApiModal()"><i class="ph-fill ph-cpu"></i></div>
             <div class="menu-btn" onclick="window.PhoneUI.openApp('settings', '系统设置')"><i class="ph-fill ph-gear"></i></div>
@@ -143,6 +138,7 @@
             </div>
         </div>
 
+        <!-- 记忆海 -->
         <div id="page-memory" class="page" style="padding: 0; overflow: hidden;">
             <div id="memory-cover-view" class="memory-cover-view">
                 <div class="memory-frame-wrap">
@@ -265,14 +261,24 @@
     <button class="action-btn cancel" onclick="window.PhoneEngine.closeMsgMenu()">取消</button>
 </div>
 
-<!-- 🌟 星穹控制台弹窗 -->
+<!-- 🌟 星穹控制台弹窗 (加入了星系切换) -->
 <div id="sky-console-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeSkyConsole()"></div>
 <div id="sky-console-modal" class="action-sheet">
     <div style="text-align: center; font-weight: bold; color: var(--text-main); margin-bottom: 15px;">✨ 星穹控制台</div>
+    
+    <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px; font-weight: bold;">切换星系</div>
+    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+        <button class="reader-btn-outline" onclick="window.PhoneUI.focusGalaxy('all')" style="margin:0;">🌌 全部</button>
+        <button class="reader-btn-outline" onclick="window.PhoneUI.focusGalaxy('vault')" style="margin:0;">🧠 记忆库</button>
+        <button class="reader-btn-outline" onclick="window.PhoneUI.focusGalaxy('fav')" style="margin:0;">⭐ 收藏夹</button>
+    </div>
+
+    <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px; font-weight: bold;">宇宙形态</div>
     <button class="action-btn" onclick="window.PhoneUI.changeSkyShape('free')">🌌 自由星系 (默认)</button>
     <button class="action-btn" onclick="window.PhoneUI.changeSkyShape('spiral')">🌀 恒星轨道 (时光流转)</button>
     <button class="action-btn" onclick="window.PhoneUI.changeSkyShape('ring')">🪐 星环模式 (宇宙指环)</button>
-    <button class="action-btn" onclick="window.PhoneUI.resetSkyView()" style="color: var(--primary-color);">🔭 视角回正</button>
+    
+    <button class="action-btn" onclick="window.PhoneUI.resetSkyView()" style="color: var(--primary-color); margin-top: 10px;">🔭 视角回正</button>
     <button class="action-btn cancel" onclick="window.PhoneUI.closeSkyConsole()">取消</button>
 </div>
 

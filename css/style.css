@@ -23,6 +23,8 @@
     --bg-image-diary-page: url('https://www.transparenttextures.com/patterns/cream-paper.png');
     --bg-image-moments-cover: url('https://images.unsplash.com/photo-1518609878373-06d740f60d8b?q=80&w=1000&auto=format&fit=crop');
     --global-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --starry-center: #12345a;
+    --starry-edge: #06111f;
 }
 
 [data-theme="dark"] {
@@ -41,10 +43,11 @@
     --input-bg: rgba(20,30,45,0.9);
     --icon-bg: #18263d;
     --story-bg: #101827;
+    --starry-center: #0a1d33;
+    --starry-edge: #02060a;
 }
 
 /* ================= 神仙主题色预设 ================= */
-/* 冰晶紫 */
 [data-color="purple"] {
     --primary-color: #C8B8DC;
     --secondary-color: #a895c4;
@@ -56,6 +59,8 @@
     --window-bg: #F8F5FC;
     --border-color: #E0D8EE;
     --story-bg: #FAF8FC;
+    --starry-center: #2c1b4d;
+    --starry-edge: #110a1f;
 }
 [data-theme="dark"][data-color="purple"] {
     --primary-color: #b09dc9;
@@ -67,9 +72,10 @@
     --window-bg: #18121f;
     --border-color: #3b2d4a;
     --story-bg: #1a1421;
+    --starry-center: #1c1033;
+    --starry-edge: #0a0514;
 }
 
-/* 薄雾粉 */
 [data-color="pink"] {
     --primary-color: #ECC8D6;
     --secondary-color: #d6a5b8;
@@ -81,6 +87,8 @@
     --window-bg: #FCF8FA;
     --border-color: #F2DCE6;
     --story-bg: #FCF8FA;
+    --starry-center: #4d1b2f;
+    --starry-edge: #1f0a13;
 }
 [data-theme="dark"][data-color="pink"] {
     --primary-color: #d6a5b8;
@@ -92,9 +100,10 @@
     --window-bg: #1a0e12;
     --border-color: #4a2d38;
     --story-bg: #1a0e12;
+    --starry-center: #33101e;
+    --starry-edge: #14050b;
 }
 
-/* 天光金 */
 [data-color="gold"] {
     --primary-color: #dcb66d;
     --secondary-color: #b89550;
@@ -106,6 +115,8 @@
     --window-bg: #FCFAF5;
     --border-color: #EADCB0;
     --story-bg: #FCFAF5;
+    --starry-center: #4d3c1b;
+    --starry-edge: #1f170a;
 }
 [data-theme="dark"][data-color="gold"] {
     --primary-color: #c9b885;
@@ -117,9 +128,11 @@
     --window-bg: #1a180e;
     --border-color: #4a452d;
     --story-bg: #1a180e;
+    --starry-center: #332710;
+    --starry-edge: #140f05;
 }
 
-/* ================= 魔法颜色圆圈的样式 ================= */
+/* ================= 魔法颜色圆圈 ================= */
 .color-picker-container { display: flex; gap: 15px; margin-top: 10px; margin-bottom: 20px; }
 .color-circle { width: 36px; height: 36px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: 0.2s; position: relative; }
 .color-circle:active { transform: scale(0.9); }
@@ -312,14 +325,31 @@ input, textarea, select { background: var(--input-bg); border: 1px solid var(--b
 .ev-actions i { cursor: pointer; transition: 0.2s; }
 .ev-actions i:active { transform: scale(0.8); color: var(--primary-color); }
 
-#page-memory { overflow: hidden; padding: 0; }
-.starry-sea-bg { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(ellipse at bottom, #12345a 0%, #06111f 100%); z-index: -1; overflow: hidden; opacity: 0; transition: opacity 1.5s ease-in-out; }
-.starry-sea-bg.show { opacity: 1; }
+/* ================= 🌟 记忆海相框封面 & 沉浸式星空 ================= */
+.memory-cover-view { position: absolute; inset: 0; background: var(--bg-gradient-start); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 20; transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.8s; }
+.memory-cover-view.dive-in { transform: scale(3); opacity: 0; pointer-events: none; }
+
+.memory-frame-wrap { position: relative; width: 65%; aspect-ratio: 3/4; background: #fff; padding: 12px 12px 40px 12px; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.15), inset 0 0 0 1px rgba(0,0,0,0.05); transform: rotate(-3deg); transition: 0.4s cubic-bezier(0.25, 1, 0.5, 1); cursor: pointer; margin-bottom: 60px; }
+[data-theme="dark"] .memory-frame-wrap { background: #2a2a35; box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.1); }
+.memory-frame-wrap:active { transform: rotate(0deg) scale(0.95); }
+.memory-frame-wrap img { width: 100%; height: 100%; object-fit: cover; border-radius: 4px; background: #e2e8f0; }
+.memory-frame-text { position: absolute; bottom: 12px; left: 0; width: 100%; text-align: center; font-family: 'Georgia', serif; font-style: italic; font-size: 14px; color: #666; letter-spacing: 2px; }
+[data-theme="dark"] .memory-frame-text { color: #aaa; }
+
+.memory-enter-btn { background: var(--btn-gradient); color: #fff; padding: 15px 30px; border-radius: 30px; font-size: 16px; font-weight: bold; letter-spacing: 2px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 8px; cursor: pointer; transition: 0.3s; animation: pulseGlow 3s infinite alternate; }
+.memory-enter-btn:active { transform: scale(0.9); }
+
+.memory-inside-view { position: absolute; inset: 0; z-index: 10; opacity: 0; transform: scale(0.8); transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.8s; pointer-events: none; }
+.memory-inside-view.active { opacity: 1; transform: scale(1); pointer-events: auto; }
+
+.starry-sea-bg { position: absolute; inset: 0; background: radial-gradient(ellipse at bottom, var(--starry-center, #12345a) 0%, var(--starry-edge, #06111f) 100%); z-index: -1; overflow: hidden; }
+
+.floating-bubbles { position: relative; height: 100%; width: 100%; display: flex; justify-content: center; align-items: center; opacity: 0; transform: translateY(50px) scale(0.8); transition: all 1s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.floating-bubbles.show { opacity: 1; transform: translateY(0) scale(1); }
+
 .star { position: absolute; background: #fff; border-radius: 50%; animation: twinkle infinite alternate; }
 @keyframes twinkle { 0% { opacity: 0.2; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 8px #fff; } }
 
-.floating-bubbles { position: relative; height: 100%; width: 100%; display: flex; justify-content: center; align-items: center; opacity: 0; transform: translateY(20px); transition: all 1s cubic-bezier(0.25, 1, 0.5, 1); }
-.floating-bubbles.show { opacity: 1; transform: translateY(0); }
 .glass-bubble { position: absolute; width: 110px; height: 110px; border-radius: 50%; background: rgba(255,255,255,.1); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.2); box-shadow: 0 10px 40px rgba(0,0,0,.35), inset 0 0 20px rgba(255,255,255,.15); display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; cursor: pointer; transition: 0.3s; animation: floatBubble 6s ease-in-out infinite; }
 .glass-bubble:active { transform: scale(0.9) !important; }
 .glass-bubble .icon { font-size: 36px; margin-bottom: 6px; color: #fff; text-shadow: 0 0 15px rgba(255,255,255,0.5); }
@@ -510,32 +540,3 @@ input, textarea, select { background: var(--input-bg); border: 1px solid var(--b
 .reader-adj-btn:active { transform: scale(0.9); }
 .reader-btn-outline { flex: 1; background: transparent; border: 1px solid var(--border-color); padding: 12px 0; border-radius: 14px; color: var(--text-main); font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; }
 .reader-btn-outline:active { background: var(--border-color); }
-
-/* ================= 🌟 记忆海相框封面 & 沉浸式星空 ================= */
-
-/* 相框封面容器 */
-.memory-cover-view { position: absolute; inset: 0; background: var(--bg-gradient-start); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 20; transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.8s; }
-.memory-cover-view.dive-in { transform: scale(3); opacity: 0; pointer-events: none; }
-
-/* 专属相框 */
-.memory-frame-wrap { position: relative; width: 65%; aspect-ratio: 3/4; background: #fff; padding: 12px 12px 40px 12px; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.15), inset 0 0 0 1px rgba(0,0,0,0.05); transform: rotate(-3deg); transition: 0.4s cubic-bezier(0.25, 1, 0.5, 1); cursor: pointer; margin-bottom: 60px; }
-[data-theme="dark"] .memory-frame-wrap { background: #2a2a35; box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.1); }
-.memory-frame-wrap:active { transform: rotate(0deg) scale(0.95); }
-.memory-frame-wrap img { width: 100%; height: 100%; object-fit: cover; border-radius: 4px; background: #e2e8f0; }
-.memory-frame-text { position: absolute; bottom: 12px; left: 0; width: 100%; text-align: center; font-family: 'Georgia', serif; font-style: italic; font-size: 14px; color: #666; letter-spacing: 2px; }
-[data-theme="dark"] .memory-frame-text { color: #aaa; }
-
-/* 潜入星海按钮 */
-.memory-enter-btn { background: var(--btn-gradient); color: #fff; padding: 15px 30px; border-radius: 30px; font-size: 16px; font-weight: bold; letter-spacing: 2px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 8px; cursor: pointer; transition: 0.3s; animation: pulseGlow 3s infinite alternate; }
-.memory-enter-btn:active { transform: scale(0.9); }
-
-/* 真正的星海内部容器 */
-.memory-inside-view { position: absolute; inset: 0; z-index: 10; opacity: 0; transform: scale(0.8); transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.8s; pointer-events: none; }
-.memory-inside-view.active { opacity: 1; transform: scale(1); pointer-events: auto; }
-
-/* 动态星空底色 (跟随主题色) */
-.starry-sea-bg { position: absolute; inset: 0; background: radial-gradient(ellipse at bottom, var(--starry-center, #12345a) 0%, var(--starry-edge, #06111f) 100%); z-index: -1; overflow: hidden; }
-
-/* 气泡果冻弹出版 */
-.floating-bubbles { position: relative; height: 100%; width: 100%; display: flex; justify-content: center; align-items: center; opacity: 0; transform: translateY(50px) scale(0.8); transition: all 1s cubic-bezier(0.34, 1.56, 0.64, 1); }
-.floating-bubbles.show { opacity: 1; transform: translateY(0) scale(1); }

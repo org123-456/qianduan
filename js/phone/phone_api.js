@@ -1,6 +1,7 @@
 export const PhoneAPI = {
-    SUPABASE_URL: 'https://kkzztqbxjzskrsapiils.supabase.co',
-    SUPABASE_KEY: 'sb_publishable_h1SIixE2PCM2hrjXvt1I4w_eKYSQCE0',
+    // 👇 这里已经换成你的新数据库啦！
+    SUPABASE_URL: 'https://surgrksyiscmaxgggitx.supabase.co',
+    SUPABASE_KEY: 'sb_publishable_Q1a5lFcqiUK1t2UHH3P2bQ_jw3LFoaa',
     
     LocalDB: {
         dbName: 'cc-assets', storeName: 'img', _db: null, _urls: {},
@@ -226,7 +227,6 @@ export const PhoneAPI = {
     },
     
     applyUITheme() {
-        // 🌟 新增：读取并应用全局主题色
         const appColor = localStorage.getItem('app_color') || 'blue';
         document.documentElement.setAttribute('data-color', appColor);
 

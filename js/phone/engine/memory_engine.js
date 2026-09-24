@@ -1,9 +1,213 @@
 import { Config } from '../phone_config.js';
 import { PhoneAPI } from '../phone_api.js';
 import { PhoneUI } from '../phone_ui.js';
-// 🌟 引入 3D 星海引擎
-import { MemorySkyRenderer } from '../../lib/memory-sky/renderer.js';
 
+// ============================================================================
+// 🌟 缝合进来的 3D 星海引擎 (免去手机端新建文件的烦恼)
+// ============================================================================
+class MemorySkyRenderer {
+    constructor(options) {
+        this.container = options.container;
+        this.data = options.data || [];
+        this.onNodeClick = options.onNodeClick || function() {};
+        
+        this.canvas = document.createElement('canvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.container.appendChild(this.canvas);
+
+        this.stars = [];
+        this.dust = [];
+        this.angleX = 0.2;
+        this.angleY = 0;
+        this.focalLength = 300;
+        
+        this.isDragging = false;
+        this.lastX = 0;
+        this.lastY = 0;
+        this.dragDist = 0;
+
+        this.init();
+    }
+
+    init() {
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+
+        // 生成记忆星球
+        this.data.forEach((mem, i) => {
+            const arm = i % 2; 
+            const distance = 40 + Math.random() * 150 + (i * 5);
+            const angle = (distance / 40) + (arm * Math.PI);
+            
+            let color = '#ffffff';
+            if (mem.type === 'diary') color = '#a78bfa';
+            if (mem.type === 'moment') color = '#60a5fa';
+            if (mem.type === 'chat') color = '#f4a261';
+
+            this.stars.push({
+                ...mem,
+                x: Math.cos(angle) * distance,
+                y: (Math.random() - 0.5) * 30,
+                z: Math.sin(angle) * distance,
+                size: 3 + Math.random() * 3,
+                color: color,
+                glow: Math.random() * 0.05
+            });
+        });
+
+        // 生成背景星尘
+        for(let i = 0; i < 200; i++) {
+            const dist = Math.random() * 400;
+            const ang = Math.random() * Math.PI * 2;
+            this.dust.push({
+                x: Math.cos(ang) * dist,
+                y: (Math.random() - 0.5) * 200,
+                z: Math.sin(ang) * dist,
+                size: Math.random() * 1.5,
+                color: `rgba(255, 255, 255, ${Math.random() * 0.6})`
+            });
+        }
+
+        // 绑定触摸事件
+        this.canvas.addEventListener('pointerdown', (e) => {
+            this.isDragging = true;
+            this.lastX = e.clientX;
+            this.lastY = e.clientY;
+            this.dragDist = 0;
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (!this.isDragging) return;
+            const deltaX = e.clientX - this.lastX;
+            const deltaY = e.clientY - this.lastY;
+            this.angleY -= deltaX * 0.005;
+            this.angleX -= deltaY * 0.005;
+            this.angleX = Math.max(-Math.PI/2, Math.min(Math.PI/2, this.angleX));
+            this.lastX = e.clientX;
+            this.lastY = e.clientY;
+            this.dragDist += Math.abs(deltaX) + Math.abs(deltaY);
+        });
+
+        window.addEventListener('pointerup', (e) => {
+            this.isDragging = false;
+            if (this.dragDist < 10) {
+                this.checkClick(e.clientX, e.clientY);
+            }
+        });
+    }
+
+    resize() {
+        const dpr = window.devicePixelRatio || 1;
+        this.width = this.container.clientWidth || window.innerWidth;
+        this.height = this.container.clientHeight || window.innerHeight;
+        this.canvas.width = this.width * dpr;
+        this.canvas.height = this.height * dpr;
+        this.ctx.scale(dpr, dpr);
+        this.canvas.style.width = this.width + 'px';
+        this.canvas.style.height = this.height + 'px';
+        this.centerX = this.width / 2;
+        this.centerY = this.height / 2;
+    }
+
+    project(x, y, z) {
+        const cosX = Math.cos(this.angleX);
+        const sinX = Math.sin(this.angleX);
+        const y1 = y * cosX - z * sinX;
+        const z1 = y * sinX + z * cosX;
+
+        const cosY = Math.cos(this.angleY);
+        const sinY = Math.sin(this.angleY);
+        const x2 = x * cosY + z1 * sinY;
+        const z2 = -x * sinY + z1 * cosY;
+
+        const scale = this.focalLength / (this.focalLength + z2 + 300);
+        return {
+            x: this.centerX + x2 * scale,
+            y: this.centerY + y1 * scale,
+            scale: scale,
+            z: z2
+        };
+    }
+
+    checkClick(clientX, clientY) {
+        const rect = this.canvas.getBoundingClientRect();
+        const clickX = clientX - rect.left;
+        const clickY = clientY - rect.top;
+
+        const sortedStars = [...this.stars].sort((a, b) => {
+            return this.project(a.x, a.y, a.z).z - this.project(b.x, b.y, b.z).z;
+        });
+
+        for (let star of sortedStars) {
+            const p = this.project(star.x, star.y, star.z);
+            if (p.scale < 0) continue; 
+            
+            const radius = star.size * p.scale * 3.0; // 点击热区
+            const dist = Math.hypot(clickX - p.x, clickY - p.y);
+            
+            if (dist < Math.max(radius, 20)) {
+                this.onNodeClick(star);
+                break; 
+            }
+        }
+    }
+
+    render() {
+        const loop = () => {
+            if (!this.isDragging) this.angleY -= 0.001; // 自动旋转
+
+            this.ctx.fillStyle = 'rgba(5, 5, 15, 0.3)'; // 拖尾背景
+            this.ctx.fillRect(0, 0, this.width, this.height);
+
+            this.dust.forEach(p => {
+                const proj = this.project(p.x, p.y, p.z);
+                if (proj.scale > 0) {
+                    this.ctx.beginPath();
+                    this.ctx.arc(proj.x, proj.y, p.size * proj.scale, 0, Math.PI * 2);
+                    this.ctx.fillStyle = p.color;
+                    this.ctx.fill();
+                }
+            });
+
+            const sortedStars = [...this.stars].sort((a, b) => {
+                return this.project(b.x, b.y, b.z).z - this.project(a.x, a.y, a.z).z;
+            });
+
+            const time = Date.now();
+
+            sortedStars.forEach(star => {
+                const proj = this.project(star.x, star.y, star.z);
+                if (proj.scale > 0) {
+                    const currentSize = star.size * proj.scale;
+                    const alpha = 0.6 + Math.sin(time * star.glow) * 0.4;
+
+                    this.ctx.beginPath();
+                    this.ctx.arc(proj.x, proj.y, currentSize, 0, Math.PI * 2);
+                    this.ctx.shadowBlur = 15 * proj.scale;
+                    this.ctx.shadowColor = star.color;
+                    this.ctx.fillStyle = star.color;
+                    this.ctx.globalAlpha = alpha;
+                    this.ctx.fill();
+                    
+                    this.ctx.globalAlpha = 1;
+                    this.ctx.shadowBlur = 0;
+                    
+                    this.ctx.beginPath();
+                    this.ctx.arc(proj.x, proj.y, currentSize * 0.4, 0, Math.PI * 2);
+                    this.ctx.fillStyle = '#ffffff';
+                    this.ctx.fill();
+                }
+            });
+
+            requestAnimationFrame(loop);
+        };
+        loop();
+    }
+}
+
+// ============================================================================
+// 原有的 MemoryEngine 逻辑
+// ============================================================================
 export const MemoryEngine = {
     skyRenderer: null,
 
@@ -24,7 +228,6 @@ export const MemoryEngine = {
         const starNodes = [];
         let idCounter = 1;
         
-        // 处理日常记忆
         Object.keys(evData.daily).forEach(date => {
             starNodes.push({
                 id: idCounter++,
@@ -35,7 +238,6 @@ export const MemoryEngine = {
             });
         });
 
-        // 处理锚点记忆
         Object.keys(evData.permanent).forEach(key => {
             starNodes.push({
                 id: idCounter++,
@@ -46,7 +248,6 @@ export const MemoryEngine = {
             });
         });
 
-        // 如果没有数据，给两个默认的星星占位
         if (starNodes.length === 0) {
             starNodes.push({ id: 1, title: '初次相遇', date: '2023-01-01', content: '我们的故事开始了...', type: 'chat' });
             starNodes.push({ id: 2, title: '星海守望', date: '2024-01-01', content: '等待新的回忆降临...', type: 'moment' });
@@ -56,7 +257,6 @@ export const MemoryEngine = {
         this.skyRenderer = new MemorySkyRenderer({
             container: container,
             data: starNodes,
-            layout: 'galaxy', // 星系布局
             onNodeClick: (nodeData) => {
                 // 点击星星时，弹出盲盒 UI 显示具体记忆
                 const textEl = document.getElementById('blindbox-text');

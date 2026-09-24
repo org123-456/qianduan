@@ -3,7 +3,7 @@ import { PhoneAPI } from '../phone_api.js';
 import { PhoneUI } from '../phone_ui.js';
 
 // ============================================================================
-// 1. 自动加载 Three.js 依赖
+// 1. 自动加载 Three.js 依赖 (安全稳定的 esm.sh CDN)
 // ============================================================================
 import * as Three from 'https://esm.sh/three@0.160.0';
 import { TrackballControls } from 'https://esm.sh/three@0.160.0/examples/jsm/controls/TrackballControls.js';
@@ -591,6 +591,7 @@ function createRenderer(container, opts) {
   load();
   return {
     setShape(value) { chosenShape = ["spiral","ring"].includes(value) ? value : "free"; shape = familyIds ? "free" : chosenShape; clearFocus(); spiralPaused = false; idleSpin = !familyIds; arrangeSpiral(); flyTo(overviewPosition(), CORE_POS, 0.065); },
+    resetView() { clearFocus(); spiralPaused = false; idleSpin = !familyIds; flyTo(overviewPosition(), CORE_POS, 0.075); },
     destroy() { alive = false; cancelAnimationFrame(raf); window.removeEventListener("resize", resize); renderer.dispose(); container.removeChild(renderer.domElement); }
   };
 }
@@ -615,7 +616,7 @@ function createMemorySky(host, {data, title='记忆星穹', background, onOpen}=
 }
 
 // ============================================================================
-// 3. 核心业务逻辑 (包含 AI 情绪打分机制)
+// 3. 核心业务逻辑 (包含 AI 情绪打分机制 & 自动生成星座)
 // ============================================================================
 export const MemoryEngine = {
     skyInstance: null,
@@ -641,6 +642,7 @@ export const MemoryEngine = {
         const nodes = [];
         let idCounter = 1;
         
+        // 处理日常记忆
         const dailyKeys = Object.keys(evData.daily).sort((a, b) => new Date(a) - new Date(b));
         dailyKeys.forEach(date => {
             const item = evData.daily[date];
@@ -651,12 +653,12 @@ export const MemoryEngine = {
                 content: item.content,
                 kind: 'event',
                 importance: 2,
-                // 读取 AI 自动打的情绪分，如果没有就默认 0.5
                 valence: item.valence !== undefined ? item.valence : 0.5,
                 arousal: item.arousal !== undefined ? item.arousal : 0.5
             });
         });
 
+        // 处理锚点记忆
         Object.keys(evData.permanent).forEach(key => {
             const item = evData.permanent[key];
             nodes.push({
@@ -677,14 +679,18 @@ export const MemoryEngine = {
             nodes.push({ id: '3', title: '日常回忆', date: '2023-01-03', content: '一起去吃了好吃的...', kind: 'event', importance: 2, valence: 0.6, arousal: 0.8 });
         }
 
+        // ================= 🌟 自动生成星座连线 =================
         const links = [];
         const softlinks = [];
+        const families = [];
 
+        // 1. 时光轨：按时间顺序连线
         const eventNodes = nodes.filter(n => n.kind === 'event');
         for (let i = 0; i < eventNodes.length - 1; i++) {
             links.push([eventNodes[i].id, eventNodes[i+1].id]);
         }
 
+        // 2. 主题星座：相同标签自动归类为 Family
         const tagMap = {};
         nodes.forEach(n => {
             if (n.title && n.title !== '日常回忆') {
@@ -692,8 +698,18 @@ export const MemoryEngine = {
                 tagMap[n.title].push(n.id);
             }
         });
-        Object.values(tagMap).forEach(group => {
-            if (group.length > 1) {
+        
+        let famId = 1;
+        Object.keys(tagMap).forEach(tag => {
+            const group = tagMap[tag];
+            if (group.length > 1) { // 至少两颗星才能形成星座
+                families.push({
+                    id: 'fam_' + famId++,
+                    title: tag + '星座',
+                    description: `关于“${tag}”的专属记忆星系`,
+                    members: group
+                });
+                // 内部柔和连线
                 for (let i = 0; i < group.length - 1; i++) {
                     softlinks.push([group[i], group[i+1]]);
                 }
@@ -701,7 +717,7 @@ export const MemoryEngine = {
         });
 
         this.skyInstance = createMemorySky(container, {
-            data: { nodes: nodes, links: links, softlinks: softlinks },
+            data: { nodes: nodes, links: links, softlinks: softlinks, families: families },
             title: '我们的记忆星穹',
             background: '#050510', 
             onOpen: (node) => {
@@ -734,7 +750,7 @@ export const MemoryEngine = {
         return triggeredMemories.length > 0 ? `\n【系统提示(关键词触发)】：用户刚才的话触动了你的某段记忆：\n${triggeredMemories.slice(0, 3).join('\n')}\n` : '';
     },
 
-    // 🌟 AI 提取记忆并自动进行情绪打分
+    // 🌟 记忆提取 (加入情绪打分Prompt)
     async extractMemory(sourceApp) {
         PhoneAPI.showToast('🧠 正在提取并分析情绪，请稍候...');
         const roleId = Config?.currentContactId;
@@ -745,8 +761,8 @@ export const MemoryEngine = {
         try {
             const prompt = `你是一个情感记忆提取AI。请从聊天记录中提取记忆碎片。
 同时，根据Russell环形情绪模型，为每段记忆的主观情绪打分：
-1. valence (愉悦度): -1 (极度不快/痛苦) 到 1 (极度狂喜/幸福)
-2. arousal (激动度): 0 (极度平静/低沉) 到 1 (极度强烈/紧张)
+1. valence (愉悦度): 0.9~1.0(极致的好), 0.5~0.7(日常开心), 0.1~0.4(微温/平静), 0(中性), -0.1~-0.4(不舒服/小争执), -0.5~-0.7(真的痛/怕失去), -0.8~-1.0(重创)。
+2. arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和有温度), 0.5~0.6(有起伏/小惊喜), 0.7~0.8(强烈/表白/吵架), 0.9~0.95(极限/吃醋), 1.0(理论上限)。
 输出格式严格为：记忆正文###关键词1,关键词2###valence###arousal|||下一条...
 
 聊天记录：\n${historyText}`;
@@ -772,7 +788,7 @@ export const MemoryEngine = {
         } catch (e) { alert('记忆提取失败：' + e.message); }
     },
 
-    // 🌟 AI 洗地并自动进行情绪打分
+    // 🌟 记忆洗地 (加入情绪打分Prompt)
     async washMemory(sourceApp) {
         if (window.PhoneEngine && window.PhoneEngine.closeMsgMenu) window.PhoneEngine.closeMsgMenu();
         if (!confirm('⚠️ 确定要进行【记忆洗地】吗？\nAI将把当前所有聊天记录拆解成多段长期记忆，并打上情绪坐标，随后【清空】当前聊天界面！')) return;
@@ -785,8 +801,8 @@ export const MemoryEngine = {
         try {
             const prompt = `请把下面聊天记录整理成记忆碎片。
 同时，根据Russell环形情绪模型，为每段记忆的主观情绪打分：
-1. valence (愉悦度): -1 (极度不快/痛苦) 到 1 (极度狂喜/幸福)
-2. arousal (激动度): 0 (极度平静/低沉) 到 1 (极度强烈/紧张)
+1. valence (愉悦度): 0.9~1.0(极致的好), 0.5~0.7(日常开心), 0.1~0.4(微温/平静), 0(中性), -0.1~-0.4(不舒服/小争执), -0.5~-0.7(真的痛/怕失去), -0.8~-1.0(重创)。
+2. arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和有温度), 0.5~0.6(有起伏/小惊喜), 0.7~0.8(强烈/表白/吵架), 0.9~0.95(极限/吃醋), 1.0(理论上限)。
 输出格式严格为：记忆正文###关键词1,关键词2###valence###arousal|||下一条...
 
 聊天记录：\n${historyText}`;

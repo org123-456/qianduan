@@ -54,7 +54,7 @@ export const MemoryUI = {
         if (modal) modal.classList.add('show');
     },
 
-    // ================= 找回丢失的记忆库渲染逻辑 =================
+    // ================= 记忆库渲染逻辑 =================
     switchVaultTab(tab) {
         if (window.Config) window.Config.memoryVaultTab = tab;
         document.getElementById('tab-daily').classList.remove('active');

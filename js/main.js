@@ -4,9 +4,24 @@ import { PhoneUI } from './phone/phone_ui.js';
 import { PhoneEngine } from './phone/phone_engine.js'; 
 import { WechatApp } from './apps/wechat.js';
 
+// 🌟 记忆计数器：记录聊了多少句
+let msgCounter = 0;
+
 const legacySendUserMsgOnly = PhoneEngine.sendUserMsgOnly;
 PhoneEngine.sendUserMsgOnly = (...args) => {
-    return legacySendUserMsgOnly?.(...args);
+    const res = legacySendUserMsgOnly?.(...args);
+    
+    // 🌟 每发 8 句话，触发一次 AI 的“内心独白与记忆整理”
+    msgCounter++;
+    if (msgCounter % 8 === 0) {
+        setTimeout(() => {
+            if (window.PhoneEngine && window.PhoneEngine.autoManageMemory) {
+                window.PhoneEngine.autoManageMemory();
+            }
+        }, 8000); // 延迟 8 秒，等 AI 回复完当前的话再在后台整理记忆
+    }
+    
+    return res;
 };
 
 window.Config = Config;
@@ -45,8 +60,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // 监听全局回车键
 document.addEventListener('keydown', (e) => {
     const chatInput = document.getElementById('chat-input');
-    
-    // 微信聊天：按回车把消息发到屏幕上 (不触发AI回复，Shift+Enter换行)
     if (e.key === 'Enter' && !e.shiftKey && document.activeElement === chatInput) {
         e.preventDefault(); 
         if (window.PhoneEngine) window.PhoneEngine.sendUserMsgOnly();

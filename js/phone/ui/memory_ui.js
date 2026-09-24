@@ -1,5 +1,4 @@
 export const MemoryUI = {
-    // 潜入星海
     enterStarrySea() {
         const cover = document.getElementById('memory-cover-view');
         const inside = document.getElementById('memory-inside-view');
@@ -9,14 +8,11 @@ export const MemoryUI = {
             inside.classList.add('active');
             setTimeout(() => { bubbles.classList.add('show'); }, 300);
         }
-        
-        // 🌟 触发 3D 星海初始化 (已修复调用路径！)
         if (window.PhoneEngine && typeof window.PhoneEngine.initSky === 'function') {
             window.PhoneEngine.initSky();
         }
     },
 
-    // 退出星海
     exitStarrySea() {
         const cover = document.getElementById('memory-cover-view');
         const inside = document.getElementById('memory-inside-view');
@@ -52,6 +48,28 @@ export const MemoryUI = {
         const modal = document.getElementById('blindbox-modal');
         if (bg) bg.classList.add('show');
         if (modal) modal.classList.add('show');
+    },
+
+    // ================= 🌟 星穹控制台逻辑 =================
+    openSkyConsole() {
+        document.getElementById('sky-console-bg').classList.add('show');
+        document.getElementById('sky-console-modal').classList.add('show');
+    },
+    closeSkyConsole() {
+        document.getElementById('sky-console-bg').classList.remove('show');
+        document.getElementById('sky-console-modal').classList.remove('show');
+    },
+    changeSkyShape(shape) {
+        if (window.PhoneEngine && window.PhoneEngine.skyInstance) {
+            window.PhoneEngine.skyInstance.setShape(shape);
+        }
+        this.closeSkyConsole();
+    },
+    resetSkyView() {
+        if (window.PhoneEngine && window.PhoneEngine.skyInstance) {
+            window.PhoneEngine.skyInstance.resetView();
+        }
+        this.closeSkyConsole();
     },
 
     // ================= 记忆库渲染逻辑 =================

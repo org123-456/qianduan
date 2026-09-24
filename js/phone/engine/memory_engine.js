@@ -3,10 +3,10 @@ import { PhoneAPI } from '../phone_api.js';
 import { PhoneUI } from '../phone_ui.js';
 
 // ============================================================================
-// 1. 自动加载 Three.js 依赖
+// 1. 自动加载 Three.js 依赖 (已修复导致系统崩溃的链接报错问题！)
 // ============================================================================
-import * as Three from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-import { TrackballControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/TrackballControls.js';
+import * as Three from 'https://esm.sh/three@0.160.0';
+import { TrackballControls } from 'https://esm.sh/three@0.160.0/examples/jsm/controls/TrackballControls.js';
 
 // ============================================================================
 // 2. 原汁原味的 3D 星海引擎核心代码
@@ -297,7 +297,6 @@ function createRenderer(container, opts) {
   let familyIds = null, familyEpoch = 0;
   let shape = "free", chosenShape = "free", shapeMix = 0, ringMix = 0, spiralAngle = 0, spiralPaused = false;
   
-  // 强制全屏获取尺寸，防止黑屏
   let W = window.innerWidth, H = window.innerHeight;
   
   const scene = new T.Scene();
@@ -313,7 +312,6 @@ function createRenderer(container, opts) {
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
   renderer.setSize(W, H);
   
-  // 强制绝对定位铺满
   renderer.domElement.style.cssText = "display:block;width:100%;height:100%;position:absolute;top:0;left:0;z-index:0;";
   container.appendChild(renderer.domElement);
   
@@ -557,7 +555,6 @@ function createRenderer(container, opts) {
   function onClick(e) {
     if (!expanded) return;
     const rect = renderer.domElement.getBoundingClientRect();
-    // 支持触摸和鼠标
     const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
     const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
     mouse.x = (clientX - rect.left) / rect.width * 2 - 1; 
@@ -587,7 +584,6 @@ function createRenderer(container, opts) {
   let downXY = null;
   renderer.domElement.addEventListener("pointerdown", (e) => { downXY = [e.clientX, e.clientY]; });
   renderer.domElement.addEventListener("pointerup", (e) => { if (!downXY) return; const d = Math.abs(e.clientX - downXY[0]) + Math.abs(e.clientY - downXY[1]); downXY = null; if (d < 6) onClick(e); });
-  // 增加触摸支持
   renderer.domElement.addEventListener("touchstart", (e) => { downXY = [e.touches[0].clientX, e.touches[0].clientY]; }, {passive: true});
   renderer.domElement.addEventListener("touchend", (e) => { if (!downXY || !e.changedTouches[0]) return; const d = Math.abs(e.changedTouches[0].clientX - downXY[0]) + Math.abs(e.changedTouches[0].clientY - downXY[1]); downXY = null; if (d < 10) onClick(e); });
   

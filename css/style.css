@@ -350,7 +350,6 @@ input, textarea, select { background: var(--input-bg); border: 1px solid var(--b
 .star { position: absolute; background: #fff; border-radius: 50%; animation: twinkle infinite alternate; }
 @keyframes twinkle { 0% { opacity: 0.2; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 8px #fff; } }
 
-/* 🌟 修复：去掉了相册气泡，保留日记和记忆库 */
 .glass-bubble { position: absolute; width: 110px; height: 110px; border-radius: 50%; background: rgba(255,255,255,.1); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.2); box-shadow: 0 10px 40px rgba(0,0,0,.35), inset 0 0 20px rgba(255,255,255,.15); display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; cursor: pointer; transition: 0.3s; animation: floatBubble 6s ease-in-out infinite; }
 .glass-bubble:active { transform: scale(0.9) !important; }
 .glass-bubble .icon { font-size: 36px; margin-bottom: 6px; color: #fff; text-shadow: 0 0 15px rgba(255,255,255,0.5); }
@@ -394,8 +393,6 @@ input, textarea, select { background: var(--input-bg); border: 1px solid var(--b
 .notebook-empty { height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: 'Long Cang', 'Kaiti', 'STKaiti', cursive; font-size: 26px; color: rgba(0,0,0,0.4); text-align: center; }
 
 .page-turner { display: none !important; }
-
-/* ================== 清理了相册相关的样式 ================== */
 
 .settings-tabs { display: flex; background: var(--input-bg); border-radius: 16px; padding: 5px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);}
 .settings-tab { flex: 1; text-align: center; padding: 10px; font-size: 13px; font-weight: bold; color: var(--text-sub); border-radius: 12px; cursor: pointer; transition: 0.3s; }
@@ -508,7 +505,7 @@ input, textarea, select { background: var(--input-bg); border: 1px solid var(--b
 .reader-btn-outline { flex: 1; background: transparent; border: 1px solid var(--border-color); padding: 12px 0; border-radius: 14px; color: var(--text-main); font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; }
 .reader-btn-outline:active { background: var(--border-color); }
 
-/* 3D星海画布容器 */
+/* ================= 3D星海专属样式 ================= */
 #starry-sea-bg {
     position: absolute;
     top: 0;
@@ -523,4 +520,20 @@ input, textarea, select { background: var(--input-bg); border: 1px solid var(--b
     display: block;
     width: 100%;
     height: 100%;
+}
+
+/* ================= 隐藏 3D 星海自带的多余 UI ================= */
+.memory-sky {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    background: var(--ms-bg, #1a1a24);
+}
+.ms-map {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+}
+/* 隐藏星海自带的杂乱 UI，使用我们自己的手机 UI */
+.ms-heading, .ms-hint, .ms-plus, .ms-gear, .ms-menu, .ms-settings, .ms-memory, .ms-status {
+    display: none !important;
 }

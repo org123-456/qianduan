@@ -10,9 +10,9 @@ export const MemoryUI = {
             setTimeout(() => { bubbles.classList.add('show'); }, 300);
         }
         
-        // 🌟 触发 3D 星海初始化
-        if (window.PhoneEngine && window.PhoneEngine.MemoryEngine) {
-            window.PhoneEngine.MemoryEngine.initSky();
+        // 🌟 触发 3D 星海初始化 (已修复调用路径！)
+        if (window.PhoneEngine && typeof window.PhoneEngine.initSky === 'function') {
+            window.PhoneEngine.initSky();
         }
     },
 

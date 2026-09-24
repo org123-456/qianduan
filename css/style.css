@@ -507,3 +507,20 @@ input, textarea, select { background: var(--input-bg); border: 1px solid var(--b
 .reader-adj-btn:active { transform: scale(0.9); }
 .reader-btn-outline { flex: 1; background: transparent; border: 1px solid var(--border-color); padding: 12px 0; border-radius: 14px; color: var(--text-main); font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; }
 .reader-btn-outline:active { background: var(--border-color); }
+
+/* 3D星海画布容器 */
+#starry-sea-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1; /* 保证在背景最底层，但在相框之上 */
+    background: #050510; /* 极暗的宇宙深蓝色 */
+}
+
+#starry-sea-bg canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}

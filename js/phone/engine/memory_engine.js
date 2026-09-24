@@ -1,8 +1,82 @@
 import { Config } from '../phone_config.js';
 import { PhoneAPI } from '../phone_api.js';
 import { PhoneUI } from '../phone_ui.js';
+// 🌟 引入 3D 星海引擎
+import { MemorySkyRenderer } from '../../lib/memory-sky/renderer.js';
 
 export const MemoryEngine = {
+    skyRenderer: null,
+
+    // 🌟 初始化 3D 星海
+    async initSky() {
+        if (this.skyRenderer) return; // 避免重复加载
+
+        const container = document.getElementById('starry-sea-bg');
+        if (!container) return;
+
+        // 1. 获取真实的记忆数据 (从 EchoVault 获取)
+        let evData = { daily: {}, permanent: {} };
+        if (window.PhoneAPI && window.PhoneAPI.EchoVault) {
+            evData = window.PhoneAPI.EchoVault.getData();
+        }
+        
+        // 2. 转换为 3D 星海需要的节点格式
+        const starNodes = [];
+        let idCounter = 1;
+        
+        // 处理日常记忆
+        Object.keys(evData.daily).forEach(date => {
+            starNodes.push({
+                id: idCounter++,
+                title: evData.daily[date].tags || '日常回忆',
+                date: date,
+                content: evData.daily[date].content,
+                type: 'diary'
+            });
+        });
+
+        // 处理锚点记忆
+        Object.keys(evData.permanent).forEach(key => {
+            starNodes.push({
+                id: idCounter++,
+                title: key,
+                date: evData.permanent[key].created ? evData.permanent[key].created.split('T')[0] : '永久',
+                content: evData.permanent[key].content,
+                type: 'moment'
+            });
+        });
+
+        // 如果没有数据，给两个默认的星星占位
+        if (starNodes.length === 0) {
+            starNodes.push({ id: 1, title: '初次相遇', date: '2023-01-01', content: '我们的故事开始了...', type: 'chat' });
+            starNodes.push({ id: 2, title: '星海守望', date: '2024-01-01', content: '等待新的回忆降临...', type: 'moment' });
+        }
+
+        // 3. 初始化 3D 引擎
+        this.skyRenderer = new MemorySkyRenderer({
+            container: container,
+            data: starNodes,
+            layout: 'galaxy', // 星系布局
+            onNodeClick: (nodeData) => {
+                // 点击星星时，弹出盲盒 UI 显示具体记忆
+                const textEl = document.getElementById('blindbox-text');
+                const metaEl = document.getElementById('blindbox-meta');
+                if (textEl && metaEl) {
+                    let content = nodeData.content.replace(/---/g, '').trim();
+                    if (content.length > 100) content = content.substring(0, 100) + '...';
+                    textEl.innerText = `“${content}”`;
+                    metaEl.innerText = `${nodeData.date} · ${nodeData.title}`;
+                }
+                const bg = document.getElementById('blindbox-bg');
+                const modal = document.getElementById('blindbox-modal');
+                if (bg) bg.classList.add('show');
+                if (modal) modal.classList.add('show');
+            }
+        });
+
+        this.skyRenderer.render();
+    },
+
     _scanKeywords(userText) {
         if (!userText) return '';
         const vault = PhoneAPI.getMemoryVault() || [];

@@ -164,6 +164,9 @@
                     </div>
                 </div>
                 <div id="memory-fragments-container"></div>
+                
+                <!-- 🌟 魔法棒：星穹控制台唤醒按钮 -->
+                <div class="sky-fab" onclick="window.PhoneUI.openSkyConsole()"><i class="ph-fill ph-magic-wand"></i></div>
             </div>
         </div>
 
@@ -260,6 +263,17 @@
     <button class="action-btn" id="btn-regen" onclick="window.PhoneEngine.regenMsg()"><i class="ph ph-arrows-clockwise"></i> 重新生成 (删除并重骰)</button>
     <button class="action-btn danger" onclick="window.PhoneEngine.deleteMsg()"><i class="ph ph-trash"></i> 删除此消息</button>
     <button class="action-btn cancel" onclick="window.PhoneEngine.closeMsgMenu()">取消</button>
+</div>
+
+<!-- 🌟 星穹控制台弹窗 -->
+<div id="sky-console-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeSkyConsole()"></div>
+<div id="sky-console-modal" class="action-sheet">
+    <div style="text-align: center; font-weight: bold; color: var(--text-main); margin-bottom: 15px;">✨ 星穹控制台</div>
+    <button class="action-btn" onclick="window.PhoneUI.changeSkyShape('free')">🌌 自由星系 (默认)</button>
+    <button class="action-btn" onclick="window.PhoneUI.changeSkyShape('spiral')">🌀 恒星轨道 (时光流转)</button>
+    <button class="action-btn" onclick="window.PhoneUI.changeSkyShape('ring')">🪐 星环模式 (宇宙指环)</button>
+    <button class="action-btn" onclick="window.PhoneUI.resetSkyView()" style="color: var(--primary-color);">🔭 视角回正</button>
+    <button class="action-btn cancel" onclick="window.PhoneUI.closeSkyConsole()">取消</button>
 </div>
 
 <div id="thought-bg" class="action-sheet-bg" style="cursor: pointer;" onclick="document.getElementById('thought-bg').classList.remove('show'); document.getElementById('thought-modal').classList.remove('show');"></div>
@@ -441,7 +455,6 @@ function switchTab(index) {
     if(index === 1 || index === 3) {
         appContainer.classList.add('hide-top-bar');
         if(index === 1) {
-            // 每次切到记忆海，都重置为相框封面状态
             if(window.PhoneUI && window.PhoneUI.exitStarrySea) {
                 window.PhoneUI.exitStarrySea();
             }

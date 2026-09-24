@@ -2,9 +2,15 @@ import { Config } from '../phone_config.js';
 import { PhoneAPI } from '../phone_api.js';
 import { PhoneUI } from '../phone_ui.js';
 
+// ============================================================================
+// 1. 自动加载 Three.js 依赖
+// ============================================================================
 import * as Three from 'https://esm.sh/three@0.160.0';
 import { TrackballControls } from 'https://esm.sh/three@0.160.0/examples/jsm/controls/TrackballControls.js';
 
+// ============================================================================
+// 2. 原汁原味的 3D 星海引擎核心代码 (保持不变)
+// ============================================================================
 function ringLayout(items, hash) {
   const placed=[];
   for(const item of [...items].sort((a,b)=>b.radius-a.radius||a.id.localeCompare(b.id))){
@@ -585,6 +591,7 @@ function createRenderer(container, opts) {
   load();
   return {
     setShape(value) { chosenShape = ["spiral","ring"].includes(value) ? value : "free"; shape = familyIds ? "free" : chosenShape; clearFocus(); spiralPaused = false; idleSpin = !familyIds; arrangeSpiral(); flyTo(overviewPosition(), CORE_POS, 0.065); },
+    refresh: load, // 🌟 暴露给外部的热更新方法
     resetView() { clearFocus(); spiralPaused = false; idleSpin = !familyIds; flyTo(overviewPosition(), CORE_POS, 0.075); },
     destroy() { alive = false; cancelAnimationFrame(raf); window.removeEventListener("resize", resize); renderer.dispose(); container.removeChild(renderer.domElement); }
   };
@@ -610,38 +617,31 @@ function createMemorySky(host, {data, title='记忆星穹', background, onOpen}=
 }
 
 // ============================================================================
-// 3. 核心业务逻辑 (包含 AI 情绪打分机制 & 自动生成星座 & 自动复盘)
+// 3. 核心业务逻辑 (包含热更新、收藏夹接入)
 // ============================================================================
 export const MemoryEngine = {
     skyInstance: null,
+    skyConfig: null,
 
-    async initSky() {
-        if (this.skyInstance) return;
-
-        const container = document.getElementById('starry-sea-bg');
-        if (!container) return;
-        
-        container.style.position = 'absolute';
-        container.style.top = '0';
-        container.style.left = '0';
-        container.style.width = '100%';
-        container.style.height = '100%';
-        container.style.zIndex = '1';
-
+    // 🌟 组装星空数据 (EchoVault + 收藏夹)
+    _buildSkyData() {
         let evData = { daily: {}, permanent: {} };
         if (window.PhoneAPI && window.PhoneAPI.EchoVault) {
             evData = window.PhoneAPI.EchoVault.getData();
         }
-        
+        let favs = [];
+        if (window.PhoneAPI && window.PhoneAPI.getFavorites) {
+            favs = window.PhoneAPI.getFavorites();
+        }
+
         const nodes = [];
         let idCounter = 1;
-        
-        // 处理日常记忆
-        const dailyKeys = Object.keys(evData.daily).sort((a, b) => new Date(a) - new Date(b));
-        dailyKeys.forEach(date => {
+
+        // 1. EchoVault 日常记忆
+        Object.keys(evData.daily).forEach(date => {
             const item = evData.daily[date];
             nodes.push({
-                id: String(idCounter++),
+                id: 'ev_d_' + idCounter++,
                 title: item.tags || '日常回忆',
                 date: date,
                 content: item.content,
@@ -652,11 +652,11 @@ export const MemoryEngine = {
             });
         });
 
-        // 处理锚点记忆
+        // 2. EchoVault 锚点记忆
         Object.keys(evData.permanent).forEach(key => {
             const item = evData.permanent[key];
             nodes.push({
-                id: String(idCounter++),
+                id: 'ev_p_' + idCounter++,
                 title: key,
                 date: item.created ? item.created.split('T')[0] : '永久',
                 content: item.content,
@@ -667,27 +667,38 @@ export const MemoryEngine = {
             });
         });
 
+        // 3. 接入你的【收藏夹】！
+        favs.forEach(fav => {
+            nodes.push({
+                id: 'fav_' + fav.id,
+                title: '⭐ 闪光碎片',
+                date: fav.time,
+                content: fav.content,
+                kind: 'event',
+                importance: 3,
+                valence: 0.8, // 收藏的通常是开心的
+                arousal: 0.6
+            });
+        });
+
         if (nodes.length === 0) {
             nodes.push({ id: '1', title: '初次相遇', date: '2023-01-01', content: '我们的故事开始了...', kind: 'core', importance: 5, valence: 1, arousal: 1 });
-            nodes.push({ id: '2', title: '日常回忆', date: '2023-01-02', content: '今天天气真好...', kind: 'event', importance: 2, valence: 0.8, arousal: 0.2 });
-            nodes.push({ id: '3', title: '日常回忆', date: '2023-01-03', content: '一起去吃了好吃的...', kind: 'event', importance: 2, valence: 0.6, arousal: 0.8 });
         }
 
-        // ================= 🌟 自动生成星座连线 =================
         const links = [];
         const softlinks = [];
         const families = [];
 
-        // 1. 时光轨：按时间顺序连线
-        const eventNodes = nodes.filter(n => n.kind === 'event');
+        // 时光轨连线
+        const eventNodes = nodes.filter(n => n.kind === 'event').sort((a,b) => new Date(a.date) - new Date(b.date));
         for (let i = 0; i < eventNodes.length - 1; i++) {
             links.push([eventNodes[i].id, eventNodes[i+1].id]);
         }
 
-        // 2. 主题星座：相同标签自动归类为 Family
+        // 标签星座连线
         const tagMap = {};
         nodes.forEach(n => {
-            if (n.title && n.title !== '日常回忆') {
+            if (n.title && n.title !== '日常回忆' && n.title !== '⭐ 闪光碎片') {
                 if (!tagMap[n.title]) tagMap[n.title] = [];
                 tagMap[n.title].push(n.id);
             }
@@ -696,22 +707,58 @@ export const MemoryEngine = {
         let famId = 1;
         Object.keys(tagMap).forEach(tag => {
             const group = tagMap[tag];
-            if (group.length > 1) { // 至少两颗星才能形成星座
+            if (group.length > 1) {
                 families.push({
                     id: 'fam_' + famId++,
                     title: tag + '星座',
                     description: `关于“${tag}”的专属记忆星系`,
                     members: group
                 });
-                // 内部柔和连线
                 for (let i = 0; i < group.length - 1; i++) {
                     softlinks.push([group[i], group[i+1]]);
                 }
             }
         });
 
-        this.skyInstance = createMemorySky(container, {
-            data: { nodes: nodes, links: links, softlinks: softlinks, families: families },
+        // 🌟 收藏夹专属星座连线！
+        const favNodes = nodes.filter(n => n.id.startsWith('fav_')).map(n => n.id);
+        if (favNodes.length > 1) {
+            families.push({
+                id: 'fam_fav',
+                title: '⭐ 收藏夹',
+                description: '你手动摘录的闪光碎片',
+                members: favNodes
+            });
+            for (let i = 0; i < favNodes.length - 1; i++) {
+                softlinks.push([favNodes[i], favNodes[i+1]]);
+            }
+        }
+
+        return { nodes, links, softlinks, families };
+    },
+
+    async initSky() {
+        const container = document.getElementById('starry-sea-bg');
+        if (!container) return;
+        
+        const skyData = this._buildSkyData();
+
+        // 🌟 热更新机制：如果宇宙已经存在，只刷新星星，不毁灭宇宙！(修复卡死Bug)
+        if (this.skyInstance) {
+            this.skyConfig.data = skyData;
+            this.skyInstance.refresh();
+            return;
+        }
+
+        container.style.position = 'absolute';
+        container.style.top = '0';
+        container.style.left = '0';
+        container.style.width = '100%';
+        container.style.height = '100%';
+        container.style.zIndex = '1';
+
+        this.skyConfig = {
+            data: skyData,
             title: '我们的记忆星穹',
             background: '#050510', 
             onOpen: (node) => {
@@ -728,7 +775,9 @@ export const MemoryEngine = {
                 if (bg) bg.classList.add('show');
                 if (modal) modal.classList.add('show');
             }
-        });
+        };
+
+        this.skyInstance = createMemorySky(container, this.skyConfig);
     },
 
     _scanKeywords(userText) {
@@ -744,12 +793,12 @@ export const MemoryEngine = {
         return triggeredMemories.length > 0 ? `\n【系统提示(关键词触发)】：用户刚才的话触动了你的某段记忆：\n${triggeredMemories.slice(0, 3).join('\n')}\n` : '';
     },
 
-    // 🌟 AI 自动复盘 (每 8 句话自动触发)
+    // 自动复盘
     async autoManageMemory() {
         const roleId = Config?.currentContactId;
         const items = Config?.phoneData?.[roleId]?.wechat?.items || [];
         const recentItems = items.filter(i => i.sender !== 'typing').slice(-20);
-        if (recentItems.length < 5) return; // 聊天太少不复盘
+        if (recentItems.length < 5) return;
 
         const historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
         
@@ -826,11 +875,7 @@ DEL###要删除的记忆ID
 
             if (added > 0 || updated > 0 || deleted > 0) {
                 PhoneAPI.showToast(`✨ TA在心里默默整理了记忆... (新增${added} 修改${updated} 删除${deleted})`);
-                if (this.skyInstance) {
-                    this.skyInstance.destroy();
-                    this.skyInstance = null;
-                    this.initSky(); 
-                }
+                this.initSky(); // 🌟 热更新宇宙，不卡死！
             }
         } catch(e) {
             console.error("Auto memory failed:", e);
@@ -870,6 +915,7 @@ arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏),
                     };
                 });
                 PhoneAPI.saveToMemoryVault(vaultItems, sourceApp === 'wechat' ? '线上微信' : '线下故事');
+                this.initSky(); // 🌟 提取完热更新
             }
         } catch (e) { alert('记忆提取失败：' + e.message); }
     },
@@ -914,6 +960,7 @@ arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏),
                 if (sourceApp === 'novel') PhoneUI.renderNovelContent?.();
                 else PhoneUI.renderAppContent?.('wechat');
                 PhoneAPI.showToast('🧹 洗地完成！界面已清空，情绪记忆已入库。');
+                this.initSky(); // 🌟 洗地完热更新
             }
         } catch (e) { alert('洗地失败：' + e.message); }
     },

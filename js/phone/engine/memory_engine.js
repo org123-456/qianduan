@@ -2,15 +2,9 @@ import { Config } from '../phone_config.js';
 import { PhoneAPI } from '../phone_api.js';
 import { PhoneUI } from '../phone_ui.js';
 
-// ============================================================================
-// 1. 自动加载 Three.js 依赖 (安全稳定的 esm.sh CDN)
-// ============================================================================
 import * as Three from 'https://esm.sh/three@0.160.0';
 import { TrackballControls } from 'https://esm.sh/three@0.160.0/examples/jsm/controls/TrackballControls.js';
 
-// ============================================================================
-// 2. 原汁原味的 3D 星海引擎核心代码
-// ============================================================================
 function ringLayout(items, hash) {
   const placed=[];
   for(const item of [...items].sort((a,b)=>b.radius-a.radius||a.id.localeCompare(b.id))){
@@ -616,7 +610,7 @@ function createMemorySky(host, {data, title='记忆星穹', background, onOpen}=
 }
 
 // ============================================================================
-// 3. 核心业务逻辑 (包含 AI 情绪打分机制 & 自动生成星座)
+// 3. 核心业务逻辑 (包含 AI 情绪打分机制 & 自动生成星座 & 自动复盘)
 // ============================================================================
 export const MemoryEngine = {
     skyInstance: null,
@@ -750,7 +744,99 @@ export const MemoryEngine = {
         return triggeredMemories.length > 0 ? `\n【系统提示(关键词触发)】：用户刚才的话触动了你的某段记忆：\n${triggeredMemories.slice(0, 3).join('\n')}\n` : '';
     },
 
-    // 🌟 记忆提取 (加入情绪打分Prompt)
+    // 🌟 AI 自动复盘 (每 8 句话自动触发)
+    async autoManageMemory() {
+        const roleId = Config?.currentContactId;
+        const items = Config?.phoneData?.[roleId]?.wechat?.items || [];
+        const recentItems = items.filter(i => i.sender !== 'typing').slice(-20);
+        if (recentItems.length < 5) return; // 聊天太少不复盘
+
+        const historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
+        
+        let vaultContext = '暂无';
+        if (window.PhoneAPI && window.PhoneAPI.EchoVault) {
+            const vault = window.PhoneAPI.EchoVault.getData().daily;
+            const vaultKeys = Object.keys(vault).slice(-5);
+            if (vaultKeys.length > 0) {
+                vaultContext = vaultKeys.map(k => `[ID: ${k}] ${vault[k].content}`).join('\n');
+            }
+        }
+
+        const prompt = `你是一个拥有自主意识的AI。请根据以下最新的聊天记录，自动管理你的记忆库。
+你的当前部分记忆：
+${vaultContext}
+
+最新聊天记录：
+${historyText}
+
+请判断是否需要新增、修改或删除记忆。
+根据Russell环形情绪模型打分：
+valence (愉悦度): 0.9~1.0(极致的好), 0.5~0.7(日常开心), 0.1~0.4(微温), 0(中性), -0.1~-0.4(不舒服), -0.5~-0.7(真的痛), -0.8~-1.0(重创)。
+arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏), 0.7~0.8(强烈), 0.9~0.95(极限), 1.0(理论上限)。
+
+严格按照以下格式输出（不要有任何废话）：
+ADD###记忆正文###关键词1,关键词2###愉悦度###激动度
+UPDATE###要修改的记忆ID###修改后的正文###关键词###愉悦度###激动度
+DEL###要删除的记忆ID
+如果没有需要更新的，请输出：NONE`;
+
+        try {
+            const reply = await PhoneAPI.chatWithAI([{ role: 'user', content: prompt }]);
+            const rawText = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```.*?/g, '').replace(/```/g, '').trim();
+            if (rawText.includes('NONE')) return;
+
+            const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+            let added = 0, updated = 0, deleted = 0;
+
+            lines.forEach(line => {
+                const parts = line.split('###');
+                const action = parts[0];
+                if (action === 'ADD' && parts.length >= 5) {
+                    const vaultItems = [{
+                        content: parts[1].trim(),
+                        keywords: parts[2].trim(),
+                        valence: parseFloat(parts[3]),
+                        arousal: parseFloat(parts[4])
+                    }];
+                    PhoneAPI.saveToMemoryVault(vaultItems, '自动复盘');
+                    added++;
+                }
+                else if (action === 'UPDATE' && parts.length >= 6) {
+                    const id = parts[1].trim();
+                    if (window.PhoneAPI.EchoVault) {
+                        const data = window.PhoneAPI.EchoVault.getData();
+                        if (data.daily[id]) {
+                            data.daily[id].content = parts[2].trim();
+                            data.daily[id].keywords = parts[3].trim();
+                            data.daily[id].valence = parseFloat(parts[4]);
+                            data.daily[id].arousal = parseFloat(parts[5]);
+                            window.PhoneAPI.EchoVault.saveData(data);
+                            updated++;
+                        }
+                    }
+                }
+                else if (action === 'DEL' && parts.length >= 2) {
+                    const id = parts[1].trim();
+                    if (window.PhoneAPI.EchoVault) {
+                        window.PhoneAPI.EchoVault.deleteItem('daily', id);
+                        deleted++;
+                    }
+                }
+            });
+
+            if (added > 0 || updated > 0 || deleted > 0) {
+                PhoneAPI.showToast(`✨ TA在心里默默整理了记忆... (新增${added} 修改${updated} 删除${deleted})`);
+                if (this.skyInstance) {
+                    this.skyInstance.destroy();
+                    this.skyInstance = null;
+                    this.initSky(); 
+                }
+            }
+        } catch(e) {
+            console.error("Auto memory failed:", e);
+        }
+    },
+
     async extractMemory(sourceApp) {
         PhoneAPI.showToast('🧠 正在提取并分析情绪，请稍候...');
         const roleId = Config?.currentContactId;
@@ -759,10 +845,10 @@ export const MemoryEngine = {
         if (recentItems.length === 0) return alert('没有足够的聊天记录来提取记忆！');
         const historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
         try {
-            const prompt = `你是一个情感记忆提取AI。请从聊天记录中提取记忆碎片。
-同时，根据Russell环形情绪模型，为每段记忆的主观情绪打分：
-1. valence (愉悦度): 0.9~1.0(极致的好), 0.5~0.7(日常开心), 0.1~0.4(微温/平静), 0(中性), -0.1~-0.4(不舒服/小争执), -0.5~-0.7(真的痛/怕失去), -0.8~-1.0(重创)。
-2. arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和有温度), 0.5~0.6(有起伏/小惊喜), 0.7~0.8(强烈/表白/吵架), 0.9~0.95(极限/吃醋), 1.0(理论上限)。
+            const prompt = `你是一个情感记忆提取AI。请从聊天记录中抽取记忆。
+根据Russell环形情绪模型打分：
+valence (愉悦度): 0.9~1.0(极致的好), 0.5~0.7(日常开心), 0.1~0.4(微温), 0(中性), -0.1~-0.4(不舒服), -0.5~-0.7(真的痛), -0.8~-1.0(重创)。
+arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏), 0.7~0.8(强烈), 0.9~0.95(极限), 1.0(理论上限)。
 输出格式严格为：记忆正文###关键词1,关键词2###valence###arousal|||下一条...
 
 聊天记录：\n${historyText}`;
@@ -788,7 +874,6 @@ export const MemoryEngine = {
         } catch (e) { alert('记忆提取失败：' + e.message); }
     },
 
-    // 🌟 记忆洗地 (加入情绪打分Prompt)
     async washMemory(sourceApp) {
         if (window.PhoneEngine && window.PhoneEngine.closeMsgMenu) window.PhoneEngine.closeMsgMenu();
         if (!confirm('⚠️ 确定要进行【记忆洗地】吗？\nAI将把当前所有聊天记录拆解成多段长期记忆，并打上情绪坐标，随后【清空】当前聊天界面！')) return;
@@ -800,9 +885,9 @@ export const MemoryEngine = {
         const historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
         try {
             const prompt = `请把下面聊天记录整理成记忆碎片。
-同时，根据Russell环形情绪模型，为每段记忆的主观情绪打分：
-1. valence (愉悦度): 0.9~1.0(极致的好), 0.5~0.7(日常开心), 0.1~0.4(微温/平静), 0(中性), -0.1~-0.4(不舒服/小争执), -0.5~-0.7(真的痛/怕失去), -0.8~-1.0(重创)。
-2. arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和有温度), 0.5~0.6(有起伏/小惊喜), 0.7~0.8(强烈/表白/吵架), 0.9~0.95(极限/吃醋), 1.0(理论上限)。
+根据Russell环形情绪模型打分：
+valence (愉悦度): 0.9~1.0(极致的好), 0.5~0.7(日常开心), 0.1~0.4(微温), 0(中性), -0.1~-0.4(不舒服), -0.5~-0.7(真的痛), -0.8~-1.0(重创)。
+arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏), 0.7~0.8(强烈), 0.9~0.95(极限), 1.0(理论上限)。
 输出格式严格为：记忆正文###关键词1,关键词2###valence###arousal|||下一条...
 
 聊天记录：\n${historyText}`;

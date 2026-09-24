@@ -144,24 +144,40 @@
             </div>
         </div>
 
-        <!-- 记忆海 -->
-        <div id="page-memory" class="page">
-            <div class="starry-sea-bg" id="starry-sea-bg"></div>
-            <div class="floating-bubbles" id="floating-bubbles">
-                <div class="glass-bubble bubble-diary" onclick="window.PhoneUI.openApp('diary', '他的日记')">
-                    <i class="ph-fill ph-book-bookmark icon"></i>
-                    <span class="text">日记</span>
+        <!-- 🌟 重新设计的记忆海 (相框封面 + 星海内部) -->
+        <div id="page-memory" class="page" style="padding: 0; overflow: hidden;">
+            
+            <!-- 1. 记忆画廊封面 (相框展示) -->
+            <div id="memory-cover-view" class="memory-cover-view">
+                <div class="memory-frame-wrap">
+                    <img id="memory-frame-photo" class="long-pressable" data-img="memory_frame_photo" src="https://images.unsplash.com/photo-1518609878373-06d740f60d8b?q=80&w=1000&auto=format&fit=crop" alt="专属相框">
+                    <div class="memory-frame-text">Our Memories</div>
                 </div>
-                <div class="glass-bubble bubble-vault" onclick="window.PhoneUI.openApp('memory_vault', 'EchoVault 记忆库')">
-                    <i class="ph-fill ph-database icon"></i>
-                    <span class="text">记忆库</span>
-                </div>
-                <div class="glass-bubble bubble-gallery" onclick="window.PhoneUI.openApp('gallery', '回忆相册')">
-                    <i class="ph-fill ph-polaroid-camera icon"></i>
-                    <span class="text">相册</span>
+                <div class="memory-enter-btn" onclick="window.PhoneUI.enterStarrySea()">
+                    <i class="ph-fill ph-shooting-star"></i> 潜入星海
                 </div>
             </div>
-            <div id="memory-fragments-container"></div>
+
+            <!-- 2. 真正的星海内部 -->
+            <div id="memory-inside-view" class="memory-inside-view">
+                <div class="diary-back-btn" onclick="window.PhoneUI.exitStarrySea()" style="top: 40px; left: 20px; z-index: 50; background: rgba(255,255,255,0.1);"><i class="ph ph-caret-left"></i></div>
+                <div class="starry-sea-bg" id="starry-sea-bg"></div>
+                <div class="floating-bubbles" id="floating-bubbles">
+                    <div class="glass-bubble bubble-diary" onclick="window.PhoneUI.openApp('diary', '他的日记')">
+                        <i class="ph-fill ph-book-bookmark icon"></i>
+                        <span class="text">日记</span>
+                    </div>
+                    <div class="glass-bubble bubble-vault" onclick="window.PhoneUI.openApp('memory_vault', 'EchoVault 记忆库')">
+                        <i class="ph-fill ph-database icon"></i>
+                        <span class="text">记忆库</span>
+                    </div>
+                    <div class="glass-bubble bubble-gallery" onclick="window.PhoneUI.openApp('gallery', '回忆相册')">
+                        <i class="ph-fill ph-polaroid-camera icon"></i>
+                        <span class="text">相册</span>
+                    </div>
+                </div>
+                <div id="memory-fragments-container"></div>
+            </div>
         </div>
 
         <!-- 聊天页 -->
@@ -325,7 +341,6 @@
         </div>
         <div class="app-window-title" id="reader-header-title" style="color: inherit; font-size: 15px; flex: 1; text-align: center;">共读书架</div>
         
-        <!-- 🌟 新增：右上角设置按钮 -->
         <i class="ph ph-text-aa" id="btn-reader-settings" onclick="window.PhoneEngine.openReaderSettings()" style="font-size: 22px; padding: 10px; cursor: pointer; display: none; color: inherit;"></i>
         
         <label id="btn-add-book" for="book-upload" style="cursor: pointer; color: inherit; font-size: 24px; padding: 10px; margin-right: -10px;">
@@ -389,7 +404,6 @@
         </div>
     </div>
 
-    <!-- 🌟 修复：将 z-index 改为 9005，并且背景色设为实色 -->
     <div id="reader-settings-bg" class="action-sheet-bg" onclick="window.PhoneEngine.closeReaderSettings()"></div>
     <div id="reader-settings-drawer" class="action-sheet" style="background: var(--window-bg); border-radius: 24px 24px 0 0; padding: 25px 20px; z-index: 9005;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
@@ -439,7 +453,12 @@ function switchTab(index) {
     const appContainer = document.getElementById('app-container');
     if(index === 1 || index === 3) {
         appContainer.classList.add('hide-top-bar');
-        if(index === 1 && window.PhoneUI) window.PhoneUI.initStarrySea();
+        if(index === 1) {
+            // 🌟 每次切到记忆海，都重置为相框封面状态
+            if(window.PhoneUI && window.PhoneUI.exitStarrySea) {
+                window.PhoneUI.exitStarrySea();
+            }
+        }
     } else {
         appContainer.classList.remove('hide-top-bar');
     }

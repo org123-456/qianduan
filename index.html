@@ -82,14 +82,17 @@
 <!-- ================= 主应用容器 ================= -->
 <div id="app-container">
     <div class="top-bar">
+        <!-- 左边：月亮 -->
+        <div class="menu-btn" onclick="window.PhoneUI.toggleTheme()"><i class="ph-fill ph-moon" id="theme-icon"></i></div>
+        
+        <!-- 中间：标题 -->
+        <div class="title" id="top-title">Claire & Claude</div>
+        
+        <!-- 右边：API 和 设置 -->
         <div style="display: flex; gap: 10px;">
-            <div class="menu-btn" onclick="window.PhoneUI.toggleTheme()"><i class="ph-fill ph-moon" id="theme-icon"></i></div>
             <div class="menu-btn api-btn" id="api-fab" onclick="window.PhoneUI.openApiModal()"><i class="ph-fill ph-cpu"></i></div>
-            <!-- 【修改1】系统设置挪到顶栏了！ -->
             <div class="menu-btn" onclick="window.PhoneUI.openApp('settings', '系统设置')"><i class="ph-fill ph-gear"></i></div>
         </div>
-        <div class="title" id="top-title">Claire & Claude</div>
-        <div class="heart"><i class="ph-fill ph-heart"></i> 100%</div>
     </div>
 
     <div class="page-container" id="scroll-box">
@@ -138,13 +141,9 @@
                 </div>
                 <div class="note-content" id="note-content">“今天也要开心哦！”</div>
             </div>
-            <!-- 【修改2】Home页底部的系统设置按钮已删除 -->
         </div>
 
-        <!-- 记忆海 -->
         <div id="page-memory" class="page" style="padding: 0; overflow: hidden;">
-            
-            <!-- 1. 记忆画廊封面 -->
             <div id="memory-cover-view" class="memory-cover-view">
                 <div class="memory-frame-wrap">
                     <img id="memory-frame-photo" class="long-pressable" data-img="memory_frame_photo" src="https://images.unsplash.com/photo-1518609878373-06d740f60d8b?q=80&w=1000&auto=format&fit=crop" alt="专属相框">
@@ -155,12 +154,10 @@
                 </div>
             </div>
 
-            <!-- 2. 星海内部 -->
             <div id="memory-inside-view" class="memory-inside-view">
                 <div class="diary-back-btn" onclick="window.PhoneUI.exitStarrySea()" style="top: 40px; left: 20px; z-index: 50; background: rgba(255,255,255,0.1);"><i class="ph ph-caret-left"></i></div>
                 <div class="starry-sea-bg" id="starry-sea-bg"></div>
                 <div class="floating-bubbles" id="floating-bubbles">
-                    <!-- 【修改3】删除了日记和相册，只留记忆库 -->
                     <div class="glass-bubble bubble-vault" onclick="window.PhoneUI.openApp('memory_vault', 'EchoVault 记忆库')">
                         <i class="ph-fill ph-database icon"></i>
                         <span class="text">记忆库</span>
@@ -236,7 +233,7 @@
             </div>
         </div>
 
-        <!-- 朋友圈页 (Space) -->
+        <!-- 朋友圈页 -->
         <div id="page-moments" class="page">
             <div id="moments-content-area"></div>
             <div class="fab-post" onclick="window.PhoneUI.openPostModal()"><i class="ph ph-camera"></i></div>
@@ -244,7 +241,7 @@
 
     </div>
 
-    <!-- 底部导航 (原封不动) -->
+    <!-- 底部导航 -->
     <div class="bottom-nav">
         <div class="nav-item active" onclick="switchTab(0)"><div class="icon"><i class="ph ph-house"></i></div><div class="text">Home</div></div>
         <div class="nav-item" onclick="switchTab(1)"><div class="icon"><i class="ph ph-images"></i></div><div class="text">Memory</div></div>

@@ -132,7 +132,8 @@ export const MomentsUI = {
                 <div class="moments-menu-item ${currentTab === 'feed' ? 'active' : ''}" onclick="window.PhoneUI.switchMomentsTab('feed')"><i class="${currentTab === 'feed' ? 'ph-fill' : 'ph'} ph-camera"></i> 朋友圈动态</div>
                 <div class="moments-menu-item ${currentTab === 'favorites' ? 'active' : ''}" onclick="window.PhoneUI.switchMomentsTab('favorites')"><i class="${currentTab === 'favorites' ? 'ph-fill' : 'ph'} ph-star"></i> 星海收藏夹</div>
                 <div class="moments-menu-item" onclick="window.PhoneUI.openReader()"><i class="ph-fill ph-book-open-text"></i> 共读时光</div>
-                <div class="moments-menu-item" onclick="window.PhoneAPI.showToast('恋爱家规模块开发中...')"><i class="ph-fill ph-scroll"></i> 恋爱家规</div>
+                <!-- 🌟 这里修改了！去掉了恋爱家规，换成了日记 -->
+                <div class="moments-menu-item" onclick="window.PhoneUI.openApp('diary', '我们的日记')"><i class="ph-fill ph-book-bookmark"></i> 我们的日记</div>
             </div>
 
             <div style="padding-bottom: 80px;">
@@ -185,7 +186,6 @@ export const MomentsUI = {
         document.getElementById('reader-footer').style.display = 'none';
         document.getElementById('reader-header-title').innerText = "共读书架";
         
-        // 🌟 显示导入按钮，隐藏设置按钮
         const btnAdd = document.getElementById('btn-add-book');
         const btnSettings = document.getElementById('btn-reader-settings');
         if (btnAdd) btnAdd.style.display = 'block';
@@ -202,7 +202,6 @@ export const MomentsUI = {
         document.getElementById('reader-footer').style.display = 'flex';
         document.getElementById('reader-header-title').innerText = title || "阅读中";
         
-        // 🌟 隐藏导入按钮，显示设置按钮
         const btnAdd = document.getElementById('btn-add-book');
         const btnSettings = document.getElementById('btn-reader-settings');
         if (btnAdd) btnAdd.style.display = 'none';
@@ -257,5 +256,19 @@ export const MomentsUI = {
             }
         });
         this._selectionBound = true;
+    },
+
+    escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    },
+
+    bindLongPresses() {
+        // 绑定长按换图事件等
     }
 };

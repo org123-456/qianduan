@@ -7,10 +7,15 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#dff1ff">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
 <link rel="manifest" href="manifest.json">
+
 <title>Claire & Claude</title>
+
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -148,15 +153,20 @@
             <div id="memory-inside-view" class="memory-inside-view">
                 <div class="diary-back-btn" onclick="window.PhoneUI.exitStarrySea()" style="top: 40px; left: 20px; z-index: 50; background: rgba(255,255,255,0.1);"><i class="ph ph-caret-left"></i></div>
                 <div class="starry-sea-bg" id="starry-sea-bg"></div>
+                
                 <div class="floating-bubbles" id="floating-bubbles">
                     <div class="glass-bubble bubble-vault" onclick="window.PhoneUI.openApp('memory_vault', 'EchoVault 记忆库')">
                         <i class="ph-fill ph-database icon"></i>
                         <span class="text">记忆库</span>
                     </div>
+                    <!-- 🌟 新增：星海变动日志气泡 -->
+                    <div class="glass-bubble bubble-log" onclick="window.PhoneUI.openMemoryLog()">
+                        <i class="ph-fill ph-clock-counter-clockwise icon"></i>
+                        <span class="text">星海日志</span>
+                    </div>
                 </div>
                 <div id="memory-fragments-container"></div>
                 
-                <!-- 🌟 魔法棒：星穹控制台唤醒按钮 -->
                 <div class="sky-fab" onclick="window.PhoneUI.openSkyConsole()"><i class="ph-fill ph-magic-wand"></i></div>
             </div>
         </div>
@@ -253,30 +263,35 @@
     <button class="action-btn cancel" onclick="window.PhoneEngine.closeMsgMenu()">取消</button>
 </div>
 
-<!-- 🌟 星穹控制台弹窗 (加入了智能搜索框) -->
+<!-- 星穹控制台弹窗 -->
 <div id="sky-console-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeSkyConsole()"></div>
 <div id="sky-console-modal" class="action-sheet">
     <div style="text-align: center; font-weight: bold; color: var(--text-main); margin-bottom: 15px;">✨ 星穹控制台</div>
-    
-    <!-- 🌟 寻找记忆：模糊搜索 -->
     <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px; font-weight: bold;">🔍 寻找记忆 (模糊搜索)</div>
     <input type="text" id="sky-search-input" placeholder="输入你想找的词..." class="action-btn" style="width: 100%; margin-bottom: 10px; background: var(--icon-bg); border: 1px solid var(--border-color); color: var(--text-main); text-align: left; padding: 10px; outline: none;" oninput="window.PhoneUI.handleStarSearch(this.value)">
     <div id="sky-search-results" style="max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px;"></div>
-
     <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px; font-weight: bold;">切换星系</div>
     <div style="display: flex; gap: 10px; margin-bottom: 15px;">
         <button class="reader-btn-outline" onclick="window.PhoneUI.focusGalaxy('all')" style="margin:0;">🌌 全部</button>
         <button class="reader-btn-outline" onclick="window.PhoneUI.focusGalaxy('vault')" style="margin:0;">🧠 记忆库</button>
         <button class="reader-btn-outline" onclick="window.PhoneUI.focusGalaxy('fav')" style="margin:0;">⭐ 收藏夹</button>
     </div>
-
     <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px; font-weight: bold;">宇宙形态</div>
     <button class="action-btn" onclick="window.PhoneUI.changeSkyShape('free')">🌌 自由星系 (默认)</button>
     <button class="action-btn" onclick="window.PhoneUI.changeSkyShape('spiral')">🌀 恒星轨道 (时光流转)</button>
     <button class="action-btn" onclick="window.PhoneUI.changeSkyShape('ring')">🪐 星环模式 (宇宙指环)</button>
-    
     <button class="action-btn" onclick="window.PhoneUI.resetSkyView()" style="color: var(--primary-color); margin-top: 10px;">🔭 视角回正</button>
     <button class="action-btn cancel" onclick="window.PhoneUI.closeSkyConsole()">取消</button>
+</div>
+
+<!-- 🌟 星海变动日志弹窗 -->
+<div id="memory-log-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeMemoryLog()"></div>
+<div id="memory-log-modal" class="action-sheet" style="height: 70vh; display: flex; flex-direction: column; padding: 20px 15px;">
+    <div style="text-align: center; font-weight: bold; color: var(--text-main); margin-bottom: 15px; flex-shrink: 0;">✨ 星海变动日志</div>
+    <div id="memory-log-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+        <!-- 日志列表将在这里渲染 -->
+    </div>
+    <button class="action-btn cancel" onclick="window.PhoneUI.closeMemoryLog()" style="flex-shrink: 0; margin-top: 15px;">关闭</button>
 </div>
 
 <div id="thought-bg" class="action-sheet-bg" style="cursor: pointer;" onclick="document.getElementById('thought-bg').classList.remove('show'); document.getElementById('thought-modal').classList.remove('show');"></div>

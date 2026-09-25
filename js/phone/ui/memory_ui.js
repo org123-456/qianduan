@@ -51,7 +51,52 @@ export const MemoryUI = {
         if (modal) modal.classList.add('show');
     },
 
-    // ================= 🌟 星穹控制台逻辑 (含智能搜索) =================
+    // ================= 🌟 星海变动日志 =================
+    openMemoryLog() {
+        const bg = document.getElementById('memory-log-bg');
+        const modal = document.getElementById('memory-log-modal');
+        const listEl = document.getElementById('memory-log-list');
+        
+        if (!bg || !modal || !listEl) return;
+        
+        // 从 localStorage 读取日志
+        let logs = [];
+        try {
+            logs = JSON.parse(localStorage.getItem('memory_logs') || '[]');
+        } catch(e) {}
+
+        if (logs.length === 0) {
+            listEl.innerHTML = '<div style="text-align:center; color:var(--text-sub); margin-top:50px; font-size:13px;">暂无星海变动记录...</div>';
+        } else {
+            listEl.innerHTML = logs.reverse().map(log => {
+                let tagClass = 'add';
+                let tagText = '新增';
+                if (log.action === 'UPDATE') { tagClass = 'update'; tagText = '修改'; }
+                if (log.action === 'DEL') { tagClass = 'del'; tagText = '删除'; }
+                
+                return `
+                <div class="log-item" onclick="window.PhoneUI.focusStar('${log.id}')">
+                    <div class="log-time">[${log.time}]</div>
+                    <div class="log-content">
+                        <span class="log-tag ${tagClass}">${tagText}</span>
+                        ${this.escapeHtml(log.content)}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+        
+        bg.classList.add('show');
+        modal.classList.add('show');
+    },
+
+    closeMemoryLog() {
+        const bg = document.getElementById('memory-log-bg');
+        const modal = document.getElementById('memory-log-modal');
+        if (bg) bg.classList.remove('show');
+        if (modal) modal.classList.remove('show');
+    },
+
+    // ================= 🌟 星穹控制台逻辑 =================
     openSkyConsole() {
         document.getElementById('sky-console-bg').classList.add('show');
         document.getElementById('sky-console-modal').classList.add('show');
@@ -87,12 +132,11 @@ export const MemoryUI = {
         const q = query.toLowerCase();
         const nodes = window.PhoneEngine?.skyConfig?.data?.nodes || [];
         
-        // 模糊搜索：匹配标题、日期、正文
         const matches = nodes.filter(n => 
             (n.title||'').toLowerCase().includes(q) || 
             (n.content||'').toLowerCase().includes(q) || 
             (n.date||'').toLowerCase().includes(q)
-        ).slice(0, 5); // 最多显示5条
+        ).slice(0, 5); 
         
         if (matches.length === 0) {
             resultsBox.innerHTML = '<div style="font-size:12px; color:var(--text-sub);">没有找到相关记忆...</div>';
@@ -107,13 +151,14 @@ export const MemoryUI = {
         `).join('');
     },
     focusStar(id) {
+        this.closeSkyConsole();
+        this.closeMemoryLog();
         if (window.PhoneEngine && window.PhoneEngine.skyInstance) {
             window.PhoneEngine.skyInstance.focus(id);
         }
-        this.closeSkyConsole();
     },
 
-    // ================= 记忆库渲染逻辑 (含搜索和一键分享) =================
+    // ================= 记忆库渲染逻辑 =================
     switchVaultTab(tab) {
         if (window.Config) window.Config.memoryVaultTab = tab;
         document.getElementById('tab-daily').classList.remove('active');
@@ -134,7 +179,6 @@ export const MemoryUI = {
         const tab = window.Config?.memoryVaultTab || 'daily';
         const query = this.vaultSearchQuery || '';
         
-        // 🌟 顶部加入搜索框
         let html = `
             <div style="margin-bottom: 15px;">
                 <input type="text" placeholder="🔍 搜索日期、标签、正文..." value="${query}" oninput="window.PhoneUI.handleVaultSearch(this.value)" style="width: 100%; padding: 10px 15px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 13px; outline: none;">
@@ -196,7 +240,6 @@ export const MemoryUI = {
         container.innerHTML = html;
     },
 
-    // 🌟 一键分享到对话框
     shareMemoryItem(key, type) {
         if (!window.PhoneAPI || !window.PhoneAPI.EchoVault) return;
         const data = window.PhoneAPI.EchoVault.getData();
@@ -208,7 +251,6 @@ export const MemoryUI = {
         const input = document.getElementById('chat-input');
         if(input) {
             input.value = text;
-            // 自动跳回聊天界面
             window.PhoneUI.closeApp();
             if(typeof switchTab === 'function') switchTab(2);
             window.PhoneAPI.showToast('已复制到聊天框，发送给TA算账吧！');

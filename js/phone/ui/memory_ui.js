@@ -33,25 +33,6 @@ export const MemoryUI = {
         if (modal) modal.classList.remove('show');
     },
 
-    remindEchoVault() {
-        if (!window.PhoneAPI || !window.PhoneAPI.EchoVault) return;
-        const item = window.PhoneAPI.EchoVault.remind();
-        if (!item) { window.PhoneAPI.showToast("记忆库还是空的，快去创造回忆吧！"); return; }
-        
-        const textEl = document.getElementById('blindbox-text');
-        const metaEl = document.getElementById('blindbox-meta');
-        if (textEl && metaEl) {
-            let content = item.meta.content.replace(/---/g, '\n').trim();
-            textEl.innerText = `“${content}”`;
-            metaEl.innerText = `${item.date} · ${item.meta.tags || '日常'} (回忆度: ${item.score})`;
-        }
-        const bg = document.getElementById('blindbox-bg');
-        const modal = document.getElementById('blindbox-modal');
-        if (bg) bg.classList.add('show');
-        if (modal) modal.classList.add('show');
-    },
-
-    // ================= 🌟 星海变动日志 =================
     openMemoryLog() {
         const bg = document.getElementById('memory-log-bg');
         const modal = document.getElementById('memory-log-modal');
@@ -87,7 +68,6 @@ export const MemoryUI = {
         if (modal) modal.classList.remove('show');
     },
 
-    // ================= 🌟 星穹控制台逻辑 =================
     openSkyConsole() {
         document.getElementById('sky-console-bg').classList.add('show');
         document.getElementById('sky-console-modal').classList.add('show');
@@ -136,20 +116,23 @@ export const MemoryUI = {
         if (window.PhoneEngine && window.PhoneEngine.skyInstance) window.PhoneEngine.skyInstance.focus(id);
     },
 
-    // ================= 记忆库渲染逻辑 =================
     switchVaultTab(tab) {
         if (window.Config) window.Config.memoryVaultTab = tab;
         document.getElementById('tab-daily').classList.remove('active');
         document.getElementById('tab-permanent').classList.remove('active');
         document.getElementById('tab-' + tab).classList.add('active');
-        this.updateVaultList(); // 切换Tab时只刷新列表
+        this.updateVaultList(); 
+    },
+
+    handleVaultSearch(query) {
+        this.vaultSearchQuery = query.toLowerCase();
+        this.updateVaultList();
     },
 
     renderMemoryVault() {
         const container = document.getElementById('vault-content-area');
         if (!container) return;
 
-        // 🌟 核心修复：只在第一次渲染时生成搜索框，防止打字时被覆盖导致掉键盘！
         if (!document.getElementById('vault-list-container')) {
             container.innerHTML = `
                 <div style="margin-bottom: 15px;">
@@ -158,17 +141,15 @@ export const MemoryUI = {
                 <div id="vault-list-container"></div>
             `;
             
-            // 绑定输入事件
             document.getElementById('vault-search-input').addEventListener('input', (e) => {
                 this.vaultSearchQuery = e.target.value.toLowerCase();
-                this.updateVaultList(); // 打字时只更新下面的列表
+                this.updateVaultList(); 
             });
         }
         
         this.updateVaultList();
     },
 
-    // 🌟 抽离出来的列表渲染函数
     updateVaultList() {
         const listContainer = document.getElementById('vault-list-container');
         if (!listContainer || !window.PhoneAPI || !window.PhoneAPI.EchoVault) return;
@@ -229,7 +210,7 @@ export const MemoryUI = {
         listContainer.innerHTML = html;
     },
 
-    // 🌟 分享变成精美的 Markdown 引用卡片
+    // 🌟 修复：一键发送卡片，不再只填入输入框
     shareMemoryItem(key, type) {
         if (!window.PhoneAPI || !window.PhoneAPI.EchoVault) return;
         const data = window.PhoneAPI.EchoVault.getData();
@@ -237,15 +218,14 @@ export const MemoryUI = {
         if (!item) return;
         
         const content = item.content.replace(/---/g, '\n').trim();
-        // 使用 Markdown 引用格式，配合 CSS 变成精美卡片
-        const text = `> **【记忆回溯】**\n> 时间：${type === 'daily' ? key : '永久锚点'}\n> 标签：${item.tags || '无'}\n> \n> *${content}*`;
+        const text = `> **【记忆回溯】**\n> 📅 时间：${type === 'daily' ? key.split(' ')[0] : '永久锚点'}\n> 🏷️ 标签：${item.tags || '无'}\n> \n> *${content}*`;
         
         const input = document.getElementById('chat-input');
-        if(input) {
+        if(input && window.PhoneEngine && window.PhoneEngine.sendChatMessage) {
             input.value = text;
+            window.PhoneEngine.sendChatMessage(); // 直接发送
             window.PhoneUI.closeApp();
-            if(typeof switchTab === 'function') switchTab(2);
-            window.PhoneAPI.showToast('已生成回溯卡片，发送给TA吧！');
+            if(typeof switchTab === 'function') switchTab(2); // 跳回聊天页
         }
     },
 
@@ -282,7 +262,9 @@ export const MemoryUI = {
                 window.PhoneAPI.EchoVault.saveData(data);
                 window.PhoneAPI.showToast("✅ 修改已保存");
                 this.closeEvEdit();
-                this.updateVaultList(); // 🌟 保存后只刷新列表
+                this.updateVaultList(); 
+                // 🌟 同步更新星空
+                if(window.PhoneEngine && window.PhoneEngine.initSky) window.PhoneEngine.initSky();
             }
         }
     },
@@ -292,7 +274,9 @@ export const MemoryUI = {
         if (window.PhoneAPI && window.PhoneAPI.EchoVault) {
             window.PhoneAPI.EchoVault.deleteItem(type, key);
             window.PhoneAPI.showToast("🗑️ 记忆已删除");
-            this.updateVaultList(); // 🌟 删除后只刷新列表
+            this.updateVaultList(); 
+            // 🌟 同步更新星空
+            if(window.PhoneEngine && window.PhoneEngine.initSky) window.PhoneEngine.initSky();
         }
     },
 

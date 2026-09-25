@@ -40,7 +40,7 @@ function starAccents(T, scene) {
     `varying vec2 vUv; uniform vec2 uHead,uViewport,uDirection; uniform float uLength;
      void main(){vUv=uv;vec2 normal=vec2(-uDirection.y,uDirection.x);
        vec2 p=uHead+uDirection*(uv.x-1.)*uLength+normal*(uv.y-.5)*8.;
-       gl_Position=vec4(p/uViewport*vec2(2.,-2.)+vec2(-1.,1.),0.,1.),0.,1.);}`,
+       gl_Position=vec4(p/uViewport*vec2(2.,-2.)+vec2(-1.,1.),0.,1.);}`,
     `varying vec2 vUv; uniform float uAlpha;
      void main(){float tail=pow(vUv.x,2.)*(1.-smoothstep(.95,1.,vUv.x));
        float thin=exp(-pow((vUv.y-.5)*16.,2.));float glow=exp(-pow((vUv.y-.5)*5.,2.));
@@ -644,13 +644,12 @@ function createMemorySky(host, {data, title='记忆星穹', background, onOpen}=
 }
 
 // ============================================================================
-// 3. 核心业务逻辑 (修复日志跳转 ID，增加系统拦截器防聊天框泄露)
+// 3. 核心业务逻辑 (加入终极防呆解析)
 // ============================================================================
 export const MemoryEngine = {
     skyInstance: null,
     skyConfig: null,
 
-    // 🌟 修复：直接接收确定的 ID，不依赖倒序查找
     _logMemoryAction(action, content, exactId) {
         let logs = [];
         try { logs = JSON.parse(localStorage.getItem('memory_logs') || '[]'); } catch(e) {}
@@ -849,12 +848,11 @@ export const MemoryEngine = {
         return triggeredMemories.length > 0 ? `\n【系统提示(关键词触发)】：用户刚才的话触动了你的某段记忆：\n${triggeredMemories.slice(0, 3).join('\n')}\n` : '';
     },
 
-    // 🌟 系统拦截器处理函数 (供聊天调用)
+    // 🌟 终极防呆：拦截 AI 在公屏乱发记忆，并强制写入日志
     processSilentMemory(rawText) {
         if (!rawText.includes('【后台记忆入库】')) return false;
         
         try {
-            const lines = rawText.split('\n');
             const data = window.PhoneAPI.EchoVault ? window.PhoneAPI.EchoVault.getData() : null;
             if (!data) return false;
 
@@ -862,23 +860,41 @@ export const MemoryEngine = {
             const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
             let added = 0;
 
-            lines.forEach((line, idx) => {
-                if (line.includes('【后台记忆入库】')) {
-                    const contentPart = line.split('【后台记忆入库】')[1];
-                    const parts = contentPart.split('###');
-                    if (parts.length >= 4) {
-                        const timeKey = `${dateStr} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(idx).padStart(2,'0')}`;
-                        data.daily[timeKey] = {
-                            content: parts[0].trim(),
-                            tags: parts[1].trim(),
-                            valence: parseFloat(parts[2]),
-                            arousal: parseFloat(parts[3])
-                        };
-                        this._logMemoryAction('ADD', parts[0].trim(), 'ev_d_' + timeKey); 
-                        added++;
-                    }
+            // 把所有带【后台记忆入库】的段落都切出来
+            const blocks = rawText.split('【后台记忆入库】');
+            for (let i = 1; i < blocks.length; i++) {
+                let contentPart = blocks[i].trim();
+                contentPart = contentPart.replace(/```/g, '').trim();
+                if (!contentPart) continue;
+
+                let content = contentPart;
+                let tags = '日常记录';
+                let valence = 0.5;
+                let arousal = 0.5;
+
+                // 防呆：如果 AI 乖乖写了 ### 就解析，没写就直接把整段话当正文存进去！
+                if (contentPart.includes('###')) {
+                    const parts = contentPart.split('###').map(s => s.trim());
+                    content = parts[0] || content;
+                    tags = parts[1] || tags;
+                    valence = parseFloat(parts[2]) || valence;
+                    arousal = parseFloat(parts[3]) || arousal;
                 }
-            });
+
+                // 精确到秒，防止覆盖
+                const timeKey = `${dateStr} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}_${i}`;
+                
+                data.daily[timeKey] = {
+                    content: content,
+                    tags: tags,
+                    valence: valence,
+                    arousal: arousal
+                };
+                
+                // 🌟 强制写入日志，并绑定确切 ID
+                this._logMemoryAction('ADD', content, 'ev_d_' + timeKey); 
+                added++;
+            }
 
             if (added > 0) {
                 window.PhoneAPI.EchoVault.saveData(data);
@@ -887,7 +903,7 @@ export const MemoryEngine = {
             }
         } catch(e) { console.error("Silent memory failed:", e); }
         
-        return true; // 表示已拦截
+        return true;
     },
 
     async autoManageMemory() {
@@ -954,7 +970,7 @@ DEL###要删除的记忆ID
                         valence: parseFloat(parts[3]),
                         arousal: parseFloat(parts[4])
                     };
-                    this._logMemoryAction('ADD', parts[1].trim(), 'ev_d_' + timeKey); // 🌟 修复：传入确切 ID
+                    this._logMemoryAction('ADD', parts[1].trim(), 'ev_d_' + timeKey); 
                     added++;
                 }
                 else if (action === 'UPDATE' && parts.length >= 6) {
@@ -964,7 +980,7 @@ DEL###要删除的记忆ID
                         data.daily[id].tags = parts[3].trim();
                         data.daily[id].valence = parseFloat(parts[4]);
                         data.daily[id].arousal = parseFloat(parts[5]);
-                        this._logMemoryAction('UPDATE', parts[2].trim(), 'ev_d_' + id); // 🌟 修复：传入确切 ID
+                        this._logMemoryAction('UPDATE', parts[2].trim(), 'ev_d_' + id); 
                         updated++;
                     }
                 }
@@ -1030,7 +1046,7 @@ arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏),
                         valence: parts[2] ? parseFloat(parts[2].trim()) : 0.5,
                         arousal: parts[3] ? parseFloat(parts[3].trim()) : 0.5
                     };
-                    this._logMemoryAction('ADD', parts[0].trim(), 'ev_d_' + timeKey); // 🌟 修复：传入确切 ID
+                    this._logMemoryAction('ADD', parts[0].trim(), 'ev_d_' + timeKey); 
                 });
 
                 window.PhoneAPI.EchoVault.saveData(data);
@@ -1083,7 +1099,7 @@ arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏),
                         valence: parts[2] ? parseFloat(parts[2].trim()) : 0.5,
                         arousal: parts[3] ? parseFloat(parts[3].trim()) : 0.5
                     };
-                    this._logMemoryAction('ADD', parts[0].trim(), 'ev_d_' + timeKey); // 🌟 修复：传入确切 ID
+                    this._logMemoryAction('ADD', parts[0].trim(), 'ev_d_' + timeKey); 
                 });
 
                 window.PhoneAPI.EchoVault.saveData(data);

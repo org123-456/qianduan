@@ -51,8 +51,9 @@ export const MemoryUI = {
                 if (log.action === 'UPDATE') { tagClass = 'update'; tagText = '修改'; }
                 if (log.action === 'DEL') { tagClass = 'del'; tagText = '删除'; }
                 
+                // 🌟 修复：点击日志调用 focusStar
                 return `
-                <div class="log-item" onclick="document.getElementById('memory-log-bg').classList.remove('show'); document.getElementById('memory-log-modal').classList.remove('show'); if(window.MemoryEngine && window.MemoryEngine.skyInstance) window.MemoryEngine.skyInstance.focus('${log.id}');">
+                <div class="log-item" onclick="window.PhoneUI.focusStar('${log.id}')">
                     <div class="log-time">[${log.time}]</div>
                     <div class="log-content"><span class="log-tag ${tagClass}">${tagText}</span>${this.escapeHtml(log.content)}</div>
                 </div>`;
@@ -111,10 +112,14 @@ export const MemoryUI = {
             </div>
         `).join('');
     },
+    
+    // 🌟 修复：点击日志或搜索结果，关闭弹窗并跳转
     focusStar(id) {
         this.closeSkyConsole();
         this.closeMemoryLog();
-        if (window.MemoryEngine && window.MemoryEngine.skyInstance) window.MemoryEngine.skyInstance.focus(id);
+        if (window.MemoryEngine && window.MemoryEngine.skyInstance) {
+            window.MemoryEngine.skyInstance.focus(id);
+        }
     },
 
     switchVaultTab(tab) {
@@ -211,7 +216,7 @@ export const MemoryUI = {
         listContainer.innerHTML = html;
     },
 
-    // 🌟 修复：生成小巧精致的卡片文本
+    // 🌟 修复：一键直接发送精美卡片！
     shareMemoryItem(key, type) {
         if (!window.PhoneAPI || !window.PhoneAPI.EchoVault) return;
         const data = window.PhoneAPI.EchoVault.getData();
@@ -219,7 +224,6 @@ export const MemoryUI = {
         if (!item) return;
         
         let content = item.content.replace(/---/g, ' ').trim();
-        // 截断文字，只留一小段
         if (content.length > 40) content = content.substring(0, 40) + '...';
 
         const text = `> ✨ **记忆回溯**\n> 📅 ${type === 'daily' ? key.split(' ')[0] : '永久锚点'} | 🏷️ ${item.tags || '无'}\n> \n> _"${content}"_`;
@@ -227,9 +231,9 @@ export const MemoryUI = {
         const input = document.getElementById('chat-input');
         if(input && window.PhoneEngine && window.PhoneEngine.sendChatMessage) {
             input.value = text;
-            window.PhoneEngine.sendChatMessage(); // 直接发送
+            window.PhoneEngine.sendChatMessage(); // 直接发出去！
             window.PhoneUI.closeApp();
-            if(typeof switchTab === 'function') switchTab(2); // 跳回聊天页
+            if(typeof switchTab === 'function') switchTab(2); 
         }
     },
 

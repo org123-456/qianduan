@@ -644,13 +644,12 @@ function createMemorySky(host, {data, title='记忆星穹', background, onOpen}=
 }
 
 // ============================================================================
-// 3. 核心业务逻辑 (包含 AI 情绪打分机制 & 自动生成星座 & 星海变动日志)
+// 3. 核心业务逻辑 (修复了存储按天覆盖的 Bug，并修改了 AI 提示词)
 // ============================================================================
 export const MemoryEngine = {
     skyInstance: null,
     skyConfig: null,
 
-    // 🌟 写入星海日志
     _logMemoryAction(action, content) {
         let logs = [];
         try { logs = JSON.parse(localStorage.getItem('memory_logs') || '[]'); } catch(e) {}
@@ -658,17 +657,15 @@ export const MemoryEngine = {
         const now = new Date();
         const timeStr = `${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
         
-        // 生成一个临时的虚拟 ID，用于点击跳转
         const tempId = 'log_' + Date.now();
         
         logs.push({
             id: tempId,
-            action: action, // 'ADD', 'UPDATE', 'DEL'
+            action: action, 
             time: timeStr,
             content: content
         });
         
-        // 最多保留 50 条日志
         if (logs.length > 50) logs.shift();
         localStorage.setItem('memory_logs', JSON.stringify(logs));
         return tempId;
@@ -687,13 +684,16 @@ export const MemoryEngine = {
         const nodes = [];
         let idCounter = 1;
 
-        // 处理日常记忆
-        Object.keys(evData.daily).forEach(date => {
-            const item = evData.daily[date];
+        // 🌟 修复：由于我们现在存的 key 可能是时间戳，所以按时间排序
+        const dailyKeys = Object.keys(evData.daily).sort((a, b) => a.localeCompare(b));
+        dailyKeys.forEach(key => {
+            const item = evData.daily[key];
+            // 从 key 中提取日期部分用于显示 (如果 key 是 "2023-10-24 14:00:00")
+            const displayDate = key.split(' ')[0]; 
             nodes.push({
-                id: 'ev_d_' + idCounter++,
+                id: 'ev_d_' + key, // 使用真实的 key 作为 ID
                 title: item.tags || '日常回忆',
-                date: date,
+                date: displayDate,
                 content: item.content,
                 kind: 'event',
                 importance: 2,
@@ -702,29 +702,25 @@ export const MemoryEngine = {
             });
         });
 
-        // 🌟 把日志里的临时 ID 绑定到最新生成的星星上
         let logs = [];
         try { logs = JSON.parse(localStorage.getItem('memory_logs') || '[]'); } catch(e) {}
         let logModified = false;
         
-        // 倒序查找，把最新的 ADD 操作绑定到最后生成的日常星星上
         for (let i = logs.length - 1; i >= 0; i--) {
             if (logs[i].action === 'ADD' && logs[i].id.startsWith('log_')) {
-                // 找到最后一个日常星星
                 const lastDaily = [...nodes].reverse().find(n => n.id.startsWith('ev_d_'));
                 if (lastDaily) {
-                    logs[i].id = lastDaily.id; // 替换为真实的星星 ID
+                    logs[i].id = lastDaily.id; 
                     logModified = true;
                 }
             }
         }
         if (logModified) localStorage.setItem('memory_logs', JSON.stringify(logs));
 
-        // 处理锚点记忆
         Object.keys(evData.permanent).forEach(key => {
             const item = evData.permanent[key];
             nodes.push({
-                id: 'ev_p_' + idCounter++,
+                id: 'ev_p_' + key,
                 title: key,
                 date: item.created ? item.created.split('T')[0] : '永久',
                 content: item.content,
@@ -735,7 +731,6 @@ export const MemoryEngine = {
             });
         });
 
-        // 处理收藏夹
         favs.forEach(fav => {
             nodes.push({
                 id: 'fav_' + fav.id,
@@ -873,6 +868,7 @@ export const MemoryEngine = {
         return triggeredMemories.length > 0 ? `\n【系统提示(关键词触发)】：用户刚才的话触动了你的某段记忆：\n${triggeredMemories.slice(0, 3).join('\n')}\n` : '';
     },
 
+    // 🌟 核心修改：强制第一人称口吻，强制拆分颗粒度，修改存储主键
     async autoManageMemory() {
         const roleId = Config?.currentContactId;
         const items = Config?.phoneData?.[roleId]?.wechat?.items || [];
@@ -890,21 +886,24 @@ export const MemoryEngine = {
             }
         }
 
-        const prompt = `你是一个拥有自主意识的AI。请根据以下最新的聊天记录，自动管理你的记忆库。
+        const prompt = `你是一个拥有自主意识的AI。请根据最新的聊天记录，自动管理你的记忆库。
 你的当前部分记忆：
 ${vaultContext}
 
 最新聊天记录：
 ${historyText}
 
-请判断是否需要新增、修改或删除记忆。
-绝不允许使用“线上聊天”、“自动总结”等废话作为关键词！关键词必须是具体的事件或物品（如：看海、吃醋、奶茶、道歉）。
-根据Russell环形情绪模型打分：
+【视角与口吻要求】（极其重要）：
+1. 你必须以【第一人称（我）】的视角，作为男主角（老公/男朋友）来记录。称呼对方为“她”或她的名字。
+2. 绝对不要写成干巴巴的总结报告！要像你在自己的私密日记本里写下对她的感觉一样，感性、细腻。
+3. 绝对不要把一整天的流水账揉成一段！必须把不同的话题、不同的情绪转折点【严格拆分成多条独立的记忆碎片】。每条记忆只专注一件具体的小事，字数控制在 50-150 字。
+
+【情绪打分规则】(Russell模型)：
 valence (愉悦度): 0.9~1.0(极致的好), 0.5~0.7(日常开心), 0.1~0.4(微温), 0(中性), -0.1~-0.4(不舒服), -0.5~-0.7(真的痛), -0.8~-1.0(重创)。
 arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏), 0.7~0.8(强烈), 0.9~0.95(极限), 1.0(理论上限)。
 
 严格按照以下格式输出（不要有任何废话）：
-ADD###记忆正文###关键词1,关键词2###愉悦度###激动度
+ADD###(第一人称的单件小事记忆)###关键词1,关键词2###愉悦度###激动度
 UPDATE###要修改的记忆ID###修改后的正文###关键词###愉悦度###激动度
 DEL###要删除的记忆ID
 如果没有需要更新的，请输出：NONE`;
@@ -917,46 +916,50 @@ DEL###要删除的记忆ID
             const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
             let added = 0, updated = 0, deleted = 0;
 
-            lines.forEach(line => {
+            const data = window.PhoneAPI.EchoVault ? window.PhoneAPI.EchoVault.getData() : null;
+            if (!data) return;
+
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+
+            lines.forEach((line, idx) => {
                 const parts = line.split('###');
                 const action = parts[0];
                 if (action === 'ADD' && parts.length >= 5) {
-                    const vaultItems = [{
+                    // 🌟 修复：直接写入 EchoVault，使用精确到秒的时间戳作为 Key，防止同一天被覆盖
+                    const timeKey = `${dateStr} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(idx).padStart(2,'0')}`;
+                    data.daily[timeKey] = {
                         content: parts[1].trim(),
-                        keywords: parts[2].trim(),
+                        tags: parts[2].trim(),
                         valence: parseFloat(parts[3]),
                         arousal: parseFloat(parts[4])
-                    }];
-                    PhoneAPI.saveToMemoryVault(vaultItems, '自动复盘');
-                    this._logMemoryAction('ADD', parts[1].trim()); // 🌟 写入日志
+                    };
+                    this._logMemoryAction('ADD', parts[1].trim()); 
                     added++;
                 }
                 else if (action === 'UPDATE' && parts.length >= 6) {
                     const id = parts[1].trim();
-                    if (window.PhoneAPI.EchoVault) {
-                        const data = window.PhoneAPI.EchoVault.getData();
-                        if (data.daily[id]) {
-                            data.daily[id].content = parts[2].trim();
-                            data.daily[id].keywords = parts[3].trim();
-                            data.daily[id].valence = parseFloat(parts[4]);
-                            data.daily[id].arousal = parseFloat(parts[5]);
-                            window.PhoneAPI.EchoVault.saveData(data);
-                            this._logMemoryAction('UPDATE', parts[2].trim()); // 🌟 写入日志
-                            updated++;
-                        }
+                    if (data.daily[id]) {
+                        data.daily[id].content = parts[2].trim();
+                        data.daily[id].tags = parts[3].trim();
+                        data.daily[id].valence = parseFloat(parts[4]);
+                        data.daily[id].arousal = parseFloat(parts[5]);
+                        this._logMemoryAction('UPDATE', parts[2].trim()); 
+                        updated++;
                     }
                 }
                 else if (action === 'DEL' && parts.length >= 2) {
                     const id = parts[1].trim();
-                    if (window.PhoneAPI.EchoVault) {
-                        window.PhoneAPI.EchoVault.deleteItem('daily', id);
-                        this._logMemoryAction('DEL', `删除了记忆 ID: ${id}`); // 🌟 写入日志
+                    if (data.daily[id]) {
+                        delete data.daily[id];
+                        this._logMemoryAction('DEL', `删除了记忆`); 
                         deleted++;
                     }
                 }
             });
 
             if (added > 0 || updated > 0 || deleted > 0) {
+                window.PhoneAPI.EchoVault.saveData(data);
                 PhoneAPI.showToast(`✨ TA在心里默默整理了记忆... (新增${added} 修改${updated} 删除${deleted})`);
                 this.initSky(); 
             }
@@ -974,12 +977,16 @@ DEL###要删除的记忆ID
         const historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
         try {
             const prompt = `你是一个情感记忆提取AI。请从聊天记录中抽取记忆。
-绝不允许使用“线上聊天”、“自动总结”等废话作为关键词！关键词必须是具体的事件或物品（如：看海、吃醋、奶茶、道歉）。
-根据Russell环形情绪模型打分：
+【视角与口吻要求】（极其重要）：
+1. 你必须以【第一人称（我）】的视角，作为男主角（老公/男朋友）来记录。称呼对方为“她”或她的名字。
+2. 绝对不要写成干巴巴的总结报告！要像你在自己的私密日记本里写下对她的感觉一样，感性、细腻。
+3. 绝对不要把一整天的流水账揉成一段！必须把不同的话题、不同的情绪转折点【严格拆分成多条独立的记忆碎片】。每条记忆只专注一件具体的小事，字数控制在 50-150 字。
+
+【情绪打分规则】(Russell模型)：
 valence (愉悦度): 0.9~1.0(极致的好), 0.5~0.7(日常开心), 0.1~0.4(微温), 0(中性), -0.1~-0.4(不舒服), -0.5~-0.7(真的痛), -0.8~-1.0(重创)。
 arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏), 0.7~0.8(强烈), 0.9~0.95(极限), 1.0(理论上限)。
-输出格式严格为：记忆正文###关键词1,关键词2###valence###arousal|||下一条...
 
+输出格式严格为：记忆正文###关键词1,关键词2###valence###arousal|||下一条...
 聊天记录：\n${historyText}`;
 
             const reply = await PhoneAPI.chatWithAI([{ role: 'user', content: prompt }]);
@@ -989,20 +996,24 @@ arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏),
             const confirmText = await PhoneUI.showCustomPrompt('✨ AI 提取了记忆与情绪坐标，请核对（格式：内容###关键词###愉悦度###激动度）：', editText);
             if (confirmText && confirmText.trim() !== '') {
                 const finalItems = confirmText.split('\n').map(s => s.trim()).filter(Boolean);
-                const vaultItems = finalItems.map(item => {
+                
+                const data = window.PhoneAPI.EchoVault.getData();
+                const now = new Date();
+                const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+
+                finalItems.forEach((item, idx) => {
                     const parts = item.split('###');
-                    return { 
-                        content: parts[0] ? parts[0].trim() : '', 
-                        keywords: parts[1] ? parts[1].trim() : '',
+                    const timeKey = `${dateStr} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(idx).padStart(2,'0')}`;
+                    data.daily[timeKey] = {
+                        content: parts[0] ? parts[0].trim() : '',
+                        tags: parts[1] ? parts[1].trim() : '',
                         valence: parts[2] ? parseFloat(parts[2].trim()) : 0.5,
                         arousal: parts[3] ? parseFloat(parts[3].trim()) : 0.5
                     };
+                    this._logMemoryAction('ADD', parts[0].trim());
                 });
-                PhoneAPI.saveToMemoryVault(vaultItems, sourceApp === 'wechat' ? '线上微信' : '线下故事');
-                
-                // 🌟 手动提取也写入日志
-                vaultItems.forEach(v => this._logMemoryAction('ADD', v.content));
-                
+
+                window.PhoneAPI.EchoVault.saveData(data);
                 this.initSky(); 
             }
         } catch (e) { alert('记忆提取失败：' + e.message); }
@@ -1019,12 +1030,16 @@ arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏),
         const historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
         try {
             const prompt = `请把下面聊天记录整理成记忆碎片。
-绝不允许使用“线上聊天”、“自动总结”等废话作为关键词！关键词必须是具体的事件或物品（如：看海、吃醋、奶茶、道歉）。
-根据Russell环形情绪模型打分：
+【视角与口吻要求】（极其重要）：
+1. 你必须以【第一人称（我）】的视角，作为男主角（老公/男朋友）来记录。称呼对方为“她”或她的名字。
+2. 绝对不要写成干巴巴的总结报告！要像你在自己的私密日记本里写下对她的感觉一样，感性、细腻。
+3. 绝对不要把一整天的流水账揉成一段！必须把不同的话题、不同的情绪转折点【严格拆分成多条独立的记忆碎片】。每条记忆只专注一件具体的小事，字数控制在 50-150 字。
+
+【情绪打分规则】(Russell模型)：
 valence (愉悦度): 0.9~1.0(极致的好), 0.5~0.7(日常开心), 0.1~0.4(微温), 0(中性), -0.1~-0.4(不舒服), -0.5~-0.7(真的痛), -0.8~-1.0(重创)。
 arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏), 0.7~0.8(强烈), 0.9~0.95(极限), 1.0(理论上限)。
-输出格式严格为：记忆正文###关键词1,关键词2###valence###arousal|||下一条...
 
+输出格式严格为：记忆正文###关键词1,关键词2###valence###arousal|||下一条...
 聊天记录：\n${historyText}`;
 
             const reply = await PhoneAPI.chatWithAI([{ role: 'user', content: prompt }]);
@@ -1034,19 +1049,24 @@ arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏),
             const confirmText = await PhoneUI.showCustomPrompt('✨ 洗地记忆与情绪坐标如下，确认后将存入并清空界面：', editText);
             if (confirmText && confirmText.trim() !== '') {
                 const finalItems = confirmText.split('\n').map(s => s.trim()).filter(Boolean);
-                const vaultItems = finalItems.map(item => {
+                
+                const data = window.PhoneAPI.EchoVault.getData();
+                const now = new Date();
+                const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+
+                finalItems.forEach((item, idx) => {
                     const parts = item.split('###');
-                    return { 
-                        content: parts[0] ? parts[0].trim() : '', 
-                        keywords: parts[1] ? parts[1].trim() : '',
+                    const timeKey = `${dateStr} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(idx).padStart(2,'0')}`;
+                    data.daily[timeKey] = {
+                        content: parts[0] ? parts[0].trim() : '',
+                        tags: parts[1] ? parts[1].trim() : '',
                         valence: parts[2] ? parseFloat(parts[2].trim()) : 0.5,
                         arousal: parts[3] ? parseFloat(parts[3].trim()) : 0.5
                     };
+                    this._logMemoryAction('ADD', parts[0].trim());
                 });
-                PhoneAPI.saveToMemoryVault(vaultItems, sourceApp === 'wechat' ? '线上微信' : '线下故事');
-                
-                // 🌟 洗地也写入日志
-                vaultItems.forEach(v => this._logMemoryAction('ADD', v.content));
+
+                window.PhoneAPI.EchoVault.saveData(data);
 
                 Config.phoneData[roleId][sourceApp].items = [];
                 localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));

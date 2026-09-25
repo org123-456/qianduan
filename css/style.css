@@ -260,10 +260,21 @@ input, textarea, select { background: var(--input-bg); border: 1px solid var(--b
 .chat-bubble:has(.chat-sticker) { background: transparent !important; box-shadow: none !important; padding: 0 !important; font-size: 0 !important; color: transparent !important; }
 .chat-sticker { max-width: 130px; border-radius: 8px; display: block; margin-top: 0 !important; }
 
-/* 🌟 分享的记忆回溯卡片样式 */
-.markdown-body blockquote { margin: 5px 0; padding: 10px 15px; background: rgba(255,255,255,0.4); border-left: 4px solid var(--primary-color); border-radius: 8px; font-size: 13px; color: var(--text-main); line-height: 1.6; }
+/* 🌟 分享的记忆回溯卡片样式 (小巧精致版) */
+.markdown-body blockquote { 
+    margin: 5px 0; 
+    padding: 10px 12px; 
+    background: rgba(255,255,255,0.4); 
+    border-left: 4px solid var(--primary-color); 
+    border-radius: 8px; 
+    font-size: 13px; 
+    color: var(--text-main); 
+    line-height: 1.5; 
+    max-width: 240px; /* 限制宽度，像微信转账卡片 */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
 [data-theme="dark"] .markdown-body blockquote { background: rgba(0,0,0,0.2); }
-.chat-msg.right .markdown-body blockquote { background: rgba(0,0,0,0.1); border-left-color: #fff; color: #fff; }
+.chat-msg.right .markdown-body blockquote { background: rgba(0,0,0,0.15); border-left-color: #fff; color: #fff; }
 
 .markdown-body p { margin: 0; padding: 0; }
 .markdown-body em { color: var(--primary-color); font-style: italic; background: rgba(0,0,0, 0.05); padding: 0 4px; border-radius: 4px; }
@@ -322,7 +333,6 @@ input, textarea, select { background: var(--input-bg); border: 1px solid var(--b
 .vault-tab { flex: 1; text-align: center; padding: 10px; font-size: 13px; font-weight: bold; color: var(--text-sub); border-radius: 12px; cursor: pointer; transition: 0.3s; }
 .vault-tab.active { background: var(--card-bg); color: var(--primary-color); box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
 
-/* 🌟 记忆卡片样式优化，按钮移到底部 */
 .ev-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 15px; margin-bottom: 15px; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; flex-direction: column;}
 .ev-card:active { transform: scale(0.98); }
 .ev-card-header { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-sub); margin-bottom: 10px; border-bottom: 1px dashed var(--border-color); padding-bottom: 5px; }

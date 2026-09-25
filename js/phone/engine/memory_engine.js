@@ -644,11 +644,35 @@ function createMemorySky(host, {data, title='记忆星穹', background, onOpen}=
 }
 
 // ============================================================================
-// 3. 核心业务逻辑 (严禁 AI 偷懒)
+// 3. 核心业务逻辑 (包含 AI 情绪打分机制 & 自动生成星座 & 星海变动日志)
 // ============================================================================
 export const MemoryEngine = {
     skyInstance: null,
     skyConfig: null,
+
+    // 🌟 写入星海日志
+    _logMemoryAction(action, content) {
+        let logs = [];
+        try { logs = JSON.parse(localStorage.getItem('memory_logs') || '[]'); } catch(e) {}
+        
+        const now = new Date();
+        const timeStr = `${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+        
+        // 生成一个临时的虚拟 ID，用于点击跳转
+        const tempId = 'log_' + Date.now();
+        
+        logs.push({
+            id: tempId,
+            action: action, // 'ADD', 'UPDATE', 'DEL'
+            time: timeStr,
+            content: content
+        });
+        
+        // 最多保留 50 条日志
+        if (logs.length > 50) logs.shift();
+        localStorage.setItem('memory_logs', JSON.stringify(logs));
+        return tempId;
+    },
 
     _buildSkyData() {
         let evData = { daily: {}, permanent: {} };
@@ -663,6 +687,7 @@ export const MemoryEngine = {
         const nodes = [];
         let idCounter = 1;
 
+        // 处理日常记忆
         Object.keys(evData.daily).forEach(date => {
             const item = evData.daily[date];
             nodes.push({
@@ -677,6 +702,25 @@ export const MemoryEngine = {
             });
         });
 
+        // 🌟 把日志里的临时 ID 绑定到最新生成的星星上
+        let logs = [];
+        try { logs = JSON.parse(localStorage.getItem('memory_logs') || '[]'); } catch(e) {}
+        let logModified = false;
+        
+        // 倒序查找，把最新的 ADD 操作绑定到最后生成的日常星星上
+        for (let i = logs.length - 1; i >= 0; i--) {
+            if (logs[i].action === 'ADD' && logs[i].id.startsWith('log_')) {
+                // 找到最后一个日常星星
+                const lastDaily = [...nodes].reverse().find(n => n.id.startsWith('ev_d_'));
+                if (lastDaily) {
+                    logs[i].id = lastDaily.id; // 替换为真实的星星 ID
+                    logModified = true;
+                }
+            }
+        }
+        if (logModified) localStorage.setItem('memory_logs', JSON.stringify(logs));
+
+        // 处理锚点记忆
         Object.keys(evData.permanent).forEach(key => {
             const item = evData.permanent[key];
             nodes.push({
@@ -691,6 +735,7 @@ export const MemoryEngine = {
             });
         });
 
+        // 处理收藏夹
         favs.forEach(fav => {
             nodes.push({
                 id: 'fav_' + fav.id,
@@ -883,6 +928,7 @@ DEL###要删除的记忆ID
                         arousal: parseFloat(parts[4])
                     }];
                     PhoneAPI.saveToMemoryVault(vaultItems, '自动复盘');
+                    this._logMemoryAction('ADD', parts[1].trim()); // 🌟 写入日志
                     added++;
                 }
                 else if (action === 'UPDATE' && parts.length >= 6) {
@@ -895,6 +941,7 @@ DEL###要删除的记忆ID
                             data.daily[id].valence = parseFloat(parts[4]);
                             data.daily[id].arousal = parseFloat(parts[5]);
                             window.PhoneAPI.EchoVault.saveData(data);
+                            this._logMemoryAction('UPDATE', parts[2].trim()); // 🌟 写入日志
                             updated++;
                         }
                     }
@@ -903,6 +950,7 @@ DEL###要删除的记忆ID
                     const id = parts[1].trim();
                     if (window.PhoneAPI.EchoVault) {
                         window.PhoneAPI.EchoVault.deleteItem('daily', id);
+                        this._logMemoryAction('DEL', `删除了记忆 ID: ${id}`); // 🌟 写入日志
                         deleted++;
                     }
                 }
@@ -951,6 +999,10 @@ arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏),
                     };
                 });
                 PhoneAPI.saveToMemoryVault(vaultItems, sourceApp === 'wechat' ? '线上微信' : '线下故事');
+                
+                // 🌟 手动提取也写入日志
+                vaultItems.forEach(v => this._logMemoryAction('ADD', v.content));
+                
                 this.initSky(); 
             }
         } catch (e) { alert('记忆提取失败：' + e.message); }
@@ -992,6 +1044,10 @@ arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏),
                     };
                 });
                 PhoneAPI.saveToMemoryVault(vaultItems, sourceApp === 'wechat' ? '线上微信' : '线下故事');
+                
+                // 🌟 洗地也写入日志
+                vaultItems.forEach(v => this._logMemoryAction('ADD', v.content));
+
                 Config.phoneData[roleId][sourceApp].items = [];
                 localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
                 if (sourceApp === 'novel') PhoneUI.renderNovelContent?.();

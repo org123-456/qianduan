@@ -1,5 +1,5 @@
 export const MomentsUI = {
-    tempMomentImage: null, // 临时存储准备发送的图片 base64
+    tempMomentImage: null, 
 
     switchMomentsTab(tab) {
         this.currentMomentsTab = tab;
@@ -15,7 +15,6 @@ export const MomentsUI = {
         const now = Date.now();
         let hasUpdates = false;
 
-        // 找到第一条需要回复的动态（每次只处理一条，防止并发卡死）
         const targetMoment = moments.find(m => 
             m.author === 'me' && 
             m.pendingTaReply && 
@@ -25,7 +24,7 @@ export const MomentsUI = {
 
         if (!targetMoment) return;
 
-        console.log("朋友圈：发现到期动态，开始静默生成回复...", targetMoment);
+        console.log("朋友圈：发现到期动态，开始静默生成回复...");
         
         try {
             const persona = localStorage.getItem('char_persona') || '';
@@ -52,11 +51,9 @@ export const MomentsUI = {
 
             const reply = await window.PhoneAPI.chatWithAI(messages);
             
-            // 解析 JSON
             let cleanJson = reply.replace(/```json/g, '').replace(/```/g, '').trim();
             const result = JSON.parse(cleanJson);
 
-            // 更新动态数据
             if (result.like) {
                 targetMoment.likedByTa = true;
             }
@@ -73,17 +70,45 @@ export const MomentsUI = {
 
         } catch (error) {
             console.error("朋友圈静默回复失败:", error);
-            // 如果失败，把时间往后推 2 分钟再试
             targetMoment.pendingTaReply.dueAt = now + 2 * 60 * 1000; 
         }
 
         if (hasUpdates) {
             localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
-            // 如果用户还在看朋友圈，刷新界面
             if (this.currentMomentsTab === 'feed') {
                 this.renderMoments();
             }
         }
+    },
+
+    // 🌟 换封面图
+    triggerCoverUpload() {
+        let fileInput = document.getElementById('moment-cover-input');
+        if (!fileInput) {
+            fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.id = 'moment-cover-input';
+            fileInput.accept = 'image/*';
+            fileInput.style.display = 'none';
+            document.body.appendChild(fileInput);
+        }
+        
+        fileInput.onchange = (e) => {
+            const f = e.target.files && e.target.files[0];
+            fileInput.value = '';
+            if (!f) return;
+            
+            if (window.PhoneAPI) window.PhoneAPI.showToast('封面上传中...');
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const base64Str = event.target.result;
+                localStorage.setItem('bg_moments_cover', base64Str);
+                document.documentElement.style.setProperty('--bg-image-moments-cover', `url('${base64Str}')`);
+                if (window.PhoneAPI) window.PhoneAPI.showToast('✨ 封面更换成功！');
+            };
+            reader.readAsDataURL(f);
+        };
+        fileInput.click();
     },
 
     renderMoments() {
@@ -102,7 +127,6 @@ export const MomentsUI = {
         let bottomHtml = '';
         
         if (currentTab === 'feed') {
-            // 🌟 每次渲染 Feed 时，检查是否有需要回复的动态
             this.checkPendingReplies();
 
             const roleId = window.Config?.currentContactId || 'role_001';
@@ -123,7 +147,7 @@ export const MomentsUI = {
                     
                     let imgHtml = '';
                     if (m.image) {
-                        imgHtml = `<img class="moment-img" src="${m.image}" onclick="window.PhoneAPI.showToast('图片查看功能开发中')">`;
+                        imgHtml = `<img class="moment-img" src="${m.image}">`;
                     }
 
                     let commentsHtml = '';
@@ -147,7 +171,6 @@ export const MomentsUI = {
                         commentsHtml += `</div>`;
                     }
 
-                    // 如果还没到回复时间，显示一个仅自己可见的提示
                     let pendingHint = '';
                     if (isMe && m.pendingTaReply && m.pendingTaReply.status === 'pending') {
                         pendingHint = `<span style="color: var(--primary-color); font-size: 10px; margin-left: 10px;">(TA 还没看到这条动态...)</span>`;
@@ -189,7 +212,10 @@ export const MomentsUI = {
         }
 
         contentEl.innerHTML = `
-            <div class="moments-cover long-pressable" data-img="bg_moments_cover">
+            <div class="moments-cover" style="position: relative;">
+                <div onclick="window.PhoneUI.triggerCoverUpload()" style="position: absolute; top: 110px; right: 20px; background: rgba(0,0,0,0.4); color: white; padding: 6px 12px; border-radius: 12px; font-size: 12px; cursor: pointer; backdrop-filter: blur(5px); z-index: 10;">
+                    <i class="ph-fill ph-camera"></i> 换封面
+                </div>
                 <div class="moments-cover-info">
                     <div class="moments-avatar-wrap">
                         <img src="${myAvatar}">
@@ -253,8 +279,6 @@ export const MomentsUI = {
                 ${bottomHtml}
             </div>
         `;
-        
-        if (this.bindLongPresses) this.bindLongPresses();
     },
 
     openPostModal() {
@@ -330,7 +354,7 @@ export const MomentsUI = {
         const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
         const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-        // 🌟 惰性生成种子：随机 1~3 分钟后 AI 才会回复
+        // 随机 1~3 分钟后 AI 回复
         const delayMinutes = Math.floor(Math.random() * 3) + 1; 
 
         const newMoment = {
@@ -365,7 +389,6 @@ export const MomentsUI = {
             readerEl.classList.add('open');
             if (this.initReaderSwipe) this.initReaderSwipe();
             if (this.bindReaderSelection) this.bindReaderSelection();
-            
             if (this.showBookshelf) this.showBookshelf();
             if (window.PhoneEngine && window.PhoneEngine.renderBookshelf) {
                 window.PhoneEngine.renderBookshelf();

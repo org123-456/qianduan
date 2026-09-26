@@ -176,14 +176,15 @@
                             <div class="icon"><i class="ph-fill ph-calendar-check" style="color: #60a5fa;"></i></div>
                             <div class="name">高中课表</div>
                         </div>
+                        <!-- 🌟 新增：伴学空间图标 -->
+                        <div class="app-icon" onclick="window.PhoneUI.openApp('study', '伴学空间')">
+                            <div class="icon"><i class="ph-fill ph-student" style="color: #f4a261;"></i></div>
+                            <div class="name">伴学空间</div>
+                        </div>
                     </div>
                 </div>
             </div>
-            
-            <div class="home-pagination" id="home-dots">
-                <div class="dot active"></div>
-                <div class="dot"></div>
-            </div>
+            <div class="home-pagination" id="home-dots"><div class="dot active"></div><div class="dot"></div></div>
         </div>
 
         <!-- 记忆海 -->
@@ -282,7 +283,6 @@
             <div id="moments-content-area"></div>
             <div class="fab-post" onclick="window.PhoneUI.openPostModal()"><i class="ph ph-camera"></i></div>
         </div>
-
     </div>
 
     <!-- 底部导航 -->
@@ -380,7 +380,7 @@
     </div>
 </div>
 
-<!-- 🌟 朋友圈发动态弹窗 (修复事件绑定) -->
+<!-- 🌟 朋友圈发动态弹窗 -->
 <div id="post-moment-bg" class="action-sheet-bg" onclick="window.PhoneUI.closePostModal()"></div>
 <div id="post-moment-modal" class="thought-modal" style="padding: 20px; z-index: 9001;">
     <div class="thought-header"><i class="ph-fill ph-camera"></i> 发送动态</div>

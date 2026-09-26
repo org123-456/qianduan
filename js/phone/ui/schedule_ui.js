@@ -1,6 +1,6 @@
 export const ScheduleUI = {
     currentScheduleDay: 1,
-    editingIndex: -1, // -1 表示新增，>=0 表示编辑
+    editingIndex: -1,
 
     getDefaultSchedule() {
         return {
@@ -46,7 +46,7 @@ export const ScheduleUI = {
         const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
         if (todayClasses.length === 0) {
-            listEl.innerHTML = '<div class="ev-empty">今天没有课哦，好好休息吧~</div>';
+            listEl.innerHTML = '<div class="ev-empty" style="margin-top: 60px; font-size: 15px; color: var(--text-sub); text-align: center; letter-spacing: 1px;">今天没有课哦，好好休息吧~</div>';
             return;
         }
 
@@ -108,7 +108,6 @@ export const ScheduleUI = {
         }
     },
 
-    // 打开编辑/新增弹窗
     openScheduleModal(index = -1) {
         this.editingIndex = index;
         const bg = document.getElementById('schedule-modal-bg');
@@ -122,21 +121,19 @@ export const ScheduleUI = {
         if (!bg || !modal) return;
 
         if (index >= 0) {
-            // 编辑模式
             const data = this.getScheduleData();
             const c = data[this.currentScheduleDay][index];
             titleEl.innerHTML = '<i class="ph-fill ph-pencil-simple"></i> 编辑课程';
             inName.value = c.name;
             inStart.value = c.start;
             inEnd.value = c.end;
-            btnDel.style.display = 'block'; // 显示删除按钮
+            btnDel.style.display = 'block'; 
         } else {
-            // 新增模式
             titleEl.innerHTML = '<i class="ph-fill ph-plus-circle"></i> 添加课程';
             inName.value = '';
             inStart.value = '08:00';
             inEnd.value = '08:45';
-            btnDel.style.display = 'none'; // 隐藏删除按钮
+            btnDel.style.display = 'none'; 
         }
 
         bg.classList.add('show');
@@ -168,11 +165,9 @@ export const ScheduleUI = {
         if (!data[this.currentScheduleDay]) data[this.currentScheduleDay] = [];
 
         if (this.editingIndex >= 0) {
-            // 更新
             data[this.currentScheduleDay][this.editingIndex] = { name, start, end };
             if (window.PhoneAPI) window.PhoneAPI.showToast("修改已保存");
         } else {
-            // 新增
             data[this.currentScheduleDay].push({ name, start, end });
             if (window.PhoneAPI) window.PhoneAPI.showToast("添加成功");
         }

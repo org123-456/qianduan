@@ -3,7 +3,8 @@ export const MomentsUI = {
 
     switchMomentsTab(tab) {
         this.currentMomentsTab = tab;
-        this.renderMoments();
+        if (window.PhoneUI) window.PhoneUI.renderMoments();
+        else this.renderMoments();
     },
 
     // 🌟 1. 点赞功能
@@ -15,12 +16,12 @@ export const MomentsUI = {
             moment.likedByMe = !moment.likedByMe;
             localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
             if (window.PhoneUI) window.PhoneUI.renderMoments();
+            else this.renderMoments();
         }
     },
 
     // 🌟 2. 评论功能
     async addComment(momentId) {
-        // 兼容性处理：优先使用自定义弹窗，如果没有则使用系统原生弹窗
         let text = '';
         if (window.PhoneUI && window.PhoneUI.showCustomPrompt) {
             text = await window.PhoneUI.showCustomPrompt('请输入评论内容：');
@@ -44,6 +45,7 @@ export const MomentsUI = {
             });
             localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
             if (window.PhoneUI) window.PhoneUI.renderMoments();
+            else this.renderMoments();
             if (window.PhoneAPI) window.PhoneAPI.showToast('评论成功！');
         }
     },
@@ -58,6 +60,7 @@ export const MomentsUI = {
         
         localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
         if (window.PhoneUI) window.PhoneUI.renderMoments();
+        else this.renderMoments();
         if (window.PhoneAPI) window.PhoneAPI.showToast('动态已删除');
     },
 
@@ -133,6 +136,7 @@ export const MomentsUI = {
             localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
             if (this.currentMomentsTab === 'feed') {
                 if (window.PhoneUI) window.PhoneUI.renderMoments();
+                else this.renderMoments();
             }
         }
     },
@@ -167,10 +171,8 @@ export const MomentsUI = {
                 const sortedMoments = [...moments].sort((a, b) => b.timestamp - a.timestamp);
                 
                 sortedMoments.forEach(m => {
-                    // 🌟 核心修复：给没有 ID 的老动态强行发一个身份证，保证点赞评论能生效！
-                    if (!m.id) {
-                        m.id = 'm_' + Math.random().toString(36).substr(2, 9);
-                    }
+                    // 补齐旧数据的 ID
+                    if (!m.id) m.id = 'm_' + Math.random().toString(36).substr(2, 9);
 
                     const isMe = m.author === 'me';
                     const avatar = isMe ? myAvatar : taAvatar;
@@ -243,7 +245,6 @@ export const MomentsUI = {
             bottomHtml += '</div>';
         }
 
-        // 🌟 恢复了纯净的封面，去掉了丑陋的换封面按钮
         contentEl.innerHTML = `
             <div class="moments-cover long-pressable" data-img="bg_moments_cover">
                 <div class="moments-cover-info">
@@ -263,8 +264,8 @@ export const MomentsUI = {
             <div class="moments-menu-bar">
                 <div class="moments-menu-item ${currentTab === 'feed' ? 'active' : ''}" onclick="window.PhoneUI.switchMomentsTab('feed')"><i class="${currentTab === 'feed' ? 'ph-fill' : 'ph'} ph-camera"></i> 朋友圈动态</div>
                 <div class="moments-menu-item ${currentTab === 'favorites' ? 'active' : ''}" onclick="window.PhoneUI.switchMomentsTab('favorites')"><i class="${currentTab === 'favorites' ? 'ph-fill' : 'ph'} ph-star"></i> 星海收藏夹</div>
-                <div class="moments-menu-item" onclick="window.PhoneUI.openReader()"><i class="ph-fill ph-book-open-text"></i> 共读时光</div>
-                <div class="moments-menu-item" onclick="window.PhoneUI.openApp('diary', '我们的日记')"><i class="ph-fill ph-book-bookmark"></i> 我们的日记</div>
+                <div class="moments-menu-item" onclick="if(window.PhoneUI) window.PhoneUI.openReader()"><i class="ph-fill ph-book-open-text"></i> 共读时光</div>
+                <div class="moments-menu-item" onclick="if(window.PhoneUI) window.PhoneUI.openApp('diary', '我们的日记')"><i class="ph-fill ph-book-bookmark"></i> 我们的日记</div>
             </div>
 
             <div style="padding-bottom: 80px;">
@@ -272,7 +273,6 @@ export const MomentsUI = {
             </div>
         `;
 
-        // 重新绑定长按事件（长按封面换图）
         if (window.PhoneUI && window.PhoneUI.bindLongPresses) {
             window.PhoneUI.bindLongPresses();
         }
@@ -382,21 +382,9 @@ export const MomentsUI = {
 
         this.closePostModal();
         if (window.PhoneUI) window.PhoneUI.renderMoments();
+        else this.renderMoments();
         
         if (window.PhoneAPI) window.PhoneAPI.showToast(`✅ 动态已发送！(TA 大概会在 ${delayMinutes} 分钟后看到)`);
-    },
-
-    openReader() {
-        const readerEl = document.getElementById('app-reader');
-        if (readerEl) {
-            readerEl.classList.add('open');
-            if (this.initReaderSwipe) this.initReaderSwipe();
-            if (this.bindReaderSelection) this.bindReaderSelection();
-            if (this.showBookshelf) this.showBookshelf();
-            if (window.PhoneEngine && window.PhoneEngine.renderBookshelf) {
-                window.PhoneEngine.renderBookshelf();
-            }
-        }
     },
 
     escapeHtml(str) {

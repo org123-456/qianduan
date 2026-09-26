@@ -108,25 +108,6 @@ export const MomentsUI = {
         }
     },
 
-    // 🌟 打开全屏阅读器（跳过书架视图）
-    openReaderFullscreen(bookId) {
-        const readerEl = document.getElementById('app-reader');
-        if (readerEl) {
-            readerEl.classList.add('open');
-            if (window.PhoneUI && window.PhoneUI.initReaderSwipe) window.PhoneUI.initReaderSwipe();
-            if (window.PhoneUI && window.PhoneUI.bindReaderSelection) window.PhoneUI.bindReaderSelection();
-            
-            const shelf = document.getElementById('reader-bookshelf-view');
-            if (shelf) shelf.style.display = 'none';
-            
-            if (bookId === 'notebook') {
-                if (window.PhoneEngine && window.PhoneEngine.openNotebook) window.PhoneEngine.openNotebook();
-            } else {
-                if (window.PhoneEngine && window.PhoneEngine.openBook) window.PhoneEngine.openBook(bookId);
-            }
-        }
-    },
-
     renderMoments() {
         const contentEl = document.getElementById('moments-content-area');
         if (!contentEl) return;
@@ -204,22 +185,7 @@ export const MomentsUI = {
             }
             bottomHtml += '</div>';
         } else if (currentTab === 'reader') {
-            // 🌟 书架平铺渲染逻辑
-            const books = JSON.parse(localStorage.getItem('reader_books') || '[]');
-            let booksHtml = '';
-            books.forEach(book => {
-                booksHtml += `
-                    <div class="book-wrap" onclick="window.PhoneUI.openReaderFullscreen('${book.id}')">
-                        <div class="book-cover-3d" style="background: linear-gradient(135deg, ${book.color1 || '#8bc6ff'}, ${book.color2 || '#4f81bd'});">
-                            <div class="book-cover-title">${this.escapeHtml(book.name)}</div>
-                            <div class="book-delete-btn" onclick="event.stopPropagation(); window.PhoneEngine.deleteBook('${book.id}'); setTimeout(()=>window.PhoneUI.renderMoments(), 500);"><i class="ph ph-x"></i></div>
-                        </div>
-                        <div class="book-title-ui">${this.escapeHtml(book.name)}</div>
-                        <div class="book-progress-ui">已读 ${book.progress || 0} 页</div>
-                    </div>
-                `;
-            });
-
+            // 🌟 核心修复：把书架容器交还给底层引擎渲染，找回所有缓存！
             bottomHtml = `
                 <div style="padding: 15px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -229,15 +195,8 @@ export const MomentsUI = {
                         </label>
                         <input type="file" id="book-upload-inline" accept=".txt" style="display: none;" onchange="if(window.PhoneEngine) window.PhoneEngine.importBook(event); setTimeout(()=>window.PhoneUI.renderMoments(), 1000);">
                     </div>
-                    <div class="bookshelf-grid">
-                        <div class="book-wrap" onclick="window.PhoneUI.openReaderFullscreen('notebook')">
-                            <div class="book-cover-3d notebook-special">
-                                <i class="ph-fill ph-bookmarks" style="font-size: 24px; margin-bottom: 8px;"></i>
-                                我的摘录本
-                            </div>
-                            <div class="book-title-ui" style="color: var(--primary-color);">高光与吐槽</div>
-                        </div>
-                        ${booksHtml}
+                    <div id="bookshelf-list" class="bookshelf-grid">
+                        <!-- 底层引擎会自动把缓存的书画在这里 -->
                     </div>
                 </div>
             `;
@@ -270,6 +229,13 @@ export const MomentsUI = {
                 ${bottomHtml}
             </div>
         `;
+
+        // 🌟 如果是书架 Tab，呼叫底层引擎渲染书籍
+        if (currentTab === 'reader' && window.PhoneEngine && window.PhoneEngine.renderBookshelf) {
+            setTimeout(() => {
+                window.PhoneEngine.renderBookshelf();
+            }, 50);
+        }
 
         if (window.PhoneUI && window.PhoneUI.bindLongPresses) window.PhoneUI.bindLongPresses();
     },

@@ -4,7 +4,7 @@ import { DiaryUI } from './ui/diary_ui.js';
 import { MomentsUI } from './ui/moments_ui.js';
 import { ScheduleUI } from './ui/schedule_ui.js';
 
-// 🌟 带有文本兜底的终极语音通话模块
+// 🌟 内置带文本兜底的语音通话模块
 const CallUI = {
     isCalling: false,
     recognition: null,
@@ -26,18 +26,12 @@ const CallUI = {
 
             this.recognition.onresult = (event) => {
                 const text = event.results[0][0].transcript;
-                if (text.trim()) {
-                    this.handleUserVoiceInput(text);
-                }
+                if (text.trim()) this.handleUserVoiceInput(text);
             };
 
             this.recognition.onerror = (event) => {
-                console.error("语音识别错误:", event.error);
-                if (event.error === 'not-allowed') {
-                    this.updateCallStatus('麦克风被拒，请直接打字');
-                } else if (event.error !== 'no-speech') {
-                    this.updateCallStatus('语音引擎无响应，请直接打字');
-                }
+                if (event.error === 'not-allowed') this.updateCallStatus('麦克风被拒，请直接打字');
+                else if (event.error !== 'no-speech') this.updateCallStatus('语音引擎无响应，请直接打字');
                 const wave = document.getElementById('call-avatar-wave');
                 if (wave) wave.style.opacity = '0';
             };
@@ -45,7 +39,6 @@ const CallUI = {
             this.recognition.onend = () => {
                 const wave = document.getElementById('call-avatar-wave');
                 if (wave) wave.style.opacity = '0';
-                
                 if (this.isCalling && !this.isAiSpeaking) {
                     setTimeout(() => {
                         if (this.isCalling && !this.isAiSpeaking) {
@@ -54,21 +47,16 @@ const CallUI = {
                     }, 1000);
                 }
             };
-        } else {
-            console.warn("当前浏览器不支持原生语音识别");
         }
     },
 
     openCallScreen() {
         if (window.PhoneUI) window.PhoneUI.closeChatMenu();
-        
         let screen = document.getElementById('call-screen');
         if (!screen) {
             screen = document.createElement('div');
             screen.id = 'call-screen';
             screen.style.cssText = 'position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 60px 20px 30px 20px; opacity: 0; visibility: hidden; transition: 0.3s; overflow: hidden; pointer-events: none;';
-            
-            // 🌟 核心修复：底部加入文本输入框兜底方案
             screen.innerHTML = `
                 <div id="call-bg-blur" style="position: absolute; inset: -20px; background-size: cover; background-position: center; filter: blur(30px) brightness(0.4); z-index: -1;"></div>
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; margin-top: 20px;">
@@ -80,25 +68,11 @@ const CallUI = {
                     <div id="call-status" style="font-size: 14px; color: rgba(255,255,255,0.6);">正在连接...</div>
                 </div>
                 <div id="call-subtitles" style="flex: 1; width: 100%; margin-top: 30px; margin-bottom: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; padding: 0 5px; scroll-behavior: smooth;"></div>
-                
                 <div style="display: flex; width: 100%; gap: 10px; align-items: center; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 24px; backdrop-filter: blur(10px);">
                     <input type="text" id="call-text-input" placeholder="语音没反应？在此打字..." style="flex: 1; padding: 10px 15px; border-radius: 18px; border: none; background: rgba(255,255,255,0.15); color: #fff; outline: none; font-size: 14px;" onkeydown="if(event.key==='Enter') window.PhoneUI.sendCallText()">
-                    <div onclick="window.PhoneUI.sendCallText()" style="width: 40px; height: 40px; border-radius: 50%; background: var(--primary-color); color: #fff; display: flex; justify-content: center; align-items: center; font-size: 18px; cursor: pointer; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
-                        <i class="ph-fill ph-paper-plane-right"></i>
-                    </div>
-                    <div onclick="window.PhoneUI.endCall()" style="width: 40px; height: 40px; border-radius: 50%; background: #ff4b4b; color: #fff; display: flex; justify-content: center; align-items: center; font-size: 22px; cursor: pointer; flex-shrink: 0; box-shadow: 0 4px 10px rgba(255,75,75,0.3);">
-                        <i class="ph-fill ph-phone-disconnect"></i>
-                    </div>
+                    <div onclick="window.PhoneUI.sendCallText()" style="width: 40px; height: 40px; border-radius: 50%; background: var(--primary-color); color: #fff; display: flex; justify-content: center; align-items: center; font-size: 18px; cursor: pointer; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.2);"><i class="ph-fill ph-paper-plane-right"></i></div>
+                    <div onclick="window.PhoneUI.endCall()" style="width: 40px; height: 40px; border-radius: 50%; background: #ff4b4b; color: #fff; display: flex; justify-content: center; align-items: center; font-size: 22px; cursor: pointer; flex-shrink: 0; box-shadow: 0 4px 10px rgba(255,75,75,0.3);"><i class="ph-fill ph-phone-disconnect"></i></div>
                 </div>
-                <style>
-                    #call-avatar-wave.active { animation: callPulse 1.5s infinite; }
-                    @keyframes callPulse { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(1.5); opacity: 0; } }
-                    .call-subtitle-item { padding: 10px 15px; border-radius: 12px; font-size: 15px; line-height: 1.5; max-width: 85%; word-break: break-word; animation: fadeIn 0.3s ease; }
-                    .call-subtitle-item.me { background: rgba(255,255,255,0.15); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
-                    .call-subtitle-item.ta { background: rgba(255,255,255,0.9); color: #000; align-self: flex-start; border-bottom-left-radius: 4px; }
-                    #call-subtitles::-webkit-scrollbar { display: none; }
-                    #call-text-input::placeholder { color: rgba(255,255,255,0.5); }
-                </style>
             `;
             document.body.appendChild(screen);
         }
@@ -120,19 +94,13 @@ const CallUI = {
 
         this.isCalling = true;
         this.isAiSpeaking = false;
-        
         this.updateCallStatus('正在连接...');
         
         setTimeout(() => {
             if (!this.isCalling) return;
             this.updateCallStatus('已接通');
-            
             if (this.recognition) {
-                try { 
-                    this.recognition.start(); 
-                } catch(e) {
-                    console.log("麦克风已在运行中");
-                }
+                try { this.recognition.start(); } catch(e){}
             } else {
                 this.updateCallStatus('浏览器不支持语音，请直接打字');
             }
@@ -148,12 +116,8 @@ const CallUI = {
             screen.style.visibility = 'hidden';
             screen.style.pointerEvents = 'none';
         }
-        
-        if (this.recognition) {
-            try { this.recognition.stop(); } catch(e){}
-        }
+        if (this.recognition) { try { this.recognition.stop(); } catch(e){} }
         window.speechSynthesis.cancel(); 
-        
         if (window.PhoneAPI) window.PhoneAPI.showToast("通话已结束");
     },
 
@@ -165,9 +129,8 @@ const CallUI = {
     appendSubtitle(role, text) {
         const container = document.getElementById('call-subtitles');
         if (!container) return;
-        
         const div = document.createElement('div');
-        div.className = `call-subtitle-item ${role === '我' ? 'me' : 'ta'}`;
+        div.style.cssText = `padding: 10px 15px; border-radius: 12px; font-size: 15px; line-height: 1.5; max-width: 85%; word-break: break-word; animation: fadeIn 0.3s ease; ${role === '我' ? 'background: rgba(255,255,255,0.15); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px;' : 'background: rgba(255,255,255,0.9); color: #000; align-self: flex-start; border-bottom-left-radius: 4px;'}`;
         div.innerText = text;
         container.appendChild(div);
         container.scrollTop = container.scrollHeight;
@@ -183,12 +146,11 @@ const CallUI = {
 
     async handleUserVoiceInput(text) {
         if (!this.isCalling) return;
-        
         this.isAiSpeaking = true;
         this.appendSubtitle('我', text);
         this.updateCallStatus('TA 正在听...');
         
-        const roleId = window.Config?.currentContactId;
+        const roleId = window.Config?.currentContactId || 'role_001';
         if (!window.Config.phoneData[roleId]) window.Config.phoneData[roleId] = {};
         if (!window.Config.phoneData[roleId].wechat) window.Config.phoneData[roleId].wechat = { items: [] };
 
@@ -204,15 +166,12 @@ const CallUI = {
         try {
             const systemPrompt = localStorage.getItem('system_prompt') || '';
             const charPersona = localStorage.getItem('char_persona') || '';
-            
             let stablePrompt = `【系统状态】：你现在正在和用户打“语音电话”。\n【要求】：请保持你的人设，用自然、口语化的简短语言回复，就像真人在通电话一样，绝对不要发表情包和动作描写。\n\n`;
             if (systemPrompt) stablePrompt += `【系统核心指令】：\n${systemPrompt}\n\n`;
             if (charPersona) stablePrompt += `【角色设定】：\n${charPersona}\n\n`;
 
             let messages = [{ role: 'system', content: stablePrompt }];
-            
-            const recentItems = chatItems.slice(-20);
-            recentItems.forEach((item) => {
+            chatItems.slice(-20).forEach((item) => {
                 if (item.sender !== 'typing') {
                     messages.push({ role: item.sender === 'me' ? 'user' : 'assistant', content: item.content || "" });
                 }
@@ -227,55 +186,41 @@ const CallUI = {
             window.localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
 
             if (!this.isCalling) return;
-
             this.appendSubtitle('TA', finalReply);
             this.updateCallStatus('TA 正在说话...');
 
             const utterance = new SpeechSynthesisUtterance(finalReply);
             utterance.lang = 'zh-CN';
-            utterance.rate = 1.05; 
-            utterance.pitch = 1.0;
-
             utterance.onend = () => {
                 if (!this.isCalling) return;
                 this.isAiSpeaking = false;
                 this.updateCallStatus('已接通');
-                if (this.recognition) {
-                    try { this.recognition.start(); } catch(e){}
-                }
+                if (this.recognition) { try { this.recognition.start(); } catch(e){} }
             };
-
             utterance.onerror = () => {
                 this.isAiSpeaking = false;
                 this.updateCallStatus('已接通');
-                if (this.recognition) {
-                    try { this.recognition.start(); } catch(e){}
-                }
+                if (this.recognition) { try { this.recognition.start(); } catch(e){} }
             };
-
             window.speechSynthesis.speak(utterance);
 
         } catch (error) {
-            console.error(error);
             this.updateCallStatus('网络信号不佳...');
             this.isAiSpeaking = false;
-            if (this.recognition) {
-                setTimeout(() => { try { this.recognition.start(); } catch(e){} }, 1000);
-            }
+            if (this.recognition) { setTimeout(() => { try { this.recognition.start(); } catch(e){} }, 1000); }
         }
     }
 };
 
+// 🌟 核心调度主控 PhoneUI
 export const PhoneUI = {
     ...ChatUI,
     ...MemoryUI,
     ...DiaryUI,
-    ...MomentsUI,
+    ...MomentsUI, // 完美引入你刚刚写好的 MomentsUI
     ...ScheduleUI,
     ...CallUI,
     
-    currentMomentsTab: 'feed', 
-
     escapeHtml(str) {
         if (str === null || str === undefined) return '';
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
@@ -357,7 +302,6 @@ export const PhoneUI = {
                 const elements = document.querySelectorAll('[data-img]');
                 for (const el of elements) {
                     const key = el.dataset.img;
-                    
                     if (key === 'my_avatar' || key === 'ta_avatar') {
                         const b64 = localStorage.getItem(key);
                         if (b64) {
@@ -365,7 +309,6 @@ export const PhoneUI = {
                             continue;
                         }
                     }
-
                     try {
                         const blob = await window.PhoneAPI.LocalDB.get(key);
                         if (blob) {
@@ -738,6 +681,117 @@ export const PhoneUI = {
             contentEl.style.height = 'auto';
         }
         if (window.Config) window.Config.currentAppId = 'wechat';
+    },
+
+    // 🌟 完美保留阅读器核心逻辑
+    openReader() {
+        const readerEl = document.getElementById('app-reader');
+        if (readerEl) {
+            readerEl.classList.add('open');
+            if (this.initReaderSwipe) this.initReaderSwipe();
+            if (this.bindReaderSelection) this.bindReaderSelection();
+            this.showBookshelf();
+            if (window.PhoneEngine && window.PhoneEngine.renderBookshelf) {
+                window.PhoneEngine.renderBookshelf();
+            }
+        }
+    },
+
+    closeReader() {
+        const readerEl = document.getElementById('app-reader');
+        if (readerEl) {
+            readerEl.classList.remove('open');
+            if (window.PhoneEngine && window.PhoneEngine._proactiveTimer) {
+                clearTimeout(window.PhoneEngine._proactiveTimer);
+            }
+        }
+    },
+
+    handleReaderBack() {
+        const readingView = document.getElementById('reader-reading-view');
+        if (readingView && readingView.style.display === 'block') {
+            this.showBookshelf();
+            if (window.PhoneEngine && window.PhoneEngine._proactiveTimer) {
+                clearTimeout(window.PhoneEngine._proactiveTimer);
+            }
+        } else {
+            this.closeReader();
+        }
+    },
+
+    showBookshelf() {
+        const shelf = document.getElementById('reader-bookshelf-view');
+        const reading = document.getElementById('reader-reading-view');
+        const footer = document.getElementById('reader-footer');
+        const title = document.getElementById('reader-header-title');
+        const btnAdd = document.getElementById('btn-add-book');
+        const btnSet = document.getElementById('btn-reader-settings');
+        
+        if(shelf) shelf.style.display = 'block';
+        if(reading) reading.style.display = 'none';
+        if(footer) footer.style.display = 'none';
+        if(title) title.innerText = "共读书架";
+        if(btnAdd) btnAdd.style.display = 'block';
+        if(btnSet) btnSet.style.display = 'none';
+        
+        if (window.PhoneEngine && window.PhoneEngine._proactiveTimer) {
+            clearTimeout(window.PhoneEngine._proactiveTimer);
+        }
+    },
+
+    showReadingView(titleText) {
+        const shelf = document.getElementById('reader-bookshelf-view');
+        const reading = document.getElementById('reader-reading-view');
+        const footer = document.getElementById('reader-footer');
+        const title = document.getElementById('reader-header-title');
+        const btnAdd = document.getElementById('btn-add-book');
+        const btnSet = document.getElementById('btn-reader-settings');
+        
+        if(shelf) shelf.style.display = 'none';
+        if(reading) reading.style.display = 'block';
+        if(footer) footer.style.display = 'flex';
+        if(title) title.innerText = titleText || "阅读中";
+        if(btnAdd) btnAdd.style.display = 'none';
+        if(btnSet) btnSet.style.display = 'block';
+    },
+
+    initReaderSwipe() {
+        const area = document.getElementById('reader-reading-view');
+        if (!area || this._readerSwipeBound) return;
+        let startX = 0; let startY = 0;
+        area.addEventListener('touchstart', (e) => {
+            if (e.changedTouches[0]) {
+                startX = e.changedTouches[0].screenX;
+                startY = e.changedTouches[0].screenY;
+            }
+        }, { passive: true });
+        area.addEventListener('touchend', (e) => {
+            if (!e.changedTouches[0]) return;
+            const diffX = e.changedTouches[0].screenX - startX;
+            const diffY = e.changedTouches[0].screenY - startY;
+            if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
+                if (diffX > 0) { if (window.PhoneEngine && window.PhoneEngine.prevPage) window.PhoneEngine.prevPage(); } 
+                else { if (window.PhoneEngine && window.PhoneEngine.nextPage) window.PhoneEngine.nextPage(); }
+            }
+        });
+        this._readerSwipeBound = true;
+    },
+
+    bindReaderSelection() {
+        const area = document.getElementById('reader-page-container');
+        const menu = document.getElementById('highlight-menu');
+        if (!area || !menu || this._selectionBound) return;
+        document.addEventListener('selectionchange', () => {
+            const selection = window.getSelection();
+            const readerEl = document.getElementById('app-reader');
+            if (!readerEl || !readerEl.classList.contains('open')) return;
+            if (selection.toString().trim().length > 0 && area.contains(selection.anchorNode)) {
+                menu.style.display = 'flex';
+            } else {
+                menu.style.display = 'none';
+            }
+        });
+        this._selectionBound = true;
     },
 
     renderSettings() {

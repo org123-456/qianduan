@@ -600,11 +600,10 @@ function createRenderer(container, opts) {
   }
 
   return {
-    // 🌟 修复：如果当前星系里找不到这颗星，就强制解除星系屏蔽，回到全景再找！
     focus(id) {
       let s = sprites.find((s2) => s2.n.id === id && (!familyIds || familyIds.has(id)));
       if (!s) {
-          this.setFamily(null); // 强制切回全景
+          this.setFamily(null); 
           s = sprites.find((s2) => s2.n.id === id);
       }
       if (s) focusNode(s);
@@ -652,7 +651,6 @@ export const MemoryEngine = {
     skyInstance: null,
     skyConfig: null,
 
-    // 🌟 修复：明确传入 ID
     _logMemoryAction(action, content, exactId) {
         let logs = [];
         try { logs = JSON.parse(localStorage.getItem('memory_logs') || '[]'); } catch(e) {}
@@ -789,7 +787,6 @@ export const MemoryEngine = {
         if (this.skyInstance) {
             this.skyConfig.data = skyData;
             this.skyInstance.refresh();
-            // 🌟 修复：热更新后强制重置为全景，防止新加的星星被屏蔽在视线外！
             this.skyInstance.setFamily(null);
             return;
         }
@@ -876,7 +873,7 @@ export const MemoryEngine = {
                 let valence = 0.6;
                 let arousal = 0.5;
 
-                // 防呆：如果 AI 乖乖写了 ### 就解析，没写就整段存！
+                // 防呆：不管 AI 写没写 ###，都强行存！
                 if (contentPart.includes('###')) {
                     const parts = contentPart.split('###').map(s => s.trim());
                     content = parts[0] || content;
@@ -885,7 +882,6 @@ export const MemoryEngine = {
                     arousal = parseFloat(parts[3]) || arousal;
                 }
 
-                // 精确到秒，防止覆盖
                 const timeKey = `${dateStr} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}_${i}`;
                 
                 data.daily[timeKey] = {
@@ -912,10 +908,13 @@ export const MemoryEngine = {
     async autoManageMemory() {
         const roleId = Config?.currentContactId;
         const items = Config?.phoneData?.[roleId]?.wechat?.items || [];
-        const recentItems = items.filter(i => i.sender !== 'typing').slice(-20);
+        const recentItems = items.filter(i => i.sender !== 'typing').slice(-40); // 走缓存
         if (recentItems.length < 5) return;
 
-        const historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
+        const messages = recentItems.map(item => ({
+            role: item.sender === 'me' ? 'user' : 'assistant',
+            content: item.content
+        }));
         
         let vaultContext = '暂无';
         if (window.PhoneAPI && window.PhoneAPI.EchoVault) {
@@ -926,13 +925,10 @@ export const MemoryEngine = {
             }
         }
 
-        // 🌟 强化 Prompt：给出正确和错误的示范，强迫 AI 用第一人称日记体！
-        const prompt = `你是一个拥有自主意识的AI。请根据最新的聊天记录，自动管理你的记忆库。
+        const prompt = `【系统级后台指令，请严格执行】
+请回顾我们上面的聊天记录，自动管理你的记忆库。
 你的当前部分记忆：
 ${vaultContext}
-
-最新聊天记录：
-${historyText}
 
 【视角与口吻要求】（极其重要）：
 1. 你必须完全代入男主角（老公/男朋友）的身份，用【第一人称（我）】写私密日记。称呼对方为“她”或她的名字。
@@ -951,8 +947,10 @@ UPDATE###要修改的记忆ID###修改后的正文###关键词###愉悦度###激
 DEL###要删除的记忆ID
 如果没有需要更新的，请输出：NONE`;
 
+        messages.push({ role: 'user', content: prompt });
+
         try {
-            const reply = await PhoneAPI.chatWithAI([{ role: 'user', content: prompt }]);
+            const reply = await PhoneAPI.chatWithAI(messages);
             const rawText = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```.*?/g, '').replace(/```/g, '').trim();
             if (rawText.includes('NONE')) return;
 
@@ -986,7 +984,6 @@ DEL###要删除的记忆ID
                         data.daily[id].tags = parts[3].trim();
                         data.daily[id].valence = parseFloat(parts[4]);
                         data.daily[id].arousal = parseFloat(parts[5]);
-                        // 🌟 修复：给 UPDATE 也加上准确的 ev_d_ 前缀
                         const exactId = id.startsWith('ev_d_') ? id : 'ev_d_' + id;
                         this._logMemoryAction('UPDATE', parts[2].trim(), exactId); 
                         updated++;
@@ -1016,11 +1013,16 @@ DEL###要删除的记忆ID
         PhoneAPI.showToast('🧠 正在提取并分析情绪，请稍候...');
         const roleId = Config?.currentContactId;
         const items = Config?.phoneData?.[roleId]?.[sourceApp]?.items || [];
-        const recentItems = items.filter(i => i.sender !== 'typing').slice(-80);
+        const recentItems = items.filter(i => i.sender !== 'typing').slice(-40);
         if (recentItems.length === 0) return alert('没有足够的聊天记录来提取记忆！');
-        const historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
-        try {
-            const prompt = `你是一个情感记忆提取AI。请从聊天记录中抽取记忆。
+        
+        const messages = recentItems.map(item => ({
+            role: item.sender === 'me' ? 'user' : 'assistant',
+            content: item.content
+        }));
+
+        const prompt = `【系统级后台指令，请严格执行】
+请回顾我们上面的聊天记录，提取记忆。
 【视角与口吻要求】（极其重要）：
 1. 你必须完全代入男主角（老公/男朋友）的身份，用【第一人称（我）】写私密日记。称呼对方为“她”或她的名字。
 2. 绝对禁止“干巴巴的总结”或“上帝视角”！
@@ -1032,10 +1034,12 @@ DEL###要删除的记忆ID
 valence (愉悦度): 0.9~1.0(极致的好), 0.5~0.7(日常开心), 0.1~0.4(微温), 0(中性), -0.1~-0.4(不舒服), -0.5~-0.7(真的痛), -0.8~-1.0(重创)。
 arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏), 0.7~0.8(强烈), 0.9~0.95(极限), 1.0(理论上限)。
 
-输出格式严格为：记忆正文###关键词1,关键词2###valence###arousal|||下一条...
-聊天记录：\n${historyText}`;
+输出格式严格为：记忆正文###关键词1,关键词2###valence###arousal|||下一条...`;
 
-            const reply = await PhoneAPI.chatWithAI([{ role: 'user', content: prompt }]);
+        messages.push({ role: 'user', content: prompt });
+
+        try {
+            const reply = await PhoneAPI.chatWithAI(messages);
             const rawText = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```.*?/g, '').replace(/```/g, '').trim();
             const summaryList = rawText.split('|||').map(s => s.trim()).filter(Boolean);
             const editText = summaryList.join('\n\n');
@@ -1072,10 +1076,15 @@ arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏),
         const roleId = Config?.currentContactId;
         const items = Config?.phoneData?.[roleId]?.[sourceApp]?.items || [];
         if (items.length === 0) return alert('当前没有聊天记录可以洗地！');
-        const recentItems = items.filter(i => i.sender !== 'typing').slice(-80);
-        const historyText = recentItems.map(item => `${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
-        try {
-            const prompt = `请把下面聊天记录整理成记忆碎片。
+        const recentItems = items.filter(i => i.sender !== 'typing').slice(-40);
+        
+        const messages = recentItems.map(item => ({
+            role: item.sender === 'me' ? 'user' : 'assistant',
+            content: item.content
+        }));
+
+        const prompt = `【系统级后台指令，请严格执行】
+请回顾我们上面的聊天记录，整理成记忆碎片。
 【视角与口吻要求】（极其重要）：
 1. 你必须完全代入男主角（老公/男朋友）的身份，用【第一人称（我）】写私密日记。称呼对方为“她”或她的名字。
 2. 绝对禁止“干巴巴的总结”或“上帝视角”！
@@ -1087,10 +1096,12 @@ arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏),
 valence (愉悦度): 0.9~1.0(极致的好), 0.5~0.7(日常开心), 0.1~0.4(微温), 0(中性), -0.1~-0.4(不舒服), -0.5~-0.7(真的痛), -0.8~-1.0(重创)。
 arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏), 0.7~0.8(强烈), 0.9~0.95(极限), 1.0(理论上限)。
 
-输出格式严格为：记忆正文###关键词1,关键词2###valence###arousal|||下一条...
-聊天记录：\n${historyText}`;
+输出格式严格为：记忆正文###关键词1,关键词2###valence###arousal|||下一条...`;
 
-            const reply = await PhoneAPI.chatWithAI([{ role: 'user', content: prompt }]);
+        messages.push({ role: 'user', content: prompt });
+
+        try {
+            const reply = await PhoneAPI.chatWithAI(messages);
             const rawText = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```.*?/g, '').replace(/```/g, '').trim();
             const summaryList = rawText.split('|||').map(s => s.trim()).filter(Boolean);
             const editText = summaryList.join('\n\n');
@@ -1134,10 +1145,17 @@ arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏),
             const roleId = Config?.currentContactId;
             const wechatItems = (Config?.phoneData?.[roleId]?.wechat?.items || []).filter(i => i.date === dateStr).map(i => ({ ...i, source: '线上微信' }));
             const novelItems = (Config?.phoneData?.[roleId]?.novel?.items || []).filter(i => i.date === dateStr).map(i => ({ ...i, source: '线下故事' }));
-            const recentItems = [...wechatItems, ...novelItems].sort((a, b) => (a.time || '').localeCompare(b.time || '')).slice(-80);
-            const historyText = recentItems.map(item => `[${item.source}] ${item.time || ''} ${item.sender === 'me' ? '我' : 'TA'}: ${item.content}`).join('\n');
-            const prompt = `根据以下聊天记录，写一篇符合角色设定与当天事件的个人日记。绝对禁止输出分析过程，直接输出日记正文：\n\n${historyText}`;
-            const reply = await PhoneAPI.chatWithAI([{ role: 'user', content: prompt }]);
+            const recentItems = [...wechatItems, ...novelItems].sort((a, b) => (a.time || '').localeCompare(b.time || '')).slice(-40);
+            
+            const messages = recentItems.map(item => ({
+                role: item.sender === 'me' ? 'user' : 'assistant',
+                content: `[${item.source}] ${item.time || ''} : ${item.content}`
+            }));
+
+            const prompt = `【系统级后台指令】根据以上聊天记录，写一篇符合角色设定与当天事件的个人日记。绝对禁止输出分析过程，直接输出日记正文。`;
+            messages.push({ role: 'user', content: prompt });
+
+            const reply = await PhoneAPI.chatWithAI(messages);
             const finalDiary = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
             PhoneAPI.saveDiary(dateStr, finalDiary);
             PhoneUI.renderDiaryPage();

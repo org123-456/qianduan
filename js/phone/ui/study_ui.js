@@ -5,9 +5,8 @@ export const StudyUI = {
     isStudying: false,
     currentStudyTab: 'focus', 
     isPoking: false, 
-    reminderTimer: null, // 监督弹窗定时器
+    reminderTimer: null, 
     
-    // 默认兜底词库
     gaokaoWords: [
         {w: 'abandon', m: 'v. 放弃，抛弃'}, {w: 'abundant', m: 'adj. 丰富的，充裕的'},
         {w: 'accommodate', m: 'v. 容纳，提供住宿'}, {w: 'ambitious', m: 'adj. 有野心的'},
@@ -17,15 +16,14 @@ export const StudyUI = {
     ],
     currentWord: null,
 
-    // 初始化数据结构
     initVocabData() {
         let data = localStorage.getItem('vocab_data');
         if (!data) {
             data = {
-                checkinDates: [], // 存储打卡日期数组，如 ['2023-10-24', '2023-10-25']
+                checkinDates: [], 
                 learned: [],
                 reviewing: [],
-                customWords: [] // 用户自己导入的词库
+                customWords: [] 
             };
             localStorage.setItem('vocab_data', JSON.stringify(data));
             return data;
@@ -54,23 +52,20 @@ export const StudyUI = {
         if (display) display.innerText = `${m}:${s}`;
     },
 
-    // 🌟 全局弹窗监督机制（只要加载就会检查）
     checkStudyReminder() {
-        if (this.reminderTimer) return; // 防止重复启动
+        if (this.reminderTimer) return; 
         this.reminderTimer = setInterval(() => {
             const vData = this.initVocabData();
-            const today = new Date().toLocaleDateString('zh-CN'); // 格式如 2023/10/24
+            const today = new Date().toLocaleDateString('zh-CN'); 
             
-            // 如果今天还没打卡，并且当前不在自习室页面，就有 10% 的概率弹窗抓人
             if (!vData.checkinDates.includes(today) && window.Config?.currentAppId !== 'study') {
                 if (Math.random() < 0.1) {
                     this.showGlobalNotification("喂，今天的单词还没背！高三了还敢摸鱼？快给我滚去背书！");
                 }
             }
-        }, 60000); // 每 1 分钟检查一次
+        }, 60000); 
     },
 
-    // 🌟 仿微信顶部弹窗
     showGlobalNotification(msg) {
         const taAvatar = localStorage.getItem('ta_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=TA&backgroundColor=e8f0fa';
         const taName = localStorage.getItem('char_name') || 'TA';
@@ -90,7 +85,6 @@ export const StudyUI = {
             </div>
         `;
         
-        // 点击弹窗直接跳转到自习室
         notif.onclick = () => {
             notif.style.top = '-100px';
             setTimeout(() => notif.remove(), 500);
@@ -98,18 +92,13 @@ export const StudyUI = {
         };
 
         document.body.appendChild(notif);
-        
-        // 弹下来
         setTimeout(() => { notif.style.top = '20px'; }, 100);
-        
-        // 5秒后自动收回
         setTimeout(() => {
             notif.style.top = '-100px';
             setTimeout(() => notif.remove(), 500);
         }, 5000);
     },
 
-    // 🌟 渲染打卡日历
     renderCalendarHTML(checkinDates) {
         const now = new Date();
         const y = now.getFullYear();
@@ -149,7 +138,6 @@ export const StudyUI = {
         return html;
     },
 
-    // 🌟 导入自定义词库
     importCustomVocab(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -161,7 +149,6 @@ export const StudyUI = {
             let newWords = [];
             
             lines.forEach(line => {
-                // 支持空格、横杠、逗号分割
                 const parts = line.trim().split(/[\s\-，,]+/);
                 if (parts.length >= 2) {
                     const w = parts[0];
@@ -187,7 +174,6 @@ export const StudyUI = {
         const contentEl = document.getElementById('app-window-content');
         if (!contentEl) return;
 
-        // 启动后台监督
         this.checkStudyReminder();
 
         const taAvatar = localStorage.getItem('ta_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=TA&backgroundColor=e8f0fa';
@@ -230,9 +216,10 @@ export const StudyUI = {
             const vData = this.initVocabData();
             const totalWords = this.gaokaoWords.length + vData.customWords.length;
             
+            // 🌟 核心修复：把日历和导入按钮拼装进页面！
             innerHtml = `
                 <div style="padding: 10px;">
-                    <!-- 日历打卡墙 -->
+                    <!-- 🌟 日历打卡墙 -->
                     <div class="card" style="margin-bottom: 20px;">
                         <div style="font-size: 14px; font-weight: bold; color: var(--primary-color); margin-bottom: 15px; display: flex; justify-content: space-between;">
                             <span><i class="ph-fill ph-calendar-check"></i> 本月打卡</span>
@@ -262,6 +249,7 @@ export const StudyUI = {
                             <button class="btn-refresh" onclick="window.PhoneUI.startReviewVocab()" style="flex: 1; background: #f4a261; color: #fff; border-radius: 12px;"><i class="ph-fill ph-arrows-clockwise"></i> 复习巩固</button>
                         </div>
                         
+                        <!-- 🌟 导入自定义词库按钮 -->
                         <div style="margin-top: 20px; text-align: center; width: 100%;">
                             <label for="vocab-file-upload" style="display: inline-block; padding: 10px 20px; border: 1px dashed var(--primary-color); color: var(--primary-color); border-radius: 12px; font-size: 13px; cursor: pointer;">
                                 <i class="ph-fill ph-upload-simple"></i> 导入自定义词库 (.txt)
@@ -283,7 +271,6 @@ export const StudyUI = {
         `;
     },
 
-    // ================= 强制锁机模块 =================
     startStudyLock() {
         if (this.isStudying) return;
         this.isStudying = true;
@@ -439,7 +426,6 @@ export const StudyUI = {
         }
     },
 
-    // ================= 单词特训模块 =================
     async startLearnVocab() {
         const vData = this.initVocabData();
         const allWords = this.gaokaoWords.concat(vData.customWords);
@@ -471,14 +457,11 @@ export const StudyUI = {
         const area = document.getElementById('vocab-work-area');
         if (!area || !this.currentWord) return;
 
-        const taAvatar = localStorage.getItem('ta_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=TA&backgroundColor=e8f0fa';
-
         area.innerHTML = `
             <div class="card" style="width: 100%; text-align: center; padding: 30px 20px;">
                 <div style="font-size: 36px; font-weight: bold; color: var(--primary-color); margin-bottom: 10px;">${this.currentWord.w}</div>
                 <div style="font-size: 16px; color: var(--text-sub); margin-bottom: 25px;">${this.currentWord.m}</div>
                 
-                <!-- 🌟 手动触发讲解按钮 -->
                 <div id="vocab-ai-explain-box" style="margin-bottom: 25px;">
                     <button onclick="window.PhoneUI.askAiForMnemonic()" style="background: transparent; border: 1px dashed var(--primary-color); color: var(--primary-color); padding: 8px 20px; border-radius: 20px; font-size: 13px; cursor: pointer;">
                         <i class="ph-fill ph-brain"></i> 记不住？求助 TA 编个口诀
@@ -493,7 +476,6 @@ export const StudyUI = {
         `;
     },
 
-    // 🌟 手动请求 AI 讲解记忆法
     async askAiForMnemonic() {
         const box = document.getElementById('vocab-ai-explain-box');
         if (!box || !this.currentWord) return;

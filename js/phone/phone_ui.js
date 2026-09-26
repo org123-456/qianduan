@@ -3,6 +3,7 @@ import { MemoryUI } from './ui/memory_ui.js';
 import { DiaryUI } from './ui/diary_ui.js';
 import { MomentsUI } from './ui/moments_ui.js';
 import { ScheduleUI } from './ui/schedule_ui.js';
+import { CallUI } from './ui/call_ui.js';
 
 export const PhoneUI = {
     ...ChatUI,
@@ -10,6 +11,7 @@ export const PhoneUI = {
     ...DiaryUI,
     ...MomentsUI,
     ...ScheduleUI,
+    ...CallUI,
     
     currentMomentsTab: 'feed', 
 
@@ -94,8 +96,6 @@ export const PhoneUI = {
                 const elements = document.querySelectorAll('[data-img]');
                 for (const el of elements) {
                     const key = el.dataset.img;
-                    
-                    // 🌟 优先读取 localStorage 里的 Base64 头像数据
                     if (key === 'my_avatar' || key === 'ta_avatar') {
                         const b64 = localStorage.getItem(key);
                         if (b64) {
@@ -103,7 +103,6 @@ export const PhoneUI = {
                             continue;
                         }
                     }
-
                     try {
                         const blob = await window.PhoneAPI.LocalDB.get(key);
                         if (blob) {
@@ -179,7 +178,6 @@ export const PhoneUI = {
                             }
                         }
                     });
-                    
                     if (window.PhoneAPI) window.PhoneAPI.showToast('✨ 换图成功！已永久保存在本地。');
                 } catch (err) { if (window.PhoneAPI) window.PhoneAPI.showToast('换图失败'); }
                 pendingKey = null; pendingEl = null;
@@ -187,7 +185,6 @@ export const PhoneUI = {
         }
     },
 
-    // 🌟 专门为设置界面写的强制点击换头像方法
     triggerAvatarUpload(key) {
         let fileInput = document.getElementById('settings-avatar-input');
         if (!fileInput) {
@@ -208,26 +205,18 @@ export const PhoneUI = {
             const reader = new FileReader();
             reader.onload = (event) => {
                 const base64Str = event.target.result;
-                
-                // 1. 永久保存到 localStorage
                 localStorage.setItem(key, base64Str);
-                
-                // 2. 更新页面上所有使用了这个头像的地方
                 const allTargetEls = document.querySelectorAll(`[data-img="${key}"]`);
                 allTargetEls.forEach(el => {
                     if (el.tagName.toLowerCase() === 'img') el.src = base64Str;
                 });
-                
-                // 3. 更新设置里的预览图
                 const previewId = key === 'my_avatar' ? 'set-my-avatar' : 'set-ta-avatar';
                 const preview = document.getElementById(previewId);
                 if(preview) preview.src = base64Str;
-
                 if (window.PhoneAPI) window.PhoneAPI.showToast('✨ 头像更换成功！');
             };
-            reader.readAsDataURL(f); // 转换为 Base64 字符串
+            reader.readAsDataURL(f);
         };
-        
         fileInput.click();
     },
 

@@ -1,5 +1,6 @@
 export const ScheduleUI = {
     currentScheduleDay: 1,
+    editingIndex: -1, // -1 表示新增，>=0 表示编辑
 
     getDefaultSchedule() {
         return {
@@ -60,7 +61,7 @@ export const ScheduleUI = {
             let dotAnim = isCurrent ? '<div class="typing-dot" style="margin-right: 5px;"></div>' : '';
 
             listHtml += `
-                <div class="ev-card" style="margin-bottom: 0; flex-direction: row; align-items: center; justify-content: space-between; cursor: pointer; ${cardStyle}" onclick="window.PhoneUI.editScheduleItemManual(${index})">
+                <div class="ev-card" style="margin-bottom: 0; flex-direction: row; align-items: center; justify-content: space-between; cursor: pointer; ${cardStyle}" onclick="window.PhoneUI.openScheduleModal(${index})">
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <div style="display: flex; flex-direction: column; align-items: center; color: ${statusColor}; font-family: monospace;">
                             <span style="font-size: 14px; font-weight: bold;">${c.start}</span>
@@ -107,44 +108,85 @@ export const ScheduleUI = {
         }
     },
 
-    async editScheduleItemManual(index) {
-        const data = this.getScheduleData();
-        const todayClasses = data[this.currentScheduleDay] || [];
-        const c = todayClasses[index];
-        if (!c) return;
+    // 打开编辑/新增弹窗
+    openScheduleModal(index = -1) {
+        this.editingIndex = index;
+        const bg = document.getElementById('schedule-modal-bg');
+        const modal = document.getElementById('schedule-modal');
+        const titleEl = document.getElementById('schedule-modal-title');
+        const inName = document.getElementById('sched-in-name');
+        const inStart = document.getElementById('sched-in-start');
+        const inEnd = document.getElementById('sched-in-end');
+        const btnDel = document.getElementById('sched-btn-del');
 
-        const newStr = await this.showCustomPrompt("编辑课程", `请按格式修改 (课程名,开始时间,结束时间)：\n(提示：删除请输入 DELETE)`, `${c.name},${c.start},${c.end}`);
-        if (newStr) {
-            if (newStr === 'DELETE') {
-                todayClasses.splice(index, 1);
-                data[this.currentScheduleDay] = todayClasses;
-                this.saveScheduleData(data);
-                if (window.PhoneAPI) window.PhoneAPI.showToast("已删除");
-                return;
-            }
-            const parts = newStr.split(',');
-            if (parts.length === 3) {
-                todayClasses[index] = { name: parts[0].trim(), start: parts[1].trim(), end: parts[2].trim() };
-                data[this.currentScheduleDay] = todayClasses;
-                this.saveScheduleData(data);
-            } else {
-                if (window.PhoneAPI) window.PhoneAPI.showToast("格式错误，未保存");
-            }
+        if (!bg || !modal) return;
+
+        if (index >= 0) {
+            // 编辑模式
+            const data = this.getScheduleData();
+            const c = data[this.currentScheduleDay][index];
+            titleEl.innerHTML = '<i class="ph-fill ph-pencil-simple"></i> 编辑课程';
+            inName.value = c.name;
+            inStart.value = c.start;
+            inEnd.value = c.end;
+            btnDel.style.display = 'block'; // 显示删除按钮
+        } else {
+            // 新增模式
+            titleEl.innerHTML = '<i class="ph-fill ph-plus-circle"></i> 添加课程';
+            inName.value = '';
+            inStart.value = '08:00';
+            inEnd.value = '08:45';
+            btnDel.style.display = 'none'; // 隐藏删除按钮
         }
+
+        bg.classList.add('show');
+        modal.classList.add('show');
     },
 
-    async addScheduleItemManual() {
-        const newStr = await this.showCustomPrompt("添加课程", `输入格式 (课程名,开始时间,结束时间)：`, `自习,19:00,20:00`);
-        if (newStr && newStr !== 'DELETE') {
-            const parts = newStr.split(',');
-            if (parts.length === 3) {
-                const data = this.getScheduleData();
-                if (!data[this.currentScheduleDay]) data[this.currentScheduleDay] = [];
-                data[this.currentScheduleDay].push({ name: parts[0].trim(), start: parts[1].trim(), end: parts[2].trim() });
-                this.saveScheduleData(data);
-            } else {
-                if (window.PhoneAPI) window.PhoneAPI.showToast("格式错误");
-            }
+    closeScheduleModal() {
+        const bg = document.getElementById('schedule-modal-bg');
+        const modal = document.getElementById('schedule-modal');
+        if (bg) bg.classList.remove('show');
+        if (modal) modal.classList.remove('show');
+    },
+
+    saveScheduleItem() {
+        const name = document.getElementById('sched-in-name').value.trim();
+        const start = document.getElementById('sched-in-start').value;
+        const end = document.getElementById('sched-in-end').value;
+
+        if (!name || !start || !end) {
+            if (window.PhoneAPI) window.PhoneAPI.showToast("请填写完整信息！");
+            return;
         }
+        if (start >= end) {
+            if (window.PhoneAPI) window.PhoneAPI.showToast("结束时间必须晚于开始时间！");
+            return;
+        }
+
+        const data = this.getScheduleData();
+        if (!data[this.currentScheduleDay]) data[this.currentScheduleDay] = [];
+
+        if (this.editingIndex >= 0) {
+            // 更新
+            data[this.currentScheduleDay][this.editingIndex] = { name, start, end };
+            if (window.PhoneAPI) window.PhoneAPI.showToast("修改已保存");
+        } else {
+            // 新增
+            data[this.currentScheduleDay].push({ name, start, end });
+            if (window.PhoneAPI) window.PhoneAPI.showToast("添加成功");
+        }
+
+        this.saveScheduleData(data);
+        this.closeScheduleModal();
+    },
+
+    deleteScheduleItem() {
+        if (this.editingIndex < 0) return;
+        const data = this.getScheduleData();
+        data[this.currentScheduleDay].splice(this.editingIndex, 1);
+        this.saveScheduleData(data);
+        this.closeScheduleModal();
+        if (window.PhoneAPI) window.PhoneAPI.showToast("课程已删除");
     }
 };

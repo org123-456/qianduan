@@ -119,6 +119,11 @@ export const PhoneUI = {
 
         elements.forEach(el => {
             const key = el.dataset.img;
+            
+            // 防止重复绑定
+            if (el.dataset.bound) return;
+            el.dataset.bound = "true";
+
             const start = () => {
                 el.classList.add('holding');
                 clearTimeout(holdTimer);
@@ -139,7 +144,8 @@ export const PhoneUI = {
             el.addEventListener('contextmenu', e => e.preventDefault());
         });
 
-        if (fileInput) {
+        if (fileInput && !fileInput.dataset.bound) {
+            fileInput.dataset.bound = "true";
             fileInput.addEventListener('change', async e => {
                 const f = e.target.files && e.target.files[0];
                 e.target.value = '';
@@ -150,18 +156,23 @@ export const PhoneUI = {
                     await window.PhoneAPI.LocalDB.set(pendingKey, blob);
                     const url = window.PhoneAPI.LocalDB.urlOf(pendingKey, blob);
                     
-                    if (pendingEl.tagName.toLowerCase() === 'img') {
-                        pendingEl.src = url;
-                    } else {
-                        if (pendingKey.startsWith('bg_')) {
-                            let cssVar = '--bg-image-' + pendingKey.replace('bg_', '').replace(/_/g, '-');
-                            if (pendingKey === 'bg_global') cssVar = '--bg-image-global';
-                            document.documentElement.style.setProperty(cssVar, `url('${url}')`);
+                    // 更新页面上所有使用了这个 key 的图片
+                    const allTargetEls = document.querySelectorAll(`[data-img="${pendingKey}"]`);
+                    allTargetEls.forEach(targetEl => {
+                        if (targetEl.tagName.toLowerCase() === 'img') {
+                            targetEl.src = url;
                         } else {
-                            const imgChild = pendingEl.querySelector('img');
-                            if (imgChild) imgChild.src = url;
+                            if (pendingKey.startsWith('bg_')) {
+                                let cssVar = '--bg-image-' + pendingKey.replace('bg_', '').replace(/_/g, '-');
+                                if (pendingKey === 'bg_global') cssVar = '--bg-image-global';
+                                document.documentElement.style.setProperty(cssVar, `url('${url}')`);
+                            } else {
+                                const imgChild = targetEl.querySelector('img');
+                                if (imgChild) imgChild.src = url;
+                            }
                         }
-                    }
+                    });
+                    
                     if (window.PhoneAPI) window.PhoneAPI.showToast('✨ 换图成功！已永久保存在本地。');
                 } catch (err) { if (window.PhoneAPI) window.PhoneAPI.showToast('换图失败'); }
                 pendingKey = null; pendingEl = null;
@@ -433,6 +444,8 @@ export const PhoneUI = {
         const defaultDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         
         const currentColor = localStorage.getItem('app_color') || 'blue';
+        const myAvatar = localStorage.getItem('my_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa';
+        const taAvatar = localStorage.getItem('ta_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=TA&backgroundColor=e8f0fa';
 
         contentEl.innerHTML = `
         <div class="settings-tabs">
@@ -444,10 +457,27 @@ export const PhoneUI = {
 
         <div id="set-sec-basic" class="set-section active">
         <div class="card">
-        <h3 style="color:var(--primary-color);margin-bottom:15px;"><i class="ph-fill ph-user-list"></i> 基础设定</h3>
+        <h3 style="color:var(--primary-color);margin-bottom:15px;"><i class="ph-fill ph-user-circle"></i> 基础设定 (头像与名字)</h3>
+        
+        <div style="display:flex; justify-content:space-around; align-items:center; margin-bottom:20px; background: var(--icon-bg); padding: 15px; border-radius: 16px; border: 1px dashed var(--border-color);">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+                <img id="set-my-avatar" class="long-pressable" data-img="my_avatar" src="${myAvatar}" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid var(--border-color); cursor:pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                <span style="font-size:11px; color:var(--text-sub); font-weight:bold;">长按换图</span>
+            </div>
+            <i class="ph-fill ph-arrows-left-right" style="color:var(--border-color); font-size:24px;"></i>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+                <img id="set-ta-avatar" class="long-pressable" data-img="ta_avatar" src="${taAvatar}" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid var(--border-color); cursor:pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                <span style="font-size:11px; color:var(--text-sub); font-weight:bold;">长按换图</span>
+            </div>
+        </div>
+
         <div style="display:flex;gap:10px;margin-bottom:10px;">
-        <div style="flex:1;"><label style="font-size:12px;color:var(--text-sub);">我的名字</label><input type="text" id="my-name" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
-        <div style="flex:1;"><label style="font-size:12px;color:var(--text-sub);">TA的名字</label><input type="text" id="char-name" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
+            <div style="flex:1;"><label style="font-size:12px;color:var(--text-sub);">我的名字</label><input type="text" id="my-name" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
+            <div style="flex:1;"><label style="font-size:12px;color:var(--text-sub);">TA的名字</label><input type="text" id="char-name" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:10px;">
+            <div style="flex:1;"><label style="font-size:11px;color:var(--text-sub);">我的头像(网址)</label><input type="text" id="my-avatar-url" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
+            <div style="flex:1;"><label style="font-size:11px;color:var(--text-sub);">TA的头像(网址)</label><input type="text" id="ta-avatar-url" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
         </div>
         </div>
 
@@ -529,6 +559,9 @@ export const PhoneUI = {
         `;
 
         setTimeout(() => {
+            // 确保设置界面的长按换图事件被绑定
+            this.bindLongPresses();
+            
             if (window.PhoneAPI) {
                 if (window.PhoneAPI.loadSettings) window.PhoneAPI.loadSettings();
                 if (window.PhoneAPI.refreshPresetDropdowns) window.PhoneAPI.refreshPresetDropdowns();

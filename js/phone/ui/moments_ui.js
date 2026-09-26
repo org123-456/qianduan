@@ -6,6 +6,53 @@ export const MomentsUI = {
         this.renderMoments();
     },
 
+    // 🌟 1. 点赞功能
+    toggleLike(momentId) {
+        const roleId = window.Config?.currentContactId || 'role_001';
+        const moments = window.Config.phoneData[roleId].moments;
+        const moment = moments.find(m => m.id === momentId);
+        if (moment) {
+            moment.likedByMe = !moment.likedByMe;
+            localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
+            this.renderMoments();
+        }
+    },
+
+    // 🌟 2. 评论功能
+    async addComment(momentId) {
+        const text = await window.PhoneUI.showCustomPrompt('请输入评论内容：');
+        if (!text || !text.trim()) return;
+
+        const roleId = window.Config?.currentContactId || 'role_001';
+        const moments = window.Config.phoneData[roleId].moments;
+        const moment = moments.find(m => m.id === momentId);
+        
+        if (moment) {
+            const now = new Date();
+            moment.comments.push({
+                author: 'me',
+                content: text.trim(),
+                time: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+            });
+            localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
+            this.renderMoments();
+            if (window.PhoneAPI) window.PhoneAPI.showToast('评论成功！');
+        }
+    },
+
+    // 🌟 3. 删除功能
+    deleteMoment(momentId) {
+        if (!confirm("确定要删除这条动态吗？")) return;
+        
+        const roleId = window.Config?.currentContactId || 'role_001';
+        let moments = window.Config.phoneData[roleId].moments;
+        window.Config.phoneData[roleId].moments = moments.filter(m => m.id !== momentId);
+        
+        localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
+        this.renderMoments();
+        if (window.PhoneAPI) window.PhoneAPI.showToast('动态已删除');
+    },
+
     // 🌟 惰性生成核心：检查有没有到期需要 AI 回复的动态
     async checkPendingReplies() {
         const roleId = window.Config?.currentContactId || 'role_001';
@@ -81,7 +128,6 @@ export const MomentsUI = {
         }
     },
 
-    // 🌟 换封面图
     triggerCoverUpload() {
         let fileInput = document.getElementById('moment-cover-input');
         if (!fileInput) {
@@ -176,6 +222,7 @@ export const MomentsUI = {
                         pendingHint = `<span style="color: var(--primary-color); font-size: 10px; margin-left: 10px;">(TA 还没看到这条动态...)</span>`;
                     }
 
+                    // 🌟 渲染点赞、评论、删除按钮
                     bottomHtml += `
                         <div class="moment-card">
                             <img class="moment-avatar" src="${avatar}">
@@ -186,8 +233,9 @@ export const MomentsUI = {
                                 <div class="moment-footer">
                                     <span>${m.time} ${pendingHint}</span>
                                     <div class="moment-actions">
-                                        <i class="ph ph-heart" onclick="window.PhoneAPI.showToast('点赞功能开发中')"></i>
-                                        <i class="ph ph-chat-circle" onclick="window.PhoneAPI.showToast('评论功能开发中')"></i>
+                                        ${isMe ? `<i class="ph ph-trash" onclick="window.PhoneUI.deleteMoment('${m.id}')" style="margin-right: 10px;"></i>` : ''}
+                                        <i class="${m.likedByMe ? 'ph-fill' : 'ph'} ph-heart" style="${m.likedByMe ? 'color:var(--danger-color);' : ''}" onclick="window.PhoneUI.toggleLike('${m.id}')"></i>
+                                        <i class="ph ph-chat-circle" onclick="window.PhoneUI.addComment('${m.id}')"></i>
                                     </div>
                                 </div>
                                 ${commentsHtml}
@@ -211,7 +259,6 @@ export const MomentsUI = {
             bottomHtml += '</div>';
         }
 
-        // 🌟 移除了 status-panel，界面更加清爽纯粹
         contentEl.innerHTML = `
             <div class="moments-cover" style="position: relative;">
                 <div onclick="window.PhoneUI.triggerCoverUpload()" style="position: absolute; top: 110px; right: 20px; background: rgba(0,0,0,0.4); color: white; padding: 6px 12px; border-radius: 12px; font-size: 12px; cursor: pointer; backdrop-filter: blur(5px); z-index: 10;">
@@ -317,7 +364,6 @@ export const MomentsUI = {
         const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
         const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-        // 随机 1~3 分钟后 AI 回复
         const delayMinutes = Math.floor(Math.random() * 3) + 1; 
 
         const newMoment = {
@@ -339,6 +385,13 @@ export const MomentsUI = {
 
         window.Config.phoneData[roleId].moments.push(newMoment);
         localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
+
+        // 🌟 联动核心：发朋友圈的同时，自动存入“星海记忆库”，聊天引擎会自动读取！
+        if (window.PhoneAPI && window.PhoneAPI.saveFavorite) {
+            let memoryText = `发布了朋友圈动态："${text}"`;
+            if (this.tempMomentImage) memoryText += ` (附带了一张照片)`;
+            window.PhoneAPI.saveFavorite(memoryText, '朋友圈', 'me');
+        }
 
         this.closePostModal();
         this.renderMoments();

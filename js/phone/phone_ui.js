@@ -2,12 +2,14 @@ import { ChatUI } from './ui/chat_ui.js';
 import { MemoryUI } from './ui/memory_ui.js';
 import { DiaryUI } from './ui/diary_ui.js';
 import { MomentsUI } from './ui/moments_ui.js';
+import { ScheduleUI } from './ui/schedule_ui.js';
 
 export const PhoneUI = {
     ...ChatUI,
     ...MemoryUI,
     ...DiaryUI,
     ...MomentsUI,
+    ...ScheduleUI,
     
     currentMomentsTab: 'feed', 
 
@@ -22,6 +24,17 @@ export const PhoneUI = {
         document.querySelectorAll('.color-circle').forEach(el => el.classList.remove('active'));
         const activeCircle = document.getElementById('color-btn-' + color);
         if (activeCircle) activeCircle.classList.add('active');
+    },
+
+    updateHomeDots() {
+        const slider = document.getElementById('home-slider');
+        const dots = document.querySelectorAll('#home-dots .dot');
+        if (!slider || !dots.length) return;
+        const pageIndex = Math.round(slider.scrollLeft / slider.clientWidth);
+        dots.forEach((dot, index) => {
+            if (index === pageIndex) dot.classList.add('active');
+            else dot.classList.remove('active');
+        });
     },
 
     async updateHomeWidget() {
@@ -374,6 +387,17 @@ export const PhoneUI = {
             contentEl.innerHTML = `<div id="diary-cover-view" class="diary-cover-view"><div class="diary-book-cover long-pressable" data-img="bg_diary_cover" id="diary-book-cover" onclick="window.PhoneUI.unlockDiary()"><div class="diary-title">${this.escapeHtml(diaryTitle)}</div><div class="diary-hint">点击翻开日记</div></div><div class="diary-back-btn" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div></div><div id="diary-inside-view" class="diary-inside-view" ontouchstart="window.PhoneUI.handleSwipeStart(event)" ontouchend="window.PhoneUI.handleSwipeEnd(event)"><div class="diary-back-btn" onclick="window.PhoneUI.closeApp()" style="top:20px;left:15px;background:rgba(0,0,0,0.1);color:#333;z-index:50;"><i class="ph ph-caret-left"></i></div><div id="diary-content-area" style="display:flex;flex-direction:column;height:100%;"></div></div>`;
             this.renderDiaryPage();
             this.bindLongPresses();
+        } else if (appId === 'schedule') {
+            contentEl.innerHTML = `
+                <div class="vault-tabs" id="schedule-tabs" style="margin-bottom: 15px; overflow-x: auto; display: flex; white-space: nowrap; padding-bottom: 5px;"></div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                    <button class="btn-refresh" onclick="window.PhoneUI.importScheduleAI()" style="flex: 1; margin: 0; margin-right: 10px; background: linear-gradient(135deg, #a78bfa, #8b5cf6);"><i class="ph-fill ph-sparkle"></i> AI 智能排课</button>
+                    <button class="btn-refresh" onclick="window.PhoneUI.addScheduleItemManual()" style="flex: 1; margin: 0; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color);"><i class="ph ph-plus"></i> 手动添加</button>
+                </div>
+                <div id="schedule-list-area" style="padding-bottom: 80px; display: flex; flex-direction: column; gap: 10px;"></div>
+            `;
+            this.currentScheduleDay = new Date().getDay() === 0 ? 7 : new Date().getDay();
+            this.renderSchedule();
         } else if (appId === 'memory_vault') {
             if (window.Config) window.Config.memoryVaultTab = 'daily';
             contentEl.innerHTML = `

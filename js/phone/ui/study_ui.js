@@ -1,10 +1,12 @@
 export const StudyUI = {
     studyTimer: null,
+    selectedTime: 25, // 默认设定的时间（分钟）
     studyTimeLeft: 25 * 60,
     isStudying: false,
-    currentStudyTab: 'focus', // 'focus' 或 'vocab'
+    currentStudyTab: 'focus', 
+    isPoking: false, // 防止连点头像
     
-    // 高频高考词汇库 (初始种子)
+    // 高频高考词汇库
     gaokaoWords: [
         {w: 'abandon', m: 'v. 放弃，抛弃'}, {w: 'abundant', m: 'adj. 丰富的，充裕的'},
         {w: 'accommodate', m: 'v. 容纳，提供住宿'}, {w: 'ambitious', m: 'adj. 有野心的'},
@@ -40,6 +42,16 @@ export const StudyUI = {
         localStorage.setItem('vocab_data', JSON.stringify(data));
     },
 
+    // 🌟 新增：切换专注时间
+    changeStudyTime(minutes) {
+        this.selectedTime = parseInt(minutes);
+        this.studyTimeLeft = this.selectedTime * 60;
+        const m = Math.floor(this.studyTimeLeft / 60).toString().padStart(2, '0');
+        const s = (this.studyTimeLeft % 60).toString().padStart(2, '0');
+        const display = document.getElementById('study-time-display');
+        if (display) display.innerText = `${m}:${s}`;
+    },
+
     renderStudyRoom() {
         const contentEl = document.getElementById('app-window-content');
         if (!contentEl) return;
@@ -61,11 +73,23 @@ export const StudyUI = {
                         <div style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); border-width: 0 10px 10px 10px; border-style: solid; border-color: transparent transparent var(--border-color) transparent;"></div>
                     </div>
                     
-                    <div style="position: relative; width: 200px; height: 200px; border-radius: 50%; background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end)); display: flex; justify-content: center; align-items: center; box-shadow: inset 0 0 20px rgba(0,0,0,0.05), 0 10px 30px rgba(0,0,0,0.1); border: 8px solid #fff; margin: 40px 0;">
+                    <div style="position: relative; width: 200px; height: 200px; border-radius: 50%; background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end)); display: flex; justify-content: center; align-items: center; box-shadow: inset 0 0 20px rgba(0,0,0,0.05), 0 10px 30px rgba(0,0,0,0.1); border: 8px solid #fff; margin: 30px 0 20px 0;">
                         <div id="study-time-display" style="font-size: 48px; font-weight: bold; font-family: monospace; color: var(--primary-color);">${m}:${s}</div>
                     </div>
 
-                    <button class="btn-refresh" onclick="window.PhoneUI.startStudyLock()" style="width: 180px; border-radius: 24px; font-size: 16px; background: var(--primary-color); color: #fff;">
+                    <!-- 🌟 新增：时间选择下拉框 -->
+                    <div style="margin-bottom: 25px; display: flex; align-items: center; gap: 10px;">
+                        <label style="font-size: 13px; color: var(--text-sub); font-weight: bold;">设定时长:</label>
+                        <select onchange="window.PhoneUI.changeStudyTime(this.value)" style="background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 12px; padding: 6px 12px; outline: none; font-size: 13px; font-weight: bold;">
+                            <option value="5" ${this.selectedTime === 5 ? 'selected' : ''}>5 分钟 (摸鱼专用)</option>
+                            <option value="15" ${this.selectedTime === 15 ? 'selected' : ''}>15 分钟 (小憩背词)</option>
+                            <option value="25" ${this.selectedTime === 25 ? 'selected' : ''}>25 分钟 (标准番茄)</option>
+                            <option value="45" ${this.selectedTime === 45 ? 'selected' : ''}>45 分钟 (一节课)</option>
+                            <option value="60" ${this.selectedTime === 60 ? 'selected' : ''}>60 分钟 (深度沉浸)</option>
+                        </select>
+                    </div>
+
+                    <button class="btn-refresh" onclick="window.PhoneUI.startStudyLock()" style="width: 180px; border-radius: 24px; font-size: 16px; background: var(--primary-color); color: #fff; margin-top: 0;">
                         <i class="ph-fill ph-lock-key"></i> 开启强制专注
                     </button>
                 </div>
@@ -124,23 +148,28 @@ export const StudyUI = {
 
         const taAvatar = localStorage.getItem('ta_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=TA&backgroundColor=e8f0fa';
         
-        // 🌟 唯美动画背景
         lockScreen.style.cssText = `
             position: fixed; inset: 0; z-index: 99999; display: flex; flex-direction: column; align-items: center; padding: 60px 20px 20px; color: #fff;
             background: url('${taAvatar}') center/cover no-repeat;
         `;
         
+        const m = Math.floor(this.studyTimeLeft / 60).toString().padStart(2, '0');
+        const s = (this.studyTimeLeft % 60).toString().padStart(2, '0');
+
         lockScreen.innerHTML = `
             <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(25px); z-index: 1;"></div>
             
             <div style="position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; width: 100%; height: 100%;">
                 <div style="font-size: 14px; color: rgba(255,255,255,0.7); font-weight: bold; margin-bottom: 10px; letter-spacing: 2px;"><i class="ph-fill ph-lock-key"></i> 沉浸陪伴中</div>
-                <div id="lock-time-display" style="font-size: 72px; font-weight: bold; font-family: monospace; color: #fff; margin-bottom: 40px; text-shadow: 0 0 20px rgba(255,255,255,0.5);">25:00</div>
+                <div id="lock-time-display" style="font-size: 72px; font-weight: bold; font-family: monospace; color: #fff; margin-bottom: 40px; text-shadow: 0 0 20px rgba(255,255,255,0.5);">${m}:${s}</div>
                 
                 <style>
                     @keyframes breathe { 0% { transform: scale(1); box-shadow: 0 0 10px rgba(255,255,255,0.2); } 50% { transform: scale(1.08); box-shadow: 0 0 30px rgba(255,255,255,0.6); } 100% { transform: scale(1); box-shadow: 0 0 10px rgba(255,255,255,0.2); } }
                 </style>
-                <img src="${taAvatar}" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.8); margin-bottom: 20px; animation: breathe 4s infinite ease-in-out;">
+                <!-- 🌟 戳脸彩蛋：加上了 onclick 事件 -->
+                <div style="position: relative; cursor: pointer;" onclick="window.PhoneUI.pokeAvatar()">
+                    <img src="${taAvatar}" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.8); margin-bottom: 20px; animation: breathe 4s infinite ease-in-out;">
+                </div>
                 
                 <div id="lock-chat-box" style="flex: 1; width: 100%; background: rgba(255,255,255,0.1); border-radius: 16px; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.2);">
                     <div style="align-self: flex-start; background: rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 12px; font-size: 14px; max-width: 85%;">
@@ -166,6 +195,48 @@ export const StudyUI = {
                 this.finishStudy();
             }
         }, 1000);
+    },
+
+    // 🌟 新增：戳脸彩蛋逻辑
+    async pokeAvatar() {
+        if (!this.isStudying) return;
+        const chatBox = document.getElementById('lock-chat-box');
+        if (!chatBox) return;
+
+        if (this.isPoking) return; // 防止连点
+        this.isPoking = true;
+
+        if (window.PhoneAPI) window.PhoneAPI.showToast("戳了戳 TA ~");
+
+        chatBox.innerHTML += `<div style="align-self: center; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); padding: 4px 10px; border-radius: 10px; font-size: 12px; margin: 5px 0;">[你偷偷戳了戳 TA 的脸颊]</div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        const loadingId = 'loading-poke-' + Date.now();
+        chatBox.innerHTML += `<div id="${loadingId}" style="align-self: flex-start; background: rgba(255,255,255,0.1); padding: 10px 15px; border-radius: 12px; font-size: 14px; max-width: 85%; color: rgba(255,255,255,0.6);">TA 瞪了你一眼...</div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        try {
+            const persona = localStorage.getItem('char_persona') || '';
+            const myName = localStorage.getItem('my_name') || '我';
+            const taName = localStorage.getItem('char_name') || 'TA';
+            
+            let sysPrompt = `你扮演${taName}，用户是${myName}。${persona}\n`;
+            sysPrompt += `【场景】：用户正在被你“强制锁机”背书，但TA不好好学，偷偷用手戳了戳你的脸颊。\n`;
+            sysPrompt += `【任务】：请用一句话（15字以内）警告TA老实点，语气要符合人设（可以傲娇、冷酷或无奈）。不要动作描写。`;
+
+            const reply = await window.PhoneAPI.chatWithAI([
+                { role: 'system', content: sysPrompt },
+                { role: 'user', content: "(戳了戳你的脸颊)" }
+            ]);
+
+            document.getElementById(loadingId).remove();
+            chatBox.innerHTML += `<div style="align-self: flex-start; background: rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 12px; font-size: 14px; max-width: 85%;">${window.PhoneUI.escapeHtml(reply.replace(/“|”|"/g, ''))}</div>`;
+            chatBox.scrollTop = chatBox.scrollHeight;
+        } catch (e) {
+            document.getElementById(loadingId).innerText = "别闹，看书。";
+        }
+        
+        setTimeout(() => { this.isPoking = false; }, 2000);
     },
 
     async begToUnlock() {
@@ -219,7 +290,7 @@ export const StudyUI = {
     unlockScreen() {
         clearInterval(this.studyTimer);
         this.isStudying = false;
-        this.studyTimeLeft = 25 * 60;
+        this.studyTimeLeft = this.selectedTime * 60; // 恢复到设定的时间
         const lockScreen = document.getElementById('study-lock-screen');
         if (lockScreen) lockScreen.remove();
         this.renderStudyRoom();
@@ -228,8 +299,8 @@ export const StudyUI = {
     finishStudy() {
         this.unlockScreen();
         if (window.PhoneAPI) {
-            window.PhoneAPI.showToast("🎉 太棒啦！完成了 25 分钟专注！");
-            window.PhoneAPI.saveFavorite("完成了一次 25 分钟的强制专注学习！", "自习室", "me");
+            window.PhoneAPI.showToast(`🎉 太棒啦！完成了 ${this.selectedTime} 分钟专注！`);
+            window.PhoneAPI.saveFavorite(`完成了一次 ${this.selectedTime} 分钟的强制专注学习！`, "自习室", "me");
         }
     },
 
@@ -284,7 +355,6 @@ export const StudyUI = {
             </div>
         `;
 
-        // 请求 AI 讲解
         try {
             const persona = localStorage.getItem('char_persona') || '';
             const taName = localStorage.getItem('char_name') || 'TA';
@@ -301,7 +371,6 @@ export const StudyUI = {
         let vData = this.initVocabData();
         const word = this.currentWord.w;
 
-        // 打卡逻辑
         const today = new Date().toDateString();
         if (vData.lastDate !== today) {
             vData.streak += 1;
@@ -312,17 +381,16 @@ export const StudyUI = {
         if (mode === 'learn') {
             if (remembered) {
                 if (!vData.learned.includes(word)) vData.learned.push(word);
-                if (!vData.reviewing.includes(word)) vData.reviewing.push(word); // 加入复习池
+                if (!vData.reviewing.includes(word)) vData.reviewing.push(word); 
             }
         } else if (mode === 'review') {
             if (remembered) {
-                vData.reviewing = vData.reviewing.filter(w => w !== word); // 移出复习池
+                vData.reviewing = vData.reviewing.filter(w => w !== word); 
             }
         }
 
         this.saveVocabData(vData);
         
-        // 自动下一个
         if (mode === 'learn') this.startLearnVocab();
         else this.startReviewVocab();
     }

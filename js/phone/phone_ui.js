@@ -3,6 +3,7 @@ import { MemoryUI } from './ui/memory_ui.js';
 import { DiaryUI } from './ui/diary_ui.js';
 import { MomentsUI } from './ui/moments_ui.js';
 import { ScheduleUI } from './ui/schedule_ui.js';
+import { StudyUI } from './ui/study_ui.js'; // 🌟 引入自习室
 
 const CallUI = {
     isCalling: false,
@@ -218,6 +219,7 @@ export const PhoneUI = {
     ...MomentsUI,
     ...ScheduleUI,
     ...CallUI,
+    ...StudyUI, // 🌟 混入自习室模块
     
     escapeHtml(str) {
         if (str === null || str === undefined) return '';
@@ -284,7 +286,6 @@ export const PhoneUI = {
 
             let polaroidText = document.getElementById('polaroid-text');
             if (polaroidText) {
-                // 🌟 核心修复：克隆节点以清除旧的长按绑定，强制监听 touchend 和 click
                 const newText = polaroidText.cloneNode(true);
                 polaroidText.parentNode.replaceChild(newText, polaroidText);
                 polaroidText = newText;
@@ -649,6 +650,7 @@ export const PhoneUI = {
         if (activeSec) activeSec.classList.add('active');
     },
 
+    // 🌟 核心：注册自习室 App
     openApp(appId, appName) {
         if (window.Config) window.Config.currentAppId = appId;
         const titleEl = document.getElementById('app-window-title');
@@ -696,6 +698,8 @@ export const PhoneUI = {
             this.renderFavorites();
         } else if (appId === 'settings') {
             this.renderSettings();
+        } else if (appId === 'study') { // 🌟 渲染自习室
+            this.renderStudyRoom();
         }
     },
 
@@ -711,125 +715,6 @@ export const PhoneUI = {
             contentEl.style.height = 'auto';
         }
         if (window.Config) window.Config.currentAppId = 'wechat';
-    },
-
-    // 🌟 补回阅读器逻辑
-    openReader() {
-        const readerEl = document.getElementById('app-reader');
-        if (readerEl) {
-            readerEl.classList.add('open');
-            if (this.initReaderSwipe) this.initReaderSwipe();
-            if (this.bindReaderSelection) this.bindReaderSelection();
-            this.showBookshelf();
-            if (window.PhoneEngine && window.PhoneEngine.renderBookshelf) {
-                window.PhoneEngine.renderBookshelf();
-            }
-        }
-    },
-
-    closeReader() {
-        const readerEl = document.getElementById('app-reader');
-        if (readerEl) {
-            readerEl.classList.remove('open');
-            if (window.PhoneEngine && window.PhoneEngine._proactiveTimer) {
-                clearTimeout(window.PhoneEngine._proactiveTimer);
-            }
-        }
-    },
-
-    handleReaderBack() {
-        const readingView = document.getElementById('reader-reading-view');
-        if (readingView && readingView.style.display === 'block') {
-            const readerEl = document.getElementById('app-reader');
-            if (readerEl) readerEl.classList.remove('open');
-            if (window.PhoneEngine && window.PhoneEngine._proactiveTimer) {
-                clearTimeout(window.PhoneEngine._proactiveTimer);
-            }
-            if (window.PhoneUI.switchMomentsTab) {
-                window.PhoneUI.switchMomentsTab('reader');
-            }
-        } else {
-            const readerEl = document.getElementById('app-reader');
-            if (readerEl) readerEl.classList.remove('open');
-        }
-    },
-
-    showBookshelf() {
-        const shelf = document.getElementById('reader-bookshelf-view');
-        const reading = document.getElementById('reader-reading-view');
-        const footer = document.getElementById('reader-footer');
-        const title = document.getElementById('reader-header-title');
-        const btnAdd = document.getElementById('btn-add-book');
-        const btnSet = document.getElementById('btn-reader-settings');
-        
-        if(shelf) shelf.style.display = 'block';
-        if(reading) reading.style.display = 'none';
-        if(footer) footer.style.display = 'none';
-        if(title) title.innerText = "共读书架";
-        if(btnAdd) btnAdd.style.display = 'block';
-        if(btnSet) btnSet.style.display = 'none';
-        
-        if (window.PhoneEngine && window.PhoneEngine._proactiveTimer) {
-            clearTimeout(window.PhoneEngine._proactiveTimer);
-        }
-    },
-
-    showReadingView(titleText) {
-        const readerEl = document.getElementById('app-reader');
-        if (readerEl) readerEl.classList.add('open');
-
-        const shelf = document.getElementById('reader-bookshelf-view');
-        const reading = document.getElementById('reader-reading-view');
-        const footer = document.getElementById('reader-footer');
-        const title = document.getElementById('reader-header-title');
-        const btnAdd = document.getElementById('btn-add-book');
-        const btnSet = document.getElementById('btn-reader-settings');
-        
-        if(shelf) shelf.style.display = 'none';
-        if(reading) reading.style.display = 'block';
-        if(footer) footer.style.display = 'flex';
-        if(title) title.innerText = titleText || "阅读中";
-        if(btnAdd) btnAdd.style.display = 'none';
-        if(btnSet) btnSet.style.display = 'block';
-    },
-
-    initReaderSwipe() {
-        const area = document.getElementById('reader-reading-view');
-        if (!area || this._readerSwipeBound) return;
-        let startX = 0; let startY = 0;
-        area.addEventListener('touchstart', (e) => {
-            if (e.changedTouches[0]) {
-                startX = e.changedTouches[0].screenX;
-                startY = e.changedTouches[0].screenY;
-            }
-        }, { passive: true });
-        area.addEventListener('touchend', (e) => {
-            if (!e.changedTouches[0]) return;
-            const diffX = e.changedTouches[0].screenX - startX;
-            const diffY = e.changedTouches[0].screenY - startY;
-            if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
-                if (diffX > 0) { if (window.PhoneEngine && window.PhoneEngine.prevPage) window.PhoneEngine.prevPage(); } 
-                else { if (window.PhoneEngine && window.PhoneEngine.nextPage) window.PhoneEngine.nextPage(); }
-            }
-        });
-        this._readerSwipeBound = true;
-    },
-
-    bindReaderSelection() {
-        const area = document.getElementById('reader-page-container');
-        const menu = document.getElementById('highlight-menu');
-        if (!area || !menu || this._selectionBound) return;
-        document.addEventListener('selectionchange', () => {
-            const selection = window.getSelection();
-            const readerEl = document.getElementById('app-reader');
-            if (!readerEl || !readerEl.classList.contains('open')) return;
-            if (selection.toString().trim().length > 0 && area.contains(selection.anchorNode)) {
-                menu.style.display = 'flex';
-            } else {
-                menu.style.display = 'none';
-            }
-        });
-        this._selectionBound = true;
     },
 
     renderSettings() {

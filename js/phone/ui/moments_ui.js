@@ -211,6 +211,7 @@ export const MomentsUI = {
             bottomHtml += '</div>';
         }
 
+        // 🌟 移除了 status-panel，界面更加清爽纯粹
         contentEl.innerHTML = `
             <div class="moments-cover" style="position: relative;">
                 <div onclick="window.PhoneUI.triggerCoverUpload()" style="position: absolute; top: 110px; right: 20px; background: rgba(0,0,0,0.4); color: white; padding: 6px 12px; border-radius: 12px; font-size: 12px; cursor: pointer; backdrop-filter: blur(5px); z-index: 10;">
@@ -228,45 +229,7 @@ export const MomentsUI = {
                 </div>
             </div>
             
-            <div style="height: 40px;"></div>
-
-            <div class="status-panel">
-                <div class="status-half">
-                    <div class="status-title"><i class="ph-fill ph-user"></i> ${myName}的状态</div>
-                    <div class="status-item">
-                        <span>心情打卡</span>
-                        <select style="padding: 2px 5px; border-radius: 4px; font-size: 11px; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color);">
-                            <option>☀️ 开心</option>
-                            <option>🌧️ 委屈</option>
-                            <option>💢 生气</option>
-                            <option>🥱 好困</option>
-                        </select>
-                    </div>
-                    <div class="status-item">
-                        <span>🩸 特殊时期</span>
-                        <label class="switch" style="transform: scale(0.7); margin-right: -10px;">
-                            <input type="checkbox">
-                            <span class="slider" style="background-color: #ccc;"></span>
-                        </label>
-                    </div>
-                </div>
-                <div class="status-divider"></div>
-                <div class="status-half">
-                    <div class="status-title"><i class="ph-fill ph-activity"></i> ${taName}的潮汐</div>
-                    <div class="status-item">
-                        <span>当前阶段</span>
-                        <span style="color: #f4a261; font-weight: bold;">[ 蓄积期 ]</span>
-                    </div>
-                    <div class="status-item" title="热度">
-                        <span>🔥</span>
-                        <div class="tide-bar-bg"><div class="tide-bar-fill" style="width: 60%; background: #e76f51;"></div></div>
-                    </div>
-                    <div class="status-item" title="控制力">
-                        <span>🛡️</span>
-                        <div class="tide-bar-bg"><div class="tide-bar-fill" style="width: 40%; background: #2a9d8f;"></div></div>
-                    </div>
-                </div>
-            </div>
+            <div style="height: 20px;"></div>
             
             <div class="moments-menu-bar">
                 <div class="moments-menu-item ${currentTab === 'feed' ? 'active' : ''}" onclick="window.PhoneUI.switchMomentsTab('feed')"><i class="${currentTab === 'feed' ? 'ph-fill' : 'ph'} ph-camera"></i> 朋友圈动态</div>

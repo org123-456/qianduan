@@ -4,7 +4,7 @@ import { DiaryUI } from './ui/diary_ui.js';
 import { MomentsUI } from './ui/moments_ui.js';
 import { ScheduleUI } from './ui/schedule_ui.js';
 
-// 🌟 内置语音通话逻辑（包含动态 UI 注入，无需修改 HTML）
+// 🌟 带有文本兜底的终极语音通话模块
 const CallUI = {
     isCalling: false,
     recognition: null,
@@ -19,7 +19,7 @@ const CallUI = {
             this.recognition.interimResults = false;
 
             this.recognition.onstart = () => {
-                this.updateCallStatus('正在听你说...');
+                this.updateCallStatus('正在听你说...(若无反应请直接打字)');
                 const wave = document.getElementById('call-avatar-wave');
                 if (wave) wave.style.opacity = '0.8';
             };
@@ -34,9 +34,9 @@ const CallUI = {
             this.recognition.onerror = (event) => {
                 console.error("语音识别错误:", event.error);
                 if (event.error === 'not-allowed') {
-                    this.updateCallStatus('麦克风权限被拒绝');
+                    this.updateCallStatus('麦克风被拒，请直接打字');
                 } else if (event.error !== 'no-speech') {
-                    this.updateCallStatus('没听清...');
+                    this.updateCallStatus('语音引擎无响应，请直接打字');
                 }
                 const wave = document.getElementById('call-avatar-wave');
                 if (wave) wave.style.opacity = '0';
@@ -51,7 +51,7 @@ const CallUI = {
                         if (this.isCalling && !this.isAiSpeaking) {
                             try { this.recognition.start(); } catch(e){}
                         }
-                    }, 300);
+                    }, 1000);
                 }
             };
         } else {
@@ -62,16 +62,16 @@ const CallUI = {
     openCallScreen() {
         if (window.PhoneUI) window.PhoneUI.closeChatMenu();
         
-        // 🌟 核心修复：动态创建通话 UI，绝对不依赖 index.html
         let screen = document.getElementById('call-screen');
         if (!screen) {
             screen = document.createElement('div');
             screen.id = 'call-screen';
-            screen.style.cssText = 'position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 60px 20px 40px 20px; opacity: 0; visibility: hidden; transition: 0.3s; overflow: hidden; pointer-events: none;';
+            screen.style.cssText = 'position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 60px 20px 30px 20px; opacity: 0; visibility: hidden; transition: 0.3s; overflow: hidden; pointer-events: none;';
             
+            // 🌟 核心修复：底部加入文本输入框兜底方案
             screen.innerHTML = `
                 <div id="call-bg-blur" style="position: absolute; inset: -20px; background-size: cover; background-position: center; filter: blur(30px) brightness(0.4); z-index: -1;"></div>
-                <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; margin-top: 40px;">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; margin-top: 20px;">
                     <div style="position: relative;">
                         <div id="call-avatar-wave" style="position: absolute; inset: -15px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.5); opacity: 0; transform: scale(0.8); transition: 0.3s;"></div>
                         <img id="call-ta-avatar" src="" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; position: relative; z-index: 2; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
@@ -79,9 +79,14 @@ const CallUI = {
                     <div id="call-ta-name" style="font-size: 24px; font-weight: bold; color: #fff; letter-spacing: 1px;">TA</div>
                     <div id="call-status" style="font-size: 14px; color: rgba(255,255,255,0.6);">正在连接...</div>
                 </div>
-                <div id="call-subtitles" style="flex: 1; width: 100%; margin-top: 40px; margin-bottom: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; padding: 0 10px; scroll-behavior: smooth;"></div>
-                <div style="display: flex; justify-content: center; width: 100%; margin-bottom: 20px;">
-                    <div onclick="window.PhoneUI.endCall()" style="width: 70px; height: 70px; border-radius: 50%; background: #ff4b4b; color: #fff; display: flex; justify-content: center; align-items: center; font-size: 32px; cursor: pointer; box-shadow: 0 10px 25px rgba(255,75,75,0.4); transition: 0.2s;">
+                <div id="call-subtitles" style="flex: 1; width: 100%; margin-top: 30px; margin-bottom: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; padding: 0 5px; scroll-behavior: smooth;"></div>
+                
+                <div style="display: flex; width: 100%; gap: 10px; align-items: center; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 24px; backdrop-filter: blur(10px);">
+                    <input type="text" id="call-text-input" placeholder="语音没反应？在此打字..." style="flex: 1; padding: 10px 15px; border-radius: 18px; border: none; background: rgba(255,255,255,0.15); color: #fff; outline: none; font-size: 14px;" onkeydown="if(event.key==='Enter') window.PhoneUI.sendCallText()">
+                    <div onclick="window.PhoneUI.sendCallText()" style="width: 40px; height: 40px; border-radius: 50%; background: var(--primary-color); color: #fff; display: flex; justify-content: center; align-items: center; font-size: 18px; cursor: pointer; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+                        <i class="ph-fill ph-paper-plane-right"></i>
+                    </div>
+                    <div onclick="window.PhoneUI.endCall()" style="width: 40px; height: 40px; border-radius: 50%; background: #ff4b4b; color: #fff; display: flex; justify-content: center; align-items: center; font-size: 22px; cursor: pointer; flex-shrink: 0; box-shadow: 0 4px 10px rgba(255,75,75,0.3);">
                         <i class="ph-fill ph-phone-disconnect"></i>
                     </div>
                 </div>
@@ -89,9 +94,10 @@ const CallUI = {
                     #call-avatar-wave.active { animation: callPulse 1.5s infinite; }
                     @keyframes callPulse { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(1.5); opacity: 0; } }
                     .call-subtitle-item { padding: 10px 15px; border-radius: 12px; font-size: 15px; line-height: 1.5; max-width: 85%; word-break: break-word; animation: fadeIn 0.3s ease; }
-                    .call-subtitle-item.me { background: rgba(255,255,255,0.1); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+                    .call-subtitle-item.me { background: rgba(255,255,255,0.15); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
                     .call-subtitle-item.ta { background: rgba(255,255,255,0.9); color: #000; align-self: flex-start; border-bottom-left-radius: 4px; }
                     #call-subtitles::-webkit-scrollbar { display: none; }
+                    #call-text-input::placeholder { color: rgba(255,255,255,0.5); }
                 </style>
             `;
             document.body.appendChild(screen);
@@ -106,8 +112,8 @@ const CallUI = {
         document.getElementById('call-ta-avatar').src = taAvatar;
         document.getElementById('call-bg-blur').style.backgroundImage = `url(${taAvatar})`;
         document.getElementById('call-subtitles').innerHTML = '';
+        document.getElementById('call-text-input').value = '';
         
-        // 强制显示 UI
         screen.style.opacity = '1';
         screen.style.visibility = 'visible';
         screen.style.pointerEvents = 'auto';
@@ -128,7 +134,7 @@ const CallUI = {
                     console.log("麦克风已在运行中");
                 }
             } else {
-                this.updateCallStatus('浏览器不支持语音，无法收音');
+                this.updateCallStatus('浏览器不支持语音，请直接打字');
             }
         }, 1500);
     },
@@ -167,6 +173,14 @@ const CallUI = {
         container.scrollTop = container.scrollHeight;
     },
 
+    sendCallText() {
+        const input = document.getElementById('call-text-input');
+        if (!input || !input.value.trim()) return;
+        const text = input.value.trim();
+        input.value = '';
+        this.handleUserVoiceInput(text);
+    },
+
     async handleUserVoiceInput(text) {
         if (!this.isCalling) return;
         
@@ -185,12 +199,13 @@ const CallUI = {
         
         chatItems.push({ sender: 'me', content: `📞 [语音通话]: ${text}`, time: timeStr, date: dateStr });
         if (window.PhoneUI) window.PhoneUI.renderAppContent('wechat');
+        window.localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
 
         try {
             const systemPrompt = localStorage.getItem('system_prompt') || '';
             const charPersona = localStorage.getItem('char_persona') || '';
             
-            let stablePrompt = `【系统状态】：你现在正在和用户打“语音电话”。\n【要求】：请保持你的人设，用自然、口语化的简短语言回复，就像真人在通电话一样，不要发表情包和动作描写。\n\n`;
+            let stablePrompt = `【系统状态】：你现在正在和用户打“语音电话”。\n【要求】：请保持你的人设，用自然、口语化的简短语言回复，就像真人在通电话一样，绝对不要发表情包和动作描写。\n\n`;
             if (systemPrompt) stablePrompt += `【系统核心指令】：\n${systemPrompt}\n\n`;
             if (charPersona) stablePrompt += `【角色设定】：\n${charPersona}\n\n`;
 
@@ -232,6 +247,7 @@ const CallUI = {
 
             utterance.onerror = () => {
                 this.isAiSpeaking = false;
+                this.updateCallStatus('已接通');
                 if (this.recognition) {
                     try { this.recognition.start(); } catch(e){}
                 }
@@ -708,6 +724,20 @@ export const PhoneUI = {
         } else if (appId === 'settings') {
             this.renderSettings();
         }
+    },
+
+    closeApp() {
+        const winEl = document.getElementById('app-window');
+        const contentEl = document.getElementById('app-window-content');
+        if (winEl) { winEl.classList.remove('open'); winEl.classList.remove('fullscreen-mode'); }
+        if (contentEl) {
+            contentEl.style.padding = '20px';
+            contentEl.style.display = 'block';
+            contentEl.style.flexDirection = 'row';
+            contentEl.style.overflow = 'auto';
+            contentEl.style.height = 'auto';
+        }
+        if (window.Config) window.Config.currentAppId = 'wechat';
     },
 
     renderSettings() {

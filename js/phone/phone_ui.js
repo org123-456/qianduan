@@ -96,6 +96,8 @@ export const PhoneUI = {
                 const elements = document.querySelectorAll('[data-img]');
                 for (const el of elements) {
                     const key = el.dataset.img;
+                    
+                    // 优先读取 localStorage 里的 Base64 头像数据
                     if (key === 'my_avatar' || key === 'ta_avatar') {
                         const b64 = localStorage.getItem(key);
                         if (b64) {
@@ -103,6 +105,7 @@ export const PhoneUI = {
                             continue;
                         }
                     }
+
                     try {
                         const blob = await window.PhoneAPI.LocalDB.get(key);
                         if (blob) {
@@ -185,6 +188,7 @@ export const PhoneUI = {
         }
     },
 
+    // 🌟 设置界面专属的点击换头像方法
     triggerAvatarUpload(key) {
         let fileInput = document.getElementById('settings-avatar-input');
         if (!fileInput) {
@@ -206,13 +210,18 @@ export const PhoneUI = {
             reader.onload = (event) => {
                 const base64Str = event.target.result;
                 localStorage.setItem(key, base64Str);
+                
+                // 更新页面上所有使用了这个头像的地方
                 const allTargetEls = document.querySelectorAll(`[data-img="${key}"]`);
                 allTargetEls.forEach(el => {
                     if (el.tagName.toLowerCase() === 'img') el.src = base64Str;
                 });
+                
+                // 更新预览图
                 const previewId = key === 'my_avatar' ? 'set-my-avatar' : 'set-ta-avatar';
                 const preview = document.getElementById(previewId);
                 if(preview) preview.src = base64Str;
+                
                 if (window.PhoneAPI) window.PhoneAPI.showToast('✨ 头像更换成功！');
             };
             reader.readAsDataURL(f);
@@ -461,6 +470,20 @@ export const PhoneUI = {
         } else if (appId === 'settings') {
             this.renderSettings();
         }
+    },
+
+    closeApp() {
+        const winEl = document.getElementById('app-window');
+        const contentEl = document.getElementById('app-window-content');
+        if (winEl) { winEl.classList.remove('open'); winEl.classList.remove('fullscreen-mode'); }
+        if (contentEl) {
+            contentEl.style.padding = '20px';
+            contentEl.style.display = 'block';
+            contentEl.style.flexDirection = 'row';
+            contentEl.style.overflow = 'auto';
+            contentEl.style.height = 'auto';
+        }
+        if (window.Config) window.Config.currentAppId = 'wechat';
     },
 
     renderSettings() {

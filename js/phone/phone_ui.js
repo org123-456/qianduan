@@ -282,20 +282,25 @@ export const PhoneUI = {
 
             this.renderCountdown();
 
-            const polaroidText = document.getElementById('polaroid-text');
+            let polaroidText = document.getElementById('polaroid-text');
             if (polaroidText) {
-                // 🌟 核心修复：给拍立得文字加上最高层级和霸体点击，防止被长按拦截
+                // 🌟 核心修复：克隆节点以清除旧的长按绑定，强制监听 touchend 和 click
+                const newText = polaroidText.cloneNode(true);
+                polaroidText.parentNode.replaceChild(newText, polaroidText);
+                polaroidText = newText;
+
                 polaroidText.style.pointerEvents = 'auto';
                 polaroidText.style.position = 'relative';
                 polaroidText.style.zIndex = '100';
                 
-                polaroidText.onclick = (e) => {
+                const triggerEdit = (e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     window.PhoneUI.editPolaroidText();
                 };
-                polaroidText.ontouchstart = (e) => { e.stopPropagation(); };
-                polaroidText.onmousedown = (e) => { e.stopPropagation(); };
+
+                polaroidText.addEventListener('click', triggerEdit);
+                polaroidText.addEventListener('touchend', triggerEdit);
 
                 const customText = localStorage.getItem('polaroid_custom_text');
                 if (customText) {
@@ -708,24 +713,28 @@ export const PhoneUI = {
         if (window.Config) window.Config.currentAppId = 'wechat';
     },
 
-    // 🌟 核心修复：自动打开全屏阅读器
-    showReadingView(titleText) {
+    // 🌟 补回阅读器逻辑
+    openReader() {
         const readerEl = document.getElementById('app-reader');
-        if (readerEl) readerEl.classList.add('open'); // 确保全屏弹窗打开
+        if (readerEl) {
+            readerEl.classList.add('open');
+            if (this.initReaderSwipe) this.initReaderSwipe();
+            if (this.bindReaderSelection) this.bindReaderSelection();
+            this.showBookshelf();
+            if (window.PhoneEngine && window.PhoneEngine.renderBookshelf) {
+                window.PhoneEngine.renderBookshelf();
+            }
+        }
+    },
 
-        const shelf = document.getElementById('reader-bookshelf-view');
-        const reading = document.getElementById('reader-reading-view');
-        const footer = document.getElementById('reader-footer');
-        const title = document.getElementById('reader-header-title');
-        const btnAdd = document.getElementById('btn-add-book');
-        const btnSet = document.getElementById('btn-reader-settings');
-        
-        if(shelf) shelf.style.display = 'none';
-        if(reading) reading.style.display = 'block';
-        if(footer) footer.style.display = 'flex';
-        if(title) title.innerText = titleText || "阅读中";
-        if(btnAdd) btnAdd.style.display = 'none';
-        if(btnSet) btnSet.style.display = 'block';
+    closeReader() {
+        const readerEl = document.getElementById('app-reader');
+        if (readerEl) {
+            readerEl.classList.remove('open');
+            if (window.PhoneEngine && window.PhoneEngine._proactiveTimer) {
+                clearTimeout(window.PhoneEngine._proactiveTimer);
+            }
+        }
     },
 
     handleReaderBack() {
@@ -743,6 +752,45 @@ export const PhoneUI = {
             const readerEl = document.getElementById('app-reader');
             if (readerEl) readerEl.classList.remove('open');
         }
+    },
+
+    showBookshelf() {
+        const shelf = document.getElementById('reader-bookshelf-view');
+        const reading = document.getElementById('reader-reading-view');
+        const footer = document.getElementById('reader-footer');
+        const title = document.getElementById('reader-header-title');
+        const btnAdd = document.getElementById('btn-add-book');
+        const btnSet = document.getElementById('btn-reader-settings');
+        
+        if(shelf) shelf.style.display = 'block';
+        if(reading) reading.style.display = 'none';
+        if(footer) footer.style.display = 'none';
+        if(title) title.innerText = "共读书架";
+        if(btnAdd) btnAdd.style.display = 'block';
+        if(btnSet) btnSet.style.display = 'none';
+        
+        if (window.PhoneEngine && window.PhoneEngine._proactiveTimer) {
+            clearTimeout(window.PhoneEngine._proactiveTimer);
+        }
+    },
+
+    showReadingView(titleText) {
+        const readerEl = document.getElementById('app-reader');
+        if (readerEl) readerEl.classList.add('open');
+
+        const shelf = document.getElementById('reader-bookshelf-view');
+        const reading = document.getElementById('reader-reading-view');
+        const footer = document.getElementById('reader-footer');
+        const title = document.getElementById('reader-header-title');
+        const btnAdd = document.getElementById('btn-add-book');
+        const btnSet = document.getElementById('btn-reader-settings');
+        
+        if(shelf) shelf.style.display = 'none';
+        if(reading) reading.style.display = 'block';
+        if(footer) footer.style.display = 'flex';
+        if(title) title.innerText = titleText || "阅读中";
+        if(btnAdd) btnAdd.style.display = 'none';
+        if(btnSet) btnSet.style.display = 'block';
     },
 
     initReaderSwipe() {

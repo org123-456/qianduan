@@ -243,7 +243,6 @@ export const PhoneUI = {
         });
     },
 
-    // 🌟 拍立得自定义文字核心逻辑
     async editPolaroidText() {
         const current = localStorage.getItem('polaroid_custom_text') || '';
         const text = await this.showCustomPrompt('给这张照片写句寄语吧：', current);
@@ -285,13 +284,19 @@ export const PhoneUI = {
 
             const polaroidText = document.getElementById('polaroid-text');
             if (polaroidText) {
-                // 绑定点击事件
+                // 🌟 核心修复：给拍立得文字加上最高层级和霸体点击，防止被长按拦截
+                polaroidText.style.pointerEvents = 'auto';
+                polaroidText.style.position = 'relative';
+                polaroidText.style.zIndex = '100';
+                
                 polaroidText.onclick = (e) => {
-                    e.stopPropagation(); // 防止触发长按换图
+                    e.preventDefault();
+                    e.stopPropagation();
                     window.PhoneUI.editPolaroidText();
                 };
+                polaroidText.ontouchstart = (e) => { e.stopPropagation(); };
+                polaroidText.onmousedown = (e) => { e.stopPropagation(); };
 
-                // 优先读取用户自定义的句子
                 const customText = localStorage.getItem('polaroid_custom_text');
                 if (customText) {
                     polaroidText.innerText = `“${customText}”`;
@@ -703,11 +708,29 @@ export const PhoneUI = {
         if (window.Config) window.Config.currentAppId = 'wechat';
     },
 
-    // 🌟 修复阅读器返回逻辑（回到书架 Tab）
+    // 🌟 核心修复：自动打开全屏阅读器
+    showReadingView(titleText) {
+        const readerEl = document.getElementById('app-reader');
+        if (readerEl) readerEl.classList.add('open'); // 确保全屏弹窗打开
+
+        const shelf = document.getElementById('reader-bookshelf-view');
+        const reading = document.getElementById('reader-reading-view');
+        const footer = document.getElementById('reader-footer');
+        const title = document.getElementById('reader-header-title');
+        const btnAdd = document.getElementById('btn-add-book');
+        const btnSet = document.getElementById('btn-reader-settings');
+        
+        if(shelf) shelf.style.display = 'none';
+        if(reading) reading.style.display = 'block';
+        if(footer) footer.style.display = 'flex';
+        if(title) title.innerText = titleText || "阅读中";
+        if(btnAdd) btnAdd.style.display = 'none';
+        if(btnSet) btnSet.style.display = 'block';
+    },
+
     handleReaderBack() {
         const readingView = document.getElementById('reader-reading-view');
         if (readingView && readingView.style.display === 'block') {
-            // 如果在阅读界面，点击返回关闭全屏，回到 Space 的书架 Tab
             const readerEl = document.getElementById('app-reader');
             if (readerEl) readerEl.classList.remove('open');
             if (window.PhoneEngine && window.PhoneEngine._proactiveTimer) {
@@ -720,6 +743,45 @@ export const PhoneUI = {
             const readerEl = document.getElementById('app-reader');
             if (readerEl) readerEl.classList.remove('open');
         }
+    },
+
+    initReaderSwipe() {
+        const area = document.getElementById('reader-reading-view');
+        if (!area || this._readerSwipeBound) return;
+        let startX = 0; let startY = 0;
+        area.addEventListener('touchstart', (e) => {
+            if (e.changedTouches[0]) {
+                startX = e.changedTouches[0].screenX;
+                startY = e.changedTouches[0].screenY;
+            }
+        }, { passive: true });
+        area.addEventListener('touchend', (e) => {
+            if (!e.changedTouches[0]) return;
+            const diffX = e.changedTouches[0].screenX - startX;
+            const diffY = e.changedTouches[0].screenY - startY;
+            if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
+                if (diffX > 0) { if (window.PhoneEngine && window.PhoneEngine.prevPage) window.PhoneEngine.prevPage(); } 
+                else { if (window.PhoneEngine && window.PhoneEngine.nextPage) window.PhoneEngine.nextPage(); }
+            }
+        });
+        this._readerSwipeBound = true;
+    },
+
+    bindReaderSelection() {
+        const area = document.getElementById('reader-page-container');
+        const menu = document.getElementById('highlight-menu');
+        if (!area || !menu || this._selectionBound) return;
+        document.addEventListener('selectionchange', () => {
+            const selection = window.getSelection();
+            const readerEl = document.getElementById('app-reader');
+            if (!readerEl || !readerEl.classList.contains('open')) return;
+            if (selection.toString().trim().length > 0 && area.contains(selection.anchorNode)) {
+                menu.style.display = 'flex';
+            } else {
+                menu.style.display = 'none';
+            }
+        });
+        this._selectionBound = true;
     },
 
     renderSettings() {

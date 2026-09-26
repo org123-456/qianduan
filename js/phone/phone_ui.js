@@ -94,6 +94,16 @@ export const PhoneUI = {
                 const elements = document.querySelectorAll('[data-img]');
                 for (const el of elements) {
                     const key = el.dataset.img;
+                    
+                    // 🌟 优先读取 localStorage 里的 Base64 头像数据
+                    if (key === 'my_avatar' || key === 'ta_avatar') {
+                        const b64 = localStorage.getItem(key);
+                        if (b64) {
+                            if (el.tagName.toLowerCase() === 'img') el.src = b64;
+                            continue;
+                        }
+                    }
+
                     try {
                         const blob = await window.PhoneAPI.LocalDB.get(key);
                         if (blob) {
@@ -119,8 +129,6 @@ export const PhoneUI = {
 
         elements.forEach(el => {
             const key = el.dataset.img;
-            
-            // 防止重复绑定
             if (el.dataset.bound) return;
             el.dataset.bound = "true";
 
@@ -156,7 +164,6 @@ export const PhoneUI = {
                     await window.PhoneAPI.LocalDB.set(pendingKey, blob);
                     const url = window.PhoneAPI.LocalDB.urlOf(pendingKey, blob);
                     
-                    // 更新页面上所有使用了这个 key 的图片
                     const allTargetEls = document.querySelectorAll(`[data-img="${pendingKey}"]`);
                     allTargetEls.forEach(targetEl => {
                         if (targetEl.tagName.toLowerCase() === 'img') {
@@ -178,6 +185,50 @@ export const PhoneUI = {
                 pendingKey = null; pendingEl = null;
             });
         }
+    },
+
+    // 🌟 专门为设置界面写的强制点击换头像方法
+    triggerAvatarUpload(key) {
+        let fileInput = document.getElementById('settings-avatar-input');
+        if (!fileInput) {
+            fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.id = 'settings-avatar-input';
+            fileInput.accept = 'image/*';
+            fileInput.style.display = 'none';
+            document.body.appendChild(fileInput);
+        }
+        
+        fileInput.onchange = (e) => {
+            const f = e.target.files && e.target.files[0];
+            fileInput.value = '';
+            if (!f) return;
+            if (window.PhoneAPI) window.PhoneAPI.showToast('图片处理中...');
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const base64Str = event.target.result;
+                
+                // 1. 永久保存到 localStorage
+                localStorage.setItem(key, base64Str);
+                
+                // 2. 更新页面上所有使用了这个头像的地方
+                const allTargetEls = document.querySelectorAll(`[data-img="${key}"]`);
+                allTargetEls.forEach(el => {
+                    if (el.tagName.toLowerCase() === 'img') el.src = base64Str;
+                });
+                
+                // 3. 更新设置里的预览图
+                const previewId = key === 'my_avatar' ? 'set-my-avatar' : 'set-ta-avatar';
+                const preview = document.getElementById(previewId);
+                if(preview) preview.src = base64Str;
+
+                if (window.PhoneAPI) window.PhoneAPI.showToast('✨ 头像更换成功！');
+            };
+            reader.readAsDataURL(f); // 转换为 Base64 字符串
+        };
+        
+        fileInput.click();
     },
 
     renderCountdown() {
@@ -423,20 +474,6 @@ export const PhoneUI = {
         }
     },
 
-    closeApp() {
-        const winEl = document.getElementById('app-window');
-        const contentEl = document.getElementById('app-window-content');
-        if (winEl) { winEl.classList.remove('open'); winEl.classList.remove('fullscreen-mode'); }
-        if (contentEl) {
-            contentEl.style.padding = '20px';
-            contentEl.style.display = 'block';
-            contentEl.style.flexDirection = 'row';
-            contentEl.style.overflow = 'auto';
-            contentEl.style.height = 'auto';
-        }
-        if (window.Config) window.Config.currentAppId = 'wechat';
-    },
-
     renderSettings() {
         const contentEl = document.getElementById('app-window-content');
         if (!contentEl) return;
@@ -461,13 +498,13 @@ export const PhoneUI = {
         
         <div style="display:flex; justify-content:space-around; align-items:center; margin-bottom:20px; background: var(--icon-bg); padding: 15px; border-radius: 16px; border: 1px dashed var(--border-color);">
             <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
-                <img id="set-my-avatar" class="long-pressable" data-img="my_avatar" src="${myAvatar}" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid var(--border-color); cursor:pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-                <span style="font-size:11px; color:var(--text-sub); font-weight:bold;">长按换图</span>
+                <img id="set-my-avatar" src="${myAvatar}" onclick="window.PhoneUI.triggerAvatarUpload('my_avatar')" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid var(--border-color); cursor:pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                <span style="font-size:11px; color:var(--text-sub); font-weight:bold;">点击换图</span>
             </div>
             <i class="ph-fill ph-arrows-left-right" style="color:var(--border-color); font-size:24px;"></i>
             <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
-                <img id="set-ta-avatar" class="long-pressable" data-img="ta_avatar" src="${taAvatar}" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid var(--border-color); cursor:pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-                <span style="font-size:11px; color:var(--text-sub); font-weight:bold;">长按换图</span>
+                <img id="set-ta-avatar" src="${taAvatar}" onclick="window.PhoneUI.triggerAvatarUpload('ta_avatar')" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid var(--border-color); cursor:pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                <span style="font-size:11px; color:var(--text-sub); font-weight:bold;">点击换图</span>
             </div>
         </div>
 
@@ -559,9 +596,7 @@ export const PhoneUI = {
         `;
 
         setTimeout(() => {
-            // 确保设置界面的长按换图事件被绑定
             this.bindLongPresses();
-            
             if (window.PhoneAPI) {
                 if (window.PhoneAPI.loadSettings) window.PhoneAPI.loadSettings();
                 if (window.PhoneAPI.refreshPresetDropdowns) window.PhoneAPI.refreshPresetDropdowns();

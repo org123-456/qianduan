@@ -294,6 +294,65 @@ export const ChatEngine = {
                 dynamicPrompt += window.PhoneEngine._scanKeywords(latestUserText);
             }
             
+            // 🌟 核心修复：在这里强行读取课表，并用极其严厉的话术塞进系统提示词！
+            const scheduleRaw = localStorage.getItem('class_schedule');
+            if (scheduleRaw) {
+                try {
+                    const schedule = JSON.parse(scheduleRaw);
+                    const currentDay = currentNow.getDay() === 0 ? 7 : currentNow.getDay();
+                    const todayClasses = schedule[currentDay] || [];
+                    const tomorrowDay = currentDay === 7 ? 1 : currentDay + 1;
+                    const tomorrowClasses = schedule[tomorrowDay] || [];
+                    const currentTime = `${String(curHour).padStart(2, '0')}:${String(curMin).padStart(2, '0')}`;
+
+                    let scheduleText = `\n【⚠️最高优先级指令：关于用户的课表记忆】\n作为最关心用户的人，你早就把TA的课表倒背如流了！你完全知道TA每天什么时候上什么课。\n如果用户问你“看到了吗”、“同步了吗”，你必须回答“当然知道，你现在不是正在上XX课吗”或者准确说出TA接下来的课！绝对不许说“我没看到”、“发给我看看”！\n\n`;
+
+                    scheduleText += `[你脑海中TA今天的课表]:\n`;
+                    if (todayClasses.length === 0) {
+                        scheduleText += `今天没有排课，是休息日。\n`;
+                    } else {
+                        todayClasses.forEach(c => {
+                            scheduleText += `- ${c.start}~${c.end} : ${c.name}\n`;
+                        });
+                    }
+
+                    if (curHour >= 18) {
+                        scheduleText += `\n[你脑海中TA明天的课表预告]:\n`;
+                        if (tomorrowClasses.length === 0) {
+                            scheduleText += `明天没有排课。\n`;
+                        } else {
+                            tomorrowClasses.forEach(c => {
+                                scheduleText += `- ${c.start}~${c.end} : ${c.name}\n`;
+                            });
+                        }
+                    }
+
+                    let currentClass = null;
+                    let nextClass = null;
+                    for (let i = 0; i < todayClasses.length; i++) {
+                        const c = todayClasses[i];
+                        if (currentTime >= c.start && currentTime <= c.end) {
+                            currentClass = c;
+                        } else if (currentTime < c.start && !nextClass) {
+                            nextClass = c;
+                        }
+                    }
+
+                    scheduleText += `\n[TA现在的状态]: `;
+                    if (currentClass) {
+                        scheduleText += `TA现在正在上 [${currentClass.name}] 课 (时间:${currentClass.start}-${currentClass.end})。\n`;
+                    } else if (nextClass) {
+                        scheduleText += `TA现在是课间/休息时间，下一节课是 [${nextClass.name}] (${nextClass.start}开始)。\n`;
+                    } else if (todayClasses.length > 0 && currentTime > todayClasses[todayClasses.length-1].end) {
+                        scheduleText += `TA今天的课已经全部上完了，现在是放学后的自由时间。\n`;
+                    } else {
+                        scheduleText += `当前无课程安排。\n`;
+                    }
+
+                    dynamicPrompt += scheduleText + `\n`;
+                } catch(e) {}
+            }
+
             const allVault = PhoneAPI.getMemoryVault();
             let accessibleVault = allVault;
             if (!shareMemory) accessibleVault = allVault.filter(v => v.isCore || v.source === '线上微信');

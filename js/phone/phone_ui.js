@@ -4,7 +4,6 @@ import { DiaryUI } from './ui/diary_ui.js';
 import { MomentsUI } from './ui/moments_ui.js';
 import { ScheduleUI } from './ui/schedule_ui.js';
 
-// 🌟 内置带文本兜底的语音通话模块
 const CallUI = {
     isCalling: false,
     recognition: null,
@@ -212,12 +211,11 @@ const CallUI = {
     }
 };
 
-// 🌟 核心调度主控 PhoneUI
 export const PhoneUI = {
     ...ChatUI,
     ...MemoryUI,
     ...DiaryUI,
-    ...MomentsUI, // 完美引入你刚刚写好的 MomentsUI
+    ...MomentsUI,
     ...ScheduleUI,
     ...CallUI,
     
@@ -243,6 +241,16 @@ export const PhoneUI = {
             if (index === pageIndex) dot.classList.add('active');
             else dot.classList.remove('active');
         });
+    },
+
+    // 🌟 拍立得自定义文字核心逻辑
+    async editPolaroidText() {
+        const current = localStorage.getItem('polaroid_custom_text') || '';
+        const text = await this.showCustomPrompt('给这张照片写句寄语吧：', current);
+        if (text !== null) {
+            localStorage.setItem('polaroid_custom_text', text.trim());
+            this.updateHomeWidget();
+        }
     },
 
     async updateHomeWidget() {
@@ -276,25 +284,37 @@ export const PhoneUI = {
             this.renderCountdown();
 
             const polaroidText = document.getElementById('polaroid-text');
-            if (polaroidText && window.PhoneAPI && window.PhoneAPI.EchoVault) {
-                try {
-                    const evData = window.PhoneAPI.EchoVault.getData();
-                    const dates = Object.keys(evData.daily).sort((a, b) => new Date(b) - new Date(a));
-                    let foundText = false;
-                    for (let date of dates) {
-                        if (evData.daily[date] && evData.daily[date].content) {
-                            let text = evData.daily[date].content.replace(/---/g, '').trim();
-                            if (text) {
-                                if (text.length > 35) text = text.substring(0, 35) + '...';
-                                polaroidText.innerText = `“${text}”`;
-                                foundText = true;
-                                break;
+            if (polaroidText) {
+                // 绑定点击事件
+                polaroidText.onclick = (e) => {
+                    e.stopPropagation(); // 防止触发长按换图
+                    window.PhoneUI.editPolaroidText();
+                };
+
+                // 优先读取用户自定义的句子
+                const customText = localStorage.getItem('polaroid_custom_text');
+                if (customText) {
+                    polaroidText.innerText = `“${customText}”`;
+                } else if (window.PhoneAPI && window.PhoneAPI.EchoVault) {
+                    try {
+                        const evData = window.PhoneAPI.EchoVault.getData();
+                        const dates = Object.keys(evData.daily).sort((a, b) => new Date(b) - new Date(a));
+                        let foundText = false;
+                        for (let date of dates) {
+                            if (evData.daily[date] && evData.daily[date].content) {
+                                let text = evData.daily[date].content.replace(/---/g, '').trim();
+                                if (text) {
+                                    if (text.length > 35) text = text.substring(0, 35) + '...';
+                                    polaroidText.innerText = `“${text}”`;
+                                    foundText = true;
+                                    break;
+                                }
                             }
                         }
+                        if (!foundText) polaroidText.innerText = "“我们的故事才刚刚开始...”";
+                    } catch(e) {
+                        polaroidText.innerText = "“我们的故事才刚刚开始...”";
                     }
-                    if (!foundText) polaroidText.innerText = "“我们的故事才刚刚开始...”";
-                } catch(e) {
-                    polaroidText.innerText = "“我们的故事才刚刚开始...”";
                 }
             }
 
@@ -683,115 +703,23 @@ export const PhoneUI = {
         if (window.Config) window.Config.currentAppId = 'wechat';
     },
 
-    // 🌟 完美保留阅读器核心逻辑
-    openReader() {
-        const readerEl = document.getElementById('app-reader');
-        if (readerEl) {
-            readerEl.classList.add('open');
-            if (this.initReaderSwipe) this.initReaderSwipe();
-            if (this.bindReaderSelection) this.bindReaderSelection();
-            this.showBookshelf();
-            if (window.PhoneEngine && window.PhoneEngine.renderBookshelf) {
-                window.PhoneEngine.renderBookshelf();
-            }
-        }
-    },
-
-    closeReader() {
-        const readerEl = document.getElementById('app-reader');
-        if (readerEl) {
-            readerEl.classList.remove('open');
-            if (window.PhoneEngine && window.PhoneEngine._proactiveTimer) {
-                clearTimeout(window.PhoneEngine._proactiveTimer);
-            }
-        }
-    },
-
+    // 🌟 修复阅读器返回逻辑（回到书架 Tab）
     handleReaderBack() {
         const readingView = document.getElementById('reader-reading-view');
         if (readingView && readingView.style.display === 'block') {
-            this.showBookshelf();
+            // 如果在阅读界面，点击返回关闭全屏，回到 Space 的书架 Tab
+            const readerEl = document.getElementById('app-reader');
+            if (readerEl) readerEl.classList.remove('open');
             if (window.PhoneEngine && window.PhoneEngine._proactiveTimer) {
                 clearTimeout(window.PhoneEngine._proactiveTimer);
             }
+            if (window.PhoneUI.switchMomentsTab) {
+                window.PhoneUI.switchMomentsTab('reader');
+            }
         } else {
-            this.closeReader();
-        }
-    },
-
-    showBookshelf() {
-        const shelf = document.getElementById('reader-bookshelf-view');
-        const reading = document.getElementById('reader-reading-view');
-        const footer = document.getElementById('reader-footer');
-        const title = document.getElementById('reader-header-title');
-        const btnAdd = document.getElementById('btn-add-book');
-        const btnSet = document.getElementById('btn-reader-settings');
-        
-        if(shelf) shelf.style.display = 'block';
-        if(reading) reading.style.display = 'none';
-        if(footer) footer.style.display = 'none';
-        if(title) title.innerText = "共读书架";
-        if(btnAdd) btnAdd.style.display = 'block';
-        if(btnSet) btnSet.style.display = 'none';
-        
-        if (window.PhoneEngine && window.PhoneEngine._proactiveTimer) {
-            clearTimeout(window.PhoneEngine._proactiveTimer);
-        }
-    },
-
-    showReadingView(titleText) {
-        const shelf = document.getElementById('reader-bookshelf-view');
-        const reading = document.getElementById('reader-reading-view');
-        const footer = document.getElementById('reader-footer');
-        const title = document.getElementById('reader-header-title');
-        const btnAdd = document.getElementById('btn-add-book');
-        const btnSet = document.getElementById('btn-reader-settings');
-        
-        if(shelf) shelf.style.display = 'none';
-        if(reading) reading.style.display = 'block';
-        if(footer) footer.style.display = 'flex';
-        if(title) title.innerText = titleText || "阅读中";
-        if(btnAdd) btnAdd.style.display = 'none';
-        if(btnSet) btnSet.style.display = 'block';
-    },
-
-    initReaderSwipe() {
-        const area = document.getElementById('reader-reading-view');
-        if (!area || this._readerSwipeBound) return;
-        let startX = 0; let startY = 0;
-        area.addEventListener('touchstart', (e) => {
-            if (e.changedTouches[0]) {
-                startX = e.changedTouches[0].screenX;
-                startY = e.changedTouches[0].screenY;
-            }
-        }, { passive: true });
-        area.addEventListener('touchend', (e) => {
-            if (!e.changedTouches[0]) return;
-            const diffX = e.changedTouches[0].screenX - startX;
-            const diffY = e.changedTouches[0].screenY - startY;
-            if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
-                if (diffX > 0) { if (window.PhoneEngine && window.PhoneEngine.prevPage) window.PhoneEngine.prevPage(); } 
-                else { if (window.PhoneEngine && window.PhoneEngine.nextPage) window.PhoneEngine.nextPage(); }
-            }
-        });
-        this._readerSwipeBound = true;
-    },
-
-    bindReaderSelection() {
-        const area = document.getElementById('reader-page-container');
-        const menu = document.getElementById('highlight-menu');
-        if (!area || !menu || this._selectionBound) return;
-        document.addEventListener('selectionchange', () => {
-            const selection = window.getSelection();
             const readerEl = document.getElementById('app-reader');
-            if (!readerEl || !readerEl.classList.contains('open')) return;
-            if (selection.toString().trim().length > 0 && area.contains(selection.anchorNode)) {
-                menu.style.display = 'flex';
-            } else {
-                menu.style.display = 'none';
-            }
-        });
-        this._selectionBound = true;
+            if (readerEl) readerEl.classList.remove('open');
+        }
     },
 
     renderSettings() {

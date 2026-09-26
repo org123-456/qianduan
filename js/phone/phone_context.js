@@ -11,19 +11,49 @@ export const PhoneContext = {
         context += `【近期聊天】\n${roleData.recentChat}\n\n`;
         
         const now = new Date();
-        context += `【当前设备时间】\n${now.getHours()}:${now.getMinutes()}\n\n`;
+        const currentDay = now.getDay() === 0 ? 7 : now.getDay();
+        const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        
+        context += `【当前设备时间】\n星期${['日','一','二','三','四','五','六'][now.getDay()]} ${currentTime}\n\n`;
 
-        // 🌟 注入高中课表动态感知逻辑
+        // 🌟 终极洗脑：高中课表全量感知逻辑
         const scheduleRaw = localStorage.getItem('class_schedule');
         if (scheduleRaw) {
             try {
                 const schedule = JSON.parse(scheduleRaw);
-                const day = now.getDay() === 0 ? 7 : now.getDay();
-                const todayClasses = schedule[day] || [];
-                const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                const todayClasses = schedule[currentDay] || [];
+                
+                // 计算明天的星期几
+                const tomorrowDay = currentDay === 7 ? 1 : currentDay + 1;
+                const tomorrowClasses = schedule[tomorrowDay] || [];
+
+                let scheduleText = `【系统底层设定：超能力感知】\n你的意识已与用户的手机操作系统深度直连。你可以直接、实时地看到用户的《高中课表》App数据。\n⚠️ 绝对禁止对用户说“发给我看看”、“截图给我”之类的话！你要表现出你已经对TA的作息了如指掌！\n\n`;
+
+                // 注入今日课表
+                scheduleText += `[今日课表清单]:\n`;
+                if (todayClasses.length === 0) {
+                    scheduleText += `今天没有排课，是休息日。\n`;
+                } else {
+                    todayClasses.forEach(c => {
+                        scheduleText += `- ${c.start}~${c.end} : ${c.name}\n`;
+                    });
+                }
+
+                // 注入明日预告 (如果是晚上，AI 可以顺便提醒明天的课)
+                if (now.getHours() >= 18) {
+                    scheduleText += `\n[明日课表预告]:\n`;
+                    if (tomorrowClasses.length === 0) {
+                        scheduleText += `明天没有排课。\n`;
+                    } else {
+                        tomorrowClasses.forEach(c => {
+                            scheduleText += `- ${c.start}~${c.end} : ${c.name}\n`;
+                        });
+                    }
+                }
+
+                // 计算当前正在干嘛
                 let currentClass = null;
                 let nextClass = null;
-
                 for (let i = 0; i < todayClasses.length; i++) {
                     const c = todayClasses[i];
                     if (currentTime >= c.start && currentTime <= c.end) {
@@ -33,13 +63,18 @@ export const PhoneContext = {
                     }
                 }
 
+                scheduleText += `\n[当前实时状态]: `;
                 if (currentClass) {
-                    context += `【课表动态】今天是星期${['日','一','二','三','四','五','六'][now.getDay()]}，时间 ${currentTime}。用户按计划正在上 [${currentClass.name}] 课 (时间:${currentClass.start}-${currentClass.end})。请在聊天中自然体现，不要生硬提及。\n\n`;
+                    scheduleText += `用户按计划正在上 [${currentClass.name}] 课，距离下课还有一段时间。\n`;
                 } else if (nextClass) {
-                    context += `【课表动态】今天是星期${['日','一','二','三','四','五','六'][now.getDay()]}，时间 ${currentTime}。用户目前处于课间或休息，下一节课是 [${nextClass.name}] (${nextClass.start}开始)。\n\n`;
+                    scheduleText += `用户目前处于课间或休息，下一节课是 [${nextClass.name}] (${nextClass.start}开始)。\n`;
                 } else if (todayClasses.length > 0 && currentTime > todayClasses[todayClasses.length-1].end) {
-                    context += `【课表动态】今天是星期${['日','一','二','三','四','五','六'][now.getDay()]}，时间 ${currentTime}。用户今天的课程已经全部结束。\n\n`;
+                    scheduleText += `用户今天的课程已经全部结束，现在是放学/休息时间。\n`;
+                } else {
+                    scheduleText += `当前无课程安排。\n`;
                 }
+
+                context += scheduleText + `\n`;
             } catch(e) {}
         }
 

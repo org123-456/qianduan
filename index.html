@@ -92,12 +92,14 @@
 
     <div class="page-container" id="scroll-box">
         
-        <!-- 首页 (已改造为滑动翻页) -->
+        <!-- 首页 (已改造为滑动翻页 + 单屏不滚动) -->
         <div id="page-home" class="page" style="padding: 85px 0 0 0; overflow: hidden;">
             <div class="home-slider" id="home-slider" onscroll="window.PhoneUI.updateHomeDots()">
-                <!-- 第一页：小组件 -->
+                
+                <!-- 第一页：数据仪表盘 (无上下滚动) -->
                 <div class="home-screen-page">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <!-- 恋爱天数 + 日历 -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                         <div class="neo-card" style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px 10px;">
                             <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 12px;">
                                 <img id="home-my-avatar" class="long-pressable" data-img="my_avatar" src="https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa" style="width: 42px; height: 42px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; cursor: pointer;">
@@ -116,11 +118,9 @@
                             <div id="home-cal-grid" class="mini-cal"></div>
                         </div>
                     </div>
-                    <div class="neo-card polaroid-widget long-pressable" data-img="home_polaroid" style="margin-bottom: 16px;">
-                        <img id="polaroid-img" class="polaroid-photo" src="https://images.unsplash.com/photo-1522093007474-d86e9bf7ba6f?q=80&w=600&auto=format&fit=crop">
-                        <div class="polaroid-text" id="polaroid-text">“回忆正在加载中...”</div>
-                    </div>
-                    <div class="neo-card countdown-widget" onclick="window.PhoneUI.openCdSheet()" style="margin-bottom: 16px;">
+                    
+                    <!-- 倒数日 -->
+                    <div class="neo-card countdown-widget" onclick="window.PhoneUI.openCdSheet()">
                         <div class="cd-left">
                             <div class="cd-title" id="cd-title-display">见到你</div>
                             <div class="cd-date" id="cd-date-display">2025.05.09</div>
@@ -131,19 +131,28 @@
                             <span class="cd-suf" id="cd-suf-display">天</span>
                         </div>
                     </div>
-                    <div class="neo-card note-widget" onclick="window.PhoneUI.openNoteModal()" style="margin-bottom: 20px;">
+                    
+                    <!-- 传纸条 (占据剩余空间) -->
+                    <div class="neo-card note-widget" onclick="window.PhoneUI.openNoteModal()" style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
                         <div class="note-tape"></div>
-                        <div class="note-header">
+                        <div class="note-header" style="position: absolute; top: 15px; left: 20px;">
                             <i class="ph-fill ph-paper-plane-tilt" style="color: var(--primary-color); font-size: 16px;"></i>
                             <span id="note-status">TA 悄悄塞给你一张纸条...</span>
                         </div>
-                        <div class="note-content" id="note-content">“今天也要开心哦！”</div>
+                        <div class="note-content" id="note-content" style="margin-top: 15px;">“今天也要开心哦！”</div>
                     </div>
                 </div>
                 
-                <!-- 第二页：应用库 -->
+                <!-- 第二页：照片与应用库 (无上下滚动) -->
                 <div class="home-screen-page">
-                    <div class="app-grid" style="padding-top: 10px;">
+                    <!-- 拍立得大图移到这里 -->
+                    <div class="neo-card polaroid-widget long-pressable" data-img="home_polaroid">
+                        <img id="polaroid-img" class="polaroid-photo" src="https://images.unsplash.com/photo-1522093007474-d86e9bf7ba6f?q=80&w=600&auto=format&fit=crop">
+                        <div class="polaroid-text" id="polaroid-text">“回忆正在加载中...”</div>
+                    </div>
+                    
+                    <!-- 应用库 -->
+                    <div class="app-grid">
                         <div class="app-icon" onclick="window.PhoneUI.openApp('schedule', '我的课表')">
                             <div class="icon"><i class="ph-fill ph-calendar-check" style="color: #60a5fa;"></i></div>
                             <div class="name">高中课表</div>

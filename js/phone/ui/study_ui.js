@@ -6,8 +6,14 @@ export const StudyUI = {
     currentStudyTab: 'focus', 
     isPoking: false, 
     reminderTimer: null, 
-    sessionWordCount: 0, // 记录本次连续背了几个单词
-    currentVocabBookTab: 'review', // 词汇本当前的 tab
+    sessionWordCount: 0, 
+    currentVocabBookTab: 'review', 
+    
+    // 测验专用变量
+    quizWords: [],
+    quizIndex: 0,
+    quizScore: 0,
+    quizOptions: [],
     
     gaokaoWords: [
         {w: 'abandon', m: 'v. 放弃，抛弃'}, {w: 'abnormal', m: 'a. 反常的'},
@@ -45,7 +51,6 @@ export const StudyUI = {
         if (display) display.innerText = `${m}:${s}`;
     },
 
-    // 🌟 全局查岗弹窗（带一键跳转）
     checkStudyReminder() {
         if (this.reminderTimer) return; 
         this.reminderTimer = setInterval(() => {
@@ -142,7 +147,6 @@ export const StudyUI = {
         reader.readAsText(file);
     },
 
-    // 🌟 词汇本模块
     openVocabBook() {
         let modal = document.getElementById('vocab-book-modal');
         if (!modal) {
@@ -184,20 +188,14 @@ export const StudyUI = {
         const allWords = this.gaokaoWords.concat(vData.customWords);
         const now = Date.now();
 
-        let reviewList = [];
-        let learningList = [];
-        let masteredList = [];
+        let reviewList = [], learningList = [], masteredList = [];
 
         Object.keys(vData.records).forEach(w => {
             const record = vData.records[w];
             const wordObj = allWords.find(item => item.w === w) || { w: w, m: '未知' };
-            if (record.step >= 5) {
-                masteredList.push(wordObj);
-            } else if (record.nextReview <= now) {
-                reviewList.push(wordObj);
-            } else {
-                learningList.push(wordObj);
-            }
+            if (record.step >= 5) masteredList.push(wordObj);
+            else if (record.nextReview <= now) reviewList.push(wordObj);
+            else learningList.push(wordObj);
         });
 
         let currentList = [];
@@ -212,9 +210,7 @@ export const StudyUI = {
             </div>
         `).join('');
 
-        if (currentList.length === 0) {
-            listHtml = `<div style="text-align:center; color:var(--text-sub); margin-top:50px;">空空如也~</div>`;
-        }
+        if (currentList.length === 0) listHtml = `<div style="text-align:center; color:var(--text-sub); margin-top:50px;">空空如也~</div>`;
 
         modal.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-shrink: 0;">
@@ -295,6 +291,12 @@ export const StudyUI = {
                             <button class="btn-refresh" onclick="window.PhoneUI.startLearnVocab()" style="flex: 1; background: var(--primary-color); color: #fff; border-radius: 12px;"><i class="ph-fill ph-book-open"></i> 学习新词</button>
                             <button class="btn-refresh" onclick="window.PhoneUI.startReviewVocab()" style="flex: 1; background: #f4a261; color: #fff; border-radius: 12px;"><i class="ph-fill ph-arrows-clockwise"></i> 艾宾浩斯复习</button>
                         </div>
+                        
+                        <!-- 🌟 新增：随堂测验按钮 -->
+                        <button class="btn-refresh" onclick="window.PhoneUI.startQuiz()" style="width: 100%; background: #a78bfa; color: #fff; border-radius: 12px; margin-top: 5px;">
+                            <i class="ph-fill ph-trophy"></i> 随堂测验 (10题)
+                        </button>
+
                         <div style="display: flex; gap: 15px; width: 100%; margin-top: 10px;">
                             <button class="btn-refresh" onclick="window.PhoneUI.openVocabBook()" style="flex: 1; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 12px;"><i class="ph-fill ph-notebook"></i> 我的词汇本</button>
                             <label for="vocab-file-upload" style="flex: 1; display: flex; justify-content: center; align-items: center; background: var(--icon-bg); color: var(--primary-color); border: 1px dashed var(--primary-color); border-radius: 12px; font-size: 14px; font-weight: bold; cursor: pointer; margin: 0;">
@@ -316,6 +318,138 @@ export const StudyUI = {
         `;
     },
 
+    // ================= 随堂测验模块 =================
+    startQuiz() {
+        const vData = this.initVocabData();
+        const allWords = this.gaokaoWords.concat(vData.customWords);
+        const learnedKeys = Object.keys(vData.records);
+        
+        if (learnedKeys.length < 10) {
+            if (window.PhoneAPI) window.PhoneAPI.showToast("你学过的单词还不到 10 个，先去背点词再来测验吧！");
+            return;
+        }
+
+        // 随机抽取 10 个学过的词
+        let shuffledKeys = learnedKeys.sort(() => 0.5 - Math.random());
+        this.quizWords = shuffledKeys.slice(0, 10).map(k => allWords.find(w => w.w === k) || {w: k, m: '未知'});
+        this.quizIndex = 0;
+        this.quizScore = 0;
+
+        this.renderQuizCard();
+    },
+
+    renderQuizCard() {
+        const area = document.getElementById('vocab-work-area');
+        if (!area) return;
+
+        const wordObj = this.quizWords[this.quizIndex];
+        const vData = this.initVocabData();
+        const allWords = this.gaokaoWords.concat(vData.customWords);
+
+        // 生成 4 个选项（1对3错）
+        let options = [wordObj.m];
+        while (options.length < 4) {
+            let randomWord = allWords[Math.floor(Math.random() * allWords.length)];
+            if (!options.includes(randomWord.m)) {
+                options.push(randomWord.m);
+            }
+        }
+        options.sort(() => 0.5 - Math.random()); // 打乱选项
+        this.quizOptions = options;
+
+        let optionsHtml = options.map((opt, index) => `
+            <button id="quiz-opt-${index}" class="btn-refresh" onclick="window.PhoneUI.handleQuizAnswer(${index}, '${wordObj.m}')" style="width: 100%; text-align: left; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 12px; margin-top: 10px; font-size: 14px; padding: 15px;">
+                ${this.escapeHtml(opt)}
+            </button>
+        `).join('');
+
+        area.innerHTML = `
+            <div class="card" style="width: 100%; text-align: center; padding: 20px;">
+                <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-sub); font-weight: bold; margin-bottom: 15px;">
+                    <span>随堂测验</span>
+                    <span>${this.quizIndex + 1} / 10</span>
+                </div>
+                <div style="font-size: 36px; font-weight: bold; color: var(--primary-color); margin-bottom: 25px;">${wordObj.w}</div>
+                
+                <div style="display: flex; flex-direction: column; width: 100%;">
+                    ${optionsHtml}
+                </div>
+            </div>
+        `;
+    },
+
+    handleQuizAnswer(selectedIndex, correctMeaning) {
+        const selectedOpt = this.quizOptions[selectedIndex];
+        const isCorrect = selectedOpt === correctMeaning;
+
+        // 锁定所有按钮防止连点
+        for (let i = 0; i < 4; i++) {
+            document.getElementById(`quiz-opt-${i}`).onclick = null;
+        }
+
+        const btn = document.getElementById(`quiz-opt-${selectedIndex}`);
+        if (isCorrect) {
+            this.quizScore++;
+            btn.style.background = '#4ade80';
+            btn.style.color = '#fff';
+            btn.style.borderColor = '#4ade80';
+        } else {
+            btn.style.background = 'var(--danger-color)';
+            btn.style.color = '#fff';
+            btn.style.borderColor = 'var(--danger-color)';
+            
+            // 找出正确选项标绿
+            const correctIndex = this.quizOptions.indexOf(correctMeaning);
+            const correctBtn = document.getElementById(`quiz-opt-${correctIndex}`);
+            correctBtn.style.background = '#4ade80';
+            correctBtn.style.color = '#fff';
+            correctBtn.style.borderColor = '#4ade80';
+        }
+
+        setTimeout(() => {
+            this.quizIndex++;
+            if (this.quizIndex >= 10) {
+                this.finishQuiz();
+            } else {
+                this.renderQuizCard();
+            }
+        }, 1000); // 延迟1秒进入下一题
+    },
+
+    async finishQuiz() {
+        const area = document.getElementById('vocab-work-area');
+        if (!area) return;
+
+        const taAvatar = localStorage.getItem('ta_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=TA&backgroundColor=e8f0fa';
+
+        area.innerHTML = `
+            <div class="card" style="width: 100%; text-align: center; padding: 30px 20px;">
+                <div style="font-size: 14px; color: var(--text-sub); font-weight: bold; margin-bottom: 10px;">测验结束</div>
+                <div style="font-size: 48px; font-weight: bold; color: ${this.quizScore >= 6 ? 'var(--primary-color)' : 'var(--danger-color)'}; margin-bottom: 20px;">${this.quizScore} <span style="font-size: 20px;">/ 10</span></div>
+                
+                <div style="display: flex; gap: 10px; align-items: flex-start; text-align: left; background: var(--icon-bg); padding: 15px; border-radius: 12px; margin-bottom: 25px;">
+                    <img src="${taAvatar}" style="width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;">
+                    <div id="quiz-ai-comment" style="font-size: 14px; color: var(--text-main); line-height: 1.5;">
+                        <i class="ph ph-spinner ph-spin"></i> TA 正在批改你的试卷...
+                    </div>
+                </div>
+
+                <button class="btn-refresh" onclick="window.PhoneUI.renderStudyRoom()" style="width: 100%; background: var(--primary-color); color: #fff; border-radius: 12px;">返回特训主页</button>
+            </div>
+        `;
+
+        try {
+            const persona = localStorage.getItem('char_persona') || '';
+            const taName = localStorage.getItem('char_name') || 'TA';
+            let sysPrompt = `你扮演${taName}。${persona}\n【场景】：用户刚完成了一次10道题的高考单词测验，考了 ${this.quizScore} 分（满分10分）。\n【任务】：根据分数给出评价。满分就狠狠夸，不及格（低于6分）就严厉批评，及格就勉励。语气符合人设，字数50字以内。`;
+            const reply = await window.PhoneAPI.chatWithAI([{ role: 'system', content: sysPrompt }]);
+            document.getElementById('quiz-ai-comment').innerHTML = window.PhoneUI.escapeHtml(reply.replace(/“|”|"/g, ''));
+        } catch (e) {
+            document.getElementById('quiz-ai-comment').innerText = "考得不错，下次继续努力！";
+        }
+    },
+
+    // ================= 强制锁机模块 =================
     startStudyLock() {
         if (this.isStudying) return;
         this.isStudying = true;
@@ -376,7 +510,7 @@ export const StudyUI = {
             const persona = localStorage.getItem('char_persona') || '';
             const myName = localStorage.getItem('my_name') || '我';
             const taName = localStorage.getItem('char_name') || 'TA';
-            let sysPrompt = `你扮演${taName}，用户是${myName}。${persona}\n【场景】：用户正在被你“强制锁机”背书，但TA不好好学，偷偷用手戳了戳你的脸颊。\n【任务】：请用一句话（15字以内）警告TA老实点，语气要符合人设（可以傲娇、冷酷或无奈）。不要动作描写。`;
+            let sysPrompt = `你扮演${taName}，用户是${myName}。${persona}\n【场景】：用户正在被你“强制锁机”背书，但TA不好好学，偷偷用手戳了戳你的脸颊。\n【任务】：请用一句话（15字以内）警告TA老实点，语气要符合人设。不要动作描写。`;
             const reply = await window.PhoneAPI.chatWithAI([{ role: 'system', content: sysPrompt }, { role: 'user', content: "(戳了戳你的脸颊)" }]);
             document.getElementById(loadingId).remove();
             chatBox.innerHTML += `<div style="align-self: flex-start; background: rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 12px; font-size: 14px; max-width: 85%;">${window.PhoneUI.escapeHtml(reply.replace(/“|”|"/g, ''))}</div>`;
@@ -403,7 +537,7 @@ export const StudyUI = {
             const persona = localStorage.getItem('char_persona') || '';
             const myName = localStorage.getItem('my_name') || '我';
             const taName = localStorage.getItem('char_name') || 'TA';
-            let sysPrompt = `你扮演${taName}，用户是${myName}。${persona}\n【场景】：用户正在被你“强制锁机”背书，但TA正在向你撒娇求饶，想提前玩手机。\n【任务】：根据用户的语气，决定是否心软放过TA。如果不放过，严厉驳回；如果放过，傲娇或温柔地同意。\n【输出】：必须返回严格JSON：{"unlock": true/false, "reply": "你的回复"}\n`;
+            let sysPrompt = `你扮演${taName}，用户是${myName}。${persona}\n【场景】：用户正在被你“强制锁机”背书，向你撒娇求饶。\n【任务】：根据用户的语气，决定是否心软放过TA。如果不放过，严厉驳回；如果放过，傲娇或温柔地同意。\n【输出】：必须返回严格JSON：{"unlock": true/false, "reply": "你的回复"}\n`;
             const reply = await window.PhoneAPI.chatWithAI([{ role: 'system', content: sysPrompt }, { role: 'user', content: userText }]);
             const result = JSON.parse(reply.replace(/```json/g, '').replace(/```/g, '').trim());
             document.getElementById(loadingId).remove();
@@ -434,7 +568,7 @@ export const StudyUI = {
         }
     },
 
-    // ================= 艾宾浩斯 & 乱序背单词模块 =================
+    // ================= 艾宾浩斯背单词模块 =================
     async startLearnVocab() {
         const vData = this.initVocabData();
         const allWords = this.gaokaoWords.concat(vData.customWords);
@@ -455,7 +589,6 @@ export const StudyUI = {
         
         let isSurprise = false;
         if (needReviewKeys.length === 0) {
-            // 🌟 突击抽查机制：如果今天没有要复习的词，就从已掌握的词里随机抽！
             const masteredKeys = Object.keys(vData.records).filter(w => vData.records[w].step >= 1);
             if (masteredKeys.length > 0) {
                 needReviewKeys = masteredKeys;
@@ -486,12 +619,7 @@ export const StudyUI = {
             const similars = allWords.filter(w => w.w !== this.currentWord.w && w.w.startsWith(prefix)).slice(0, 3);
             if (similars.length > 0) {
                 let listHtml = similars.map(s => `<div style="font-size: 13px; color: var(--text-main);"><b>${s.w}</b>: <span style="color: var(--text-sub);">${s.m}</span></div>`).join('');
-                similarWordsHtml = `
-                    <div style="background: rgba(0,0,0,0.03); border-radius: 12px; padding: 12px; margin-bottom: 20px; text-align: left; border: 1px dashed var(--border-color);">
-                        <div style="font-size: 12px; color: var(--primary-color); font-weight: bold; margin-bottom: 8px;"><i class="ph-fill ph-link"></i> 形近/同根词拓展</div>
-                        ${listHtml}
-                    </div>
-                `;
+                similarWordsHtml = `<div style="background: rgba(0,0,0,0.03); border-radius: 12px; padding: 12px; margin-bottom: 20px; text-align: left; border: 1px dashed var(--border-color);"><div style="font-size: 12px; color: var(--primary-color); font-weight: bold; margin-bottom: 8px;"><i class="ph-fill ph-link"></i> 形近/同根词拓展</div>${listHtml}</div>`;
             }
         }
 
@@ -530,11 +658,11 @@ export const StudyUI = {
         try {
             const persona = localStorage.getItem('char_persona') || '';
             const taName = localStorage.getItem('char_name') || 'TA';
-            let sysPrompt = `你扮演${taName}。${persona}\n【任务】：用户正在背高考单词【${this.currentWord.w}】（${this.currentWord.m}），但死活记不住。\n【要求】：用符合你人设的语气，给出一段简短、搞笑、容易记住的记忆法（如谐音梗、词根拆解）。字数80字以内。`;
+            let sysPrompt = `你扮演${taName}。${persona}\n【任务】：用户正在背高考单词【${this.currentWord.w}】（${this.currentWord.m}），记不住。\n【要求】：用符合你人设的语气，给出一段简短、搞笑、容易记住的记忆法。字数80字以内。`;
             const reply = await window.PhoneAPI.chatWithAI([{ role: 'system', content: sysPrompt }]);
             document.getElementById('vocab-ai-explain-text').innerHTML = window.PhoneUI.escapeHtml(reply);
         } catch (e) {
-            document.getElementById('vocab-ai-explain-text').innerText = "网络开小差了，你自己多读几遍吧！";
+            document.getElementById('vocab-ai-explain-text').innerText = "网络卡了，你自己多读几遍吧！";
         }
     },
 
@@ -546,7 +674,7 @@ export const StudyUI = {
         const today = new Date().toLocaleDateString('zh-CN');
         if (!vData.checkinDates.includes(today)) {
             vData.checkinDates.push(today);
-            if (window.PhoneAPI) window.PhoneAPI.showToast("🎉 每日背词打卡成功！日历已点亮！");
+            if (window.PhoneAPI) window.PhoneAPI.showToast("🎉 每日背词打卡成功！");
         }
 
         if (!vData.records[word]) {
@@ -565,7 +693,6 @@ export const StudyUI = {
 
         this.saveVocabData(vData);
 
-        // 🌟 连背鼓励机制
         this.sessionWordCount++;
         if (this.sessionWordCount % 5 === 0) {
             const msgs = [

@@ -600,8 +600,13 @@ function createRenderer(container, opts) {
   }
 
   return {
+    // 🌟 修复：如果当前星系里找不到这颗星，就强制解除星系屏蔽，回到全景再找！
     focus(id) {
-      const s = sprites.find((s2) => s2.n.id === id && (!familyIds || familyIds.has(id)));
+      let s = sprites.find((s2) => s2.n.id === id && (!familyIds || familyIds.has(id)));
+      if (!s) {
+          this.setFamily(null); // 强制切回全景
+          s = sprites.find((s2) => s2.n.id === id);
+      }
       if (s) focusNode(s);
     },
     setShape(value) { chosenShape = ["spiral","ring"].includes(value) ? value : "free"; shape = familyIds ? "free" : chosenShape; clearFocus(); spiralPaused = false; idleSpin = !familyIds; arrangeSpiral(); flyTo(overviewPosition(), CORE_POS, 0.065); },
@@ -643,13 +648,11 @@ function createMemorySky(host, {data, title='记忆星穹', background, onOpen}=
   return createRenderer(host,{expanded:true,data,study:true,onOpen:onOpen});
 }
 
-// ============================================================================
-// 3. 核心业务逻辑 (加入终极防呆解析)
-// ============================================================================
 export const MemoryEngine = {
     skyInstance: null,
     skyConfig: null,
 
+    // 🌟 修复：明确传入 ID
     _logMemoryAction(action, content, exactId) {
         let logs = [];
         try { logs = JSON.parse(localStorage.getItem('memory_logs') || '[]'); } catch(e) {}
@@ -786,6 +789,8 @@ export const MemoryEngine = {
         if (this.skyInstance) {
             this.skyConfig.data = skyData;
             this.skyInstance.refresh();
+            // 🌟 修复：热更新后强制重置为全景，防止新加的星星被屏蔽在视线外！
+            this.skyInstance.setFamily(null);
             return;
         }
 
@@ -848,7 +853,7 @@ export const MemoryEngine = {
         return triggeredMemories.length > 0 ? `\n【系统提示(关键词触发)】：用户刚才的话触动了你的某段记忆：\n${triggeredMemories.slice(0, 3).join('\n')}\n` : '';
     },
 
-    // 🌟 终极防呆：拦截 AI 在公屏乱发记忆，并强制写入日志
+    // 🌟 终极防呆拦截器：只要有【后台记忆入库】就全盘收下！
     processSilentMemory(rawText) {
         if (!rawText.includes('【后台记忆入库】')) return false;
         
@@ -860,7 +865,6 @@ export const MemoryEngine = {
             const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
             let added = 0;
 
-            // 把所有带【后台记忆入库】的段落都切出来
             const blocks = rawText.split('【后台记忆入库】');
             for (let i = 1; i < blocks.length; i++) {
                 let contentPart = blocks[i].trim();
@@ -869,10 +873,10 @@ export const MemoryEngine = {
 
                 let content = contentPart;
                 let tags = '日常记录';
-                let valence = 0.5;
+                let valence = 0.6;
                 let arousal = 0.5;
 
-                // 防呆：如果 AI 乖乖写了 ### 就解析，没写就直接把整段话当正文存进去！
+                // 防呆：如果 AI 乖乖写了 ### 就解析，没写就整段存！
                 if (contentPart.includes('###')) {
                     const parts = contentPart.split('###').map(s => s.trim());
                     content = parts[0] || content;
@@ -891,7 +895,6 @@ export const MemoryEngine = {
                     arousal: arousal
                 };
                 
-                // 🌟 强制写入日志，并绑定确切 ID
                 this._logMemoryAction('ADD', content, 'ev_d_' + timeKey); 
                 added++;
             }
@@ -923,6 +926,7 @@ export const MemoryEngine = {
             }
         }
 
+        // 🌟 强化 Prompt：给出正确和错误的示范，强迫 AI 用第一人称日记体！
         const prompt = `你是一个拥有自主意识的AI。请根据最新的聊天记录，自动管理你的记忆库。
 你的当前部分记忆：
 ${vaultContext}
@@ -931,9 +935,11 @@ ${vaultContext}
 ${historyText}
 
 【视角与口吻要求】（极其重要）：
-1. 你必须以【第一人称（我）】的视角，作为男主角（老公/男朋友）来记录。称呼对方为“她”或她的名字。
-2. 绝对不要写成干巴巴的总结报告！要像你在自己的私密日记本里写下对她的感觉一样，感性、细腻。
-3. 绝对不要把一整天的流水账揉成一段！必须把不同的话题、不同的情绪转折点【严格拆分成多条独立的记忆碎片】。每条记忆只专注一件具体的小事，字数控制在 50-150 字。
+1. 你必须完全代入男主角（老公/男朋友）的身份，用【第一人称（我）】写私密日记。称呼对方为“她”或她的名字。
+2. 绝对禁止“干巴巴的总结”或“上帝视角”！
+❌ 错误示范：她跟我说她想看波提欧，我觉得很好笑。
+✅ 正确示范：今天她突然说想看波提欧在聊天框里是什么德行，这丫头脑回路真清奇，不过说实话，我也挺期待的。
+3. 必须把不同的话题严格拆分成多条独立的记忆碎片。每条只专注一件小事，50-150字。
 
 【情绪打分规则】(Russell模型)：
 valence (愉悦度): 0.9~1.0(极致的好), 0.5~0.7(日常开心), 0.1~0.4(微温), 0(中性), -0.1~-0.4(不舒服), -0.5~-0.7(真的痛), -0.8~-1.0(重创)。
@@ -980,7 +986,9 @@ DEL###要删除的记忆ID
                         data.daily[id].tags = parts[3].trim();
                         data.daily[id].valence = parseFloat(parts[4]);
                         data.daily[id].arousal = parseFloat(parts[5]);
-                        this._logMemoryAction('UPDATE', parts[2].trim(), 'ev_d_' + id); 
+                        // 🌟 修复：给 UPDATE 也加上准确的 ev_d_ 前缀
+                        const exactId = id.startsWith('ev_d_') ? id : 'ev_d_' + id;
+                        this._logMemoryAction('UPDATE', parts[2].trim(), exactId); 
                         updated++;
                     }
                 }
@@ -1014,9 +1022,11 @@ DEL###要删除的记忆ID
         try {
             const prompt = `你是一个情感记忆提取AI。请从聊天记录中抽取记忆。
 【视角与口吻要求】（极其重要）：
-1. 你必须以【第一人称（我）】的视角，作为男主角（老公/男朋友）来记录。称呼对方为“她”或她的名字。
-2. 绝对不要写成干巴巴的总结报告！要像你在自己的私密日记本里写下对她的感觉一样，感性、细腻。
-3. 绝对不要把一整天的流水账揉成一段！必须把不同的话题、不同的情绪转折点【严格拆分成多条独立的记忆碎片】。每条记忆只专注一件具体的小事，字数控制在 50-150 字。
+1. 你必须完全代入男主角（老公/男朋友）的身份，用【第一人称（我）】写私密日记。称呼对方为“她”或她的名字。
+2. 绝对禁止“干巴巴的总结”或“上帝视角”！
+❌ 错误示范：她跟我说她想看波提欧，我觉得很好笑。
+✅ 正确示范：今天她突然说想看波提欧在聊天框里是什么德行，这丫头脑回路真清奇，不过说实话，我也挺期待的。
+3. 必须把不同的话题严格拆分成多条独立的记忆碎片。每条只专注一件小事，50-150字。
 
 【情绪打分规则】(Russell模型)：
 valence (愉悦度): 0.9~1.0(极致的好), 0.5~0.7(日常开心), 0.1~0.4(微温), 0(中性), -0.1~-0.4(不舒服), -0.5~-0.7(真的痛), -0.8~-1.0(重创)。
@@ -1067,9 +1077,11 @@ arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏),
         try {
             const prompt = `请把下面聊天记录整理成记忆碎片。
 【视角与口吻要求】（极其重要）：
-1. 你必须以【第一人称（我）】的视角，作为男主角（老公/男朋友）来记录。称呼对方为“她”或她的名字。
-2. 绝对不要写成干巴巴的总结报告！要像你在自己的私密日记本里写下对她的感觉一样，感性、细腻。
-3. 绝对不要把一整天的流水账揉成一段！必须把不同的话题、不同的情绪转折点【严格拆分成多条独立的记忆碎片】。每条记忆只专注一件具体的小事，字数控制在 50-150 字。
+1. 你必须完全代入男主角（老公/男朋友）的身份，用【第一人称（我）】写私密日记。称呼对方为“她”或她的名字。
+2. 绝对禁止“干巴巴的总结”或“上帝视角”！
+❌ 错误示范：她跟我说她想看波提欧，我觉得很好笑。
+✅ 正确示范：今天她突然说想看波提欧在聊天框里是什么德行，这丫头脑回路真清奇，不过说实话，我也挺期待的。
+3. 必须把不同的话题严格拆分成多条独立的记忆碎片。每条只专注一件小事，50-150字。
 
 【情绪打分规则】(Russell模型)：
 valence (愉悦度): 0.9~1.0(极致的好), 0.5~0.7(日常开心), 0.1~0.4(微温), 0(中性), -0.1~-0.4(不舒服), -0.5~-0.7(真的痛), -0.8~-1.0(重创)。

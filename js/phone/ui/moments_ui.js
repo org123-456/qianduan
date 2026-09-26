@@ -14,13 +14,20 @@ export const MomentsUI = {
         if (moment) {
             moment.likedByMe = !moment.likedByMe;
             localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
-            this.renderMoments();
+            if (window.PhoneUI) window.PhoneUI.renderMoments();
         }
     },
 
     // 🌟 2. 评论功能
     async addComment(momentId) {
-        const text = await window.PhoneUI.showCustomPrompt('请输入评论内容：');
+        // 兼容性处理：优先使用自定义弹窗，如果没有则使用系统原生弹窗
+        let text = '';
+        if (window.PhoneUI && window.PhoneUI.showCustomPrompt) {
+            text = await window.PhoneUI.showCustomPrompt('请输入评论内容：');
+        } else {
+            text = prompt('请输入评论内容：');
+        }
+        
         if (!text || !text.trim()) return;
 
         const roleId = window.Config?.currentContactId || 'role_001';
@@ -29,13 +36,14 @@ export const MomentsUI = {
         
         if (moment) {
             const now = new Date();
+            if (!moment.comments) moment.comments = [];
             moment.comments.push({
                 author: 'me',
                 content: text.trim(),
                 time: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
             });
             localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
-            this.renderMoments();
+            if (window.PhoneUI) window.PhoneUI.renderMoments();
             if (window.PhoneAPI) window.PhoneAPI.showToast('评论成功！');
         }
     },
@@ -49,7 +57,7 @@ export const MomentsUI = {
         window.Config.phoneData[roleId].moments = moments.filter(m => m.id !== momentId);
         
         localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
-        this.renderMoments();
+        if (window.PhoneUI) window.PhoneUI.renderMoments();
         if (window.PhoneAPI) window.PhoneAPI.showToast('动态已删除');
     },
 
@@ -105,6 +113,7 @@ export const MomentsUI = {
                 targetMoment.likedByTa = true;
             }
             if (result.comment && result.comment.trim() !== '') {
+                if (!targetMoment.comments) targetMoment.comments = [];
                 targetMoment.comments.push({
                     author: 'ta',
                     content: result.comment.trim(),
@@ -123,38 +132,9 @@ export const MomentsUI = {
         if (hasUpdates) {
             localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
             if (this.currentMomentsTab === 'feed') {
-                this.renderMoments();
+                if (window.PhoneUI) window.PhoneUI.renderMoments();
             }
         }
-    },
-
-    triggerCoverUpload() {
-        let fileInput = document.getElementById('moment-cover-input');
-        if (!fileInput) {
-            fileInput = document.createElement('input');
-            fileInput.type = 'file';
-            fileInput.id = 'moment-cover-input';
-            fileInput.accept = 'image/*';
-            fileInput.style.display = 'none';
-            document.body.appendChild(fileInput);
-        }
-        
-        fileInput.onchange = (e) => {
-            const f = e.target.files && e.target.files[0];
-            fileInput.value = '';
-            if (!f) return;
-            
-            if (window.PhoneAPI) window.PhoneAPI.showToast('封面上传中...');
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const base64Str = event.target.result;
-                localStorage.setItem('bg_moments_cover', base64Str);
-                document.documentElement.style.setProperty('--bg-image-moments-cover', `url('${base64Str}')`);
-                if (window.PhoneAPI) window.PhoneAPI.showToast('✨ 封面更换成功！');
-            };
-            reader.readAsDataURL(f);
-        };
-        fileInput.click();
     },
 
     renderMoments() {
@@ -187,6 +167,11 @@ export const MomentsUI = {
                 const sortedMoments = [...moments].sort((a, b) => b.timestamp - a.timestamp);
                 
                 sortedMoments.forEach(m => {
+                    // 🌟 核心修复：给没有 ID 的老动态强行发一个身份证，保证点赞评论能生效！
+                    if (!m.id) {
+                        m.id = 'm_' + Math.random().toString(36).substr(2, 9);
+                    }
+
                     const isMe = m.author === 'me';
                     const avatar = isMe ? myAvatar : taAvatar;
                     const name = isMe ? myName : taName;
@@ -222,7 +207,6 @@ export const MomentsUI = {
                         pendingHint = `<span style="color: var(--primary-color); font-size: 10px; margin-left: 10px;">(TA 还没看到这条动态...)</span>`;
                     }
 
-                    // 🌟 渲染点赞、评论、删除按钮
                     bottomHtml += `
                         <div class="moment-card">
                             <img class="moment-avatar" src="${avatar}">
@@ -259,11 +243,9 @@ export const MomentsUI = {
             bottomHtml += '</div>';
         }
 
+        // 🌟 恢复了纯净的封面，去掉了丑陋的换封面按钮
         contentEl.innerHTML = `
-            <div class="moments-cover" style="position: relative;">
-                <div onclick="window.PhoneUI.triggerCoverUpload()" style="position: absolute; top: 110px; right: 20px; background: rgba(0,0,0,0.4); color: white; padding: 6px 12px; border-radius: 12px; font-size: 12px; cursor: pointer; backdrop-filter: blur(5px); z-index: 10;">
-                    <i class="ph-fill ph-camera"></i> 换封面
-                </div>
+            <div class="moments-cover long-pressable" data-img="bg_moments_cover">
                 <div class="moments-cover-info">
                     <div class="moments-avatar-wrap">
                         <img src="${myAvatar}">
@@ -289,6 +271,11 @@ export const MomentsUI = {
                 ${bottomHtml}
             </div>
         `;
+
+        // 重新绑定长按事件（长按封面换图）
+        if (window.PhoneUI && window.PhoneUI.bindLongPresses) {
+            window.PhoneUI.bindLongPresses();
+        }
     },
 
     openPostModal() {
@@ -386,7 +373,7 @@ export const MomentsUI = {
         window.Config.phoneData[roleId].moments.push(newMoment);
         localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
 
-        // 🌟 联动核心：发朋友圈的同时，自动存入“星海记忆库”，聊天引擎会自动读取！
+        // 🌟 联动核心：存入星海记忆库
         if (window.PhoneAPI && window.PhoneAPI.saveFavorite) {
             let memoryText = `发布了朋友圈动态："${text}"`;
             if (this.tempMomentImage) memoryText += ` (附带了一张照片)`;
@@ -394,7 +381,7 @@ export const MomentsUI = {
         }
 
         this.closePostModal();
-        this.renderMoments();
+        if (window.PhoneUI) window.PhoneUI.renderMoments();
         
         if (window.PhoneAPI) window.PhoneAPI.showToast(`✅ 动态已发送！(TA 大概会在 ${delayMinutes} 分钟后看到)`);
     },

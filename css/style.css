@@ -158,16 +158,17 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 #app-container { width: 100%; height: 100%; max-width: 430px; position: relative; display: flex; flex-direction: column; overflow: hidden; }
 
 /* ================= 🌟 桌面翻页专属样式 (终极榨干版) ================= */
-#page-home { padding: 75px 0 0 0; overflow: hidden; } /* 减少顶部留白，紧贴标题栏 */
+#page-home { padding: 10px 0 0 0 !important; overflow: hidden; } /* 彻底干掉顶部留白 */
 .home-slider { display: flex; width: 100%; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .home-slider::-webkit-scrollbar { display: none; }
 .home-screen-page { 
     flex: 0 0 100%; width: 100%; height: 100%; 
     scroll-snap-align: start; 
     overflow-y: hidden; /* 绝对禁止上下滚动 */
-    padding: 10px 15px 95px 15px; /* 底部留出导航栏空间 */
-    display: flex; flex-direction: column; gap: 12px; /* 完美弹性间距 */
+    padding: 5px 15px 95px 15px; 
+    display: flex; flex-direction: column; gap: 15px; 
     box-sizing: border-box; 
+    justify-content: flex-start;
 }
 .home-pagination { position: absolute; bottom: 85px; left: 0; right: 0; display: flex; justify-content: center; gap: 8px; pointer-events: none; z-index: 10; }
 .home-pagination .dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(0,0,0,0.2); transition: 0.3s; }
@@ -187,8 +188,8 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 .mini-cal span.today { background: var(--primary-color); color: #fff; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
 
 .polaroid-widget { padding: 12px 12px 20px 12px; display: flex; flex-direction: column; align-items: center; cursor: pointer; position: relative; overflow: hidden; }
-.polaroid-photo { width: 100%; max-height: 220px; object-fit: cover; border-radius: 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); background: #e2e8f0; pointer-events: none; display: block; }
-.polaroid-text { font-family: 'Long Cang', cursive; font-size: 18px; color: var(--text-main); margin-top: 15px; text-align: center; width: 100%; line-height: 1.4; pointer-events: none; }
+.polaroid-photo { width: 100%; object-fit: cover; border-radius: 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); background: #e2e8f0; pointer-events: none; display: block; }
+.polaroid-text { font-family: 'Long Cang', cursive; font-size: 18px; color: var(--text-main); text-align: center; width: 100%; line-height: 1.4; pointer-events: none; }
 
 .countdown-widget { display: flex; justify-content: space-between; align-items: center; padding: 20px; cursor: pointer; }
 .cd-left { display: flex; flex-direction: column; gap: 4px; }
@@ -198,11 +199,11 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 .cd-num { font-size: 32px; font-weight: 800; line-height: 1; text-shadow: 0 4px 10px rgba(0,0,0,0.1); }
 .cd-suf { font-size: 12px; font-weight: bold; }
 
-.note-widget { position: relative; padding: 25px 20px 20px 20px; cursor: pointer; overflow: hidden; display: flex; flex-direction: column; gap: 12px; min-height: 120px; }
+.note-widget { position: relative; padding: 25px 20px 20px 20px; cursor: pointer; overflow: hidden; display: flex; flex-direction: column; gap: 12px; }
 .note-tape { position: absolute; top: -8px; left: 50%; width: 80px; height: 22px; background: rgba(255,255,255,0.5); box-shadow: 0 2px 5px rgba(0,0,0,0.05); transform: translateX(-50%) rotate(-2deg); z-index: 2; pointer-events: none;}
 [data-theme="dark"] .note-tape { background: rgba(255,255,255,0.1); }
 .note-header { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-sub); z-index: 1;}
-.note-content { font-family: 'Long Cang', cursive; font-size: 20px; color: var(--text-main); line-height: 1.5; text-align: center; padding: 10px 0; font-weight: bold; white-space: pre-wrap; word-break: break-word; max-height: 150px; overflow-y: auto; z-index: 1;}
+.note-content { font-family: 'Long Cang', cursive; font-size: 20px; color: var(--text-main); line-height: 1.5; text-align: center; padding: 10px 0; font-weight: bold; white-space: pre-wrap; word-break: break-word; overflow-y: auto; z-index: 1;}
 .note-content::-webkit-scrollbar { display: none; }
 
 .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 42px 20px 16px 20px; color: var(--primary-color); font-weight: bold; z-index: 50; background: var(--card-bg); box-shadow: 0 8px 25px rgba(0,0,0,0.05); transition: transform 0.4s; width: 100%; box-sizing: border-box;}

@@ -189,7 +189,7 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 
 .polaroid-widget { padding: 12px 12px 20px 12px; display: flex; flex-direction: column; align-items: center; cursor: pointer; position: relative; overflow: hidden; }
 .polaroid-photo { width: 100%; object-fit: cover; border-radius: 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); background: #e2e8f0; pointer-events: none; display: block; }
-.polaroid-text { font-family: 'Long Cang', cursive; font-size: 18px; color: var(--text-main); text-align: center; width: 100%; line-height: 1.4; pointer-events: none; }
+.polaroid-text { font-family: 'Long Cang', cursive; font-size: 18px; color: var(--text-main); margin-top: 15px; text-align: center; width: 100%; line-height: 1.4; pointer-events: none; }
 
 .countdown-widget { display: flex; justify-content: space-between; align-items: center; padding: 20px; cursor: pointer; }
 .cd-left { display: flex; flex-direction: column; gap: 4px; }
@@ -335,7 +335,8 @@ input, textarea, select { background: var(--input-bg); border: 1px solid var(--b
 
 .app-window { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--window-bg); z-index: 1000; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); display: flex; flex-direction: column; }
 .app-window.open { transform: translateX(0); }
-.app-window-header { display: flex; align-items: center; padding: 45px 20px 15px 20px; background: var(--icon-bg); box-shadow: 0 2px 10px rgba(0,0,0,0.03); z-index: 10;}
+/* 🌟 加固了顶部的 z-index 和定位，确保永远可点击 */
+.app-window-header { display: flex; align-items: center; padding: 45px 20px 15px 20px; background: var(--icon-bg); box-shadow: 0 2px 10px rgba(0,0,0,0.03); position: relative; z-index: 50; }
 .app-window-back { font-size: 24px; color: var(--primary-color); cursor: pointer; margin-right: 15px; display: flex; align-items: center; padding: 5px; }
 .app-window-title { font-size: 17px; font-weight: bold; color: var(--text-main); }
 .app-window-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 20px; position: relative; }

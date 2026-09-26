@@ -6,41 +6,23 @@ export const StudyUI = {
     currentStudyTab: 'focus', 
     isPoking: false, 
     reminderTimer: null, 
+    sessionWordCount: 0, // 记录本次连续背了几个单词
+    currentVocabBookTab: 'review', // 词汇本当前的 tab
     
-    // 默认兜底词库（已精简，因为用户会自己导入）
     gaokaoWords: [
         {w: 'abandon', m: 'v. 放弃，抛弃'}, {w: 'abnormal', m: 'a. 反常的'},
         {w: 'abundant', m: 'a. 丰富的'}, {w: 'academy', m: 'n. 专科学院'},
         {w: 'accelerate', m: 'v. 加速'}, {w: 'accent', m: 'n. 口音'}
     ],
     currentWord: null,
-
-    // 🌟 艾宾浩斯复习间隔 (单位: 天)
     ebbinghausIntervals: [1, 2, 4, 7, 15, 30],
 
     initVocabData() {
         let data = localStorage.getItem('vocab_data');
         let parsed = data ? JSON.parse(data) : {};
-        
-        // 🌟 数据结构大升级：引入 records 记录每个单词的记忆阶段
         if (!parsed.checkinDates) parsed.checkinDates = [];
         if (!parsed.customWords) parsed.customWords = [];
-        if (!parsed.records) parsed.records = {}; // { 'abandon': { step: 0, nextReview: 16900000 } }
-
-        // 兼容旧版数据：把旧的 learned 和 reviewing 转化为新的 records
-        if (parsed.learned && Array.isArray(parsed.learned)) {
-            parsed.learned.forEach(w => {
-                if (!parsed.records[w]) parsed.records[w] = { step: 1, nextReview: Date.now() };
-            });
-            delete parsed.learned;
-        }
-        if (parsed.reviewing && Array.isArray(parsed.reviewing)) {
-            parsed.reviewing.forEach(w => {
-                if (!parsed.records[w]) parsed.records[w] = { step: 0, nextReview: Date.now() };
-            });
-            delete parsed.reviewing;
-        }
-
+        if (!parsed.records) parsed.records = {}; 
         localStorage.setItem('vocab_data', JSON.stringify(parsed));
         return parsed;
     },
@@ -63,13 +45,16 @@ export const StudyUI = {
         if (display) display.innerText = `${m}:${s}`;
     },
 
+    // 🌟 全局查岗弹窗（带一键跳转）
     checkStudyReminder() {
         if (this.reminderTimer) return; 
         this.reminderTimer = setInterval(() => {
             const vData = this.initVocabData();
             const today = new Date().toLocaleDateString('zh-CN'); 
             if (!vData.checkinDates.includes(today) && window.Config?.currentAppId !== 'study') {
-                if (Math.random() < 0.1) this.showGlobalNotification("喂，今天的单词还没背！高三了还敢摸鱼？快给我滚去背书！");
+                if (Math.random() < 0.1) {
+                    this.showGlobalNotification("喂，今天的单词还没背！高三了还敢摸鱼？");
+                }
             }
         }, 60000); 
     },
@@ -77,13 +62,33 @@ export const StudyUI = {
     showGlobalNotification(msg) {
         const taAvatar = localStorage.getItem('ta_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=TA&backgroundColor=e8f0fa';
         const taName = localStorage.getItem('char_name') || 'TA';
-        let notif = document.createElement('div');
-        notif.style.cssText = `position: fixed; top: -100px; left: 5%; width: 90%; background: var(--window-bg); box-shadow: 0 10px 25px rgba(0,0,0,0.15); border-radius: 16px; padding: 15px; display: flex; align-items: center; gap: 15px; z-index: 999999; transition: top 0.5s; border: 1px solid var(--border-color); cursor: pointer;`;
-        notif.innerHTML = `<img src="${taAvatar}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;"><div style="flex: 1;"><div style="font-size: 13px; font-weight: bold; color: var(--text-main); margin-bottom: 4px;">${this.escapeHtml(taName)} (监督中)</div><div style="font-size: 12px; color: var(--text-sub); line-height: 1.4;">${this.escapeHtml(msg)}</div></div>`;
-        notif.onclick = () => { notif.style.top = '-100px'; setTimeout(() => notif.remove(), 500); if (window.PhoneUI) window.PhoneUI.openApp('study', '伴学空间'); };
+        let notif = document.getElementById('study-global-notif');
+        if (notif) notif.remove();
+
+        notif = document.createElement('div');
+        notif.id = 'study-global-notif';
+        notif.style.cssText = `position: fixed; top: -120px; left: 5%; width: 90%; background: var(--window-bg); box-shadow: 0 10px 30px rgba(0,0,0,0.2); border-radius: 16px; padding: 15px; display: flex; align-items: center; gap: 15px; z-index: 999999; transition: top 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 1px solid var(--primary-color);`;
+        
+        notif.innerHTML = `
+            <img src="${taAvatar}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-color);">
+            <div style="flex: 1;">
+                <div style="font-size: 14px; font-weight: bold; color: var(--text-main); margin-bottom: 4px;">${this.escapeHtml(taName)}</div>
+                <div style="font-size: 13px; color: var(--text-sub); line-height: 1.4;">${this.escapeHtml(msg)}</div>
+            </div>
+            <button style="background: var(--primary-color); color: #fff; border: none; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: bold; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                一键去背书
+            </button>
+        `;
+        
+        notif.onclick = () => { 
+            notif.style.top = '-120px'; 
+            setTimeout(() => notif.remove(), 500); 
+            if (window.PhoneUI) window.PhoneUI.openApp('study', '伴学空间'); 
+        };
+        
         document.body.appendChild(notif);
         setTimeout(() => { notif.style.top = '20px'; }, 100);
-        setTimeout(() => { notif.style.top = '-100px'; setTimeout(() => notif.remove(), 500); }, 5000);
+        setTimeout(() => { notif.style.top = '-120px'; setTimeout(() => notif.remove(), 500); }, 6000);
     },
 
     renderCalendarHTML(checkinDates) {
@@ -137,6 +142,96 @@ export const StudyUI = {
         reader.readAsText(file);
     },
 
+    // 🌟 词汇本模块
+    openVocabBook() {
+        let modal = document.getElementById('vocab-book-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'vocab-book-modal';
+            modal.className = 'action-sheet';
+            modal.style.cssText = `height: 80vh; display: flex; flex-direction: column; padding: 20px 15px; z-index: 9999;`;
+            document.body.appendChild(modal);
+            
+            let bg = document.createElement('div');
+            bg.id = 'vocab-book-bg';
+            bg.className = 'action-sheet-bg';
+            bg.onclick = () => this.closeVocabBook();
+            document.body.appendChild(bg);
+        }
+        
+        document.getElementById('vocab-book-bg').classList.add('show');
+        modal.classList.add('show');
+        this.renderVocabBookContent();
+    },
+
+    closeVocabBook() {
+        const bg = document.getElementById('vocab-book-bg');
+        const modal = document.getElementById('vocab-book-modal');
+        if (bg) bg.classList.remove('show');
+        if (modal) modal.classList.remove('show');
+    },
+
+    switchVocabBookTab(tab) {
+        this.currentVocabBookTab = tab;
+        this.renderVocabBookContent();
+    },
+
+    renderVocabBookContent() {
+        const modal = document.getElementById('vocab-book-modal');
+        if (!modal) return;
+
+        const vData = this.initVocabData();
+        const allWords = this.gaokaoWords.concat(vData.customWords);
+        const now = Date.now();
+
+        let reviewList = [];
+        let learningList = [];
+        let masteredList = [];
+
+        Object.keys(vData.records).forEach(w => {
+            const record = vData.records[w];
+            const wordObj = allWords.find(item => item.w === w) || { w: w, m: '未知' };
+            if (record.step >= 5) {
+                masteredList.push(wordObj);
+            } else if (record.nextReview <= now) {
+                reviewList.push(wordObj);
+            } else {
+                learningList.push(wordObj);
+            }
+        });
+
+        let currentList = [];
+        if (this.currentVocabBookTab === 'review') currentList = reviewList;
+        else if (this.currentVocabBookTab === 'learning') currentList = learningList;
+        else currentList = masteredList;
+
+        let listHtml = currentList.map(item => `
+            <div style="padding: 12px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 4px;">
+                <div style="font-size: 16px; font-weight: bold; color: var(--primary-color);">${this.escapeHtml(item.w)}</div>
+                <div style="font-size: 13px; color: var(--text-sub);">${this.escapeHtml(item.m)}</div>
+            </div>
+        `).join('');
+
+        if (currentList.length === 0) {
+            listHtml = `<div style="text-align:center; color:var(--text-sub); margin-top:50px;">空空如也~</div>`;
+        }
+
+        modal.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-shrink: 0;">
+                <span style="font-weight: bold; font-size: 16px; color: var(--text-main);">📖 我的词汇本</span>
+                <i class="ph ph-x" style="font-size: 20px; color: var(--text-sub); cursor: pointer;" onclick="window.PhoneUI.closeVocabBook()"></i>
+            </div>
+            <div class="vault-tabs" style="margin-bottom: 15px; flex-shrink: 0;">
+                <div class="vault-tab ${this.currentVocabBookTab === 'review' ? 'active' : ''}" onclick="window.PhoneUI.switchVocabBookTab('review')">待复习 (${reviewList.length})</div>
+                <div class="vault-tab ${this.currentVocabBookTab === 'learning' ? 'active' : ''}" onclick="window.PhoneUI.switchVocabBookTab('learning')">巩固中 (${learningList.length})</div>
+                <div class="vault-tab ${this.currentVocabBookTab === 'mastered' ? 'active' : ''}" onclick="window.PhoneUI.switchVocabBookTab('mastered')">已掌握 (${masteredList.length})</div>
+            </div>
+            <div style="flex: 1; overflow-y: auto; background: var(--icon-bg); border-radius: 12px; border: 1px solid var(--border-color);">
+                ${listHtml}
+            </div>
+        `;
+    },
+
     renderStudyRoom() {
         const contentEl = document.getElementById('app-window-content');
         if (!contentEl) return;
@@ -178,8 +273,6 @@ export const StudyUI = {
             const vData = this.initVocabData();
             const totalWords = this.gaokaoWords.length + vData.customWords.length;
             const learnedCount = Object.keys(vData.records).length;
-            
-            // 计算今天需要复习的单词数
             const now = Date.now();
             const needReviewCount = Object.values(vData.records).filter(r => r.nextReview <= now).length;
 
@@ -199,12 +292,13 @@ export const StudyUI = {
                     </div>
                     <div id="vocab-work-area" style="min-height: 250px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px;">
                         <div style="display: flex; gap: 15px; width: 100%;">
-                            <button class="btn-refresh" onclick="window.PhoneUI.startLearnVocab()" style="flex: 1; background: var(--primary-color); color: #fff; border-radius: 12px;"><i class="ph-fill ph-book-open"></i> 学习新词 (乱序)</button>
+                            <button class="btn-refresh" onclick="window.PhoneUI.startLearnVocab()" style="flex: 1; background: var(--primary-color); color: #fff; border-radius: 12px;"><i class="ph-fill ph-book-open"></i> 学习新词</button>
                             <button class="btn-refresh" onclick="window.PhoneUI.startReviewVocab()" style="flex: 1; background: #f4a261; color: #fff; border-radius: 12px;"><i class="ph-fill ph-arrows-clockwise"></i> 艾宾浩斯复习</button>
                         </div>
-                        <div style="margin-top: 20px; text-align: center; width: 100%;">
-                            <label for="vocab-file-upload" style="display: inline-block; padding: 10px 20px; border: 1px dashed var(--primary-color); color: var(--primary-color); border-radius: 12px; font-size: 13px; cursor: pointer;">
-                                <i class="ph-fill ph-upload-simple"></i> 导入自定义词库 (.txt)
+                        <div style="display: flex; gap: 15px; width: 100%; margin-top: 10px;">
+                            <button class="btn-refresh" onclick="window.PhoneUI.openVocabBook()" style="flex: 1; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 12px;"><i class="ph-fill ph-notebook"></i> 我的词汇本</button>
+                            <label for="vocab-file-upload" style="flex: 1; display: flex; justify-content: center; align-items: center; background: var(--icon-bg); color: var(--primary-color); border: 1px dashed var(--primary-color); border-radius: 12px; font-size: 14px; font-weight: bold; cursor: pointer; margin: 0;">
+                                <i class="ph-fill ph-upload-simple"></i> 导入TXT词库
                             </label>
                             <input type="file" id="vocab-file-upload" accept=".txt" style="display: none;" onchange="window.PhoneUI.importCustomVocab(event)">
                         </div>
@@ -344,16 +438,12 @@ export const StudyUI = {
     async startLearnVocab() {
         const vData = this.initVocabData();
         const allWords = this.gaokaoWords.concat(vData.customWords);
-        
-        // 找出还没学过的词（不在 records 里的词）
         const unlearned = allWords.filter(w => !vData.records[w.w]);
         
         if (unlearned.length === 0) {
             if (window.PhoneAPI) window.PhoneAPI.showToast("太强了！词库全学完了，去复习吧！");
             return;
         }
-
-        // 🌟 乱序抽词
         this.currentWord = unlearned[Math.floor(Math.random() * unlearned.length)];
         this.renderVocabCard('learn');
     },
@@ -361,30 +451,35 @@ export const StudyUI = {
     async startReviewVocab() {
         const vData = this.initVocabData();
         const now = Date.now();
+        let needReviewKeys = Object.keys(vData.records).filter(w => vData.records[w].nextReview <= now);
         
-        // 🌟 艾宾浩斯：筛选出 nextReview 时间已经到了的单词
-        const needReviewKeys = Object.keys(vData.records).filter(w => vData.records[w].nextReview <= now);
-        
+        let isSurprise = false;
         if (needReviewKeys.length === 0) {
-            if (window.PhoneAPI) window.PhoneAPI.showToast("🎉 今日复习任务已清空！休息一下吧~");
-            return;
+            // 🌟 突击抽查机制：如果今天没有要复习的词，就从已掌握的词里随机抽！
+            const masteredKeys = Object.keys(vData.records).filter(w => vData.records[w].step >= 1);
+            if (masteredKeys.length > 0) {
+                needReviewKeys = masteredKeys;
+                isSurprise = true;
+                if (window.PhoneAPI) window.PhoneAPI.showToast("今日任务已清空，开启随机突击抽查！");
+            } else {
+                if (window.PhoneAPI) window.PhoneAPI.showToast("词库空空如也，先去学习新词吧！");
+                return;
+            }
         }
         
-        // 随机抽一个需要复习的词
         const wordStr = needReviewKeys[Math.floor(Math.random() * needReviewKeys.length)];
         const allWords = this.gaokaoWords.concat(vData.customWords);
         this.currentWord = allWords.find(w => w.w === wordStr) || {w: wordStr, m: '未知词意'};
-        this.renderVocabCard('review');
+        this.renderVocabCard('review', isSurprise);
     },
 
-    async renderVocabCard(mode) {
+    async renderVocabCard(mode, isSurprise = false) {
         const area = document.getElementById('vocab-work-area');
         if (!area || !this.currentWord) return;
 
-        // 🌟 核心：查找同根/形近词拓展 (前缀匹配)
         const vData = this.initVocabData();
         const allWords = this.gaokaoWords.concat(vData.customWords);
-        const prefix = this.currentWord.w.substring(0, 4); // 取前4个字母做前缀
+        const prefix = this.currentWord.w.substring(0, 4); 
         let similarWordsHtml = '';
         
         if (prefix.length >= 3) {
@@ -400,8 +495,8 @@ export const StudyUI = {
             }
         }
 
-        // 显示当前记忆阶段
         let stepText = mode === 'learn' ? '新词学习' : `艾宾浩斯 第 ${vData.records[this.currentWord.w].step} 阶段`;
+        if (isSurprise) stepText = '⚠️ 突击抽查';
 
         area.innerHTML = `
             <div class="card" style="width: 100%; text-align: center; padding: 20px;">
@@ -443,38 +538,45 @@ export const StudyUI = {
         }
     },
 
-    // 🌟 核心：艾宾浩斯复习算法处理
     markWordResult(remembered, mode) {
         let vData = this.initVocabData();
         const word = this.currentWord.w;
         const now = Date.now();
 
-        // 每日打卡
         const today = new Date().toLocaleDateString('zh-CN');
         if (!vData.checkinDates.includes(today)) {
             vData.checkinDates.push(today);
             if (window.PhoneAPI) window.PhoneAPI.showToast("🎉 每日背词打卡成功！日历已点亮！");
         }
 
-        // 初始化记录
         if (!vData.records[word]) {
             vData.records[word] = { step: 0, nextReview: now };
         }
 
         if (remembered) {
-            // 记住了：进入下一阶段
             vData.records[word].step += 1;
-            // 如果超过了最大阶段，就停留在最后阶段
             const stepIndex = Math.min(vData.records[word].step, this.ebbinghausIntervals.length - 1);
             const daysToAdd = this.ebbinghausIntervals[stepIndex];
             vData.records[word].nextReview = now + daysToAdd * 24 * 60 * 60 * 1000;
         } else {
-            // 没记住：打回原形，马上复习
             vData.records[word].step = 0;
             vData.records[word].nextReview = now; 
         }
 
         this.saveVocabData(vData);
+
+        // 🌟 连背鼓励机制
+        this.sessionWordCount++;
+        if (this.sessionWordCount % 5 === 0) {
+            const msgs = [
+                `背了 ${this.sessionWordCount} 个了！不愧是我看上的人，继续保持！`,
+                `${this.sessionWordCount} 个单词拿下！今天的高考状元非你莫属！`,
+                `已经搞定 ${this.sessionWordCount} 个啦，累了的话...也不准休息！快背！`,
+                `哇哦，${this.sessionWordCount} 个了！再背几个我就奖励你一个摸头杀~`
+            ];
+            const msg = msgs[Math.floor(Math.random() * msgs.length)];
+            if (window.PhoneAPI) window.PhoneAPI.showToast("✨ TA说：" + msg);
+        }
         
         if (mode === 'learn') this.startLearnVocab();
         else this.startReviewVocab();

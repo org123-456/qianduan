@@ -219,7 +219,6 @@
             <div id="app-content-list"></div>
             <div id="sticker-panel" class="chat-plus-menu" style="display: flex; flex-wrap: wrap; justify-content: flex-start; align-content: flex-start; padding: 15px; gap: 12px; overflow-y: auto; max-height: 280px; z-index: 89;"></div>
             <div id="chat-plus-menu" class="chat-plus-menu" style="grid-template-columns: repeat(4, 1fr);">
-                <!-- 🌟 新增语音通话入口 -->
                 <div class="app-icon" onclick="window.PhoneUI.openCallScreen();">
                     <div class="icon"><i class="ph-fill ph-phone-call" style="color: #4ade80;"></i></div>
                     <div class="name">语音通话</div>
@@ -323,7 +322,6 @@
         <button class="reader-btn-outline" onclick="window.PhoneUI.focusGalaxy('fav')" style="margin:0;">⭐ 收藏夹</button>
     </div>
 
-    <!-- 🌟 点击后自动关闭面板 -->
     <button class="action-btn" onclick="window.PhoneUI.openApp('memory_vault', '记忆库列表'); window.PhoneUI.closeSkyConsole();" style="margin-bottom: 15px; color: var(--primary-color); border: 1px solid var(--border-color);">📜 打开记忆列表 (搜索与分享)</button>
 
     <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px; font-weight: bold;">宇宙形态</div>
@@ -339,9 +337,7 @@
 <div id="memory-log-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeMemoryLog()"></div>
 <div id="memory-log-modal" class="action-sheet" style="height: 70vh; display: flex; flex-direction: column; padding: 20px 15px;">
     <div style="text-align: center; font-weight: bold; color: var(--text-main); margin-bottom: 15px; flex-shrink: 0;">✨ 星海变动日志</div>
-    <div id="memory-log-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
-        <!-- 日志列表将在这里渲染 -->
-    </div>
+    <div id="memory-log-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;"></div>
     <button class="action-btn cancel" onclick="window.PhoneUI.closeMemoryLog()" style="flex-shrink: 0; margin-top: 15px;">关闭</button>
 </div>
 
@@ -384,17 +380,18 @@
     </div>
 </div>
 
+<!-- 🌟 朋友圈发动态弹窗 (修复事件绑定) -->
 <div id="post-moment-bg" class="action-sheet-bg" onclick="window.PhoneUI.closePostModal()"></div>
 <div id="post-moment-modal" class="thought-modal" style="padding: 20px; z-index: 9001;">
     <div class="thought-header"><i class="ph-fill ph-camera"></i> 发送动态</div>
     <textarea id="post-moment-text" placeholder="这一刻的想法..." style="width: 100%; height: 120px; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 14px; resize: none; outline: none; margin-bottom: 10px;"></textarea>
-    <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center;">
-        <div class="icon-btn" style="color: var(--primary-color); font-size: 24px; cursor: pointer;"><i class="ph-fill ph-image"></i></div>
-        <span style="font-size: 12px; color: var(--text-sub);">添加图片 (暂未选择)</span>
+    <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center; cursor: pointer;" onclick="window.PhoneUI.triggerMomentImageUpload()">
+        <div class="icon-btn" style="color: var(--primary-color); font-size: 24px;"><i class="ph-fill ph-image"></i></div>
+        <span style="font-size: 12px; color: var(--text-sub); transition: 0.3s;">添加图片 (暂未选择)</span>
     </div>
     <div style="display: flex; gap: 10px;">
         <button class="btn-refresh" onclick="window.PhoneUI.closePostModal()" style="flex: 1; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0; box-shadow: none;">取消</button>
-        <button class="btn-refresh" onclick="window.PhoneUI.closePostModal(); window.PhoneAPI.showToast('UI演示：动态已发送！');" style="flex: 1; margin-top: 0;">发表</button>
+        <button class="btn-refresh" onclick="window.PhoneUI.sendMoment()" style="flex: 1; margin-top: 0;">发表</button>
     </div>
 </div>
 
@@ -503,39 +500,6 @@
         </div>
     </div>
 </div>
-
-<!-- 🌟 语音通话专属全屏界面 -->
-<div id="call-screen" style="position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 60px 20px 40px 20px; opacity: 0; visibility: hidden; transition: 0.3s; overflow: hidden;">
-    <div id="call-bg-blur" style="position: absolute; inset: -20px; background-size: cover; background-position: center; filter: blur(30px) brightness(0.4); z-index: -1;"></div>
-    
-    <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; margin-top: 40px;">
-        <div style="position: relative;">
-            <div id="call-avatar-wave" style="position: absolute; inset: -15px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.5); opacity: 0; transform: scale(0.8); transition: 0.3s;"></div>
-            <img id="call-ta-avatar" src="" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; position: relative; z-index: 2; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-        </div>
-        <div id="call-ta-name" style="font-size: 24px; font-weight: bold; color: #fff; letter-spacing: 1px;">TA</div>
-        <div id="call-status" style="font-size: 14px; color: rgba(255,255,255,0.6);">正在连接...</div>
-    </div>
-
-    <div id="call-subtitles" style="flex: 1; width: 100%; margin-top: 40px; margin-bottom: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; padding: 0 10px; scroll-behavior: smooth;">
-        <!-- 字幕将在这里生成 -->
-    </div>
-
-    <div style="display: flex; justify-content: center; width: 100%; margin-bottom: 20px;">
-        <div onclick="window.PhoneUI.endCall()" style="width: 70px; height: 70px; border-radius: 50%; background: #ff4b4b; color: #fff; display: flex; justify-content: center; align-items: center; font-size: 32px; cursor: pointer; box-shadow: 0 10px 25px rgba(255,75,75,0.4); transition: 0.2s;">
-            <i class="ph-fill ph-phone-disconnect"></i>
-        </div>
-    </div>
-</div>
-<style>
-    #call-avatar-wave.active { animation: callPulse 1.5s infinite; }
-    @keyframes callPulse { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(1.5); opacity: 0; } }
-    .call-subtitle-item { padding: 10px 15px; border-radius: 12px; font-size: 15px; line-height: 1.5; max-width: 85%; word-break: break-word; animation: fadeIn 0.3s ease; }
-    .call-subtitle-item.me { background: rgba(255,255,255,0.1); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
-    .call-subtitle-item.ta { background: rgba(255,255,255,0.9); color: #000; align-self: flex-start; border-bottom-left-radius: 4px; }
-    #call-screen.show { opacity: 1; visibility: visible; }
-    #call-subtitles::-webkit-scrollbar { display: none; }
-</style>
 
 <script>
 function clearCacheAndReload() {

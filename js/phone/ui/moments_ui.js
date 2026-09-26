@@ -1,7 +1,89 @@
 export const MomentsUI = {
+    tempMomentImage: null, // 临时存储准备发送的图片 base64
+
     switchMomentsTab(tab) {
         this.currentMomentsTab = tab;
         this.renderMoments();
+    },
+
+    // 🌟 惰性生成核心：检查有没有到期需要 AI 回复的动态
+    async checkPendingReplies() {
+        const roleId = window.Config?.currentContactId || 'role_001';
+        if (!window.Config.phoneData[roleId] || !window.Config.phoneData[roleId].moments) return;
+
+        const moments = window.Config.phoneData[roleId].moments;
+        const now = Date.now();
+        let hasUpdates = false;
+
+        // 找到第一条需要回复的动态（每次只处理一条，防止并发卡死）
+        const targetMoment = moments.find(m => 
+            m.author === 'me' && 
+            m.pendingTaReply && 
+            m.pendingTaReply.status === 'pending' && 
+            now >= m.pendingTaReply.dueAt
+        );
+
+        if (!targetMoment) return;
+
+        console.log("朋友圈：发现到期动态，开始静默生成回复...", targetMoment);
+        
+        try {
+            const persona = localStorage.getItem('char_persona') || '';
+            const myName = localStorage.getItem('my_name') || '我';
+            const taName = localStorage.getItem('char_name') || 'TA';
+
+            let sysPrompt = `你扮演${taName}，用户是${myName}。${persona}\n`;
+            sysPrompt += `【任务】：用户刚发了一条朋友圈动态。请你根据动态内容，决定是否点赞和评论。\n`;
+            sysPrompt += `【要求】：\n`;
+            sysPrompt += `1. 必须返回严格的 JSON 格式，不要有任何其他文字！\n`;
+            sysPrompt += `2. 格式：{"like": true/false, "comment": "你的评论内容"}\n`;
+            sysPrompt += `3. 如果你不想评论，comment 可以留空字符串 ""。\n`;
+            sysPrompt += `4. 评论要符合你的人设，就像真人在刷朋友圈一样，可以吐槽、关心、或者高冷。\n`;
+
+            let userContent = `[用户的朋友圈动态]：\n文字内容：${targetMoment.content}\n`;
+            if (targetMoment.image) {
+                userContent += `(附带了一张图片)\n`;
+            }
+
+            const messages = [
+                { role: 'system', content: sysPrompt },
+                { role: 'user', content: userContent }
+            ];
+
+            const reply = await window.PhoneAPI.chatWithAI(messages);
+            
+            // 解析 JSON
+            let cleanJson = reply.replace(/```json/g, '').replace(/```/g, '').trim();
+            const result = JSON.parse(cleanJson);
+
+            // 更新动态数据
+            if (result.like) {
+                targetMoment.likedByTa = true;
+            }
+            if (result.comment && result.comment.trim() !== '') {
+                targetMoment.comments.push({
+                    author: 'ta',
+                    content: result.comment.trim(),
+                    time: `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`
+                });
+            }
+
+            targetMoment.pendingTaReply.status = 'done';
+            hasUpdates = true;
+
+        } catch (error) {
+            console.error("朋友圈静默回复失败:", error);
+            // 如果失败，把时间往后推 2 分钟再试
+            targetMoment.pendingTaReply.dueAt = now + 2 * 60 * 1000; 
+        }
+
+        if (hasUpdates) {
+            localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
+            // 如果用户还在看朋友圈，刷新界面
+            if (this.currentMomentsTab === 'feed') {
+                this.renderMoments();
+            }
+        }
     },
 
     renderMoments() {
@@ -20,46 +102,78 @@ export const MomentsUI = {
         let bottomHtml = '';
         
         if (currentTab === 'feed') {
-            bottomHtml = `
-                <div class="moment-card">
-                    <img class="moment-avatar" src="${myAvatar}">
-                    <div class="moment-body">
-                        <div class="moment-name">${myName}</div>
-                        <div class="moment-text">今天数学课听得我头都要炸了！！！好想吃宵夜啊啊啊</div>
-                        <div class="moment-footer">
-                            <span>2分钟前</span>
-                            <div class="moment-actions">
-                                <i class="ph ph-heart"></i>
-                                <i class="ph ph-chat-circle"></i>
-                            </div>
-                        </div>
-                        <div class="moment-comments-area">
-                            <div class="comment-item"><i class="ph-fill ph-heart" style="color: var(--danger-color); font-size: 12px;"></i> ${taName}</div>
-                            <div class="comment-item"><span class="c-name">${taName}:</span> 笨。哪题不会，拍过来我教你。吃宵夜的话，我顺路给你带。</div>
-                        </div>
-                    </div>
-                </div>
+            // 🌟 每次渲染 Feed 时，检查是否有需要回复的动态
+            this.checkPendingReplies();
+
+            const roleId = window.Config?.currentContactId || 'role_001';
+            if (!window.Config.phoneData[roleId]) window.Config.phoneData[roleId] = {};
+            if (!window.Config.phoneData[roleId].moments) window.Config.phoneData[roleId].moments = [];
+            
+            const moments = window.Config.phoneData[roleId].moments;
+
+            if (moments.length === 0) {
+                bottomHtml = `<div style="text-align:center; color:var(--text-sub); padding:50px 0; font-size:14px;">还没有动态，点击右下角相机发一条吧~</div>`;
+            } else {
+                const sortedMoments = [...moments].sort((a, b) => b.timestamp - a.timestamp);
                 
-                <div class="moment-card">
-                    <img class="moment-avatar" src="${taAvatar}">
-                    <div class="moment-body">
-                        <div class="moment-name">${taName}</div>
-                        <div class="moment-text">某人今天肚子疼，还非要喝冰奶茶，记仇。</div>
-                        <div class="moment-footer">
-                            <span>1小时前</span>
-                            <div class="moment-actions">
-                                <i class="ph-fill ph-heart" style="color: var(--danger-color);"></i>
-                                <i class="ph ph-chat-circle"></i>
+                sortedMoments.forEach(m => {
+                    const isMe = m.author === 'me';
+                    const avatar = isMe ? myAvatar : taAvatar;
+                    const name = isMe ? myName : taName;
+                    
+                    let imgHtml = '';
+                    if (m.image) {
+                        imgHtml = `<img class="moment-img" src="${m.image}" onclick="window.PhoneAPI.showToast('图片查看功能开发中')">`;
+                    }
+
+                    let commentsHtml = '';
+                    if ((m.likedByTa && isMe) || (m.likedByMe && !isMe) || (m.comments && m.comments.length > 0)) {
+                        commentsHtml += `<div class="moment-comments-area">`;
+                        
+                        const likes = [];
+                        if (m.likedByTa && isMe) likes.push(`<i class="ph-fill ph-heart" style="color:var(--danger-color); font-size:12px;"></i> <span class="c-name">${this.escapeHtml(taName)}</span>`);
+                        if (m.likedByMe && !isMe) likes.push(`<i class="ph-fill ph-heart" style="color:var(--danger-color); font-size:12px;"></i> <span class="c-name">${this.escapeHtml(myName)}</span>`);
+                        
+                        if (likes.length > 0) {
+                            commentsHtml += `<div style="border-bottom: ${m.comments && m.comments.length > 0 ? '1px solid rgba(0,0,0,0.05)' : 'none'}; padding-bottom: 4px; margin-bottom: 4px;">${likes.join(', ')}</div>`;
+                        }
+
+                        if (m.comments && m.comments.length > 0) {
+                            m.comments.forEach(c => {
+                                const cName = c.author === 'me' ? myName : taName;
+                                commentsHtml += `<div class="comment-item"><span class="c-name">${this.escapeHtml(cName)}:</span> ${this.escapeHtml(c.content)}</div>`;
+                            });
+                        }
+                        commentsHtml += `</div>`;
+                    }
+
+                    // 如果还没到回复时间，显示一个仅自己可见的提示
+                    let pendingHint = '';
+                    if (isMe && m.pendingTaReply && m.pendingTaReply.status === 'pending') {
+                        pendingHint = `<span style="color: var(--primary-color); font-size: 10px; margin-left: 10px;">(TA 还没看到这条动态...)</span>`;
+                    }
+
+                    bottomHtml += `
+                        <div class="moment-card">
+                            <img class="moment-avatar" src="${avatar}">
+                            <div class="moment-body">
+                                <div class="moment-name">${this.escapeHtml(name)}</div>
+                                <div class="moment-text">${this.escapeHtml(m.content)}</div>
+                                ${imgHtml}
+                                <div class="moment-footer">
+                                    <span>${m.time} ${pendingHint}</span>
+                                    <div class="moment-actions">
+                                        <i class="ph ph-heart" onclick="window.PhoneAPI.showToast('点赞功能开发中')"></i>
+                                        <i class="ph ph-chat-circle" onclick="window.PhoneAPI.showToast('评论功能开发中')"></i>
+                                    </div>
+                                </div>
+                                ${commentsHtml}
                             </div>
                         </div>
-                        <div class="moment-comments-area">
-                            <div class="comment-item"><i class="ph-fill ph-heart" style="color: var(--danger-color); font-size: 12px;"></i> ${myName}</div>
-                            <div class="comment-item"><span class="c-name">${myName}:</span> 我错了嘛！下次不敢了QAQ</div>
-                            <div class="comment-item"><span class="c-name">${taName}:</span> 呵，你的下次不敢我听过八百遍了。</div>
-                        </div>
-                    </div>
-                </div>
-            `;
+                    `;
+                });
+            }
+
         } else if (currentTab === 'favorites') {
             const favs = window.PhoneAPI ? window.PhoneAPI.getFavorites() : [];
             bottomHtml = '<div style="padding:10px 5px;">';
@@ -132,7 +246,6 @@ export const MomentsUI = {
                 <div class="moments-menu-item ${currentTab === 'feed' ? 'active' : ''}" onclick="window.PhoneUI.switchMomentsTab('feed')"><i class="${currentTab === 'feed' ? 'ph-fill' : 'ph'} ph-camera"></i> 朋友圈动态</div>
                 <div class="moments-menu-item ${currentTab === 'favorites' ? 'active' : ''}" onclick="window.PhoneUI.switchMomentsTab('favorites')"><i class="${currentTab === 'favorites' ? 'ph-fill' : 'ph'} ph-star"></i> 星海收藏夹</div>
                 <div class="moments-menu-item" onclick="window.PhoneUI.openReader()"><i class="ph-fill ph-book-open-text"></i> 共读时光</div>
-                <!-- 🌟 这里修改了！去掉了恋爱家规，换成了日记 -->
                 <div class="moments-menu-item" onclick="window.PhoneUI.openApp('diary', '我们的日记')"><i class="ph-fill ph-book-bookmark"></i> 我们的日记</div>
             </div>
 
@@ -141,121 +254,123 @@ export const MomentsUI = {
             </div>
         `;
         
-        this.bindLongPresses();
+        if (this.bindLongPresses) this.bindLongPresses();
+    },
+
+    openPostModal() {
+        const bg = document.getElementById('post-moment-bg');
+        const modal = document.getElementById('post-moment-modal');
+        const input = document.getElementById('post-moment-text');
+        
+        this.tempMomentImage = null; 
+        this.updatePostImageUI();
+
+        if (bg) bg.classList.add('show');
+        if (modal) modal.classList.add('show');
+        if (input) { input.value = ''; setTimeout(() => input.focus(), 100); }
+    },
+
+    closePostModal() {
+        const bg = document.getElementById('post-moment-bg');
+        const modal = document.getElementById('post-moment-modal');
+        if (bg) bg.classList.remove('show');
+        if (modal) modal.classList.remove('show');
+    },
+
+    triggerMomentImageUpload() {
+        let fileInput = document.getElementById('moment-image-input');
+        if (!fileInput) {
+            fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.id = 'moment-image-input';
+            fileInput.accept = 'image/*';
+            fileInput.style.display = 'none';
+            document.body.appendChild(fileInput);
+        }
+        
+        fileInput.onchange = (e) => {
+            const f = e.target.files && e.target.files[0];
+            fileInput.value = '';
+            if (!f) return;
+            
+            if (window.PhoneAPI) window.PhoneAPI.showToast('图片处理中...');
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                this.tempMomentImage = event.target.result; 
+                this.updatePostImageUI(true);
+            };
+            reader.readAsDataURL(f);
+        };
+        fileInput.click();
+    },
+
+    updatePostImageUI(hasImage = false) {
+        const textSpan = document.querySelector('#post-moment-modal span');
+        if (textSpan) {
+            textSpan.innerText = hasImage ? '✅ 已添加图片' : '添加图片 (暂未选择)';
+            textSpan.style.color = hasImage ? 'var(--primary-color)' : 'var(--text-sub)';
+        }
+    },
+
+    sendMoment() {
+        const input = document.getElementById('post-moment-text');
+        if (!input) return;
+        const text = input.value.trim();
+        
+        if (!text && !this.tempMomentImage) { 
+            if (window.PhoneAPI) window.PhoneAPI.showToast('总得写点什么或发张图吧！'); 
+            return; 
+        }
+
+        const roleId = window.Config?.currentContactId || 'role_001';
+        if (!window.Config.phoneData[roleId]) window.Config.phoneData[roleId] = {};
+        if (!window.Config.phoneData[roleId].moments) window.Config.phoneData[roleId].moments = [];
+
+        const now = new Date();
+        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+        // 🌟 惰性生成种子：随机 1~3 分钟后 AI 才会回复
+        const delayMinutes = Math.floor(Math.random() * 3) + 1; 
+
+        const newMoment = {
+            id: 'm_' + Date.now(),
+            author: 'me',
+            content: text,
+            image: this.tempMomentImage,
+            time: timeStr,
+            date: dateStr,
+            timestamp: Date.now(),
+            likedByTa: false,
+            likedByMe: false,
+            comments: [],
+            pendingTaReply: {
+                dueAt: Date.now() + delayMinutes * 60 * 1000, 
+                status: 'pending'
+            }
+        };
+
+        window.Config.phoneData[roleId].moments.push(newMoment);
+        localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
+
+        this.closePostModal();
+        this.renderMoments();
+        
+        if (window.PhoneAPI) window.PhoneAPI.showToast(`✅ 动态已发送！(TA 大概会在 ${delayMinutes} 分钟后看到)`);
     },
 
     openReader() {
         const readerEl = document.getElementById('app-reader');
         if (readerEl) {
             readerEl.classList.add('open');
-            this.initReaderSwipe();
-            this.bindReaderSelection();
+            if (this.initReaderSwipe) this.initReaderSwipe();
+            if (this.bindReaderSelection) this.bindReaderSelection();
             
-            this.showBookshelf();
+            if (this.showBookshelf) this.showBookshelf();
             if (window.PhoneEngine && window.PhoneEngine.renderBookshelf) {
                 window.PhoneEngine.renderBookshelf();
             }
         }
-    },
-
-    closeReader() {
-        const readerEl = document.getElementById('app-reader');
-        if (readerEl) {
-            readerEl.classList.remove('open');
-            if (window.PhoneEngine && window.PhoneEngine._proactiveTimer) {
-                clearTimeout(window.PhoneEngine._proactiveTimer);
-            }
-        }
-    },
-
-    handleReaderBack() {
-        const readingView = document.getElementById('reader-reading-view');
-        if (readingView && readingView.style.display === 'block') {
-            this.showBookshelf();
-            if (window.PhoneEngine && window.PhoneEngine._proactiveTimer) {
-                clearTimeout(window.PhoneEngine._proactiveTimer);
-            }
-        } else {
-            this.closeReader();
-        }
-    },
-
-    showBookshelf() {
-        document.getElementById('reader-bookshelf-view').style.display = 'block';
-        document.getElementById('reader-reading-view').style.display = 'none';
-        document.getElementById('reader-footer').style.display = 'none';
-        document.getElementById('reader-header-title').innerText = "共读书架";
-        
-        const btnAdd = document.getElementById('btn-add-book');
-        const btnSettings = document.getElementById('btn-reader-settings');
-        if (btnAdd) btnAdd.style.display = 'block';
-        if (btnSettings) btnSettings.style.display = 'none';
-        
-        if (window.PhoneEngine && window.PhoneEngine._proactiveTimer) {
-            clearTimeout(window.PhoneEngine._proactiveTimer);
-        }
-    },
-
-    showReadingView(title) {
-        document.getElementById('reader-bookshelf-view').style.display = 'none';
-        document.getElementById('reader-reading-view').style.display = 'block';
-        document.getElementById('reader-footer').style.display = 'flex';
-        document.getElementById('reader-header-title').innerText = title || "阅读中";
-        
-        const btnAdd = document.getElementById('btn-add-book');
-        const btnSettings = document.getElementById('btn-reader-settings');
-        if (btnAdd) btnAdd.style.display = 'none';
-        if (btnSettings) btnSettings.style.display = 'block';
-    },
-
-    initReaderSwipe() {
-        const area = document.getElementById('reader-reading-view');
-        if (!area || this._readerSwipeBound) return;
-        
-        let startX = 0; let startY = 0;
-        
-        area.addEventListener('touchstart', (e) => {
-            if (e.changedTouches[0]) {
-                startX = e.changedTouches[0].screenX;
-                startY = e.changedTouches[0].screenY;
-            }
-        }, { passive: true });
-        
-        area.addEventListener('touchend', (e) => {
-            if (!e.changedTouches[0]) return;
-            const endX = e.changedTouches[0].screenX;
-            const endY = e.changedTouches[0].screenY;
-            const diffX = endX - startX;
-            const diffY = endY - startY;
-            
-            if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
-                if (diffX > 0) {
-                    if (window.PhoneEngine && window.PhoneEngine.prevPage) window.PhoneEngine.prevPage();
-                } else {
-                    if (window.PhoneEngine && window.PhoneEngine.nextPage) window.PhoneEngine.nextPage();
-                }
-            }
-        });
-        this._readerSwipeBound = true;
-    },
-
-    bindReaderSelection() {
-        const area = document.getElementById('reader-page-container');
-        const menu = document.getElementById('highlight-menu');
-        if (!area || !menu || this._selectionBound) return;
-
-        document.addEventListener('selectionchange', () => {
-            const selection = window.getSelection();
-            const readerEl = document.getElementById('app-reader');
-            if (!readerEl || !readerEl.classList.contains('open')) return;
-
-            if (selection.toString().trim().length > 0 && area.contains(selection.anchorNode)) {
-                menu.style.display = 'flex';
-            } else {
-                menu.style.display = 'none';
-            }
-        });
-        this._selectionBound = true;
     },
 
     escapeHtml(str) {
@@ -266,9 +381,5 @@ export const MomentsUI = {
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
-    },
-
-    bindLongPresses() {
-        // 绑定长按换图事件等
     }
 };

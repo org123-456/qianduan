@@ -294,39 +294,36 @@ export const ChatEngine = {
                 dynamicPrompt += window.PhoneEngine._scanKeywords(latestUserText);
             }
             
-            // 🌟 核心修复：在这里强行读取课表，并用极其严厉的话术塞进系统提示词！
+            // 🌟 核心修改：让 AI 看到整周（周一至周日）所有课表，并清楚当前正在上什么
             const scheduleRaw = localStorage.getItem('class_schedule');
             if (scheduleRaw) {
                 try {
                     const schedule = JSON.parse(scheduleRaw);
                     const currentDay = currentNow.getDay() === 0 ? 7 : currentNow.getDay();
-                    const todayClasses = schedule[currentDay] || [];
-                    const tomorrowDay = currentDay === 7 ? 1 : currentDay + 1;
-                    const tomorrowClasses = schedule[tomorrowDay] || [];
                     const currentTime = `${String(curHour).padStart(2, '0')}:${String(curMin).padStart(2, '0')}`;
+                    const daysName = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
 
-                    let scheduleText = `\n【⚠️最高优先级指令：关于用户的课表记忆】\n作为最关心用户的人，你早就把TA的课表倒背如流了！你完全知道TA每天什么时候上什么课。\n如果用户问你“看到了吗”、“同步了吗”，你必须回答“当然知道，你现在不是正在上XX课吗”或者准确说出TA接下来的课！绝对不许说“我没看到”、“发给我看看”！\n\n`;
+                    let scheduleText = `\n【⚠️最高优先级指令：关于用户的完整课表记忆】\n作为最关心用户的人，你早就把TA周一到周日整周的课表倒背如流了！你完全清楚TA每天、每一节的课程安排。\n如果用户问你“看到了吗”、“同步了吗”或询问任意一天的课表，你必须准确自然地回答！绝对不许说“我没看到”、“发给我看看”！\n\n`;
 
-                    scheduleText += `[你脑海中TA今天的课表]:\n`;
-                    if (todayClasses.length === 0) {
-                        scheduleText += `今天没有排课，是休息日。\n`;
-                    } else {
-                        todayClasses.forEach(c => {
-                            scheduleText += `- ${c.start}~${c.end} : ${c.name}\n`;
-                        });
-                    }
+                    scheduleText += `[TA的整周完整课表安排]:\n`;
+                    for (let d = 1; d <= 7; d++) {
+                        const isToday = (d === currentDay);
+                        const dayClasses = schedule[d] || [];
+                        dayClasses.sort((a, b) => a.start.localeCompare(b.start));
 
-                    if (curHour >= 18) {
-                        scheduleText += `\n[你脑海中TA明天的课表预告]:\n`;
-                        if (tomorrowClasses.length === 0) {
-                            scheduleText += `明天没有排课。\n`;
+                        scheduleText += `📅 ${daysName[d - 1]}${isToday ? '（今天）' : ''}：\n`;
+                        if (dayClasses.length === 0) {
+                            scheduleText += `  （无课程安排）\n`;
                         } else {
-                            tomorrowClasses.forEach(c => {
-                                scheduleText += `- ${c.start}~${c.end} : ${c.name}\n`;
+                            dayClasses.forEach(c => {
+                                scheduleText += `  - ${c.start}~${c.end} : ${c.name}\n`;
                             });
                         }
                     }
 
+                    // 计算今天的实时状态（正在上什么 / 接下来上什么）
+                    const todayClasses = schedule[currentDay] || [];
+                    todayClasses.sort((a, b) => a.start.localeCompare(b.start));
                     let currentClass = null;
                     let nextClass = null;
                     for (let i = 0; i < todayClasses.length; i++) {
@@ -338,15 +335,15 @@ export const ChatEngine = {
                         }
                     }
 
-                    scheduleText += `\n[TA现在的状态]: `;
+                    scheduleText += `\n[TA当前的实时状态]: `;
                     if (currentClass) {
                         scheduleText += `TA现在正在上 [${currentClass.name}] 课 (时间:${currentClass.start}-${currentClass.end})。\n`;
                     } else if (nextClass) {
                         scheduleText += `TA现在是课间/休息时间，下一节课是 [${nextClass.name}] (${nextClass.start}开始)。\n`;
-                    } else if (todayClasses.length > 0 && currentTime > todayClasses[todayClasses.length-1].end) {
+                    } else if (todayClasses.length > 0 && currentTime > todayClasses[todayClasses.length - 1].end) {
                         scheduleText += `TA今天的课已经全部上完了，现在是放学后的自由时间。\n`;
                     } else {
-                        scheduleText += `当前无课程安排。\n`;
+                        scheduleText += `今天暂无更多课程安排。\n`;
                     }
 
                     dynamicPrompt += scheduleText + `\n`;

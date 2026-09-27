@@ -131,7 +131,6 @@ export const ChatEngine = {
         if (!Config.phoneData[roleId].wechat) Config.phoneData[roleId].wechat = { items: [] };
         const content = `[发送了表情包：${name}]\n![${name}](${url})`;
         
-        // 🛠️ 彻底修复：之前是 Date.now() 毫秒串，导致时间直接错乱
         const now = new Date();
         const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
         const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -278,7 +277,6 @@ export const ChatEngine = {
             const systemPrompt = localStorage.getItem('system_prompt') || '';
             const charPersona = localStorage.getItem('char_persona') || '';
             
-            // 🛠️ 严格的时间感知计算
             const currentNow = new Date();
             const curYear = currentNow.getFullYear();
             const curMonth = currentNow.getMonth() + 1;
@@ -313,7 +311,7 @@ export const ChatEngine = {
                 dynamicPrompt += window.PhoneEngine._scanKeywords(latestUserText);
             }
             
-            // 🌟 整周课表（周一至周日）
+            // 整周课表（周一至周日）
             const scheduleRaw = localStorage.getItem('class_schedule');
             if (scheduleRaw) {
                 try {
@@ -339,7 +337,6 @@ export const ChatEngine = {
                         }
                     }
 
-                    // 实时状态计算
                     const todayClasses = schedule[currentDay] || [];
                     todayClasses.sort((a, b) => a.start.localeCompare(b.start));
                     let currentClass = null;
@@ -368,16 +365,20 @@ export const ChatEngine = {
                 } catch(e) {}
             }
 
+            // 🌟 长期记忆加载数量由用户设置控制（默认 15 条）
+            const vaultLimit = parseInt(localStorage.getItem('context_vault_limit') || '15', 10);
             const allVault = PhoneAPI.getMemoryVault();
             let accessibleVault = allVault;
             if (!shareMemory) accessibleVault = allVault.filter(v => v.isCore || v.source === '线上微信');
             if (accessibleVault.length > 0) {
-                const recentVault = accessibleVault.slice(-5).map(v => `[${v.id}] ${v.source}: ${v.content}`).join('\n');
+                const recentVault = accessibleVault.slice(-vaultLimit).map(v => `[${v.id}] ${v.source}: ${v.content}`).join('\n');
                 dynamicPrompt += `\n【长期记忆档案】：\n${recentVault}\n`;
             }
 
             let messages = [{ role: 'system', content: stablePrompt + (dynamicPrompt || '') }];
-            const MAX_CONTEXT = 60;
+            
+            // 🌟 聊天上下文数量由用户设置控制（默认 60 条）
+            const MAX_CONTEXT = parseInt(localStorage.getItem('context_chat_limit') || '60', 10);
             const recentItems = chatItems.slice(-MAX_CONTEXT);
             
             recentItems.forEach((item) => {
@@ -412,6 +413,12 @@ export const ChatEngine = {
             
             PhoneUI.renderAppContent('wechat');
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+
+            // 🌟 每次聊完后，自动检测未总结条数是否超标，超标自动入库
+            if (window.MemoryEngine && window.MemoryEngine.autoManageMemory) {
+                setTimeout(() => { window.MemoryEngine.autoManageMemory(false); }, 1000);
+            }
+
         } catch (error) {
             PhoneAPI.showToast(error.message);
             chatItems.pop();

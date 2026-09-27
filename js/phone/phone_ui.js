@@ -167,6 +167,13 @@ const CallUI = {
             const systemPrompt = localStorage.getItem('system_prompt') || '';
             const charPersona = localStorage.getItem('char_persona') || '';
             let stablePrompt = `【系统状态】：你现在正在和用户打“语音电话”。\n【要求】：请保持你的人设，用自然、口语化的简短语言回复，就像真人在通电话一样，绝对不要发表情包和动作描写。\n\n`;
+            
+            if (window.PhoneUI && window.PhoneUI.getFullScheduleContext) {
+                stablePrompt += `${window.PhoneUI.getFullScheduleContext()}\n\n`;
+            } else if (ScheduleUI.getFullScheduleContext) {
+                stablePrompt += `${ScheduleUI.getFullScheduleContext()}\n\n`;
+            }
+
             if (systemPrompt) stablePrompt += `【系统核心指令】：\n${systemPrompt}\n\n`;
             if (charPersona) stablePrompt += `【角色设定】：\n${charPersona}\n\n`;
 
@@ -844,6 +851,17 @@ export const PhoneUI = {
         const myAvatar = localStorage.getItem('my_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa';
         const taAvatar = localStorage.getItem('ta_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=TA&backgroundColor=e8f0fa';
 
+        // 🌟 实时计算当前未总结的消息数量
+        const roleId = window.Config?.currentContactId || 'role_001';
+        const allItems = window.Config?.phoneData?.[roleId]?.wechat?.items || [];
+        const cleanItems = allItems.filter(i => i.sender !== 'typing' && i.content);
+        const lastIdx = parseInt(localStorage.getItem('memory_last_summary_index') || '0', 10);
+        const unsummarizedCount = Math.max(0, cleanItems.length - lastIdx);
+
+        const curChatLimit = localStorage.getItem('context_chat_limit') || '60';
+        const curVaultLimit = localStorage.getItem('context_vault_limit') || '15';
+        const curThreshold = localStorage.getItem('memory_auto_threshold') || '8';
+
         contentEl.innerHTML = `
         <div class="settings-tabs">
         <div class="settings-tab active" id="stab-basic" onclick="window.PhoneUI.switchSetTab('basic')">基础/UI</div>
@@ -913,11 +931,61 @@ export const PhoneUI = {
         <div style="margin-bottom:15px;"><label style="font-size:12px;color:var(--text-main);font-weight:bold;">1. 系统指令 (防八股/核心规则)</label><textarea id="system-prompt" rows="4" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:10px;border-radius:8px;resize:vertical;font-size:12px;margin-top:4px;"></textarea></div>
         <div style="margin-bottom:15px;"><label style="font-size:12px;color:var(--text-main);font-weight:bold;">2. 角色人设 (性格/背景/口吻)</label><textarea id="char-persona" rows="6" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:10px;border-radius:8px;resize:vertical;font-size:12px;margin-top:4px;"></textarea></div>
         </div>
+
+        <!-- 🌟 记忆与上下文长度调控卡片 -->
+        <div class="card">
+        <h3 style="color:var(--primary-color);margin-bottom:15px;"><i class="ph-fill ph-sliders-horizontal"></i> 记忆与上下文参数调节</h3>
+        
+        <!-- 未总结条数状态看析板 -->
+        <div style="background:var(--icon-bg); padding:12px; border-radius:12px; margin-bottom:15px; border:1px dashed var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <div style="font-size:12px; font-weight:bold; color:var(--text-main);">当前累计未总结消息</div>
+                <div style="font-size:10px; color:var(--text-sub); margin-top:2px;">超过阈值或退出页面时会自动入库</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span id="label-unsummarized-count" style="font-size:18px; font-weight:bold; color:var(--primary-color);">${unsummarizedCount}</span>
+                <span style="font-size:11px; color:var(--text-sub);">条</span>
+                <button onclick="if(window.MemoryEngine){window.MemoryEngine.autoManageMemory(true); PhoneAPI.showToast('正在为您强制总结记忆...'); setTimeout(()=>{PhoneUI.renderSettings();PhoneUI.switchSetTab('ai');}, 2500);}" style="margin:0; padding:4px 10px; font-size:11px; border-radius:8px; background:var(--primary-color); color:#fff; border:none; cursor:pointer;">立即整理</button>
+            </div>
+        </div>
+
+        <div style="margin-bottom:15px;">
+            <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:5px;">
+                <span style="font-weight:bold; color:var(--text-main);">聊天上下文携带条数 (Context)</span>
+                <span id="label-chat-limit" style="color:var(--primary-color); font-weight:bold;">${curChatLimit} 条</span>
+            </div>
+            <input type="range" min="10" max="200" step="5" value="${curChatLimit}" 
+                oninput="document.getElementById('label-chat-limit').innerText = this.value + ' 条'; localStorage.setItem('context_chat_limit', this.value);" style="width:100%;">
+            <div style="font-size:10px; color:var(--text-sub); margin-top:2px;">塞给 AI 的最近微信聊天记录条数。越大记忆越长，但消耗 Token 更多。</div>
+        </div>
+
+        <div style="margin-bottom:15px;">
+            <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:5px;">
+                <span style="font-weight:bold; color:var(--text-main);">长期记忆库加载数量 (Vault)</span>
+                <span id="label-vault-limit" style="color:var(--primary-color); font-weight:bold;">${curVaultLimit} 条</span>
+            </div>
+            <input type="range" min="5" max="60" step="1" value="${curVaultLimit}" 
+                oninput="document.getElementById('label-vault-limit').innerText = this.value + ' 条'; localStorage.setItem('context_vault_limit', this.value);" style="width:100%;">
+            <div style="font-size:10px; color:var(--text-sub); margin-top:2px;">每次发消息注入给 AI 的长期记忆条数（原先死锁 5 条，现在可自由调高）。</div>
+        </div>
+
+        <div style="margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:5px;">
+                <span style="font-weight:bold; color:var(--text-main);">自动总结触发阈值 (按消息条数)</span>
+                <span id="label-auto-threshold" style="color:var(--primary-color); font-weight:bold;">${curThreshold} 条</span>
+            </div>
+            <input type="range" min="4" max="30" step="2" value="${curThreshold}" 
+                oninput="document.getElementById('label-auto-threshold').innerText = this.value + ' 条'; localStorage.setItem('memory_auto_threshold', this.value);" style="width:100%;">
+            <div style="font-size:10px; color:var(--text-sub); margin-top:2px;">未总结消息达到该条数自动整理；切后台或退出时也会自动保底记录。</div>
+        </div>
+        </div>
+
         <div class="card">
         <h3 style="color:var(--primary-color);margin-bottom:15px;"><i class="ph-fill ph-toggle-left"></i> 功能开关</h3>
         <div style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;background:var(--icon-bg);padding:10px;border-radius:8px;"><label style="font-size:13px;color:var(--text-main);font-weight:bold;"><i class="ph ph-prohibit"></i> 绝对禁止 AI 使用 Emoji</label><input type="checkbox" id="ban-emoji" onchange="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:18px;height:18px;"></div>
         <div style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;background:var(--icon-bg);padding:10px;border-radius:8px;"><label style="font-size:13px;color:var(--text-main);font-weight:bold;"><i class="ph ph-arrows-merge"></i> 开启线上/线下记忆互通</label><input type="checkbox" id="share-memory" onchange="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:18px;height:18px;"></div>
         </div>
+
         <div class="card">
         <h3 style="color:var(--primary-color);margin-bottom:10px;"><i class="ph-fill ph-database"></i> 语言引擎预设库 (文本模型)</h3>
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:15px;padding-bottom:15px;border-bottom:1px dashed var(--border-color);"><select id="preset-delete-select" onchange="window.PhoneUI.fillPresetData()" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--primary-color);"><option value="">-- 选择预设以编辑或删除 --</option></select><button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.deletePreset()" style="width:auto;margin:0;background:transparent;color:var(--danger-color);border:1px solid var(--danger-color);padding:8px 12px;"><i class="ph ph-trash"></i></button></div>

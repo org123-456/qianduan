@@ -210,7 +210,7 @@ function layout(nodes, links, softlinks) {
       dx *= inv; dy *= inv; dz *= inv; fx[i] += dx * f; fy[i] += dy * f; fz[i] += dz * f; fx[j] -= dx * f; fy[j] -= dy * f; fz[j] -= dz * f;
     }
     for (const [i, j, k, rest] of edges) {
-      const dx = nodes[j].x - nodes[i].x, dy = nodes[j].y - nodes[i].y, dz = nodes[j].z - nodes[i].z;
+      const dx = nodes[j].x - nodes[i].x, dy = nodes[j].y - nodes[i].y, dz = nodes[j].z - nodes[j].z;
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) + 0.01, f = k * (dist - rest) / dist;
       fx[i] += dx * f; fy[i] += dy * f; fz[i] += dz * f; fx[j] -= dx * f; fy[j] -= dy * f; fz[j] -= dz * f;
     }
@@ -904,23 +904,18 @@ export const MemoryEngine = {
         return true;
     },
 
-    /**
-     * 🌟 核心改进：按真实新条数自动总结记忆，且支持退屏/切后台保底总结！
-     */
     async autoManageMemory(force = false) {
         if (this._isSummarizing) return;
         const roleId = Config?.currentContactId;
         const items = Config?.phoneData?.[roleId]?.wechat?.items || [];
         const cleanItems = items.filter(i => i.sender !== 'typing' && i.content);
 
-        // 获取上次总结截止的消息索引
         const lastIndex = parseInt(localStorage.getItem('memory_last_summary_index') || '0', 10);
         const threshold = parseInt(localStorage.getItem('memory_auto_threshold') || '8', 10);
         
         const unsummarizedCount = cleanItems.length - lastIndex;
-        // 未满阈值且不是强制触发（如退出保底触发时至少有2条新内容）
         if (!force && unsummarizedCount < threshold) return;
-        if (force && unsummarizedCount < 2) return; // 退出保底至少有2条新交流才记
+        if (force && unsummarizedCount < 2) return;
 
         this._isSummarizing = true;
         const recentItems = cleanItems.slice(Math.max(0, cleanItems.length - Math.max(unsummarizedCount, 15)));
@@ -967,7 +962,6 @@ DEL###要删除的记忆ID
             const reply = await PhoneAPI.chatWithAI(messages);
             const rawText = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```.*?/g, '').replace(/```/g, '').trim();
             
-            // 无论是否有新增，都标记这些消息已被检阅，推进索引
             localStorage.setItem('memory_last_summary_index', cleanItems.length.toString());
 
             if (rawText.includes('NONE')) {
@@ -1182,11 +1176,11 @@ DEL###要删除的记忆ID
     }
 };
 
-// 🌟 核心保底监听：切后台、锁屏、关闭页面时，只要有未总结内容就自动总结入库！
+// 🌟 网页切后台、熄屏或直接关闭时保底自动存记忆
 if (typeof document !== 'undefined') {
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
-            MemoryEngine.autoManageMemory(true); // force = true
+            MemoryEngine.autoManageMemory(true);
         }
     });
     window.addEventListener('beforeunload', () => {

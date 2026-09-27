@@ -74,7 +74,7 @@ export const ChatEngine = {
                     if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
                     if (!Config.phoneData[roleId].wechat) Config.phoneData[roleId].wechat = { items: [] };
                     const now = new Date();
-                    const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+                    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
                     const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
                     Config.phoneData[roleId].wechat.items.push({ sender: 'me', content: `![图片](${base64Url})`, time: timeStr, date: dateStr });
                     localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
@@ -101,7 +101,7 @@ export const ChatEngine = {
             if (!Config.phoneData[roleId].wechat) Config.phoneData[roleId].wechat = { items: [] };
             const chatItems = Config.phoneData[roleId].wechat.items;
             const now = new Date();
-            const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
             const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
             const isText = file.type.startsWith('text/') || file.name.endsWith('.md') || file.name.endsWith('.json') || file.name.endsWith('.csv');
             if (isText && file.size < 100 * 1024) {
@@ -130,7 +130,13 @@ export const ChatEngine = {
         if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
         if (!Config.phoneData[roleId].wechat) Config.phoneData[roleId].wechat = { items: [] };
         const content = `[发送了表情包：${name}]\n![${name}](${url})`;
-        Config.phoneData[roleId].wechat.items.push({ sender: 'me', content, time: Date.now(), date: new Date().toISOString().slice(0, 10) });
+        
+        // 🛠️ 彻底修复：之前是 Date.now() 毫秒串，导致时间直接错乱
+        const now = new Date();
+        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        
+        Config.phoneData[roleId].wechat.items.push({ sender: 'me', content, time: timeStr, date: dateStr });
         localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
         PhoneUI.renderAppContent?.('wechat');
     },
@@ -214,7 +220,7 @@ export const ChatEngine = {
         if (!Config.phoneData[roleId].wechat) Config.phoneData[roleId].wechat = { items: [] };
         const chatItems = Config.phoneData[roleId].wechat.items;
         const now = new Date();
-        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
         const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         chatItems.push({ sender: 'me', content: text, time: timeStr, date: dateStr });
         inputEl.value = '';
@@ -230,7 +236,7 @@ export const ChatEngine = {
         let hasNewUserMsg = false; 
         let latestUserText = '';
         const now = new Date();
-        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
         const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
         if (!isRegen) {
@@ -272,14 +278,27 @@ export const ChatEngine = {
             const systemPrompt = localStorage.getItem('system_prompt') || '';
             const charPersona = localStorage.getItem('char_persona') || '';
             
+            // 🛠️ 严格的时间感知计算
             const currentNow = new Date();
-            const curHour = currentNow.getHours(); const curMin = currentNow.getMinutes();
-            const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
-            const curWeek = '星期' + weekDays[currentNow.getDay()];
+            const curYear = currentNow.getFullYear();
+            const curMonth = currentNow.getMonth() + 1;
+            const curDate = currentNow.getDate();
+            const curHour = currentNow.getHours(); 
+            const curMin = currentNow.getMinutes();
+            const daysArr = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            const curWeek = daysArr[currentNow.getDay()];
+            const timeStrStandard = `${String(curHour).padStart(2, '0')}:${String(curMin).padStart(2, '0')}`;
+
             let timePhase = "深夜";
-            if (curHour >= 5 && curHour < 9) timePhase = "清晨"; else if (curHour >= 9 && curHour < 12) timePhase = "上午"; else if (curHour >= 12 && curHour < 14) timePhase = "中午"; else if (curHour >= 14 && curHour < 18) timePhase = "下午"; else if (curHour >= 18 && curHour < 23) timePhase = "晚上";
+            if (curHour >= 5 && curHour < 9) timePhase = "清晨"; 
+            else if (curHour >= 9 && curHour < 12) timePhase = "上午"; 
+            else if (curHour >= 12 && curHour < 14) timePhase = "中午"; 
+            else if (curHour >= 14 && curHour < 18) timePhase = "下午"; 
+            else if (curHour >= 18 && curHour < 23) timePhase = "晚上";
             
-            let stablePrompt = `【系统时间感知】：当前现实时间是 ${currentNow.getFullYear()}年${currentNow.getMonth()+1}月${currentNow.getDate()}日 ${curWeek}，${timePhase} ${curHour.toString().padStart(2, '0')}:${curMin.toString().padStart(2, '0')}。请自然地感知当前时间，如果用户问你时间，请准确回答。\n\n`;
+            let stablePrompt = `【⚠️当前现实唯一准确时间锚点】：
+此时此刻是 ${curYear}年${curMonth}月${curDate}日 ${curWeek}，${timePhase} ${timeStrStandard}。
+（注意：聊天记录中可能包含过去的历史时间，但此时此刻的现实时间以本条为准！如果用户问你现在几点、今天周几，必须严格按照上述时间回答，不可说错！）\n\n`;
             
             if (systemPrompt) stablePrompt += `【系统核心指令】：\n${systemPrompt}\n\n`;
             if (charPersona) stablePrompt += `【角色设定】：\n${charPersona}\n\n`;
@@ -294,13 +313,12 @@ export const ChatEngine = {
                 dynamicPrompt += window.PhoneEngine._scanKeywords(latestUserText);
             }
             
-            // 🌟 核心修改：让 AI 看到整周（周一至周日）所有课表，并清楚当前正在上什么
+            // 🌟 整周课表（周一至周日）
             const scheduleRaw = localStorage.getItem('class_schedule');
             if (scheduleRaw) {
                 try {
                     const schedule = JSON.parse(scheduleRaw);
                     const currentDay = currentNow.getDay() === 0 ? 7 : currentNow.getDay();
-                    const currentTime = `${String(curHour).padStart(2, '0')}:${String(curMin).padStart(2, '0')}`;
                     const daysName = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
 
                     let scheduleText = `\n【⚠️最高优先级指令：关于用户的完整课表记忆】\n作为最关心用户的人，你早就把TA周一到周日整周的课表倒背如流了！你完全清楚TA每天、每一节的课程安排。\n如果用户问你“看到了吗”、“同步了吗”或询问任意一天的课表，你必须准确自然地回答！绝对不许说“我没看到”、“发给我看看”！\n\n`;
@@ -321,16 +339,16 @@ export const ChatEngine = {
                         }
                     }
 
-                    // 计算今天的实时状态（正在上什么 / 接下来上什么）
+                    // 实时状态计算
                     const todayClasses = schedule[currentDay] || [];
                     todayClasses.sort((a, b) => a.start.localeCompare(b.start));
                     let currentClass = null;
                     let nextClass = null;
                     for (let i = 0; i < todayClasses.length; i++) {
                         const c = todayClasses[i];
-                        if (currentTime >= c.start && currentTime <= c.end) {
+                        if (timeStrStandard >= c.start && timeStrStandard <= c.end) {
                             currentClass = c;
-                        } else if (currentTime < c.start && !nextClass) {
+                        } else if (timeStrStandard < c.start && !nextClass) {
                             nextClass = c;
                         }
                     }
@@ -340,7 +358,7 @@ export const ChatEngine = {
                         scheduleText += `TA现在正在上 [${currentClass.name}] 课 (时间:${currentClass.start}-${currentClass.end})。\n`;
                     } else if (nextClass) {
                         scheduleText += `TA现在是课间/休息时间，下一节课是 [${nextClass.name}] (${nextClass.start}开始)。\n`;
-                    } else if (todayClasses.length > 0 && currentTime > todayClasses[todayClasses.length - 1].end) {
+                    } else if (todayClasses.length > 0 && timeStrStandard > todayClasses[todayClasses.length - 1].end) {
                         scheduleText += `TA今天的课已经全部上完了，现在是放学后的自由时间。\n`;
                     } else {
                         scheduleText += `今天暂无更多课程安排。\n`;

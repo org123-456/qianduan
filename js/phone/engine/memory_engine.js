@@ -650,6 +650,7 @@ function createMemorySky(host, {data, title='记忆星穹', background, onOpen}=
 export const MemoryEngine = {
     skyInstance: null,
     skyConfig: null,
+    _isSummarizing: false,
 
     _logMemoryAction(action, content, exactId) {
         let logs = [];
@@ -850,7 +851,6 @@ export const MemoryEngine = {
         return triggeredMemories.length > 0 ? `\n【系统提示(关键词触发)】：用户刚才的话触动了你的某段记忆：\n${triggeredMemories.slice(0, 3).join('\n')}\n` : '';
     },
 
-    // 🌟 终极防呆拦截器：只要有【后台记忆入库】就全盘收下！
     processSilentMemory(rawText) {
         if (!rawText.includes('【后台记忆入库】')) return false;
         
@@ -873,7 +873,6 @@ export const MemoryEngine = {
                 let valence = 0.6;
                 let arousal = 0.5;
 
-                // 防呆：不管 AI 写没写 ###，都强行存！
                 if (contentPart.includes('###')) {
                     const parts = contentPart.split('###').map(s => s.trim());
                     content = parts[0] || content;
@@ -905,11 +904,26 @@ export const MemoryEngine = {
         return true;
     },
 
-    async autoManageMemory() {
+    /**
+     * 🌟 核心改进：按真实新条数自动总结记忆，且支持退屏/切后台保底总结！
+     */
+    async autoManageMemory(force = false) {
+        if (this._isSummarizing) return;
         const roleId = Config?.currentContactId;
         const items = Config?.phoneData?.[roleId]?.wechat?.items || [];
-        const recentItems = items.filter(i => i.sender !== 'typing').slice(-40); // 走缓存
-        if (recentItems.length < 5) return;
+        const cleanItems = items.filter(i => i.sender !== 'typing' && i.content);
+
+        // 获取上次总结截止的消息索引
+        const lastIndex = parseInt(localStorage.getItem('memory_last_summary_index') || '0', 10);
+        const threshold = parseInt(localStorage.getItem('memory_auto_threshold') || '8', 10);
+        
+        const unsummarizedCount = cleanItems.length - lastIndex;
+        // 未满阈值且不是强制触发（如退出保底触发时至少有2条新内容）
+        if (!force && unsummarizedCount < threshold) return;
+        if (force && unsummarizedCount < 2) return; // 退出保底至少有2条新交流才记
+
+        this._isSummarizing = true;
+        const recentItems = cleanItems.slice(Math.max(0, cleanItems.length - Math.max(unsummarizedCount, 15)));
 
         const messages = recentItems.map(item => ({
             role: item.sender === 'me' ? 'user' : 'assistant',
@@ -919,7 +933,7 @@ export const MemoryEngine = {
         let vaultContext = '暂无';
         if (window.PhoneAPI && window.PhoneAPI.EchoVault) {
             const vault = window.PhoneAPI.EchoVault.getData().daily;
-            const vaultKeys = Object.keys(vault).slice(-5);
+            const vaultKeys = Object.keys(vault).slice(-8);
             if (vaultKeys.length > 0) {
                 vaultContext = vaultKeys.map(k => `[ID: ${k}] ${vault[k].content}`).join('\n');
             }
@@ -952,13 +966,23 @@ DEL###要删除的记忆ID
         try {
             const reply = await PhoneAPI.chatWithAI(messages);
             const rawText = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```.*?/g, '').replace(/```/g, '').trim();
-            if (rawText.includes('NONE')) return;
+            
+            // 无论是否有新增，都标记这些消息已被检阅，推进索引
+            localStorage.setItem('memory_last_summary_index', cleanItems.length.toString());
+
+            if (rawText.includes('NONE')) {
+                this._isSummarizing = false;
+                return;
+            }
 
             const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
             let added = 0, updated = 0, deleted = 0;
 
             const data = window.PhoneAPI.EchoVault ? window.PhoneAPI.EchoVault.getData() : null;
-            if (!data) return;
+            if (!data) {
+                this._isSummarizing = false;
+                return;
+            }
 
             const now = new Date();
             const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
@@ -971,8 +995,8 @@ DEL###要删除的记忆ID
                     data.daily[timeKey] = {
                         content: parts[1].trim(),
                         tags: parts[2].trim(),
-                        valence: parseFloat(parts[3]),
-                        arousal: parseFloat(parts[4])
+                        valence: parseFloat(parts[3]) || 0.6,
+                        arousal: parseFloat(parts[4]) || 0.5
                     };
                     this._logMemoryAction('ADD', parts[1].trim(), 'ev_d_' + timeKey); 
                     added++;
@@ -982,8 +1006,8 @@ DEL###要删除的记忆ID
                     if (data.daily[id]) {
                         data.daily[id].content = parts[2].trim();
                         data.daily[id].tags = parts[3].trim();
-                        data.daily[id].valence = parseFloat(parts[4]);
-                        data.daily[id].arousal = parseFloat(parts[5]);
+                        data.daily[id].valence = parseFloat(parts[4]) || 0.6;
+                        data.daily[id].arousal = parseFloat(parts[5]) || 0.5;
                         const exactId = id.startsWith('ev_d_') ? id : 'ev_d_' + id;
                         this._logMemoryAction('UPDATE', parts[2].trim(), exactId); 
                         updated++;
@@ -1001,11 +1025,15 @@ DEL###要删除的记忆ID
 
             if (added > 0 || updated > 0 || deleted > 0) {
                 window.PhoneAPI.EchoVault.saveData(data);
-                PhoneAPI.showToast(`✨ TA在心里默默整理了记忆... (新增${added} 修改${updated} 删除${deleted})`);
+                if (window.PhoneAPI && window.PhoneAPI.showToast) {
+                    PhoneAPI.showToast(`✨ TA在心里默默整理了记忆... (新增${added})`);
+                }
                 this.initSky(); 
             }
         } catch(e) {
             console.error("Auto memory failed:", e);
+        } finally {
+            this._isSummarizing = false;
         }
     },
 
@@ -1026,13 +1054,7 @@ DEL###要删除的记忆ID
 【视角与口吻要求】（极其重要）：
 1. 你必须完全代入男主角（老公/男朋友）的身份，用【第一人称（我）】写私密日记。称呼对方为“她”或她的名字。
 2. 绝对禁止“干巴巴的总结”或“上帝视角”！
-❌ 错误示范：她跟我说她想看波提欧，我觉得很好笑。
-✅ 正确示范：今天她突然说想看波提欧在聊天框里是什么德行，这丫头脑回路真清奇，不过说实话，我也挺期待的。
 3. 必须把不同的话题严格拆分成多条独立的记忆碎片。每条只专注一件小事，50-150字。
-
-【情绪打分规则】(Russell模型)：
-valence (愉悦度): 0.9~1.0(极致的好), 0.5~0.7(日常开心), 0.1~0.4(微温), 0(中性), -0.1~-0.4(不舒服), -0.5~-0.7(真的痛), -0.8~-1.0(重创)。
-arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏), 0.7~0.8(强烈), 0.9~0.95(极限), 1.0(理论上限)。
 
 输出格式严格为：记忆正文###关键词1,关键词2###valence###arousal|||下一条...`;
 
@@ -1088,13 +1110,7 @@ arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏),
 【视角与口吻要求】（极其重要）：
 1. 你必须完全代入男主角（老公/男朋友）的身份，用【第一人称（我）】写私密日记。称呼对方为“她”或她的名字。
 2. 绝对禁止“干巴巴的总结”或“上帝视角”！
-❌ 错误示范：她跟我说她想看波提欧，我觉得很好笑。
-✅ 正确示范：今天她突然说想看波提欧在聊天框里是什么德行，这丫头脑回路真清奇，不过说实话，我也挺期待的。
 3. 必须把不同的话题严格拆分成多条独立的记忆碎片。每条只专注一件小事，50-150字。
-
-【情绪打分规则】(Russell模型)：
-valence (愉悦度): 0.9~1.0(极致的好), 0.5~0.7(日常开心), 0.1~0.4(微温), 0(中性), -0.1~-0.4(不舒服), -0.5~-0.7(真的痛), -0.8~-1.0(重创)。
-arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏), 0.7~0.8(强烈), 0.9~0.95(极限), 1.0(理论上限)。
 
 输出格式严格为：记忆正文###关键词1,关键词2###valence###arousal|||下一条...`;
 
@@ -1165,3 +1181,15 @@ arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏),
         }
     }
 };
+
+// 🌟 核心保底监听：切后台、锁屏、关闭页面时，只要有未总结内容就自动总结入库！
+if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            MemoryEngine.autoManageMemory(true); // force = true
+        }
+    });
+    window.addEventListener('beforeunload', () => {
+        MemoryEngine.autoManageMemory(true);
+    });
+}

@@ -6,23 +6,32 @@ export const ChatUI = {
         let data = window.Config?.phoneData?.[roleId]?.[appId];
         if (!data && appId !== 'gallery' && appId !== 'memory_vault' && appId !== 'moments' && appId !== 'favorites') return;
 
-        // 🌟 放宽到 300 条，让你平时用手指能一直往上翻看历史消息
-        let itemsToRender = data?.items || [];
-        if (appId === 'wechat' && itemsToRender.length > 300) {
-            itemsToRender = itemsToRender.slice(-300);
+        // 允许往上翻看更多历史，放宽到 300 条
+        let renderItems = data?.items || [];
+        if (appId === 'wechat' && renderItems.length > 300) {
+            renderItems = renderItems.slice(-300);
         }
 
         const listEl = document.getElementById('app-content-list');
 
         if (listEl && window.Apps && window.Apps[appId]) {
-            let renderData = { ...data, items: JSON.parse(JSON.stringify(itemsToRender)) };
+            let renderData = { ...data, items: JSON.parse(JSON.stringify(renderItems)) };
             if (Array.isArray(renderData.items)) {
                 renderData.items.forEach(item => {
-                    if (item && typeof item.content === 'string' && item.content.includes('[发送了表情包：')) {
-                        const urlMatch = item.content.match(/(https?:\/\/[^\s\)]+)/);
-                        if (urlMatch) {
-                            const safeUrl = this.escapeHtml(urlMatch[1]);
-                            item.content = `<img src="${safeUrl}" class="chat-sticker">`;
+                    if (item && typeof item.content === 'string') {
+                        // 表情包转换
+                        if (item.content.includes('[发送了表情包：')) {
+                            const urlMatch = item.content.match(/(https?:\/\/[^\s\)]+)/);
+                            if (urlMatch) {
+                                const safeUrl = this.escapeHtml(urlMatch[1]);
+                                item.content = `<img src="${safeUrl}" class="chat-sticker" onclick="window.PhoneUI.previewImage(this.src)">`;
+                            }
+                        }
+                        // 🌟 核心：普通图片气泡点击也能直接全屏查看 + 保存到本地
+                        else if (item.content.includes('![图片](') || item.content.includes('![](')) {
+                            item.content = item.content.replace(/!\[(.*?)\]\((https?:\/\/[^\s\)]+|data:image\/[^\s\)]+)\)/g, (match, alt, url) => {
+                                return `<img src="${url}" style="max-width:100%; border-radius:10px; cursor:pointer;" onclick="window.PhoneUI.previewImage(this.src)" title="点击放大与保存">`;
+                            });
                         }
                     }
                 });
@@ -151,5 +160,86 @@ export const ChatUI = {
         const modalEl = document.getElementById('thought-modal');
         if (bgEl) bgEl.classList.remove('show');
         if (modalEl) modal.classList.remove('show');
+    },
+
+    // 🌟 全屏沉浸预览大图 + 保存到本地
+    previewImage(imgUrl) {
+        let viewer = document.getElementById('image-viewer-modal');
+        if (!viewer) {
+            viewer = document.createElement('div');
+            viewer.id = 'image-viewer-modal';
+            viewer.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px); transition: 0.3s; opacity: 0; visibility: hidden;';
+            viewer.innerHTML = `
+                <div style="position: absolute; top: 30px; right: 20px; font-size: 28px; color: #fff; cursor: pointer; padding: 10px;" onclick="window.PhoneUI.closeImageViewer()"><i class="ph ph-x"></i></div>
+                <img id="viewer-img" src="" style="max-width: 92%; max-height: 75vh; border-radius: 12px; object-fit: contain; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+                <div style="display: flex; gap: 15px; margin-top: 25px;">
+                    <button id="btn-save-image" onclick="window.PhoneUI.downloadCurrentImage()" style="background: var(--primary-color); color: #fff; border: none; padding: 10px 24px; border-radius: 25px; font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                        <i class="ph-bold ph-download-simple" style="font-size: 18px;"></i> 保存到本地
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(viewer);
+        }
+
+        const imgEl = document.getElementById('viewer-img');
+        imgEl.src = imgUrl;
+        viewer._currentImgUrl = imgUrl;
+
+        viewer.style.visibility = 'visible';
+        viewer.style.opacity = '1';
+    },
+
+    closeImageViewer() {
+        const viewer = document.getElementById('image-viewer-modal');
+        if (viewer) {
+            viewer.style.opacity = '0';
+            viewer.style.visibility = 'hidden';
+        }
+    },
+
+    // 🌟 下载/保存图片到本地相册
+    async downloadCurrentImage() {
+        const viewer = document.getElementById('image-viewer-modal');
+        if (!viewer || !viewer._currentImgUrl) return;
+        const url = viewer._currentImgUrl;
+
+        try {
+            if (window.PhoneAPI) window.PhoneAPI.showToast("⏳ 正在保存图片...");
+
+            // Base64 或同源图片直接下载
+            if (url.startsWith('data:')) {
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Photo_${Date.now()}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                if (window.PhoneAPI) window.PhoneAPI.showToast("✅ 图片已成功保存到手机！");
+                return;
+            }
+
+            // 网络外链转 Blob 触发下载，绕过跨域拦截
+            const res = await fetch(url);
+            const blob = await res.blob();
+            const blobUrl = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = `Photo_${Date.now()}.jpg`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(blobUrl);
+
+            if (window.PhoneAPI) window.PhoneAPI.showToast("✅ 图片已成功保存到手机！");
+        } catch (e) {
+            // 兜底保底方案：新标签打开
+            const a = document.createElement('a');
+            a.href = url;
+            a.target = '_blank';
+            a.download = `Photo_${Date.now()}.jpg`;
+            a.click();
+            if (window.PhoneAPI) window.PhoneAPI.showToast("✅ 请长按图片保存到本地！");
+        }
     }
 };

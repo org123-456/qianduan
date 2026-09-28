@@ -630,7 +630,7 @@ export const PhoneUI = {
         });
     },
 
-    // 🌟【重点更新】：在顶栏 API 弹窗中动态渲染实时 Token 与计费看板！
+    // 🌟 打开 API 弹窗：呈现中转站真实余额 + 本地 Token 监控
     openApiModal() {
         const bg = document.getElementById('api-modal-bg');
         const modal = document.getElementById('api-modal');
@@ -640,7 +640,16 @@ export const PhoneUI = {
             window.PhoneAPI.refreshPresetDropdowns();
         }
 
-        // 查找或创建 Token 看板容器
+        bg.classList.add('show');
+        modal.classList.add('show');
+
+        this.renderApiModalContent();
+    },
+
+    async renderApiModalContent() {
+        const modal = document.getElementById('api-modal');
+        if (!modal) return;
+
         let tokenBoard = document.getElementById('api-token-board');
         if (!tokenBoard) {
             tokenBoard = document.createElement('div');
@@ -656,41 +665,64 @@ export const PhoneUI = {
             lastInfo = `入: ${stats.lastUsage.prompt} | 出: ${stats.lastUsage.completion} | 总: <b>${stats.lastUsage.total}</b> (约 ￥${stats.lastCost})`;
         }
 
+        // 先画出骨架，余额处显示“查询中...”
         tokenBoard.innerHTML = `
             <div style="font-size: 13px; font-weight: bold; color: var(--primary-color); display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                <span><i class="ph-fill ph-chart-line-up"></i> Token 与消费看板</span>
+                <span><i class="ph-fill ph-wallet"></i> 实时账户与用量</span>
                 <span style="font-size: 10px; color: var(--text-sub); cursor: pointer;" onclick="window.PhoneUI.editTokenPrice()">单价: ￥${stats.pricePerM}/1M ✎</span>
             </div>
-            <div style="background: var(--icon-bg); padding: 10px; border-radius: 10px; font-size: 11px; display: flex; flex-direction: column; gap: 6px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="color: var(--text-sub);">累计总消耗：</span>
-                    <span style="font-weight: bold; color: var(--text-main); font-family: monospace;">${stats.totalCount.toLocaleString()} Tokens</span>
+            
+            <!-- 🌟 中转站真实余额卡片 -->
+            <div style="background: linear-gradient(135deg, rgba(167, 139, 250, 0.15), rgba(111, 168, 220, 0.15)); border: 1px solid var(--border-color); padding: 10px 12px; border-radius: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-size: 11px; color: var(--text-sub);">中转站账号剩余额度</div>
+                    <div id="remote-api-balance" style="font-size: 18px; font-weight: bold; color: var(--primary-color); font-family: monospace; margin-top: 2px;">
+                        <span style="font-size: 12px; font-weight: normal; opacity: 0.7;"><i class="ph ph-spinner spin-anim"></i> 查询中...</span>
+                    </div>
                 </div>
+                <button onclick="window.PhoneUI.renderApiModalContent()" style="background: var(--icon-bg); border: 1px solid var(--border-color); color: var(--text-main); font-size: 11px; padding: 4px 8px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                    <i class="ph ph-arrows-clockwise"></i> 刷新
+                </button>
+            </div>
+
+            <!-- 本地 Token 统计卡片 -->
+            <div style="background: var(--icon-bg); padding: 10px; border-radius: 10px; font-size: 11px; display: flex; flex-direction: column; gap: 5px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="color: var(--text-sub);">预估总费用：</span>
-                    <span style="font-weight: bold; color: var(--danger-color); font-size: 13px;">￥${stats.totalCost}</span>
+                    <span style="color: var(--text-sub);">本次累计消耗：</span>
+                    <span style="font-weight: bold; color: var(--text-main); font-family: monospace;">${stats.totalCount.toLocaleString()} Tokens (约 ￥${stats.totalCost})</span>
                 </div>
                 <div style="border-top: 1px dashed var(--border-color); margin: 2px 0;"></div>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="color: var(--text-sub);">最近一次调用：</span>
+                    <span style="color: var(--text-sub);">最近一次对话：</span>
                     <span style="color: var(--text-main); font-size: 10px;">${lastInfo}</span>
                 </div>
             </div>
+            
             <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
-                <button onclick="if(window.PhoneAPI){window.PhoneAPI.resetTokenStats(); window.PhoneUI.openApiModal();}" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-sub); font-size: 10px; padding: 3px 8px; border-radius: 6px; cursor: pointer;">清零统计</button>
+                <button onclick="if(window.PhoneAPI){window.PhoneAPI.resetTokenStats(); window.PhoneUI.renderApiModalContent();}" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-sub); font-size: 10px; padding: 3px 8px; border-radius: 6px; cursor: pointer;">清零本地统计</button>
             </div>
         `;
 
-        bg.classList.add('show');
-        modal.classList.add('show');
+        // 异步查询真实余额并更新 DOM
+        if (window.PhoneAPI && window.PhoneAPI.queryRemoteBalance) {
+            const res = await window.PhoneAPI.queryRemoteBalance();
+            const balanceEl = document.getElementById('remote-api-balance');
+            if (balanceEl) {
+                if (res && res.remaining !== undefined) {
+                    balanceEl.innerHTML = `￥${res.remaining} <span style="font-size: 10px; color: var(--text-sub); font-weight: normal;">(总额 ￥${res.total})</span>`;
+                } else {
+                    balanceEl.innerHTML = `<span style="font-size: 11px; color: var(--text-sub); font-weight: normal;">未开放余额查询接口</span>`;
+                }
+            }
+        }
     },
 
     async editTokenPrice() {
         const cur = localStorage.getItem('token_price_per_m') || '2.0';
-        const price = await this.showCustomPrompt('每 100 万 Token 的价格(元)：', cur);
+        const price = await this.showCustomPrompt('每 100 万 Token 的综合估算价格(元)：', cur);
         if (price !== null && !isNaN(parseFloat(price))) {
             localStorage.setItem('token_price_per_m', parseFloat(price).toString());
-            this.openApiModal();
+            this.renderApiModalContent();
         }
     },
 

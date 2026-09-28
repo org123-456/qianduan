@@ -630,11 +630,68 @@ export const PhoneUI = {
         });
     },
 
+    // 🌟【重点更新】：在顶栏 API 弹窗中动态渲染实时 Token 与计费看板！
     openApiModal() {
         const bg = document.getElementById('api-modal-bg');
         const modal = document.getElementById('api-modal');
-        if (bg) bg.classList.add('show');
-        if (modal) modal.classList.add('show');
+        if (!bg || !modal) return;
+
+        if (window.PhoneAPI && window.PhoneAPI.refreshPresetDropdowns) {
+            window.PhoneAPI.refreshPresetDropdowns();
+        }
+
+        // 查找或创建 Token 看板容器
+        let tokenBoard = document.getElementById('api-token-board');
+        if (!tokenBoard) {
+            tokenBoard = document.createElement('div');
+            tokenBoard.id = 'api-token-board';
+            tokenBoard.style.cssText = 'margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 12px;';
+            modal.appendChild(tokenBoard);
+        }
+
+        const stats = window.PhoneAPI ? window.PhoneAPI.getTokenStats() : { totalCount: 0, totalCost: '0.0000', lastUsage: null, lastCost: '0.0000', pricePerM: 2.0 };
+        
+        let lastInfo = '暂无调用记录';
+        if (stats.lastUsage) {
+            lastInfo = `入: ${stats.lastUsage.prompt} | 出: ${stats.lastUsage.completion} | 总: <b>${stats.lastUsage.total}</b> (约 ￥${stats.lastCost})`;
+        }
+
+        tokenBoard.innerHTML = `
+            <div style="font-size: 13px; font-weight: bold; color: var(--primary-color); display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <span><i class="ph-fill ph-chart-line-up"></i> Token 与消费看板</span>
+                <span style="font-size: 10px; color: var(--text-sub); cursor: pointer;" onclick="window.PhoneUI.editTokenPrice()">单价: ￥${stats.pricePerM}/1M ✎</span>
+            </div>
+            <div style="background: var(--icon-bg); padding: 10px; border-radius: 10px; font-size: 11px; display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--text-sub);">累计总消耗：</span>
+                    <span style="font-weight: bold; color: var(--text-main); font-family: monospace;">${stats.totalCount.toLocaleString()} Tokens</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--text-sub);">预估总费用：</span>
+                    <span style="font-weight: bold; color: var(--danger-color); font-size: 13px;">￥${stats.totalCost}</span>
+                </div>
+                <div style="border-top: 1px dashed var(--border-color); margin: 2px 0;"></div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--text-sub);">最近一次调用：</span>
+                    <span style="color: var(--text-main); font-size: 10px;">${lastInfo}</span>
+                </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+                <button onclick="if(window.PhoneAPI){window.PhoneAPI.resetTokenStats(); window.PhoneUI.openApiModal();}" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-sub); font-size: 10px; padding: 3px 8px; border-radius: 6px; cursor: pointer;">清零统计</button>
+            </div>
+        `;
+
+        bg.classList.add('show');
+        modal.classList.add('show');
+    },
+
+    async editTokenPrice() {
+        const cur = localStorage.getItem('token_price_per_m') || '2.0';
+        const price = await this.showCustomPrompt('每 100 万 Token 的价格(元)：', cur);
+        if (price !== null && !isNaN(parseFloat(price))) {
+            localStorage.setItem('token_price_per_m', parseFloat(price).toString());
+            this.openApiModal();
+        }
     },
 
     closeApiModal() {

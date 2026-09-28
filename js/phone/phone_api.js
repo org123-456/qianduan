@@ -1,5 +1,4 @@
 export const PhoneAPI = {
-    // 👇 这里已经换成你的新数据库啦！
     SUPABASE_URL: 'https://surgrksyiscmaxgggitx.supabase.co',
     SUPABASE_KEY: 'sb_publishable_Q1a5lFcqiUK1t2UHH3P2bQ_jw3LFoaa',
     
@@ -83,7 +82,7 @@ export const PhoneAPI = {
                             } else {
                                 const dateStr = item.date || new Date().toISOString().split('T')[0];
                                 if (defaultData.daily[dateStr]) defaultData.daily[dateStr].content += `\n\n---\n\n${item.content}`;
-                                else defaultData.daily[dateStr] = { type: 'daily', created: `${item.date} ${item.time}`, importance: 5, tags: item.source, hits: 0, content: item.content, comments: [] };
+                                else defaultData.daily[dateStr] = { type: 'daily', created, importance: 5, tags: item.source, hits: 0, content: item.content, comments: [] };
                             }
                         });
                         localStorage.setItem('memory_vault_entries_backup', oldVaultRaw);
@@ -304,7 +303,6 @@ export const PhoneAPI = {
             localStorage.setItem('main_engine_id', presetId); 
             this.showToast('✅ 主引擎切换成功！'); 
             this.refreshPresetDropdowns(); 
-            // 切换引擎后顺便刷新一下顶栏看板
             if (window.PhoneUI && window.PhoneUI.renderApiModalContent) {
                 window.PhoneUI.renderApiModalContent();
             }
@@ -354,7 +352,6 @@ export const PhoneAPI = {
         this.showToast('🗑️ 记忆已消除'); 
     },
 
-    // 🌟 记录与管理 Token 消耗数据
     recordTokenUsage(usage) {
         if (!usage) return;
         const total = usage.total_tokens || (usage.prompt_tokens + usage.completion_tokens) || 0;
@@ -362,7 +359,6 @@ export const PhoneAPI = {
         const completion = usage.completion_tokens || 0;
 
         localStorage.setItem('token_last_usage', JSON.stringify({ prompt, completion, total, time: Date.now() }));
-        
         const historyTotal = parseInt(localStorage.getItem('token_total_count') || '0', 10) + total;
         localStorage.setItem('token_total_count', historyTotal.toString());
     },
@@ -385,14 +381,11 @@ export const PhoneAPI = {
         this.showToast('✅ 本地统计已清零！');
     },
 
-    // 🌟 核心：直接向 OneAPI / NewAPI 中转站查询账号真实剩余额度
     async queryRemoteBalance() {
         const config = this.getEngineConfig();
         if (!config || !config.url || !config.key) return null;
 
         let baseUrl = config.url.replace(/\/chat\/completions\/?$/, '').replace(/\/v1\/?$/, '').replace(/\/$/, '');
-        
-        // 尝试从 OneAPI / NewAPI 标准账单接口拉取
         const urlsToTry = [
             `${baseUrl}/v1/dashboard/billing/subscription`,
             `${baseUrl}/dashboard/billing/subscription`
@@ -405,9 +398,8 @@ export const PhoneAPI = {
                 });
                 if (subRes.ok) {
                     const subData = await subRes.json();
-                    const hardLimit = subData.hard_limit_usd || 0;
+                    const hardLimit = parseFloat(subData.hard_limit_usd) || 0;
 
-                    // 再查询本月已用额度
                     const usageUrl = subUrl.replace('subscription', 'usage') + `?start_date=2020-01-01&end_date=2099-12-31`;
                     const usageRes = await fetch(usageUrl, {
                         headers: { 'Authorization': `Bearer ${config.key}` }
@@ -416,21 +408,28 @@ export const PhoneAPI = {
                     let used = 0;
                     if (usageRes && usageRes.ok) {
                         const uData = await usageRes.json();
-                        used = (uData.total_usage || 0) / 100;
+                        used = (parseFloat(uData.total_usage) || 0) / 100;
+                    } else {
+                        if (hardLimit > 0 && subData.soft_limit_usd !== undefined) {
+                            used = Math.max(0, hardLimit - (parseFloat(subData.soft_limit_usd) || hardLimit));
+                        }
                     }
-                    const remaining = Math.max(0, hardLimit - used);
+
+                    const isUnlimited = hardLimit >= 9999999;
+                    const remaining = isUnlimited ? '不限' : Math.max(0, hardLimit - used).toFixed(2);
+
                     return {
-                        remaining: remaining.toFixed(4),
-                        total: hardLimit.toFixed(2),
-                        used: used.toFixed(4)
+                        isUnlimited,
+                        remaining,
+                        used: used.toFixed(4),
+                        total: isUnlimited ? '无限' : hardLimit.toFixed(2)
                     };
                 }
             } catch(e) {}
         }
-        return null; // 无法直接拉取时返回 null
+        return null;
     },
     
-    // 拦截并记录真实 usage
     async chatWithAI(messages) {
         const config = this.getEngineConfig();
         if (!config) throw new Error("请先去【系统设置】里分配引擎配置！");
@@ -455,6 +454,14 @@ export const PhoneAPI = {
             let reply = data.choices[0].message.content || '';
             return reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
         } catch (error) { throw new Error("网络错误或 API 配置不正确"); }
+    },
+
+    // 🌟 直接委托给独立的 DrawEngine 生图模块，保证兼容性
+    async generateImage(promptText, options = {}) {
+        if (window.DrawEngine && window.DrawEngine.generateImage) {
+            return await window.DrawEngine.generateImage(promptText, options);
+        }
+        return `https://image.pollinations.ai/prompt/${encodeURIComponent(promptText)}?width=512&height=512&nologo=true`;
     },
     
     getDiaries() { return JSON.parse(localStorage.getItem('char_diaries') || '{}'); },

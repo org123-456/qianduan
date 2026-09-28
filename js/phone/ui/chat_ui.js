@@ -1,5 +1,5 @@
 export const ChatUI = {
-    isViewingHistory: false, // 🔒 历史浏览锁：锁定时绝对禁止任何系统代码强拽到底部
+    isViewingHistory: false, // 🔒 历史浏览锁
     historyStartIndex: 0,
     historyEndIndex: 0,
 
@@ -33,7 +33,9 @@ export const ChatUI = {
             }
             listEl.innerHTML = window.Apps[appId].renderList(renderData);
 
-            // 只有未处于浏览历史状态、且明确允许滚动时才滚到底部
+            // 🌟 关键垫高：防止底部消息被“宝宝，说话...”输入框压住挡死
+            listEl.style.paddingBottom = '110px';
+
             if (scrollToBottom && !this.isViewingHistory) {
                 setTimeout(() => { 
                     if (listEl && !this.isViewingHistory) listEl.scrollTop = listEl.scrollHeight; 
@@ -43,7 +45,7 @@ export const ChatUI = {
             if (appId === 'wechat') {
                 this.updateHomeWidget();
                 this._injectSearchBtnToMenu();
-                this._bindScrollToLoadMore(); // 绑定向上滑动加载更多
+                this._bindScrollToLoadMore();
             }
         } else if (appId === 'gallery') {
             this.renderGallery();
@@ -58,21 +60,19 @@ export const ChatUI = {
         }
     },
 
-    // 🌟 监听滑到最顶部时，自动往上追加更早的消息
     _bindScrollToLoadMore() {
         const listEl = document.getElementById('app-content-list');
         if (!listEl || listEl._hasScrollBound) return;
         listEl._hasScrollBound = true;
 
         listEl.addEventListener('scroll', () => {
-            // 当处于历史模式，且向上滑到了靠近顶部（距离顶部小于 30px）
+            // 滑到顶部 30px 内且还有更早历史，自动向上拉取
             if (this.isViewingHistory && listEl.scrollTop < 30 && this.historyStartIndex > 0) {
                 this._loadEarlierMessages();
             }
         });
     },
 
-    // 向上滑动加载更多历史消息
     _loadEarlierMessages() {
         const roleId = window.Config?.currentContactId;
         const allItems = window.Config?.phoneData?.[roleId]?.wechat?.items || [];
@@ -86,7 +86,6 @@ export const ChatUI = {
         const snippetItems = allItems.slice(this.historyStartIndex, this.historyEndIndex);
         this.renderAppContent('wechat', snippetItems, false);
 
-        // 保持视觉位置不变（不跳屏）
         setTimeout(() => {
             const newScrollHeight = listEl.scrollHeight;
             listEl.scrollTop = newScrollHeight - oldScrollHeight;
@@ -325,25 +324,25 @@ export const ChatUI = {
         resBox.innerHTML = html;
     },
 
-    // 🌟 核心跳转：给屏幕上锁，杜绝回弹和卡死，支持无上限向下滑/向上滑
+    // 🌟 核心跳转：给屏幕上锁，杜绝回弹和卡死
     jumpToChatMessage(targetIndex) {
         const roleId = window.Config?.currentContactId;
         const allItems = window.Config?.phoneData?.[roleId]?.wechat?.items || [];
         if (!allItems[targetIndex]) return;
 
-        // 1. 关闭搜索窗，激活历史浏览锁（锁死自动滚动行为！）
+        // 1. 关闭搜索窗，激活历史浏览锁
         this.closeSearchChatModal();
         this.isViewingHistory = true;
 
-        // 2. 以目标为中心，加载前 30 条 + 后 20 条，手机轻盈流畅秒开
-        this.historyStartIndex = Math.max(0, targetIndex - 30);
+        // 2. 以目标为中心，加载前 35 条 + 后 25 条
+        this.historyStartIndex = Math.max(0, targetIndex - 35);
         this.historyEndIndex = Math.min(allItems.length, targetIndex + 25);
         const snippetItems = allItems.slice(this.historyStartIndex, this.historyEndIndex);
 
-        // 3. 渲染历史，禁止任何默认滚底
+        // 3. 渲染历史，禁止默认滚底
         this.renderAppContent('wechat', snippetItems, false);
 
-        // 4. 定位并高亮该条消息
+        // 4. 定位并高亮目标消息
         setTimeout(() => {
             const listEl = document.getElementById('app-content-list');
             if (!listEl) return;
@@ -372,21 +371,30 @@ export const ChatUI = {
         }, 120);
     },
 
+    // 🌟 精准锚定在输入框正上方
     _showBackToBottomBtn() {
         let btn = document.getElementById('chat-btn-back-bottom');
-        if (!btn) {
-            btn = document.createElement('div');
-            btn.id = 'chat-btn-back-bottom';
-            btn.style.cssText = 'position: fixed; right: 18px; bottom: 130px; background: rgba(255, 255, 255, 0.95); color: var(--primary-color); border: 1px solid var(--border-color); padding: 7px 14px; border-radius: 20px; font-size: 11px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.18); cursor: pointer; display: flex; align-items: center; gap: 5px; z-index: 999; backdrop-filter: blur(8px); animation: fadeIn 0.3s ease;';
-            btn.innerHTML = `<i class="ph-bold ph-arrow-down" style="font-size: 12px;"></i> 回到最新`;
-            
-            btn.onclick = () => {
-                this.isViewingHistory = false; // 解除历史浏览锁
-                this.renderAppContent('wechat', null, true); // 恢复最新消息并平滑到底
-                btn.remove();
-            };
-            
-            document.body.appendChild(btn);
+        if (btn) btn.remove(); // 移除旧的，重新测量位置
+
+        // 测量真实输入框的底部高度
+        const inputBar = document.getElementById('chat-input-bar') || document.getElementById('chat-input')?.parentElement;
+        let bottomOffset = 135; // 默认备用高度
+        if (inputBar) {
+            const rect = inputBar.getBoundingClientRect();
+            bottomOffset = Math.max(130, Math.round(window.innerHeight - rect.top + 10));
         }
+
+        btn = document.createElement('div');
+        btn.id = 'chat-btn-back-bottom';
+        btn.style.cssText = `position: fixed; right: 18px; bottom: ${bottomOffset}px; background: rgba(255, 255, 255, 0.95); color: var(--primary-color); border: 1.5px solid var(--primary-color); padding: 7px 14px; border-radius: 20px; font-size: 11px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; display: flex; align-items: center; gap: 5px; z-index: 99999; backdrop-filter: blur(8px); animation: fadeIn 0.3s ease;`;
+        btn.innerHTML = `<i class="ph-bold ph-arrow-down" style="font-size: 13px;"></i> 回到最新`;
+        
+        btn.onclick = () => {
+            this.isViewingHistory = false; // 解除历史浏览锁
+            this.renderAppContent('wechat', null, true); // 恢复最新消息并滚动到底部
+            btn.remove();
+        };
+        
+        document.body.appendChild(btn);
     }
 };

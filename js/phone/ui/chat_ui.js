@@ -1,21 +1,25 @@
 export const ChatUI = {
-    renderAppContent(appId) {
+    isViewingHistory: false, // 🔒 历史浏览锁：锁定时绝对禁止任何系统代码强拽到底部
+    historyStartIndex: 0,
+    historyEndIndex: 0,
+
+    renderAppContent(appId, customItems = null, scrollToBottom = true) {
         const roleId = window.Config?.currentContactId;
         if (!roleId) return;
 
         let data = window.Config?.phoneData?.[roleId]?.[appId];
         if (!data && appId !== 'gallery' && appId !== 'memory_vault' && appId !== 'moments' && appId !== 'favorites') return;
 
-        // 🌟 允许往上翻看更多历史，不再限制在 50 条死卡住
-        let renderItems = data?.items || [];
-        if (appId === 'wechat' && renderItems.length > 500) {
-            renderItems = renderItems.slice(-500);
+        // 默认正常聊天：只渲染最新的 50 条保证流畅
+        let itemsToRender = customItems || (data?.items || []);
+        if (!customItems && appId !== 'gallery' && appId !== 'memory_vault' && appId !== 'moments' && appId !== 'favorites' && itemsToRender.length > 50) {
+            itemsToRender = itemsToRender.slice(-50);
         }
 
         const listEl = document.getElementById('app-content-list');
 
         if (listEl && window.Apps && window.Apps[appId]) {
-            let renderData = { ...data, items: JSON.parse(JSON.stringify(renderItems)) };
+            let renderData = { ...data, items: JSON.parse(JSON.stringify(itemsToRender)) };
             if (Array.isArray(renderData.items)) {
                 renderData.items.forEach(item => {
                     if (item && typeof item.content === 'string' && item.content.includes('[发送了表情包：')) {
@@ -29,13 +33,17 @@ export const ChatUI = {
             }
             listEl.innerHTML = window.Apps[appId].renderList(renderData);
 
-            setTimeout(() => { 
-                if (listEl) listEl.scrollTop = listEl.scrollHeight; 
-            }, 100);
+            // 只有未处于浏览历史状态、且明确允许滚动时才滚到底部
+            if (scrollToBottom && !this.isViewingHistory) {
+                setTimeout(() => { 
+                    if (listEl && !this.isViewingHistory) listEl.scrollTop = listEl.scrollHeight; 
+                }, 100);
+            }
 
             if (appId === 'wechat') {
                 this.updateHomeWidget();
-                this._injectSearchBtnToMenu(); // 动态在 + 号菜单加入查找记录
+                this._injectSearchBtnToMenu();
+                this._bindScrollToLoadMore(); // 绑定向上滑动加载更多
             }
         } else if (appId === 'gallery') {
             this.renderGallery();
@@ -50,27 +58,61 @@ export const ChatUI = {
         }
     },
 
-    // 🌟 在加号菜单中注入“查找记录”，风格完全吻合原生四按钮
+    // 🌟 监听滑到最顶部时，自动往上追加更早的消息
+    _bindScrollToLoadMore() {
+        const listEl = document.getElementById('app-content-list');
+        if (!listEl || listEl._hasScrollBound) return;
+        listEl._hasScrollBound = true;
+
+        listEl.addEventListener('scroll', () => {
+            // 当处于历史模式，且向上滑到了靠近顶部（距离顶部小于 30px）
+            if (this.isViewingHistory && listEl.scrollTop < 30 && this.historyStartIndex > 0) {
+                this._loadEarlierMessages();
+            }
+        });
+    },
+
+    // 向上滑动加载更多历史消息
+    _loadEarlierMessages() {
+        const roleId = window.Config?.currentContactId;
+        const allItems = window.Config?.phoneData?.[roleId]?.wechat?.items || [];
+        const listEl = document.getElementById('app-content-list');
+        if (!listEl) return;
+
+        const oldScrollHeight = listEl.scrollHeight;
+        const newStart = Math.max(0, this.historyStartIndex - 25);
+        this.historyStartIndex = newStart;
+
+        const snippetItems = allItems.slice(this.historyStartIndex, this.historyEndIndex);
+        this.renderAppContent('wechat', snippetItems, false);
+
+        // 保持视觉位置不变（不跳屏）
+        setTimeout(() => {
+            const newScrollHeight = listEl.scrollHeight;
+            listEl.scrollTop = newScrollHeight - oldScrollHeight;
+        }, 50);
+    },
+
     _injectSearchBtnToMenu() {
         const menu = document.getElementById('chat-plus-menu');
         if (!menu || document.getElementById('menu-item-search-chat')) return;
 
-        const btn = document.createElement('div');
-        btn.id = 'menu-item-search-chat';
-        btn.className = 'menu-item';
-        btn.style.cssText = 'display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;';
-        btn.innerHTML = `
-            <div class="menu-icon-circle" style="background: rgba(167, 139, 250, 0.15); color: var(--primary-color);">
-                <i class="ph-fill ph-magnifying-glass" style="font-size: 24px;"></i>
+        const searchItem = document.createElement('div');
+        searchItem.id = 'menu-item-search-chat';
+        searchItem.className = 'chat-menu-item';
+        searchItem.style.cssText = 'display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; padding: 10px; border-radius: 12px;';
+        searchItem.innerHTML = `
+            <div style="width: 44px; height: 44px; border-radius: 12px; background: var(--icon-bg); display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--primary-color); border: 1px solid var(--border-color);">
+                <i class="ph-fill ph-magnifying-glass"></i>
             </div>
-            <span style="font-size: 11px; margin-top: 6px; color: var(--text-main);">查找记录</span>
+            <span style="font-size: 11px; color: var(--text-main);">查找记录</span>
         `;
-        btn.onclick = () => {
+        searchItem.onclick = () => {
             this.closeChatMenu();
             this.openSearchChatModal();
         };
 
-        menu.appendChild(btn);
+        menu.appendChild(searchItem);
     },
 
     toggleChatMenu() {
@@ -95,8 +137,7 @@ export const ChatUI = {
 
     closeStickerPanel() {
         const panel = document.getElementById('sticker-panel');
-        if (!panel) return;
-        panel.classList.remove('show');
+        if (panel) panel.classList.remove('show');
     },
 
     async importStickers() {
@@ -198,7 +239,7 @@ export const ChatUI = {
                     <i class="ph ph-x" style="font-size: 18px; color: var(--text-sub); cursor: pointer;" onclick="window.PhoneUI.closeSearchChatModal()"></i>
                 </div>
                 <div style="padding: 12px 16px;">
-                    <input type="text" id="chat-search-input" placeholder="输入关键词 (如：晚安、吃什么)..." style="width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 13px; outline: none;">
+                    <input type="text" id="chat-search-input" placeholder="输入关键词 (如：晚安、喜欢、秘密)..." style="width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 13px; outline: none;">
                 </div>
                 <div id="chat-search-results" style="flex: 1; overflow-y: auto; padding: 0 16px 16px 16px; display: flex; flex-direction: column; gap: 8px;">
                     <div style="text-align: center; color: var(--text-sub); font-size: 12px; margin-top: 30px;">输入关键字开始搜索全部历史记录</div>
@@ -258,7 +299,7 @@ export const ChatUI = {
             return;
         }
 
-        let html = `<div style="font-size: 11px; color: var(--text-sub); margin-bottom: 4px;">找到 ${matches.length} 条记录（点击查看）：</div>`;
+        let html = `<div style="font-size: 11px; color: var(--text-sub); margin-bottom: 4px;">找到 ${matches.length} 条记录（点击定位）：</div>`;
         
         [...matches].reverse().forEach(({ item, index }) => {
             const senderName = item.sender === 'me' ? myName : taName;
@@ -269,7 +310,7 @@ export const ChatUI = {
             safeContent = safeContent.replace(reg, '<mark style="background: rgba(254, 240, 138, 0.7); color: inherit; padding: 0 2px; border-radius: 2px;">$1</mark>');
 
             html += `
-                <div onclick="window.PhoneUI.showChatContext(${index})" style="background: var(--icon-bg); padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border-color); cursor: pointer; display: flex; flex-direction: column; gap: 4px;">
+                <div onclick="window.PhoneUI.jumpToChatMessage(${index})" style="background: var(--icon-bg); padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border-color); cursor: pointer; display: flex; flex-direction: column; gap: 4px; transition: 0.2s;">
                     <div style="display: flex; justify-content: space-between; font-size: 11px;">
                         <span style="font-weight: bold; color: ${senderColor};">${senderName}</span>
                         <span style="color: var(--text-sub); font-family: monospace;">${item.date || ''} ${item.time || ''}</span>
@@ -284,42 +325,68 @@ export const ChatUI = {
         resBox.innerHTML = html;
     },
 
-    showChatContext(targetIndex) {
+    // 🌟 核心跳转：给屏幕上锁，杜绝回弹和卡死，支持无上限向下滑/向上滑
+    jumpToChatMessage(targetIndex) {
         const roleId = window.Config?.currentContactId;
         const allItems = window.Config?.phoneData?.[roleId]?.wechat?.items || [];
-        const myName = localStorage.getItem('my_name') || '我';
-        const taName = localStorage.getItem('char_name') || 'TA';
+        if (!allItems[targetIndex]) return;
 
-        const start = Math.max(0, targetIndex - 5);
-        const end = Math.min(allItems.length - 1, targetIndex + 5);
-        const snippet = allItems.slice(start, end + 1);
+        // 1. 关闭搜索窗，激活历史浏览锁（锁死自动滚动行为！）
+        this.closeSearchChatModal();
+        this.isViewingHistory = true;
 
-        let contextHtml = '';
-        snippet.forEach((item, idx) => {
-            const isTarget = (start + idx) === targetIndex;
-            const senderName = item.sender === 'me' ? myName : taName;
-            const bgStyle = isTarget ? 'background: rgba(167, 139, 250, 0.2); border: 1px solid var(--primary-color);' : 'background: var(--icon-bg);';
+        // 2. 以目标为中心，加载前 30 条 + 后 20 条，手机轻盈流畅秒开
+        this.historyStartIndex = Math.max(0, targetIndex - 30);
+        this.historyEndIndex = Math.min(allItems.length, targetIndex + 25);
+        const snippetItems = allItems.slice(this.historyStartIndex, this.historyEndIndex);
 
-            contextHtml += `
-                <div style="padding: 8px 10px; border-radius: 8px; margin-bottom: 6px; font-size: 12px; ${bgStyle}">
-                    <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-sub); margin-bottom: 2px;">
-                        <span style="font-weight: bold; color: ${item.sender === 'me' ? 'var(--primary-color)' : 'var(--text-main)'};">${senderName}</span>
-                        <span>${item.time || ''}</span>
-                    </div>
-                    <div style="color: var(--text-main); line-height: 1.4;">${this.escapeHtml(item.content)}</div>
-                </div>
-            `;
-        });
+        // 3. 渲染历史，禁止任何默认滚底
+        this.renderAppContent('wechat', snippetItems, false);
 
-        const resBox = document.getElementById('chat-search-results');
-        if (resBox) {
-            resBox.innerHTML = `
-                <div style="margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
-                    <span style="font-size: 12px; font-weight: bold; color: var(--primary-color);">上下文对话片段：</span>
-                    <button onclick="window.PhoneUI._doSearchChat(document.getElementById('chat-search-input').value.trim())" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-sub); font-size: 10px; padding: 2px 8px; border-radius: 6px; cursor: pointer;">返回结果列表</button>
-                </div>
-                ${contextHtml}
-            `;
+        // 4. 定位并高亮该条消息
+        setTimeout(() => {
+            const listEl = document.getElementById('app-content-list');
+            if (!listEl) return;
+
+            const relativeIndex = targetIndex - this.historyStartIndex;
+            const bubbleNodes = listEl.querySelectorAll('.chat-bubble, .chat-item, [onclick*="openMsgMenu"]');
+            const targetNode = bubbleNodes[relativeIndex] || listEl.children[relativeIndex];
+
+            if (targetNode) {
+                targetNode.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                const prevShadow = targetNode.style.boxShadow;
+                const prevTransition = targetNode.style.transition;
+                targetNode.style.transition = 'all 0.3s ease';
+                targetNode.style.boxShadow = '0 0 0 3px var(--primary-color), 0 4px 15px rgba(167, 139, 250, 0.6)';
+                targetNode.style.borderRadius = '14px';
+
+                setTimeout(() => {
+                    targetNode.style.boxShadow = prevShadow;
+                    targetNode.style.transition = prevTransition;
+                }, 2500);
+            }
+
+            // 5. 展现回到最新按钮
+            this._showBackToBottomBtn();
+        }, 120);
+    },
+
+    _showBackToBottomBtn() {
+        let btn = document.getElementById('chat-btn-back-bottom');
+        if (!btn) {
+            btn = document.createElement('div');
+            btn.id = 'chat-btn-back-bottom';
+            btn.style.cssText = 'position: fixed; right: 18px; bottom: 130px; background: rgba(255, 255, 255, 0.95); color: var(--primary-color); border: 1px solid var(--border-color); padding: 7px 14px; border-radius: 20px; font-size: 11px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.18); cursor: pointer; display: flex; align-items: center; gap: 5px; z-index: 999; backdrop-filter: blur(8px); animation: fadeIn 0.3s ease;';
+            btn.innerHTML = `<i class="ph-bold ph-arrow-down" style="font-size: 12px;"></i> 回到最新`;
+            
+            btn.onclick = () => {
+                this.isViewingHistory = false; // 解除历史浏览锁
+                this.renderAppContent('wechat', null, true); // 恢复最新消息并平滑到底
+                btn.remove();
+            };
+            
+            document.body.appendChild(btn);
         }
     }
 };

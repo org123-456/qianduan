@@ -41,7 +41,7 @@ export const MomentsUI = {
                 time: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
             });
 
-            // 🌟 如果这是 TA 发的动态，用户评论后，预约 TA 在 1~2 分钟后回复评论！
+            // 🌟 用户评论 TA 的动态后，预约 TA 在 1~2 分钟后自动回评
             if (moment.author === 'ta') {
                 const delayMinutes = Math.floor(Math.random() * 2) + 1;
                 moment.pendingTaReply = { 
@@ -69,7 +69,7 @@ export const MomentsUI = {
         if (window.PhoneAPI) window.PhoneAPI.showToast('动态已删除');
     },
 
-    // 🌟 检查并执行 TA 的互动（点赞/评论用户动态、或者回复用户的评论）
+    // 检查并执行 TA 的互动
     async checkPendingReplies() {
         const roleId = window.Config?.currentContactId || 'role_001';
         if (!window.Config.phoneData[roleId] || !window.Config.phoneData[roleId].moments) return;
@@ -90,7 +90,6 @@ export const MomentsUI = {
             const myName = localStorage.getItem('my_name') || '我';
             const taName = localStorage.getItem('char_name') || 'TA';
 
-            // 情况 1：TA 回复用户在其动态下的评论
             if (targetMoment.author === 'ta' && targetMoment.pendingTaReply.type === 'reply_comment') {
                 const lastUserComment = [...(targetMoment.comments || [])].reverse().find(c => c.author === 'me');
                 if (lastUserComment) {
@@ -111,7 +110,6 @@ export const MomentsUI = {
                 targetMoment.pendingTaReply.status = 'done';
                 hasUpdates = true;
             } 
-            // 情况 2：用户发了动态，TA 前来点赞和评论
             else if (targetMoment.author === 'me') {
                 let sysPrompt = `你扮演${taName}，用户是${myName}。${persona}\n【任务】：用户刚发了一条朋友圈动态。请决定是否点赞和评论。\n【要求】：1. 必须返回严格JSON格式。2. 格式：{"like": true/false, "comment": "评论内容"}。3. 不想评论可留空。4. 评论要符合人设。`;
                 let userContent = `[用户动态]：\n文字：${targetMoment.content}\n` + (targetMoment.image ? `(附带图片)\n` : '');
@@ -144,13 +142,13 @@ export const MomentsUI = {
         }
     },
 
-    // 🌟 核心新功能：TA 根据近期聊天记录，主动发一条朋友圈动态
+    // 🌟 核心：TA 真正发布一条朋友圈到动态列表（不再错发到对话框！）
     async triggerTaPostMoment(force = false) {
         const roleId = window.Config?.currentContactId || 'role_001';
         const chatItems = window.Config?.phoneData?.[roleId]?.wechat?.items || [];
         const cleanChat = chatItems.filter(i => i.sender !== 'typing' && i.content).slice(-30);
 
-        if (cleanChat.length < 3 && !force) return;
+        if (cleanChat.length < 2 && !force) return;
 
         if (window.PhoneAPI) window.PhoneAPI.showToast("💭 TA 正在组织语言发朋友圈...");
 
@@ -167,13 +165,13 @@ export const MomentsUI = {
 ${recentDialogue}
 
 【文案要求】：
-1. 必须结合上面的聊天话题（比如对刚才事情的暗戳戳吐槽、心里的小感触、偷拍视角、或者是你生活里的真实抓狂/放松状态）。
-2. 文案必须极度自然、生活化、符合微信朋友圈风格。短小精炼（15~60字左右），严禁长篇大论小作文，严禁任何旁白动作描写。
+1. 必须结合上面的聊天话题（比如对刚才事情的暗戳戳吐槽、心里的小感触、随手拍、生活琐事）。
+2. 文案必须极度自然、生活化、符合微信朋友圈风格。短小精炼（15~60字左右），严禁长篇大论，严禁任何旁白动作描写。
 3. 请返回严格的 JSON 格式：
 {
   "content": "朋友圈正文文案",
   "needImage": true或false,
-  "imageDesc": "如果needImage为true，请写一段简短英文画面描述用于配图，如: a candid shot of desk with study books, warm sunset light"
+  "imageDesc": "如果needImage为true，请写一段英文画面描述用于配图，如: a candid shot of desk with study books, warm sunset light"
 }`;
 
             const reply = await window.PhoneAPI.chatWithAI([
@@ -191,23 +189,9 @@ ${recentDialogue}
 
             let finalImage = null;
 
-            // 如果启用了绘画配置，且需要配图，尝试自动画图
-            const imgUrl = localStorage.getItem('img_api_url');
-            const imgKey = localStorage.getItem('img_api_key');
-            if (result.needImage && result.imageDesc && imgUrl && imgKey) {
-                try {
-                    const endpoint = imgUrl.endsWith('/images/generations') ? imgUrl : imgUrl.replace(/\/$/, '') + '/images/generations';
-                    const modelName = localStorage.getItem('img_api_model') || 'dall-e-3';
-                    const drawRes = await fetch(endpoint, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${imgKey}` },
-                        body: JSON.stringify({ prompt: result.imageDesc, model: modelName, n: 1, size: '512x512' })
-                    });
-                    if (drawRes.ok) {
-                        const drawData = await drawRes.json();
-                        finalImage = drawData.data?.[0]?.url || (drawData.data?.[0]?.b64_json ? `data:image/png;base64,${drawData.data[0].b64_json}` : null);
-                    }
-                } catch(e) {}
+            // 🌟 统一调用独立的 DrawEngine 绘图引擎配图
+            if (result.needImage && result.imageDesc && window.PhoneEngine?.generateImage) {
+                finalImage = await window.PhoneEngine.generateImage(result.imageDesc);
             }
 
             const now = new Date();
@@ -283,7 +267,7 @@ ${recentDialogue}
             const moments = window.Config.phoneData[roleId].moments;
 
             if (moments.length === 0) {
-                bottomHtml = `<div style="text-align:center; color:var(--text-sub); padding:50px 0; font-size:14px;">还没有动态，点击右下角相机发一条，或点击上方看 TA 的动态吧~</div>`;
+                bottomHtml = `<div style="text-align:center; color:var(--text-sub); padding:50px 0; font-size:14px;">还没有动态，点击右下角相机发一条，或点击右上角看 TA 发动态~</div>`;
             } else {
                 const sortedMoments = [...moments].sort((a, b) => b.timestamp - a.timestamp);
                 sortedMoments.forEach(m => {
@@ -375,7 +359,6 @@ ${recentDialogue}
             `;
         }
 
-        // 🌟 顶部导航栏增加了一个可爱的“看TA发动态”小按钮
         contentEl.innerHTML = `
             <div class="moments-cover long-pressable" data-img="bg_moments_cover">
                 <div class="moments-cover-info">
@@ -384,7 +367,7 @@ ${recentDialogue}
                         <span class="moments-name">${myName}</span>
                     </div>
                     <div class="moments-avatar-wrap" onclick="window.PhoneUI.triggerTaPostMoment(true)" style="cursor: pointer;" title="点击让TA发一条动态">
-                        <span class="moments-name">${taName} <i class="ph-fill ph-sparkle" style="color: #f59e0b; font-size: 12px;"></i></span>
+                        <span class="moments-name">${taName} <i class="ph-fill ph-sparkle" style="color: #f59e0b; font-size: 13px;"></i></span>
                         <img src="${taAvatar}">
                     </div>
                 </div>

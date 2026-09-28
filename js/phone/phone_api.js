@@ -345,15 +345,70 @@ export const PhoneAPI = {
         if (window.PhoneUI && window.PhoneUI.renderMemoryVault) window.PhoneUI.renderMemoryVault(); 
         this.showToast('🗑️ 记忆已消除'); 
     },
+
+    // 🌟【新增】：记录与管理 Token 消耗数据
+    recordTokenUsage(usage) {
+        if (!usage) return;
+        const total = usage.total_tokens || (usage.prompt_tokens + usage.completion_tokens) || 0;
+        const prompt = usage.prompt_tokens || 0;
+        const completion = usage.completion_tokens || 0;
+
+        // 记录单次消耗
+        localStorage.setItem('token_last_usage', JSON.stringify({ prompt, completion, total, time: Date.now() }));
+        
+        // 累加历史消耗
+        const historyTotal = parseInt(localStorage.getItem('token_total_count') || '0', 10) + total;
+        localStorage.setItem('token_total_count', historyTotal.toString());
+    },
+
+    getTokenStats() {
+        const totalCount = parseInt(localStorage.getItem('token_total_count') || '0', 10);
+        let lastUsage = null;
+        try { lastUsage = JSON.parse(localStorage.getItem('token_last_usage') || 'null'); } catch(e){}
+        const pricePerM = parseFloat(localStorage.getItem('token_price_per_m') || '2.0'); // 默认 2 元 / 1M Tokens
+
+        const totalCost = ((totalCount / 1000000) * pricePerM).toFixed(4);
+        const lastCost = lastUsage ? (((lastUsage.total || 0) / 1000000) * pricePerM).toFixed(4) : '0.0000';
+
+        return {
+            totalCount,
+            totalCost,
+            lastUsage,
+            lastCost,
+            pricePerM
+        };
+    },
+
+    resetTokenStats() {
+        localStorage.setItem('token_total_count', '0');
+        localStorage.removeItem('token_last_usage');
+        this.showToast('✅ Token 统计已清零！');
+    },
     
+    // 🌟【修改】：截获返回的真实 usage 字段
     async chatWithAI(messages) {
         const config = this.getEngineConfig();
         if (!config) throw new Error("请先去【系统设置】里分配引擎配置！");
         const endpoint = config.url.endsWith('/chat/completions') ? config.url : config.url.replace(/\/$/, '') + '/chat/completions';
         try {
-            const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.key}` }, body: JSON.stringify({ model: config.model, messages: messages, temperature: 0.7 }) });
+            const response = await fetch(endpoint, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.key}` }, 
+                body: JSON.stringify({ model: config.model, messages: messages, temperature: 0.7 }) 
+            });
             if (!response.ok) throw new Error(`API 报错: ${response.status}`);
             const data = await response.json();
+
+            // 拦截记录 Token
+            if (data.usage) {
+                this.recordTokenUsage(data.usage);
+            } else {
+                // 如果某些中转不提供 usage，按字数估算粗略值保底
+                const approxPrompt = JSON.stringify(messages).length;
+                const approxReply = (data.choices?.[0]?.message?.content || '').length;
+                this.recordTokenUsage({ prompt_tokens: Math.round(approxPrompt / 2), completion_tokens: Math.round(approxReply / 2), total_tokens: Math.round((approxPrompt + approxReply) / 2) });
+            }
+
             let reply = data.choices[0].message.content || '';
             return reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
         } catch (error) { throw new Error("网络错误或 API 配置不正确"); }

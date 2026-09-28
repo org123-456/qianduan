@@ -51,7 +51,6 @@ export const MemoryUI = {
                 if (log.action === 'UPDATE') { tagClass = 'update'; tagText = '修改'; }
                 if (log.action === 'DEL') { tagClass = 'del'; tagText = '删除'; }
                 
-                // 🌟 修复：点击日志调用 focusStar
                 return `
                 <div class="log-item" onclick="window.PhoneUI.focusStar('${log.id}')">
                     <div class="log-time">[${log.time}]</div>
@@ -113,7 +112,6 @@ export const MemoryUI = {
         `).join('');
     },
     
-    // 🌟 修复：点击日志或搜索结果，关闭弹窗并跳转
     focusStar(id) {
         this.closeSkyConsole();
         this.closeMemoryLog();
@@ -156,6 +154,7 @@ export const MemoryUI = {
         this.updateVaultList();
     },
 
+    // 🌟 核心修复：绝对可靠的日期降序排序（避免 new Date 解析 NaN 导致最新记忆沉底）
     updateVaultList() {
         const listContainer = document.getElementById('vault-list-container');
         if (!listContainer || !window.PhoneAPI || !window.PhoneAPI.EchoVault) return;
@@ -166,7 +165,9 @@ export const MemoryUI = {
         
         let html = '';
         if (tab === 'daily') {
-            let dates = Object.keys(data.daily).sort((a, b) => new Date(b) - new Date(a));
+            // 🌟 修复关键：直接使用 localeCompare 倒序排序时间戳 key，100% 保证最新日期在最顶端
+            let dates = Object.keys(data.daily).sort((a, b) => b.localeCompare(a));
+            
             if (query) dates = dates.filter(d => d.includes(query) || (data.daily[d].tags||'').toLowerCase().includes(query) || data.daily[d].content.toLowerCase().includes(query));
             if (dates.length === 0) {
                 html = '<div class="ev-empty"><i class="ph-fill ph-empty" style="font-size:48px;color:var(--border-color);"></i><br>暂无记忆</div>';
@@ -190,7 +191,11 @@ export const MemoryUI = {
                 });
             }
         } else {
-            let keys = Object.keys(data.permanent).sort((a, b) => new Date(data.permanent[b].created) - new Date(data.permanent[a].created));
+            let keys = Object.keys(data.permanent).sort((a, b) => {
+                const timeA = data.permanent[a].created || '';
+                const timeB = data.permanent[b].created || '';
+                return timeB.localeCompare(timeA);
+            });
             if (query) keys = keys.filter(k => k.toLowerCase().includes(query) || (data.permanent[k].tags||'').toLowerCase().includes(query) || data.permanent[k].content.toLowerCase().includes(query));
             if (keys.length === 0) {
                 html = '<div class="ev-empty"><i class="ph-fill ph-empty" style="font-size:48px;color:var(--border-color);"></i><br>暂无记忆</div>';
@@ -216,7 +221,6 @@ export const MemoryUI = {
         listContainer.innerHTML = html;
     },
 
-    // 🌟 修复：一键直接发送精美卡片！
     shareMemoryItem(key, type) {
         if (!window.PhoneAPI || !window.PhoneAPI.EchoVault) return;
         const data = window.PhoneAPI.EchoVault.getData();
@@ -231,7 +235,7 @@ export const MemoryUI = {
         const input = document.getElementById('chat-input');
         if(input && window.PhoneEngine && window.PhoneEngine.sendChatMessage) {
             input.value = text;
-            window.PhoneEngine.sendChatMessage(); // 直接发出去！
+            window.PhoneEngine.sendChatMessage();
             window.PhoneUI.closeApp();
             if(typeof switchTab === 'function') switchTab(2); 
         }

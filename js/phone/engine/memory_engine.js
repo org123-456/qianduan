@@ -176,7 +176,7 @@ function emotionColor(v, a) {
   if (aa >= 0.5) return (vv >= 0 ? Q.hiPos : Q.hiNeg).slice();
   return (vv >= 0 ? Q.loPos : Q.loNeg).slice();
 }
-function nodeColor(n) { return n.kind === "event" ? emotionColor(n.valence, n.arousal) : BLUE.slice(); }
+function nodeColor(n) { return n.kind === "core" ? [180, 205, 255] : (n.kind === "event" ? emotionColor(n.valence, n.arousal) : BLUE.slice()); }
 function nodeRadius(n) { return n.kind === "core" ? SIZE.core : n.kind === "baseline" ? SIZE.baseline : n.kind === "wiki" ? SIZE.wiki : impRadius(n.importance); }
 function hash(str, seed) {
   let h = 2166136261 ^ (seed || 0);
@@ -670,6 +670,7 @@ export const MemoryEngine = {
         localStorage.setItem('memory_logs', JSON.stringify(logs));
     },
 
+    // 🌟 核心修复：彻底消灭蜘蛛网，形成精致的小星座簇群，中心大白球不再被横穿穿透
     _buildSkyData() {
         let evData = { daily: {}, permanent: {} };
         if (window.PhoneAPI && window.PhoneAPI.EchoVault) {
@@ -681,15 +682,29 @@ export const MemoryEngine = {
         }
 
         const nodes = [];
-        let idCounter = 1;
 
+        // 核心原点（中心大球）
+        const coreItemKey = Object.keys(evData.permanent)[0];
+        const coreItem = coreItemKey ? evData.permanent[coreItemKey] : null;
+        nodes.push({
+            id: 'core_center',
+            title: coreItemKey || '核心回忆',
+            date: '永久',
+            content: coreItem ? coreItem.content : '最初的起点...',
+            kind: 'core',
+            importance: 5,
+            valence: 1.0,
+            arousal: 0.9
+        });
+
+        // 日常记忆节点
         const dailyKeys = Object.keys(evData.daily).sort((a, b) => a.localeCompare(b));
         dailyKeys.forEach(key => {
             const item = evData.daily[key];
             const displayDate = key.split(' ')[0]; 
             nodes.push({
                 id: 'ev_d_' + key, 
-                title: item.tags || '日常回忆',
+                title: item.tags || '日常记录',
                 date: displayDate,
                 content: item.content,
                 kind: 'event',
@@ -699,20 +714,23 @@ export const MemoryEngine = {
             });
         });
 
+        // 其余永久记忆节点
         Object.keys(evData.permanent).forEach(key => {
+            if (key === coreItemKey) return; // 避免重复添加中心点
             const item = evData.permanent[key];
             nodes.push({
                 id: 'ev_p_' + key,
                 title: key,
                 date: item.created ? item.created.split('T')[0] : '永久',
                 content: item.content,
-                kind: 'core',
-                importance: 5,
+                kind: 'event',
+                importance: 4,
                 valence: item.valence !== undefined ? item.valence : 0.8,
                 arousal: item.arousal !== undefined ? item.arousal : 0.8
             });
         });
 
+        // 闪光收藏
         favs.forEach(fav => {
             nodes.push({
                 id: 'fav_' + fav.id,
@@ -726,22 +744,14 @@ export const MemoryEngine = {
             });
         });
 
-        if (nodes.length === 0) {
-            nodes.push({ id: '1', title: '初次相遇', date: '2023-01-01', content: '我们的故事开始了...', kind: 'core', importance: 5, valence: 1, arousal: 1 });
-        }
-
         const links = [];
         const softlinks = [];
         const families = [];
 
-        const eventNodes = nodes.filter(n => n.kind === 'event').sort((a,b) => new Date(a.date) - new Date(b.date));
-        for (let i = 0; i < eventNodes.length - 1; i++) {
-            links.push([eventNodes[i].id, eventNodes[i+1].id]);
-        }
-
+        // 🌟 修复关键：按标签聚类（形成干净的小星座，杜绝跨时间乱拉乱插）
         const tagMap = {};
         nodes.forEach(n => {
-            if (n.title && n.title !== '日常回忆' && n.title !== '⭐ 闪光碎片') {
+            if (n.kind !== 'core' && n.title) {
                 if (!tagMap[n.title]) tagMap[n.title] = [];
                 tagMap[n.title].push(n.id);
             }
@@ -763,6 +773,7 @@ export const MemoryEngine = {
             }
         });
 
+        // 收藏夹星座
         const favNodes = nodes.filter(n => n.id.startsWith('fav_')).map(n => n.id);
         if (favNodes.length > 1) {
             families.push({
@@ -904,6 +915,9 @@ export const MemoryEngine = {
         return true;
     },
 
+    /**
+     * 🌟 修复版：截流防撑爆 + 清理旧账进度推进
+     */
     async autoManageMemory(force = false) {
         if (this._isSummarizing) return;
         const roleId = Config?.currentContactId;
@@ -915,10 +929,17 @@ export const MemoryEngine = {
         
         const unsummarizedCount = cleanItems.length - lastIndex;
         if (!force && unsummarizedCount < threshold) return;
-        if (force && unsummarizedCount < 2) return;
+        if (force && unsummarizedCount < 1) {
+            if (window.PhoneAPI) window.PhoneAPI.showToast("当前没有未总结的新消息哦~");
+            return;
+        }
+
+        // 🌟 防撑爆截流：不管积压多少条，单次最多提取最新 25 条对话给 AI
+        const processCount = Math.min(Math.max(unsummarizedCount, 15), 25);
+        const recentItems = cleanItems.slice(-processCount);
 
         this._isSummarizing = true;
-        const recentItems = cleanItems.slice(Math.max(0, cleanItems.length - Math.max(unsummarizedCount, 15)));
+        if (window.PhoneAPI) window.PhoneAPI.showToast("🧠 正在提取近期记忆碎片，请稍候...");
 
         const messages = recentItems.map(item => ({
             role: item.sender === 'me' ? 'user' : 'assistant',
@@ -928,7 +949,7 @@ export const MemoryEngine = {
         let vaultContext = '暂无';
         if (window.PhoneAPI && window.PhoneAPI.EchoVault) {
             const vault = window.PhoneAPI.EchoVault.getData().daily;
-            const vaultKeys = Object.keys(vault).slice(-8);
+            const vaultKeys = Object.keys(vault).slice(-5);
             if (vaultKeys.length > 0) {
                 vaultContext = vaultKeys.map(k => `[ID: ${k}] ${vault[k].content}`).join('\n');
             }
@@ -962,9 +983,11 @@ DEL###要删除的记忆ID
             const reply = await PhoneAPI.chatWithAI(messages);
             const rawText = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```.*?/g, '').replace(/```/g, '').trim();
             
+            // 🌟 核心：一次性把进度同步到最新，4077 历史旧账清零
             localStorage.setItem('memory_last_summary_index', cleanItems.length.toString());
 
             if (rawText.includes('NONE')) {
+                if (window.PhoneAPI) window.PhoneAPI.showToast("✅ 已审阅近期对话，暂无特殊记忆需收录");
                 this._isSummarizing = false;
                 return;
             }
@@ -1020,12 +1043,15 @@ DEL###要删除的记忆ID
             if (added > 0 || updated > 0 || deleted > 0) {
                 window.PhoneAPI.EchoVault.saveData(data);
                 if (window.PhoneAPI && window.PhoneAPI.showToast) {
-                    PhoneAPI.showToast(`✨ TA在心里默默整理了记忆... (新增${added})`);
+                    PhoneAPI.showToast(`✨ TA在心里记下了新事！(新增 ${added} 条)`);
                 }
                 this.initSky(); 
+            } else {
+                if (window.PhoneAPI) window.PhoneAPI.showToast("✅ 已审阅，未发现需单独入库的记忆碎片");
             }
         } catch(e) {
             console.error("Auto memory failed:", e);
+            if (window.PhoneAPI) window.PhoneAPI.showToast("❌ 整理失败，请检查网络或稍后再试");
         } finally {
             this._isSummarizing = false;
         }
@@ -1176,7 +1202,7 @@ DEL###要删除的记忆ID
     }
 };
 
-// 🌟 网页切后台、熄屏或直接关闭时保底自动存记忆
+// 网页切后台、熄屏或直接关闭时保底自动存记忆
 if (typeof document !== 'undefined') {
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {

@@ -300,7 +300,15 @@ export const PhoneAPI = {
         }
     },
     assignEngine(type, presetId) {
-        if (type === 'main') { localStorage.setItem('main_engine_id', presetId); this.showToast('✅ 主引擎切换成功！'); this.refreshPresetDropdowns(); }
+        if (type === 'main') { 
+            localStorage.setItem('main_engine_id', presetId); 
+            this.showToast('✅ 主引擎切换成功！'); 
+            this.refreshPresetDropdowns(); 
+            // 切换引擎后顺便刷新一下顶栏看板
+            if (window.PhoneUI && window.PhoneUI.renderApiModalContent) {
+                window.PhoneUI.renderApiModalContent();
+            }
+        }
     },
     getEngineConfig() {
         let presetId = localStorage.getItem('main_engine_id');
@@ -346,17 +354,15 @@ export const PhoneAPI = {
         this.showToast('🗑️ 记忆已消除'); 
     },
 
-    // 🌟【新增】：记录与管理 Token 消耗数据
+    // 🌟 记录与管理 Token 消耗数据
     recordTokenUsage(usage) {
         if (!usage) return;
         const total = usage.total_tokens || (usage.prompt_tokens + usage.completion_tokens) || 0;
         const prompt = usage.prompt_tokens || 0;
         const completion = usage.completion_tokens || 0;
 
-        // 记录单次消耗
         localStorage.setItem('token_last_usage', JSON.stringify({ prompt, completion, total, time: Date.now() }));
         
-        // 累加历史消耗
         const historyTotal = parseInt(localStorage.getItem('token_total_count') || '0', 10) + total;
         localStorage.setItem('token_total_count', historyTotal.toString());
     },
@@ -365,27 +371,66 @@ export const PhoneAPI = {
         const totalCount = parseInt(localStorage.getItem('token_total_count') || '0', 10);
         let lastUsage = null;
         try { lastUsage = JSON.parse(localStorage.getItem('token_last_usage') || 'null'); } catch(e){}
-        const pricePerM = parseFloat(localStorage.getItem('token_price_per_m') || '2.0'); // 默认 2 元 / 1M Tokens
+        const pricePerM = parseFloat(localStorage.getItem('token_price_per_m') || '2.0');
 
         const totalCost = ((totalCount / 1000000) * pricePerM).toFixed(4);
         const lastCost = lastUsage ? (((lastUsage.total || 0) / 1000000) * pricePerM).toFixed(4) : '0.0000';
 
-        return {
-            totalCount,
-            totalCost,
-            lastUsage,
-            lastCost,
-            pricePerM
-        };
+        return { totalCount, totalCost, lastUsage, lastCost, pricePerM };
     },
 
     resetTokenStats() {
         localStorage.setItem('token_total_count', '0');
         localStorage.removeItem('token_last_usage');
-        this.showToast('✅ Token 统计已清零！');
+        this.showToast('✅ 本地统计已清零！');
+    },
+
+    // 🌟 核心：直接向 OneAPI / NewAPI 中转站查询账号真实剩余额度
+    async queryRemoteBalance() {
+        const config = this.getEngineConfig();
+        if (!config || !config.url || !config.key) return null;
+
+        let baseUrl = config.url.replace(/\/chat\/completions\/?$/, '').replace(/\/v1\/?$/, '').replace(/\/$/, '');
+        
+        // 尝试从 OneAPI / NewAPI 标准账单接口拉取
+        const urlsToTry = [
+            `${baseUrl}/v1/dashboard/billing/subscription`,
+            `${baseUrl}/dashboard/billing/subscription`
+        ];
+
+        for (let subUrl of urlsToTry) {
+            try {
+                const subRes = await fetch(subUrl, {
+                    headers: { 'Authorization': `Bearer ${config.key}` }
+                });
+                if (subRes.ok) {
+                    const subData = await subRes.json();
+                    const hardLimit = subData.hard_limit_usd || 0;
+
+                    // 再查询本月已用额度
+                    const usageUrl = subUrl.replace('subscription', 'usage') + `?start_date=2020-01-01&end_date=2099-12-31`;
+                    const usageRes = await fetch(usageUrl, {
+                        headers: { 'Authorization': `Bearer ${config.key}` }
+                    }).catch(() => null);
+
+                    let used = 0;
+                    if (usageRes && usageRes.ok) {
+                        const uData = await usageRes.json();
+                        used = (uData.total_usage || 0) / 100;
+                    }
+                    const remaining = Math.max(0, hardLimit - used);
+                    return {
+                        remaining: remaining.toFixed(4),
+                        total: hardLimit.toFixed(2),
+                        used: used.toFixed(4)
+                    };
+                }
+            } catch(e) {}
+        }
+        return null; // 无法直接拉取时返回 null
     },
     
-    // 🌟【修改】：截获返回的真实 usage 字段
+    // 拦截并记录真实 usage
     async chatWithAI(messages) {
         const config = this.getEngineConfig();
         if (!config) throw new Error("请先去【系统设置】里分配引擎配置！");
@@ -399,11 +444,9 @@ export const PhoneAPI = {
             if (!response.ok) throw new Error(`API 报错: ${response.status}`);
             const data = await response.json();
 
-            // 拦截记录 Token
             if (data.usage) {
                 this.recordTokenUsage(data.usage);
             } else {
-                // 如果某些中转不提供 usage，按字数估算粗略值保底
                 const approxPrompt = JSON.stringify(messages).length;
                 const approxReply = (data.choices?.[0]?.message?.content || '').length;
                 this.recordTokenUsage({ prompt_tokens: Math.round(approxPrompt / 2), completion_tokens: Math.round(approxReply / 2), total_tokens: Math.round((approxPrompt + approxReply) / 2) });

@@ -453,6 +453,7 @@ function createRenderer(container, opts) {
     const pts = new T.Points(g, m); pts.frustumCulled = false; return pts;
   }
   
+  // 🌟【只修改此处】：注入自然三维游弋浮动与连线实时咬合追踪
   function animate(ts) {
     if (!alive) return;
     if (t0 == null) { t0 = ts; _rawLast = 0; }
@@ -465,13 +466,28 @@ function createRenderer(container, opts) {
       const u = dustPoints.material.uniforms; u.uTime.value = t; u.uScale.value = dustScale(); u.uDpr.value = renderer.getPixelRatio();
       dustPoints.rotation.x = Math.sin(t * 0.021) * 0.045; dustPoints.rotation.y = Math.cos(t * 0.037) * 0.07; dustPoints.rotation.z = t * 0.012;
     }
+
+    // 🌟 核心：每颗星星赋予三维呼吸漫游（Alive Star Floating）
     sprites.forEach((s) => {
       const n = s.n, heat = Math.min(1, (n.activation || 0) / maxAct);
       let op, sizeMul; const isCore = n.kind === "core";
       if (isCore) { op = 1; sizeMul = 0.82; } else if (n.kind === "wiki" || n.kind === "baseline") { op = 0.68; sizeMul = 0.82; } else { op = 0.7 + 0.1 * heat; sizeMul = 0.78 + 0.12 * heat; }
-      const br = 0.5 + 0.5 * Math.sin(t * (isCore ? 1.05 : 1.3) + s.ph);
-      const drift = Math.min(4.2, 1.8 + s.r * 0.05);
-      s.body.position.set(s.base.x + Math.sin(t * 0.5 + s.ph) * drift, s.base.y + Math.cos(t * 0.44 + s.ph2) * drift, s.base.z + Math.sin(t * 0.38 + s.ph + s.ph2) * drift * 0.8);
+      
+      // 呼吸节律
+      const br = 0.5 + 0.5 * Math.sin(t * (isCore ? 0.95 : (1.1 + s.ph * 0.15)) + s.ph);
+      
+      // 🌟 自然三维流体漂浮（在自由模式下浮动 8~12px，舒缓如水母）
+      const floatSpeed = isCore ? 0.35 : 0.65;
+      const driftX = Math.sin(t * floatSpeed + s.ph) * (isCore ? 2.5 : 8.5) + Math.cos(t * floatSpeed * 0.5 + s.ph2) * 3.5;
+      const driftY = Math.cos(t * floatSpeed * 0.85 + s.ph2) * (isCore ? 2.5 : 9.5) + Math.sin(t * floatSpeed * 0.4 + s.ph) * 3.0;
+      const driftZ = Math.sin(t * floatSpeed * 0.7 + s.ph + s.ph2) * (isCore ? 1.5 : 6.0);
+
+      s.body.position.set(
+        s.base.x + driftX * (1 - shapeMix),
+        s.base.y + driftY * (1 - shapeMix),
+        s.base.z + driftZ * (1 - shapeMix)
+      );
+
       if (s.orbit && shapeMix > 1e-4) {
         const c = Math.cos(spiralAngle), sn = Math.sin(spiralAngle);
         orbitPosition(s.orbit, spiralAngle, spiralView);
@@ -481,8 +497,10 @@ function createRenderer(container, opts) {
         spiralView.lerp(ringView,ringMix);
         s.body.position.lerp(spiralView, shapeMix);
       }
+
       const shapeScale=T.MathUtils.lerp(1,isCore?3:.6,shapeMix); s.displayRadius=s.r*shapeScale; s.glow.position.copy(s.body.position);
-      const bScale = 0.94 + 0.1 * br; const gs = s.displayRadius * 2.05 * (1.64 + 0.18 * sizeMul) * bScale * (isCore ? 1.39 : 1);
+      const bScale = (0.92 + 0.12 * br); 
+      const gs = s.displayRadius * 2.05 * (1.64 + 0.18 * sizeMul) * bScale * (isCore ? 1.39 : 1);
       haloView.copy(s.body.position).applyMatrix4(camera.matrixWorldInverse);
       const haloScale = gs; s.glow.scale.set(haloScale, haloScale, 1);
       s.nextGlow.uniforms.uInner.value = s.displayRadius * 2 / haloScale; s.nextGlow.uniforms.uGain.value = 1;
@@ -490,14 +508,19 @@ function createRenderer(container, opts) {
       const bright = !focused || s === focused || focusedNeighbors && focusedNeighbors.has(n.id);
       const opBreath = isCore ? 0.78 + 0.22 * br : 0.72 + 0.36 * br;
       s.glow.material.opacity = Math.min(1, (bright ? op : op * 0.08) * opBreath);
+      
       if (s.coreMat) {
         s.coreMat.uniforms.uTime.value = t; s.coreMat.uniforms.uOpacity.value = bright ? 1 : 0.12;
         const pulse = 1 + 0.035 * Math.sin(t * 0.9); s.body.scale.setScalar(pulse*shapeScale); s.body.rotation.y = t * 0.07; s.body.rotation.z = Math.sin(t * 0.11) * 0.12;
         if (s.shells) s.shells.forEach((sh) => { sh.mesh.position.copy(s.body.position); sh.mesh.scale.setScalar(pulse*shapeScale); sh.mesh.rotation.z = t * sh.swirl * (study ? 0.18 : 1); sh.mat.uniforms.uTime.value = t; sh.mat.uniforms.uOpacity.value = bright ? 1 : 0.1; });
       } else {
-        s.body.scale.set(s.r*2.05*shapeScale,s.r*2.05*shapeScale,1); s.body.material.opacity = bright ? 1 : 0.12;
+        const pulse = 1 + 0.05 * Math.sin(t * 1.5 + s.ph);
+        s.body.scale.set(s.r*2.05*shapeScale*pulse, s.r*2.05*shapeScale*pulse, 1); 
+        s.body.material.opacity = bright ? 1 : 0.12;
       }
     });
+
+    // 🌟 核心：连线实时咬合星星的运动位置（被动拉伸）
     const byId = new Map(sprites.map((s) => [s.n.id, s]));
     const fadeStep = 1 - Math.exp(-frameDt / 0.18);
     if (orbitLines) {
@@ -511,10 +534,16 @@ function createRenderer(container, opts) {
       (line.userData.edges || []).forEach(([a, b], i) => {
         if (familyIds && (!familyIds.has(a) || !familyIds.has(b))) { attr.setXYZ(i * 2, 0, 0, 0); attr.setXYZ(i * 2 + 1, 0, 0, 0); return; }
         const A = byId.get(a), B = byId.get(b); if (!A || !B) return;
-        edgeA.copy(A.body.position); edgeB.copy(B.body.position); edgeDir.subVectors(edgeB, edgeA);
-        const len = edgeDir.length(); edgeDir.normalize(); const trim = Math.min(1, len / Math.max(1e-3, A.r + B.r));
-        edgeA.addScaledVector(edgeDir, A.r * trim); edgeB.addScaledVector(edgeDir, -B.r * trim);
-        attr.setXYZ(i * 2, edgeA.x, edgeA.y, edgeA.z); attr.setXYZ(i * 2 + 1, edgeB.x, edgeB.y, edgeB.z);
+        
+        edgeA.copy(A.body.position); 
+        edgeB.copy(B.body.position); 
+        edgeDir.subVectors(edgeB, edgeA);
+        const len = edgeDir.length(); edgeDir.normalize(); 
+        const trim = Math.min(1, len / Math.max(1e-3, A.r + B.r));
+        edgeA.addScaledVector(edgeDir, A.r * trim); 
+        edgeB.addScaledVector(edgeDir, -B.r * trim);
+        attr.setXYZ(i * 2, edgeA.x, edgeA.y, edgeA.z); 
+        attr.setXYZ(i * 2 + 1, edgeB.x, edgeB.y, edgeB.z);
       });
       attr.needsUpdate = true; line.geometry.computeBoundingSphere();
     }

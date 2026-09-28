@@ -57,7 +57,7 @@ export const ChatEngine = {
         input.onchange = async (e) => {
             const file = e.target.files[0];
             if (!file) return;
-            PhoneAPI.showToast('🖼️ 图片处理中，处理完可继续发图或打字发送...');
+            PhoneAPI.showToast('🖼️ 图片处理中...');
             const reader = new FileReader();
             reader.onload = (event) => {
                 const img = new Image();
@@ -303,8 +303,9 @@ export const ChatEngine = {
             let formatRule = "【最高禁令】：绝对禁止输出任何分析过程、思考步骤！直接输出角色的台词！\n";
             formatRule += "【微信连发机制】：不限制气泡数量，请务必把你想说的话完整说完！根据换行符切分微信气泡。\n";
             formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。\n";
-            // 🌟 核心画图规范告知
-            formatRule += "【发图协议】：如果你想给对方发一张照片或画图，请单独一行写：`[DRAW: 简短英文画面描述]`。严禁自己手写任何第三方图片网址！\n";
+            
+            // 🌟 强行教会 AI 画图协议指令
+            formatRule += "【发图/画画规则】：当用户要求你画画、或者你想发送照片/图片时，你必须单独输出一行指令：`[DRAW: 详细的英文画面描述]`。严禁只用嘴说，必须带上 [DRAW: ...] 标记！\n";
             stablePrompt += formatRule;
             
             let dynamicPrompt = '';
@@ -312,28 +313,21 @@ export const ChatEngine = {
                 dynamicPrompt += window.PhoneEngine._scanKeywords(latestUserText);
             }
             
-            // 课表注入
+            // 课表
             const scheduleRaw = localStorage.getItem('class_schedule');
             if (scheduleRaw) {
                 try {
                     const schedule = JSON.parse(scheduleRaw);
                     const currentDay = currentNow.getDay() === 0 ? 7 : currentNow.getDay();
                     const daysName = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-
                     let scheduleText = `\n[TA的整周完整课表安排]:\n`;
                     for (let d = 1; d <= 7; d++) {
                         const isToday = (d === currentDay);
                         const dayClasses = schedule[d] || [];
                         dayClasses.sort((a, b) => a.start.localeCompare(b.start));
-
                         scheduleText += `📅 ${daysName[d - 1]}${isToday ? '（今天）' : ''}：\n`;
-                        if (dayClasses.length === 0) {
-                            scheduleText += `  （无课程安排）\n`;
-                        } else {
-                            dayClasses.forEach(c => {
-                                scheduleText += `  - ${c.start}~${c.end} : ${c.name}\n`;
-                            });
-                        }
+                        if (dayClasses.length === 0) scheduleText += `  （无课程安排）\n`;
+                        else dayClasses.forEach(c => scheduleText += `  - ${c.start}~${c.end} : ${c.name}\n`);
                     }
                     dynamicPrompt += scheduleText + `\n`;
                 } catch(e) {}
@@ -350,7 +344,6 @@ export const ChatEngine = {
             }
 
             let messages = [{ role: 'system', content: stablePrompt + (dynamicPrompt || '') }];
-            
             const MAX_CONTEXT = parseInt(localStorage.getItem('context_chat_limit') || '60', 10);
             const recentItems = chatItems.slice(-MAX_CONTEXT);
             
@@ -380,31 +373,59 @@ export const ChatEngine = {
             chatItems.pop(); // 移除 typing
 
             const replyParts = finalReply.split('\n').map(s => s.trim()).filter(Boolean);
+            let hasDrawnImage = false;
 
             for (let idx = 0; idx < replyParts.length; idx++) {
                 let part = replyParts[idx];
                 const thought = idx === 0 ? innerThought : '（连发消息，心声已在上一条显示）';
 
-                // 🌟【核心修复】：拦截画图指令或 AI 偷跑的旧 pollinations 链接
+                // 🌟 1. 显式画图指令嗅探
                 const drawMatch = part.match(/\[DRAW:\s*(.*?)\]/i) || part.match(/https?:\/\/image\.pollinations\.ai\/prompt\/([^?\s)]+)/i);
 
                 if (drawMatch) {
                     let promptDesc = drawMatch[1];
                     try { promptDesc = decodeURIComponent(promptDesc); } catch(e){}
-                    
-                    // 立即调用自建绘画引擎
+                    hasDrawnImage = true;
+
                     let realImgUrl = null;
                     if (window.PhoneEngine && window.PhoneEngine.generateImage) {
                         realImgUrl = await window.PhoneEngine.generateImage(promptDesc);
                     }
                     if (!realImgUrl) realImgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptDesc)}?width=512&height=512&nologo=true`;
 
-                    // 转换为正常气泡图片
                     part = part.replace(/\[DRAW:\s*.*?\]/gi, `![图片](${realImgUrl})`)
                                .replace(/!\[.*?\]\(https?:\/\/image\.pollinations\.ai\/[^\s)]+\)/gi, `![图片](${realImgUrl})`);
                 }
 
                 chatItems.push({ sender: 'other', content: part, time: timeStr, date: dateStr, innerThought: thought });
+            }
+
+            // 🌟 2.【绝妙兜底】：如果用户在求画画（比如“画根香蕉”），而 AI 答应了（“行 那就来一根”）却没吐出图片：
+            const userWantsDrawing = /画|照片|自拍|图/i.test(latestUserText);
+            const aiAgreed = /行|好|来一|画|看|给你/i.test(finalReply);
+
+            if (!hasDrawnImage && userWantsDrawing && aiAgreed) {
+                if (window.PhoneAPI) window.PhoneAPI.showToast("🎨 检测到画图意图，正在调起自建绘画引擎...");
+                
+                let fallbackPrompt = "a single yellow banana on clean surface, warm lighting, high quality";
+                if (/香蕉/.test(latestUserText)) fallbackPrompt = "a fresh ripe single banana, studio lighting, highly detailed photo";
+                else if (/自拍|照片/.test(latestUserText)) fallbackPrompt = "a candid casual selfie of an attractive young man, cozy room light";
+                else fallbackPrompt = `${latestUserText}, artistic illustration, high resolution`;
+
+                let generatedUrl = null;
+                if (window.PhoneEngine && window.PhoneEngine.generateImage) {
+                    generatedUrl = await window.PhoneEngine.generateImage(fallbackPrompt);
+                }
+
+                if (generatedUrl) {
+                    chatItems.push({
+                        sender: 'other',
+                        content: `![图片](${generatedUrl})`,
+                        time: timeStr,
+                        date: dateStr,
+                        innerThought: '（笨蛋，给你画好了，看看满不满意）'
+                    });
+                }
             }
             
             PhoneUI.renderAppContent('wechat');

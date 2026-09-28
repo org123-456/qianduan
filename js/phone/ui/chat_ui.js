@@ -6,15 +6,16 @@ export const ChatUI = {
         let data = window.Config?.phoneData?.[roleId]?.[appId];
         if (!data && appId !== 'gallery' && appId !== 'memory_vault' && appId !== 'moments' && appId !== 'favorites') return;
 
-        // 放宽到 300 条，平时可以多往上滑看以前的历史，绝不卡死
-        if (appId !== 'gallery' && appId !== 'memory_vault' && appId !== 'moments' && appId !== 'favorites' && data && data.items && data.items.length > 300) {
-            data = { ...data, items: data.items.slice(-300) };
+        // 🌟 放宽到 300 条，让你平时用手指能一直往上翻看历史消息
+        let itemsToRender = data?.items || [];
+        if (appId === 'wechat' && itemsToRender.length > 300) {
+            itemsToRender = itemsToRender.slice(-300);
         }
 
         const listEl = document.getElementById('app-content-list');
 
         if (listEl && window.Apps && window.Apps[appId]) {
-            let renderData = JSON.parse(JSON.stringify(data));
+            let renderData = { ...data, items: JSON.parse(JSON.stringify(itemsToRender)) };
             if (Array.isArray(renderData.items)) {
                 renderData.items.forEach(item => {
                     if (item && typeof item.content === 'string' && item.content.includes('[发送了表情包：')) {
@@ -32,7 +33,9 @@ export const ChatUI = {
                 if (listEl) listEl.scrollTop = listEl.scrollHeight; 
             }, 100);
 
-            if (appId === 'wechat') this.updateHomeWidget();
+            if (appId === 'wechat') {
+                this.updateHomeWidget();
+            }
         } else if (appId === 'gallery') {
             this.renderGallery();
         } else if (appId === 'settings') {
@@ -49,8 +52,13 @@ export const ChatUI = {
     toggleChatMenu() {
         const menu = document.getElementById('chat-plus-menu');
         const btn = document.getElementById('btn-plus');
-        if (!menu || !btn) return;
-        if (menu.classList.contains('show')) { this.closeChatMenu(); } else { menu.classList.add('show'); btn.style.transform = 'rotate(45deg)'; }
+        if (!menu) return;
+        if (menu.classList.contains('show')) { 
+            this.closeChatMenu(); 
+        } else { 
+            menu.classList.add('show'); 
+            if (btn) btn.style.transform = 'rotate(45deg)'; 
+        }
     },
 
     closeChatMenu() {

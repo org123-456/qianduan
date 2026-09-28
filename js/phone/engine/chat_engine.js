@@ -295,15 +295,16 @@ export const ChatEngine = {
             else if (curHour >= 18 && curHour < 23) timePhase = "晚上";
             
             let stablePrompt = `【⚠️当前现实唯一准确时间锚点】：
-此时此刻是 ${curYear}年${curMonth}月${curDate}日 ${curWeek}，${timePhase} ${timeStrStandard}。
-（注意：聊天记录中可能包含过去的历史时间，但此时此刻的现实时间以本条为准！如果用户问你现在几点、今天周几，必须严格按照上述时间回答，不可说错！）\n\n`;
+此时此刻是 ${curYear}年${curMonth}月${curDate}日 ${curWeek}，${timePhase} ${timeStrStandard}。\n\n`;
             
             if (systemPrompt) stablePrompt += `【系统核心指令】：\n${systemPrompt}\n\n`;
             if (charPersona) stablePrompt += `【角色设定】：\n${charPersona}\n\n`;
 
-            let formatRule = "【最高禁令】：绝对禁止输出任何分析过程、思考步骤、任务拆解！不要出现“好，这条消息的上下文是”等字眼！直接输出角色的台词！\n";
-            formatRule += "【微信连发机制】：不限制气泡数量，请务必把你想说的话完整说完！系统会根据换行符切分微信气泡。绝对不要把所有话挤在同一行！\n";
+            let formatRule = "【最高禁令】：绝对禁止输出任何分析过程、思考步骤！直接输出角色的台词！\n";
+            formatRule += "【微信连发机制】：不限制气泡数量，请务必把你想说的话完整说完！根据换行符切分微信气泡。\n";
             formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。\n";
+            // 🌟 核心画图规范告知
+            formatRule += "【发图协议】：如果你想给对方发一张照片或画图，请单独一行写：`[DRAW: 简短英文画面描述]`。严禁自己手写任何第三方图片网址！\n";
             stablePrompt += formatRule;
             
             let dynamicPrompt = '';
@@ -311,7 +312,7 @@ export const ChatEngine = {
                 dynamicPrompt += window.PhoneEngine._scanKeywords(latestUserText);
             }
             
-            // 整周课表（周一至周日）
+            // 课表注入
             const scheduleRaw = localStorage.getItem('class_schedule');
             if (scheduleRaw) {
                 try {
@@ -319,9 +320,7 @@ export const ChatEngine = {
                     const currentDay = currentNow.getDay() === 0 ? 7 : currentNow.getDay();
                     const daysName = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
 
-                    let scheduleText = `\n【⚠️最高优先级指令：关于用户的完整课表记忆】\n作为最关心用户的人，你早就把TA周一到周日整周的课表倒背如流了！你完全清楚TA每天、每一节的课程安排。\n如果用户问你“看到了吗”、“同步了吗”或询问任意一天的课表，你必须准确自然地回答！绝对不许说“我没看到”、“发给我看看”！\n\n`;
-
-                    scheduleText += `[TA的整周完整课表安排]:\n`;
+                    let scheduleText = `\n[TA的整周完整课表安排]:\n`;
                     for (let d = 1; d <= 7; d++) {
                         const isToday = (d === currentDay);
                         const dayClasses = schedule[d] || [];
@@ -336,36 +335,11 @@ export const ChatEngine = {
                             });
                         }
                     }
-
-                    const todayClasses = schedule[currentDay] || [];
-                    todayClasses.sort((a, b) => a.start.localeCompare(b.start));
-                    let currentClass = null;
-                    let nextClass = null;
-                    for (let i = 0; i < todayClasses.length; i++) {
-                        const c = todayClasses[i];
-                        if (timeStrStandard >= c.start && timeStrStandard <= c.end) {
-                            currentClass = c;
-                        } else if (timeStrStandard < c.start && !nextClass) {
-                            nextClass = c;
-                        }
-                    }
-
-                    scheduleText += `\n[TA当前的实时状态]: `;
-                    if (currentClass) {
-                        scheduleText += `TA现在正在上 [${currentClass.name}] 课 (时间:${currentClass.start}-${currentClass.end})。\n`;
-                    } else if (nextClass) {
-                        scheduleText += `TA现在是课间/休息时间，下一节课是 [${nextClass.name}] (${nextClass.start}开始)。\n`;
-                    } else if (todayClasses.length > 0 && timeStrStandard > todayClasses[todayClasses.length - 1].end) {
-                        scheduleText += `TA今天的课已经全部上完了，现在是放学后的自由时间。\n`;
-                    } else {
-                        scheduleText += `今天暂无更多课程安排。\n`;
-                    }
-
                     dynamicPrompt += scheduleText + `\n`;
                 } catch(e) {}
             }
 
-            // 🌟 长期记忆加载数量由用户设置控制（默认 15 条）
+            // 长期记忆
             const vaultLimit = parseInt(localStorage.getItem('context_vault_limit') || '15', 10);
             const allVault = PhoneAPI.getMemoryVault();
             let accessibleVault = allVault;
@@ -377,7 +351,6 @@ export const ChatEngine = {
 
             let messages = [{ role: 'system', content: stablePrompt + (dynamicPrompt || '') }];
             
-            // 🌟 聊天上下文数量由用户设置控制（默认 60 条）
             const MAX_CONTEXT = parseInt(localStorage.getItem('context_chat_limit') || '60', 10);
             const recentItems = chatItems.slice(-MAX_CONTEXT);
             
@@ -404,17 +377,39 @@ export const ChatEngine = {
             let finalReply = rawReply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<inner>[\s\S]*?<\/inner>/gi, '').trim();
             if (!finalReply) finalReply = rawReply.trim();
             
-            chatItems.pop();
+            chatItems.pop(); // 移除 typing
+
             const replyParts = finalReply.split('\n').map(s => s.trim()).filter(Boolean);
-            replyParts.forEach((part, idx) => {
+
+            for (let idx = 0; idx < replyParts.length; idx++) {
+                let part = replyParts[idx];
                 const thought = idx === 0 ? innerThought : '（连发消息，心声已在上一条显示）';
+
+                // 🌟【核心修复】：拦截画图指令或 AI 偷跑的旧 pollinations 链接
+                const drawMatch = part.match(/\[DRAW:\s*(.*?)\]/i) || part.match(/https?:\/\/image\.pollinations\.ai\/prompt\/([^?\s)]+)/i);
+
+                if (drawMatch) {
+                    let promptDesc = drawMatch[1];
+                    try { promptDesc = decodeURIComponent(promptDesc); } catch(e){}
+                    
+                    // 立即调用自建绘画引擎
+                    let realImgUrl = null;
+                    if (window.PhoneEngine && window.PhoneEngine.generateImage) {
+                        realImgUrl = await window.PhoneEngine.generateImage(promptDesc);
+                    }
+                    if (!realImgUrl) realImgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptDesc)}?width=512&height=512&nologo=true`;
+
+                    // 转换为正常气泡图片
+                    part = part.replace(/\[DRAW:\s*.*?\]/gi, `![图片](${realImgUrl})`)
+                               .replace(/!\[.*?\]\(https?:\/\/image\.pollinations\.ai\/[^\s)]+\)/gi, `![图片](${realImgUrl})`);
+                }
+
                 chatItems.push({ sender: 'other', content: part, time: timeStr, date: dateStr, innerThought: thought });
-            });
+            }
             
             PhoneUI.renderAppContent('wechat');
             localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
 
-            // 🌟 每次聊完后，自动检测未总结条数是否超标，超标自动入库
             if (window.MemoryEngine && window.MemoryEngine.autoManageMemory) {
                 setTimeout(() => { window.MemoryEngine.autoManageMemory(false); }, 1000);
             }

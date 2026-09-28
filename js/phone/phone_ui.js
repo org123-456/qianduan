@@ -851,7 +851,6 @@ export const PhoneUI = {
         const myAvatar = localStorage.getItem('my_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa';
         const taAvatar = localStorage.getItem('ta_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=TA&backgroundColor=e8f0fa';
 
-        // 🌟 实时计算当前未总结的消息数量
         const roleId = window.Config?.currentContactId || 'role_001';
         const allItems = window.Config?.phoneData?.[roleId]?.wechat?.items || [];
         const cleanItems = allItems.filter(i => i.sender !== 'typing' && i.content);
@@ -932,20 +931,17 @@ export const PhoneUI = {
         <div style="margin-bottom:15px;"><label style="font-size:12px;color:var(--text-main);font-weight:bold;">2. 角色人设 (性格/背景/口吻)</label><textarea id="char-persona" rows="6" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:10px;border-radius:8px;resize:vertical;font-size:12px;margin-top:4px;"></textarea></div>
         </div>
 
-        <!-- 🌟 记忆与上下文长度调控卡片 -->
         <div class="card">
         <h3 style="color:var(--primary-color);margin-bottom:15px;"><i class="ph-fill ph-sliders-horizontal"></i> 记忆与上下文参数调节</h3>
         
-        <!-- 未总结条数状态看析板 -->
         <div style="background:var(--icon-bg); padding:12px; border-radius:12px; margin-bottom:15px; border:1px dashed var(--border-color); display:flex; justify-content:space-between; align-items:center;">
-            <div>
-                <div style="font-size:12px; font-weight:bold; color:var(--text-main);">当前累计未总结消息</div>
-                <div style="font-size:10px; color:var(--text-sub); margin-top:2px;">超过阈值或退出页面时会自动入库</div>
+            <div style="flex:1; margin-right:10px;">
+                <div style="font-size:12px; font-weight:bold; color:var(--text-main);">未总结消息：<span style="color:var(--primary-color); font-size:16px;">${unsummarizedCount}</span> 条</div>
+                <div style="font-size:10px; color:var(--text-sub); margin-top:3px;">超过阈值或退出网页时会自动总结</div>
             </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-                <span id="label-unsummarized-count" style="font-size:18px; font-weight:bold; color:var(--primary-color);">${unsummarizedCount}</span>
-                <span style="font-size:11px; color:var(--text-sub);">条</span>
-                <button onclick="if(window.MemoryEngine){window.MemoryEngine.autoManageMemory(true); PhoneAPI.showToast('正在为您强制总结记忆...'); setTimeout(()=>{PhoneUI.renderSettings();PhoneUI.switchSetTab('ai');}, 2500);}" style="margin:0; padding:4px 10px; font-size:11px; border-radius:8px; background:var(--primary-color); color:#fff; border:none; cursor:pointer;">立即整理</button>
+            <div style="display:flex; gap:6px; flex-shrink:0;">
+                <button onclick="if(window.MemoryEngine){window.MemoryEngine.autoManageMemory(true); setTimeout(()=>{PhoneUI.renderSettings();PhoneUI.switchSetTab('ai');}, 3000);}" style="margin:0; padding:6px 10px; font-size:11px; border-radius:8px; background:var(--primary-color); color:#fff; border:none; cursor:pointer; white-space:nowrap;">立即整理</button>
+                <button onclick="localStorage.setItem('memory_last_summary_index', cleanItems.length.toString()); PhoneUI.renderSettings(); PhoneUI.switchSetTab('ai'); PhoneAPI.showToast('✅ 历史旧账已全部清零！');" style="margin:0; padding:6px 8px; font-size:11px; border-radius:8px; background:transparent; color:var(--text-sub); border:1px solid var(--border-color); cursor:pointer; white-space:nowrap;" title="不再总结历史消息，从当前最新开始算">清零旧账</button>
             </div>
         </div>
 

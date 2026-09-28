@@ -630,7 +630,6 @@ export const PhoneUI = {
         });
     },
 
-    // 🌟 打开 API 弹窗：呈现中转站真实余额 + 本地 Token 监控
     openApiModal() {
         const bg = document.getElementById('api-modal-bg');
         const modal = document.getElementById('api-modal');
@@ -665,27 +664,26 @@ export const PhoneUI = {
             lastInfo = `入: ${stats.lastUsage.prompt} | 出: ${stats.lastUsage.completion} | 总: <b>${stats.lastUsage.total}</b> (约 ￥${stats.lastCost})`;
         }
 
-        // 先画出骨架，余额处显示“查询中...”
         tokenBoard.innerHTML = `
             <div style="font-size: 13px; font-weight: bold; color: var(--primary-color); display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
                 <span><i class="ph-fill ph-wallet"></i> 实时账户与用量</span>
                 <span style="font-size: 10px; color: var(--text-sub); cursor: pointer;" onclick="window.PhoneUI.editTokenPrice()">单价: ￥${stats.pricePerM}/1M ✎</span>
             </div>
             
-            <!-- 🌟 中转站真实余额卡片 -->
-            <div style="background: linear-gradient(135deg, rgba(167, 139, 250, 0.15), rgba(111, 168, 220, 0.15)); border: 1px solid var(--border-color); padding: 10px 12px; border-radius: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <div style="font-size: 11px; color: var(--text-sub);">中转站账号剩余额度</div>
-                    <div id="remote-api-balance" style="font-size: 18px; font-weight: bold; color: var(--primary-color); font-family: monospace; margin-top: 2px;">
-                        <span style="font-size: 12px; font-weight: normal; opacity: 0.7;"><i class="ph ph-spinner spin-anim"></i> 查询中...</span>
+            <div style="background: linear-gradient(135deg, rgba(167, 139, 250, 0.12), rgba(111, 168, 220, 0.12)); border: 1px solid var(--border-color); padding: 12px; border-radius: 12px; margin-bottom: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div style="flex: 1;">
+                        <div style="font-size: 11px; color: var(--text-sub);">中转站令牌状态</div>
+                        <div id="remote-api-balance" style="font-size: 17px; font-weight: bold; color: var(--primary-color); font-family: monospace; margin-top: 3px;">
+                            <span style="font-size: 12px; font-weight: normal; opacity: 0.7;"><i class="ph ph-spinner spin-anim"></i> 查询中...</span>
+                        </div>
                     </div>
+                    <button onclick="window.PhoneUI.renderApiModalContent()" style="background: var(--icon-bg); border: 1px solid var(--border-color); color: var(--text-main); font-size: 11px; padding: 4px 10px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+                        <i class="ph ph-arrows-clockwise"></i> 刷新
+                    </button>
                 </div>
-                <button onclick="window.PhoneUI.renderApiModalContent()" style="background: var(--icon-bg); border: 1px solid var(--border-color); color: var(--text-main); font-size: 11px; padding: 4px 8px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                    <i class="ph ph-arrows-clockwise"></i> 刷新
-                </button>
             </div>
 
-            <!-- 本地 Token 统计卡片 -->
             <div style="background: var(--icon-bg); padding: 10px; border-radius: 10px; font-size: 11px; display: flex; flex-direction: column; gap: 5px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <span style="color: var(--text-sub);">本次累计消耗：</span>
@@ -703,15 +701,18 @@ export const PhoneUI = {
             </div>
         `;
 
-        // 异步查询真实余额并更新 DOM
         if (window.PhoneAPI && window.PhoneAPI.queryRemoteBalance) {
             const res = await window.PhoneAPI.queryRemoteBalance();
             const balanceEl = document.getElementById('remote-api-balance');
             if (balanceEl) {
-                if (res && res.remaining !== undefined) {
-                    balanceEl.innerHTML = `￥${res.remaining} <span style="font-size: 10px; color: var(--text-sub); font-weight: normal;">(总额 ￥${res.total})</span>`;
+                if (res) {
+                    if (res.isUnlimited) {
+                        balanceEl.innerHTML = `无限额度 <span style="font-size: 11px; color: var(--text-sub); font-weight: normal;">(本令牌已消费 ￥${res.used})</span>`;
+                    } else {
+                        balanceEl.innerHTML = `剩余 ￥${res.remaining} <span style="font-size: 11px; color: var(--text-sub); font-weight: normal;">(已用 ￥${res.used} / 总 ￥${res.total})</span>`;
+                    }
                 } else {
-                    balanceEl.innerHTML = `<span style="font-size: 11px; color: var(--text-sub); font-weight: normal;">未开放余额查询接口</span>`;
+                    balanceEl.innerHTML = `<span style="font-size: 11px; color: var(--text-sub); font-weight: normal;">未开放远程余额接口</span>`;
                 }
             }
         }
@@ -906,8 +907,8 @@ export const PhoneUI = {
             const diffX = e.changedTouches[0].screenX - startX;
             const diffY = e.changedTouches[0].screenY - startY;
             if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
-                if (diffX > 0) { if (window.PhoneEngine && window.PhoneEngine.prevPage) window.PhoneEngine.prevPage(); } 
-                else { if (window.PhoneEngine && window.PhoneEngine.nextPage) window.PhoneEngine.nextPage(); }
+                if (window.PhoneEngine && window.PhoneEngine.prevPage && diffX > 0) window.PhoneEngine.prevPage();
+                else if (window.PhoneEngine && window.PhoneEngine.nextPage && diffX < 0) window.PhoneEngine.nextPage();
             }
         });
         this._readerSwipeBound = true;
@@ -1085,9 +1086,12 @@ export const PhoneUI = {
         <div id="set-sec-draw" class="set-section">
         <div class="card">
         <h3 style="color:var(--primary-color);margin-bottom:10px;"><i class="ph-fill ph-image"></i> 绘画引擎配置 (DALL-E 格式)</h3>
-        <div style="margin-bottom:10px;"><input type="text" id="img-api-url" placeholder="接口地址" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;"></div>
+        <div style="margin-bottom:10px;"><input type="text" id="img-api-url" placeholder="接口地址 (例如: https://dangao.iisbo.com/v1)" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;"></div>
         <div style="margin-bottom:10px;"><input type="password" id="img-api-key" placeholder="API Key (密钥)" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;"></div>
-        <div style="margin-bottom:10px;"><input type="text" id="img-api-model" placeholder="模型名称 (例如: dall-e-3)" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;"></div>
+        <div style="margin-bottom:15px;"><input type="text" id="img-api-model" placeholder="模型名称 (例如: GPT-Image-2 或 dall-e-3)" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;"></div>
+        
+        <!-- 🌟 直连 DrawEngine 的测试按钮 -->
+        <button class="btn-refresh" onclick="if(window.PhoneEngine && window.PhoneEngine.testDrawImage) window.PhoneEngine.testDrawImage()" style="margin-top:0;"><i class="ph-fill ph-sparkle"></i> 🧪 测试绘画配置连接</button>
         </div>
         </div>
 

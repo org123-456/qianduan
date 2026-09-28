@@ -40,6 +40,17 @@ export const MomentsUI = {
                 content: text.trim(),
                 time: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
             });
+
+            // 🌟 如果这是 TA 发的动态，用户评论后，预约 TA 在 1~2 分钟后回复评论！
+            if (moment.author === 'ta') {
+                const delayMinutes = Math.floor(Math.random() * 2) + 1;
+                moment.pendingTaReply = { 
+                    dueAt: Date.now() + delayMinutes * 60 * 1000, 
+                    status: 'pending',
+                    type: 'reply_comment'
+                };
+            }
+
             localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
             if (window.PhoneUI) window.PhoneUI.renderMoments();
             else this.renderMoments();
@@ -58,6 +69,7 @@ export const MomentsUI = {
         if (window.PhoneAPI) window.PhoneAPI.showToast('动态已删除');
     },
 
+    // 🌟 检查并执行 TA 的互动（点赞/评论用户动态、或者回复用户的评论）
     async checkPendingReplies() {
         const roleId = window.Config?.currentContactId || 'role_001';
         if (!window.Config.phoneData[roleId] || !window.Config.phoneData[roleId].moments) return;
@@ -67,7 +79,7 @@ export const MomentsUI = {
         let hasUpdates = false;
 
         const targetMoment = moments.find(m => 
-            m.author === 'me' && m.pendingTaReply && 
+            m.pendingTaReply && 
             m.pendingTaReply.status === 'pending' && now >= m.pendingTaReply.dueAt
         );
 
@@ -78,23 +90,47 @@ export const MomentsUI = {
             const myName = localStorage.getItem('my_name') || '我';
             const taName = localStorage.getItem('char_name') || 'TA';
 
-            let sysPrompt = `你扮演${taName}，用户是${myName}。${persona}\n【任务】：用户刚发了一条朋友圈动态。请决定是否点赞和评论。\n【要求】：1. 必须返回严格JSON格式。2. 格式：{"like": true/false, "comment": "评论内容"}。3. 不想评论可留空。4. 评论要符合人设。\n`;
-            let userContent = `[用户动态]：\n文字：${targetMoment.content}\n` + (targetMoment.image ? `(附带图片)\n` : '');
+            // 情况 1：TA 回复用户在其动态下的评论
+            if (targetMoment.author === 'ta' && targetMoment.pendingTaReply.type === 'reply_comment') {
+                const lastUserComment = [...(targetMoment.comments || [])].reverse().find(c => c.author === 'me');
+                if (lastUserComment) {
+                    let sysPrompt = `你扮演${taName}，用户是${myName}。${persona}\n【任务】：你在朋友圈发了动态："${targetMoment.content}"，用户评论了你："${lastUserComment.content}"。请以你的角色性格回复这条评论。\n【要求】：只回复一句话，简短真实，像微信朋友圈互动，严禁任何动作描写。`;
+                    const reply = await window.PhoneAPI.chatWithAI([
+                        { role: 'system', content: sysPrompt },
+                        { role: 'user', content: `请回复我：${lastUserComment.content}` }
+                    ]);
+                    const cleanReply = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+                    if (cleanReply) {
+                        targetMoment.comments.push({
+                            author: 'ta',
+                            content: cleanReply,
+                            time: `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`
+                        });
+                    }
+                }
+                targetMoment.pendingTaReply.status = 'done';
+                hasUpdates = true;
+            } 
+            // 情况 2：用户发了动态，TA 前来点赞和评论
+            else if (targetMoment.author === 'me') {
+                let sysPrompt = `你扮演${taName}，用户是${myName}。${persona}\n【任务】：用户刚发了一条朋友圈动态。请决定是否点赞和评论。\n【要求】：1. 必须返回严格JSON格式。2. 格式：{"like": true/false, "comment": "评论内容"}。3. 不想评论可留空。4. 评论要符合人设。`;
+                let userContent = `[用户动态]：\n文字：${targetMoment.content}\n` + (targetMoment.image ? `(附带图片)\n` : '');
 
-            const reply = await window.PhoneAPI.chatWithAI([
-                { role: 'system', content: sysPrompt },
-                { role: 'user', content: userContent }
-            ]);
-            
-            const result = JSON.parse(reply.replace(/```json/g, '').replace(/```/g, '').trim());
+                const reply = await window.PhoneAPI.chatWithAI([
+                    { role: 'system', content: sysPrompt },
+                    { role: 'user', content: userContent }
+                ]);
+                
+                const result = JSON.parse(reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```json/g, '').replace(/```/g, '').trim());
 
-            if (result.like) targetMoment.likedByTa = true;
-            if (result.comment && result.comment.trim() !== '') {
-                if (!targetMoment.comments) targetMoment.comments = [];
-                targetMoment.comments.push({ author: 'ta', content: result.comment.trim(), time: `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}` });
+                if (result.like) targetMoment.likedByTa = true;
+                if (result.comment && result.comment.trim() !== '') {
+                    if (!targetMoment.comments) targetMoment.comments = [];
+                    targetMoment.comments.push({ author: 'ta', content: result.comment.trim(), time: `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}` });
+                }
+                targetMoment.pendingTaReply.status = 'done';
+                hasUpdates = true;
             }
-            targetMoment.pendingTaReply.status = 'done';
-            hasUpdates = true;
         } catch (error) {
             targetMoment.pendingTaReply.dueAt = now + 2 * 60 * 1000; 
         }
@@ -108,7 +144,104 @@ export const MomentsUI = {
         }
     },
 
-    // 🌟 核心修复：直接打开全屏阅读器，跳过底层书架
+    // 🌟 核心新功能：TA 根据近期聊天记录，主动发一条朋友圈动态
+    async triggerTaPostMoment(force = false) {
+        const roleId = window.Config?.currentContactId || 'role_001';
+        const chatItems = window.Config?.phoneData?.[roleId]?.wechat?.items || [];
+        const cleanChat = chatItems.filter(i => i.sender !== 'typing' && i.content).slice(-30);
+
+        if (cleanChat.length < 3 && !force) return;
+
+        if (window.PhoneAPI) window.PhoneAPI.showToast("💭 TA 正在组织语言发朋友圈...");
+
+        try {
+            const persona = localStorage.getItem('char_persona') || '';
+            const myName = localStorage.getItem('my_name') || '我';
+            const taName = localStorage.getItem('char_name') || 'TA';
+
+            const recentDialogue = cleanChat.map(c => `${c.sender === 'me' ? myName : taName}: ${c.content}`).join('\n');
+
+            const sysPrompt = `【系统指令】：你扮演${taName}，用户是${myName}。${persona}
+【任务】：请回顾你们最近的聊天记录，以你的视角，在朋友圈发一条全新的生活动态。
+【聊天背景回顾】：
+${recentDialogue}
+
+【文案要求】：
+1. 必须结合上面的聊天话题（比如对刚才事情的暗戳戳吐槽、心里的小感触、偷拍视角、或者是你生活里的真实抓狂/放松状态）。
+2. 文案必须极度自然、生活化、符合微信朋友圈风格。短小精炼（15~60字左右），严禁长篇大论小作文，严禁任何旁白动作描写。
+3. 请返回严格的 JSON 格式：
+{
+  "content": "朋友圈正文文案",
+  "needImage": true或false,
+  "imageDesc": "如果needImage为true，请写一段简短英文画面描述用于配图，如: a candid shot of desk with study books, warm sunset light"
+}`;
+
+            const reply = await window.PhoneAPI.chatWithAI([
+                { role: 'system', content: sysPrompt },
+                { role: 'user', content: '请发一条符合当前心境的朋友圈动态。' }
+            ]);
+
+            const cleanText = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```json/g, '').replace(/```/g, '').trim();
+            const result = JSON.parse(cleanText);
+
+            if (!result || !result.content) {
+                if (window.PhoneAPI) window.PhoneAPI.showToast("TA 想了想，又把动态删掉了...");
+                return;
+            }
+
+            let finalImage = null;
+
+            // 如果启用了绘画配置，且需要配图，尝试自动画图
+            const imgUrl = localStorage.getItem('img_api_url');
+            const imgKey = localStorage.getItem('img_api_key');
+            if (result.needImage && result.imageDesc && imgUrl && imgKey) {
+                try {
+                    const endpoint = imgUrl.endsWith('/images/generations') ? imgUrl : imgUrl.replace(/\/$/, '') + '/images/generations';
+                    const modelName = localStorage.getItem('img_api_model') || 'dall-e-3';
+                    const drawRes = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${imgKey}` },
+                        body: JSON.stringify({ prompt: result.imageDesc, model: modelName, n: 1, size: '512x512' })
+                    });
+                    if (drawRes.ok) {
+                        const drawData = await drawRes.json();
+                        finalImage = drawData.data?.[0]?.url || (drawData.data?.[0]?.b64_json ? `data:image/png;base64,${drawData.data[0].b64_json}` : null);
+                    }
+                } catch(e) {}
+            }
+
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+            const newTaMoment = {
+                id: 'm_' + Date.now(),
+                author: 'ta',
+                content: result.content.trim(),
+                image: finalImage,
+                time: timeStr,
+                date: dateStr,
+                timestamp: Date.now(),
+                likedByTa: false,
+                likedByMe: false,
+                comments: []
+            };
+
+            if (!window.Config.phoneData[roleId].moments) window.Config.phoneData[roleId].moments = [];
+            window.Config.phoneData[roleId].moments.push(newTaMoment);
+            localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
+
+            if (window.PhoneUI) window.PhoneUI.renderMoments();
+            else this.renderMoments();
+
+            if (window.PhoneAPI) window.PhoneAPI.showToast(`✨ ${taName} 刚更新了一条朋友圈！`);
+
+        } catch (error) {
+            console.error("TA 发朋友圈失败:", error);
+            if (window.PhoneAPI) window.PhoneAPI.showToast("TA 暂时还没想好发什么~");
+        }
+    },
+
     openReaderFullscreen(bookId) {
         const readerEl = document.getElementById('app-reader');
         if (readerEl) {
@@ -150,7 +283,7 @@ export const MomentsUI = {
             const moments = window.Config.phoneData[roleId].moments;
 
             if (moments.length === 0) {
-                bottomHtml = `<div style="text-align:center; color:var(--text-sub); padding:50px 0; font-size:14px;">还没有动态，点击右下角相机发一条吧~</div>`;
+                bottomHtml = `<div style="text-align:center; color:var(--text-sub); padding:50px 0; font-size:14px;">还没有动态，点击右下角相机发一条，或点击上方看 TA 的动态吧~</div>`;
             } else {
                 const sortedMoments = [...moments].sort((a, b) => b.timestamp - a.timestamp);
                 sortedMoments.forEach(m => {
@@ -180,7 +313,7 @@ export const MomentsUI = {
                                 <div class="moment-footer">
                                     <span>${m.time} ${pendingHint}</span>
                                     <div class="moment-actions">
-                                        ${isMe ? `<i class="ph ph-trash" onclick="window.PhoneUI.deleteMoment('${m.id}')" style="margin-right: 10px;"></i>` : ''}
+                                        <i class="ph ph-trash" onclick="window.PhoneUI.deleteMoment('${m.id}')" style="margin-right: 10px;"></i>
                                         <i class="${m.likedByMe ? 'ph-fill' : 'ph'} ph-heart" style="${m.likedByMe ? 'color:var(--danger-color);' : ''}" onclick="window.PhoneUI.toggleLike('${m.id}')"></i>
                                         <i class="ph ph-chat-circle" onclick="window.PhoneUI.addComment('${m.id}')"></i>
                                     </div>
@@ -204,7 +337,6 @@ export const MomentsUI = {
             }
             bottomHtml += '</div>';
         } else if (currentTab === 'reader') {
-            // 🌟 核心修复：手动读取缓存，绕开底层 ID 冲突！
             const books = JSON.parse(localStorage.getItem('reader_books') || '[]');
             let booksHtml = '';
             books.forEach(book => {
@@ -243,6 +375,7 @@ export const MomentsUI = {
             `;
         }
 
+        // 🌟 顶部导航栏增加了一个可爱的“看TA发动态”小按钮
         contentEl.innerHTML = `
             <div class="moments-cover long-pressable" data-img="bg_moments_cover">
                 <div class="moments-cover-info">
@@ -250,8 +383,8 @@ export const MomentsUI = {
                         <img src="${myAvatar}">
                         <span class="moments-name">${myName}</span>
                     </div>
-                    <div class="moments-avatar-wrap">
-                        <span class="moments-name">${taName}</span>
+                    <div class="moments-avatar-wrap" onclick="window.PhoneUI.triggerTaPostMoment(true)" style="cursor: pointer;" title="点击让TA发一条动态">
+                        <span class="moments-name">${taName} <i class="ph-fill ph-sparkle" style="color: #f59e0b; font-size: 12px;"></i></span>
                         <img src="${taAvatar}">
                     </div>
                 </div>

@@ -501,18 +501,6 @@
 </div>
 
 <script>
-// 🌟 强力注销 ServiceWorker 并彻底清除本地死缓存
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(regs => {
-        for (let reg of regs) { reg.unregister(); }
-    });
-}
-if ('caches' in window) {
-    caches.keys().then(keys => {
-        for (let key of keys) { caches.delete(key); }
-    });
-}
-
 const navItems = document.querySelectorAll('.nav-item');
 const pages = document.querySelectorAll('.page');
 
@@ -593,12 +581,7 @@ function togglePlayUI(forceState) {
 }
 </script>
 
-<!-- 🌟 强制加上动态时间戳，彻底冲刷所有 JS 文件的旧缓存 -->
-<script>
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.src = 'js/main.js?v=' + Date.now();
-    document.body.appendChild(script);
-</script>
+<!-- 🌟 极速载入：固定版本号，正常利用浏览器本地缓存秒开 -->
+<script type="module" src="js/main.js?v=2026.1"></script>
 </body>
 </html>

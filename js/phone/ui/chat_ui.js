@@ -6,6 +6,7 @@ export const ChatUI = {
         let data = window.Config?.phoneData?.[roleId]?.[appId];
         if (!data && appId !== 'gallery' && appId !== 'memory_vault' && appId !== 'moments' && appId !== 'favorites') return;
 
+        // 保持界面顺畅，聊天界面默认渲染最近 50 条，但更早记录可通过搜索查看全部！
         if (appId !== 'gallery' && appId !== 'memory_vault' && appId !== 'moments' && appId !== 'favorites' && data && data.items && data.items.length > 50) {
             data = { ...data, items: data.items.slice(-50) };
         }
@@ -31,7 +32,10 @@ export const ChatUI = {
                 if (listEl) listEl.scrollTop = listEl.scrollHeight; 
             }, 100);
 
-            if (appId === 'wechat') this.updateHomeWidget();
+            if (appId === 'wechat') {
+                this.updateHomeWidget();
+                this._injectSearchBtnToMenu(); // 动态在 + 号菜单添加搜索按钮
+            }
         } else if (appId === 'gallery') {
             this.renderGallery();
         } else if (appId === 'settings') {
@@ -43,6 +47,29 @@ export const ChatUI = {
                 this.renderMoments();
             }
         }
+    },
+
+    // 🌟 在聊天框的 + 号弹窗里动态注入“查找聊天记录”按钮
+    _injectSearchBtnToMenu() {
+        const menu = document.getElementById('chat-plus-menu');
+        if (!menu || document.getElementById('menu-item-search-chat')) return;
+
+        const searchItem = document.createElement('div');
+        searchItem.id = 'menu-item-search-chat';
+        searchItem.className = 'chat-menu-item';
+        searchItem.style.cssText = 'display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; padding: 10px; border-radius: 12px;';
+        searchItem.innerHTML = `
+            <div style="width: 44px; height: 44px; border-radius: 12px; background: var(--icon-bg); display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--primary-color); border: 1px solid var(--border-color);">
+                <i class="ph-fill ph-magnifying-glass"></i>
+            </div>
+            <span style="font-size: 11px; color: var(--text-main);">查找记录</span>
+        `;
+        searchItem.onclick = () => {
+            this.closeChatMenu();
+            this.openSearchChatModal();
+        };
+
+        menu.appendChild(searchItem);
     },
 
     toggleChatMenu() {
@@ -142,5 +169,158 @@ export const ChatUI = {
         const modalEl = document.getElementById('thought-modal');
         if (bgEl) bgEl.classList.remove('show');
         if (modalEl) modal.classList.remove('show');
+    },
+
+    // 🌟 核心全新功能：全文搜索聊天记录弹窗
+    openSearchChatModal() {
+        let modalBg = document.getElementById('search-chat-modal-bg');
+        let modal = document.getElementById('search-chat-modal');
+
+        if (!modalBg) {
+            modalBg = document.createElement('div');
+            modalBg.id = 'search-chat-modal-bg';
+            modalBg.className = 'modal-bg';
+            modalBg.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9998; opacity: 0; visibility: hidden; transition: 0.3s; backdrop-filter: blur(5px);';
+            modalBg.onclick = () => this.closeSearchChatModal();
+            document.body.appendChild(modalBg);
+
+            modal = document.createElement('div');
+            modal.id = 'search-chat-modal';
+            modal.className = 'custom-modal';
+            modal.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9); width: 90%; max-width: 380px; max-height: 80vh; background: var(--card-bg, #fff); border-radius: 20px; z-index: 9999; opacity: 0; visibility: hidden; transition: 0.3s; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.2); border: 1px solid var(--border-color);';
+            
+            modal.innerHTML = `
+                <div style="padding: 16px 18px 12px 18px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+                    <div style="font-weight: bold; font-size: 15px; color: var(--primary-color); display: flex; align-items: center; gap: 6px;">
+                        <i class="ph-fill ph-magnifying-glass"></i> 搜索聊天记录
+                    </div>
+                    <i class="ph ph-x" style="font-size: 18px; color: var(--text-sub); cursor: pointer;" onclick="window.PhoneUI.closeSearchChatModal()"></i>
+                </div>
+                <div style="padding: 12px 16px;">
+                    <input type="text" id="chat-search-input" placeholder="输入关键词 (如：晚安、喜欢、秘密)..." style="width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 13px; outline: none;">
+                </div>
+                <div id="chat-search-results" style="flex: 1; overflow-y: auto; padding: 0 16px 16px 16px; display: flex; flex-direction: column; gap: 8px;">
+                    <div style="text-align: center; color: var(--text-sub); font-size: 12px; margin-top: 30px;">输入关键字开始搜索全部历史记录</div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            document.getElementById('chat-search-input').addEventListener('input', (e) => {
+                this._doSearchChat(e.target.value.trim());
+            });
+        }
+
+        const input = document.getElementById('chat-search-input');
+        if (input) input.value = '';
+        document.getElementById('chat-search-results').innerHTML = '<div style="text-align: center; color: var(--text-sub); font-size: 12px; margin-top: 30px;">输入关键字开始搜索全部历史记录</div>';
+
+        modalBg.style.opacity = '1';
+        modalBg.style.visibility = 'visible';
+        modal.style.opacity = '1';
+        modal.style.visibility = 'visible';
+        modal.style.transform = 'translate(-50%, -50%) scale(1)';
+        setTimeout(() => { if (input) input.focus(); }, 100);
+    },
+
+    closeSearchChatModal() {
+        const modalBg = document.getElementById('search-chat-modal-bg');
+        const modal = document.getElementById('search-chat-modal');
+        if (modalBg) { modalBg.style.opacity = '0'; modalBg.style.visibility = 'hidden'; }
+        if (modal) { modal.style.opacity = '0'; modal.style.visibility = 'hidden'; modal.style.transform = 'translate(-50%, -50%) scale(0.9)'; }
+    },
+
+    _doSearchChat(keyword) {
+        const resBox = document.getElementById('chat-search-results');
+        if (!resBox) return;
+
+        if (!keyword) {
+            resBox.innerHTML = '<div style="text-align: center; color: var(--text-sub); font-size: 12px; margin-top: 30px;">输入关键字开始搜索全部历史记录</div>';
+            return;
+        }
+
+        const roleId = window.Config?.currentContactId;
+        const allItems = window.Config?.phoneData?.[roleId]?.wechat?.items || [];
+        const myName = localStorage.getItem('my_name') || '我';
+        const taName = localStorage.getItem('char_name') || 'TA';
+
+        const matches = [];
+        allItems.forEach((item, index) => {
+            if (item.sender !== 'typing' && item.content && typeof item.content === 'string') {
+                if (item.content.toLowerCase().includes(keyword.toLowerCase())) {
+                    matches.push({ item, index });
+                }
+            }
+        });
+
+        if (matches.length === 0) {
+            resBox.innerHTML = '<div style="text-align: center; color: var(--text-sub); font-size: 12px; margin-top: 30px;">没有搜到相关聊天记录哦~</div>';
+            return;
+        }
+
+        let html = `<div style="font-size: 11px; color: var(--text-sub); margin-bottom: 4px;">找到 ${matches.length} 条匹配记录：</div>`;
+        
+        [...matches].reverse().forEach(({ item, index }) => {
+            const senderName = item.sender === 'me' ? myName : taName;
+            const senderColor = item.sender === 'me' ? 'var(--primary-color)' : 'var(--danger-color, #f43f5e)';
+            
+            let safeContent = this.escapeHtml(item.content);
+            const reg = new RegExp(`(${this.escapeHtml(keyword)})`, 'gi');
+            safeContent = safeContent.replace(reg, '<mark style="background: rgba(254, 240, 138, 0.7); color: inherit; padding: 0 2px; border-radius: 2px;">$1</mark>');
+
+            html += `
+                <div onclick="window.PhoneUI.showChatContext(${index})" style="background: var(--icon-bg); padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border-color); cursor: pointer; display: flex; flex-direction: column; gap: 4px; transition: 0.2s;">
+                    <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                        <span style="font-weight: bold; color: ${senderColor};">${senderName}</span>
+                        <span style="color: var(--text-sub); font-family: monospace;">${item.date || ''} ${item.time || ''}</span>
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-main); line-height: 1.4; word-break: break-all;">
+                        ${safeContent}
+                    </div>
+                    <div style="font-size: 10px; color: var(--text-sub); text-align: right; margin-top: 2px;">点击查看上下文 ›</div>
+                </div>
+            `;
+        });
+
+        resBox.innerHTML = html;
+    },
+
+    // 🌟 查看选中消息前后的完整上下文
+    showChatContext(targetIndex) {
+        const roleId = window.Config?.currentContactId;
+        const allItems = window.Config?.phoneData?.[roleId]?.wechat?.items || [];
+        const myName = localStorage.getItem('my_name') || '我';
+        const taName = localStorage.getItem('char_name') || 'TA';
+
+        const start = Math.max(0, targetIndex - 5);
+        const end = Math.min(allItems.length - 1, targetIndex + 5);
+        const snippet = allItems.slice(start, end + 1);
+
+        let contextHtml = '';
+        snippet.forEach((item, idx) => {
+            const isTarget = (start + idx) === targetIndex;
+            const senderName = item.sender === 'me' ? myName : taName;
+            const bgStyle = isTarget ? 'background: rgba(167, 139, 250, 0.2); border: 1px solid var(--primary-color);' : 'background: var(--icon-bg);';
+
+            contextHtml += `
+                <div style="padding: 8px 10px; border-radius: 8px; margin-bottom: 6px; font-size: 12px; ${bgStyle}">
+                    <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-sub); margin-bottom: 2px;">
+                        <span style="font-weight: bold; color: ${item.sender === 'me' ? 'var(--primary-color)' : 'var(--text-main)'};">${senderName}</span>
+                        <span>${item.time || ''}</span>
+                    </div>
+                    <div style="color: var(--text-main); line-height: 1.4;">${this.escapeHtml(item.content)}</div>
+                </div>
+            `;
+        });
+
+        const resBox = document.getElementById('chat-search-results');
+        if (resBox) {
+            resBox.innerHTML = `
+                <div style="margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+                    <span style="font-size: 12px; font-weight: bold; color: var(--primary-color);">上下文对话片段：</span>
+                    <button onclick="window.PhoneUI._doSearchChat(document.getElementById('chat-search-input').value.trim())" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-sub); font-size: 10px; padding: 2px 8px; border-radius: 6px; cursor: pointer;">返回搜索结果</button>
+                </div>
+                ${contextHtml}
+            `;
+        }
     }
 };

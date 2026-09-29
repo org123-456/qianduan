@@ -1,5 +1,5 @@
 /**
- * 🎬 专属放映室引擎 (CinemaEngine) - 完美横屏伴看版
+ * 🎬 专属放映室引擎 (CinemaEngine) - 原生全屏伴看版 (无诡异旋转)
  */
 export const CinemaEngine = {
     currentVideoType: 'none',
@@ -7,7 +7,6 @@ export const CinemaEngine = {
     currentVid: '',
     cinemaTimer: null,
     currentLineIndex: 0,
-    isLandscape: false,
 
     extractBiliId(input) {
         if (!input) return null;
@@ -79,30 +78,30 @@ export const CinemaEngine = {
                     style="width: 100%; height: 100%; border-radius: 14px; border: none; background: #000;">
             </iframe>
             
-            <!-- 全屏/横屏弹幕舞台 -->
+            <!-- 全屏弹幕舞台 -->
             <div id="cinema-danmaku-stage" style="position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 60;"></div>
             
-            <!-- 全屏/横屏左下角悬浮心声小气泡 -->
-            <div id="cinema-fullscreen-bubble" style="display: none; position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.75); border: 1px solid rgba(255,255,255,0.25); border-radius: 25px; padding: 6px 14px; align-items: center; gap: 8px; backdrop-filter: blur(10px); z-index: 70; max-width: 75%;">
+            <!-- 全屏状态下的专属心声气泡 (左下角，端端正正) -->
+            <div id="cinema-fullscreen-bubble" style="display: none; position: absolute; bottom: 25px; left: 25px; background: rgba(0,0,0,0.78); border: 1px solid rgba(255,255,255,0.25); border-radius: 25px; padding: 6px 14px; align-items: center; gap: 8px; backdrop-filter: blur(10px); z-index: 70; max-width: 65%;">
                 <img id="fs-bubble-avatar" src="" style="width: 26px; height: 26px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--primary-color);">
-                <span id="fs-bubble-text" style="font-size: 12px; color: #fff; line-height: 1.3;">...</span>
+                <span id="fs-bubble-text" style="font-size: 13px; color: #fff; line-height: 1.3;">...</span>
             </div>
 
-            <!-- 横屏右下角发弹幕按钮 -->
-            <div id="cinema-fullscreen-btn" onclick="window.CinemaEngine.toggleBiliDanmakuBar()" style="display: none; position: absolute; bottom: 20px; right: 20px; background: rgba(0,0,0,0.75); border: 1px solid rgba(255,255,255,0.3); color: #fff; font-size: 11px; font-weight: bold; padding: 7px 15px; border-radius: 20px; cursor: pointer; z-index: 70; backdrop-filter: blur(10px);">
+            <!-- 全屏状态下的发弹幕胶囊 (右下角) -->
+            <div id="cinema-fullscreen-btn" onclick="window.CinemaEngine.toggleBiliDanmakuBar()" style="display: none; position: absolute; bottom: 25px; right: 25px; background: rgba(0,0,0,0.78); border: 1px solid rgba(255,255,255,0.3); color: #fff; font-size: 12px; font-weight: bold; padding: 7px 16px; border-radius: 20px; cursor: pointer; z-index: 70; backdrop-filter: blur(10px);">
                 <i class="ph-fill ph-chat-teardrop-dots" style="color: var(--primary-color);"></i> 发弹幕
             </div>
 
-            <!-- 横屏右上角退出横屏按钮 -->
-            <div id="cinema-exit-landscape-btn" onclick="window.CinemaEngine.toggleLandscape(false)" style="display: none; position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.6); color: #fff; font-size: 12px; padding: 6px 12px; border-radius: 16px; cursor: pointer; z-index: 70; border: 1px solid rgba(255,255,255,0.2);">
-                <i class="ph ph-arrows-in"></i> 竖屏
+            <!-- 全屏状态下的退出全屏按钮 (左上角) -->
+            <div id="cinema-exit-fs-btn" onclick="window.CinemaEngine.toggleFullscreen(false)" style="display: none; position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.6); color: #fff; font-size: 12px; padding: 6px 14px; border-radius: 16px; cursor: pointer; z-index: 70; border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(8px);">
+                <i class="ph ph-arrows-in"></i> 退出全屏
             </div>
 
-            <!-- B站同款底部半透明弹幕栏 -->
-            <div id="cinema-bili-danmaku-bar" style="position: absolute; bottom: 0; left: 0; right: 0; padding: 10px 14px; background: rgba(0,0,0,0.88); backdrop-filter: blur(12px); display: none; align-items: center; gap: 8px; z-index: 80; border-top: 1px solid rgba(255,255,255,0.15);">
-                <input type="text" id="cinema-bili-bar-input" placeholder="发条弹幕和不死途吐槽..." style="flex: 1; padding: 8px 14px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.12); color: #fff; font-size: 13px; outline: none;" onkeydown="if(event.key==='Enter') window.CinemaEngine.submitBiliBarDanmaku()">
-                <button onclick="window.CinemaEngine.submitBiliBarDanmaku()" style="background: var(--primary-color); color: #fff; border: none; padding: 6px 15px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer;">发送</button>
-                <div onclick="window.CinemaEngine.toggleBiliDanmakuBar(false)" style="color: rgba(255,255,255,0.7); padding: 4px 6px; cursor: pointer; font-size: 18px;"><i class="ph ph-x"></i></div>
+            <!-- 底部极简半透明弹幕栏 -->
+            <div id="cinema-bili-danmaku-bar" style="position: absolute; bottom: 0; left: 0; right: 0; padding: 12px 20px; background: rgba(0,0,0,0.9); backdrop-filter: blur(14px); display: none; align-items: center; gap: 10px; z-index: 80; border-top: 1px solid rgba(255,255,255,0.15);">
+                <input type="text" id="cinema-bili-bar-input" placeholder="发条弹幕和不死途吐槽..." style="flex: 1; padding: 10px 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.12); color: #fff; font-size: 14px; outline: none;" onkeydown="if(event.key==='Enter') window.CinemaEngine.submitBiliBarDanmaku()">
+                <button onclick="window.CinemaEngine.submitBiliBarDanmaku()" style="background: var(--primary-color); color: #fff; border: none; padding: 8px 18px; border-radius: 18px; font-size: 13px; font-weight: bold; cursor: pointer;">发送</button>
+                <div onclick="window.CinemaEngine.toggleBiliDanmakuBar(false)" style="color: rgba(255,255,255,0.7); padding: 4px 8px; cursor: pointer; font-size: 20px;"><i class="ph ph-x"></i></div>
             </div>
         `;
 
@@ -128,25 +127,29 @@ export const CinemaEngine = {
                 <button onclick="window.CinemaEngine.toggleBiliDanmakuBar()" style="background: var(--icon-bg); border: 1px solid var(--border-color); color: var(--text-main); font-size: 11px; font-weight: bold; padding: 4px 10px; border-radius: 12px; cursor: pointer;">
                     <i class="ph-fill ph-chat-teardrop-dots" style="color: var(--primary-color);"></i> 弹幕
                 </button>
-                <button onclick="window.CinemaEngine.toggleLandscape()" style="background: linear-gradient(135deg, var(--primary-color), #a78bfa); border: none; color: #fff; font-size: 11px; font-weight: bold; padding: 4px 12px; border-radius: 12px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
-                    <i class="ph-bold ph-arrows-clockwise"></i> 横屏放映
+                <button onclick="window.CinemaEngine.toggleFullscreen()" style="background: linear-gradient(135deg, var(--primary-color), #a78bfa); border: none; color: #fff; font-size: 11px; font-weight: bold; padding: 4px 12px; border-radius: 12px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+                    <i class="ph-bold ph-corners-out"></i> 全屏伴看
                 </button>
             </div>
         `;
     },
 
-    // 🌟 一键进入/退出“横屏影院”模式 (支持系统全屏 + 90° 满屏旋转双保障)
-    toggleLandscape(forceState) {
+    // 🌟 原生全屏切换（你把手机横过来，它就是端端正正的真横屏！）
+    toggleFullscreen(forceState) {
         const box = document.getElementById('cinema-screen-box');
         const fsBubble = document.getElementById('cinema-fullscreen-bubble');
         const fsBtn = document.getElementById('cinema-fullscreen-btn');
-        const exitBtn = document.getElementById('cinema-exit-landscape-btn');
+        const exitBtn = document.getElementById('cinema-exit-fs-btn');
         if (!box) return;
 
-        this.isLandscape = (typeof forceState === 'boolean') ? forceState : !this.isLandscape;
+        const isCurrentlyFs = (document.fullscreenElement || box.classList.contains('fullscreen-mode'));
+        const shouldFs = (typeof forceState === 'boolean') ? forceState : !isCurrentlyFs;
 
-        if (this.isLandscape) {
-            box.classList.add('landscape-fixed');
+        if (shouldFs) {
+            box.classList.add('fullscreen-mode');
+            if (box.requestFullscreen) box.requestFullscreen().catch(() => {});
+            else if (box.webkitRequestFullscreen) box.webkitRequestFullscreen().catch(() => {});
+
             if (fsBubble) fsBubble.style.display = 'flex';
             if (fsBtn) fsBtn.style.display = 'block';
             if (exitBtn) exitBtn.style.display = 'block';
@@ -155,24 +158,17 @@ export const CinemaEngine = {
             const avatarEl = document.getElementById('fs-bubble-avatar');
             if (avatarEl && taAvatar) avatarEl.src = taAvatar;
 
-            // 尝试锁定系统横屏（若支持）
-            try {
-                if (screen.orientation && screen.orientation.lock) {
-                    screen.orientation.lock('landscape').catch(() => {});
-                }
-            } catch(e) {}
+            // 尝试锁定横屏（部分支持设备有效）
+            try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {}); } catch(e) {}
         } else {
-            box.classList.remove('landscape-fixed');
+            box.classList.remove('fullscreen-mode');
+            if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
             if (fsBubble) fsBubble.style.display = 'none';
             if (fsBtn) fsBtn.style.display = 'none';
             if (exitBtn) exitBtn.style.display = 'none';
             this.toggleBiliDanmakuBar(false);
 
-            try {
-                if (screen.orientation && screen.orientation.unlock) {
-                    screen.orientation.unlock();
-                }
-            } catch(e) {}
+            try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch(e) {}
         }
     },
 
@@ -224,7 +220,7 @@ export const CinemaEngine = {
             top: ${topPercent}%;
             right: -100%;
             white-space: nowrap;
-            font-size: ${isTa ? '15px' : '14px'};
+            font-size: ${isTa ? '16px' : '15px'};
             font-weight: bold;
             color: #fff;
             background: ${isTa ? 'linear-gradient(135deg, rgba(167, 139, 250, 0.92), rgba(99, 102, 241, 0.92))' : 'rgba(0,0,0,0.6)'};
@@ -265,20 +261,20 @@ export const CinemaEngine = {
         screenContainer.innerHTML = `
             <video id="cinema-local-player" src="${videoUrl}" controls playsinline style="width: 100%; height: 100%; border-radius: 14px; object-fit: contain; background: #000;"></video>
             <div id="cinema-danmaku-stage" style="position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 60;"></div>
-            <div id="cinema-fullscreen-bubble" style="display: none; position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.75); border: 1px solid rgba(255,255,255,0.25); border-radius: 25px; padding: 6px 14px; align-items: center; gap: 8px; backdrop-filter: blur(10px); z-index: 70; max-width: 75%;">
+            <div id="cinema-fullscreen-bubble" style="display: none; position: absolute; bottom: 25px; left: 25px; background: rgba(0,0,0,0.78); border: 1px solid rgba(255,255,255,0.25); border-radius: 25px; padding: 6px 14px; align-items: center; gap: 8px; backdrop-filter: blur(10px); z-index: 70;">
                 <img id="fs-bubble-avatar" src="" style="width: 26px; height: 26px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--primary-color);">
-                <span id="fs-bubble-text" style="font-size: 12px; color: #fff;">...</span>
+                <span id="fs-bubble-text" style="font-size: 13px; color: #fff;">...</span>
             </div>
-            <div id="cinema-fullscreen-btn" onclick="window.CinemaEngine.toggleBiliDanmakuBar()" style="display: none; position: absolute; bottom: 20px; right: 20px; background: rgba(0,0,0,0.65); border: 1px solid rgba(255,255,255,0.25); color: #fff; font-size: 11px; font-weight: bold; padding: 7px 14px; border-radius: 20px; cursor: pointer; z-index: 70;">
+            <div id="cinema-fullscreen-btn" onclick="window.CinemaEngine.toggleBiliDanmakuBar()" style="display: none; position: absolute; bottom: 25px; right: 25px; background: rgba(0,0,0,0.78); border: 1px solid rgba(255,255,255,0.3); color: #fff; font-size: 12px; font-weight: bold; padding: 7px 16px; border-radius: 20px; cursor: pointer; z-index: 70;">
                 <i class="ph-fill ph-chat-teardrop-dots"></i> 发弹幕
             </div>
-            <div id="cinema-exit-landscape-btn" onclick="window.CinemaEngine.toggleLandscape(false)" style="display: none; position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.6); color: #fff; font-size: 12px; padding: 6px 12px; border-radius: 16px; cursor: pointer; z-index: 70; border: 1px solid rgba(255,255,255,0.2);">
-                <i class="ph ph-arrows-in"></i> 竖屏
+            <div id="cinema-exit-fs-btn" onclick="window.CinemaEngine.toggleFullscreen(false)" style="display: none; position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.6); color: #fff; font-size: 12px; padding: 6px 14px; border-radius: 16px; cursor: pointer; z-index: 70; border: 1px solid rgba(255,255,255,0.2);">
+                <i class="ph ph-arrows-in"></i> 退出全屏
             </div>
-            <div id="cinema-bili-danmaku-bar" style="position: absolute; bottom: 0; left: 0; right: 0; padding: 8px 12px; background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); display: none; align-items: center; gap: 8px; z-index: 80; border-top: 1px solid rgba(255,255,255,0.15);">
-                <input type="text" id="cinema-bili-bar-input" placeholder="发条弹幕和不死途吐槽..." style="flex: 1; padding: 8px 14px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.12); color: #fff; font-size: 12px; outline: none;" onkeydown="if(event.key==='Enter') window.CinemaEngine.submitBiliBarDanmaku()">
-                <button onclick="window.CinemaEngine.submitBiliBarDanmaku()" style="background: var(--primary-color); color: #fff; border: none; padding: 6px 14px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer;">发送</button>
-                <div onclick="window.CinemaEngine.toggleBiliDanmakuBar(false)" style="color: rgba(255,255,255,0.6); padding: 4px 6px; cursor: pointer;"><i class="ph ph-x"></i></div>
+            <div id="cinema-bili-danmaku-bar" style="position: absolute; bottom: 0; left: 0; right: 0; padding: 12px 20px; background: rgba(0,0,0,0.9); backdrop-filter: blur(14px); display: none; align-items: center; gap: 10px; z-index: 80; border-top: 1px solid rgba(255,255,255,0.15);">
+                <input type="text" id="cinema-bili-bar-input" placeholder="发条弹幕和不死途吐槽..." style="flex: 1; padding: 10px 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.12); color: #fff; font-size: 14px; outline: none;" onkeydown="if(event.key==='Enter') window.CinemaEngine.submitBiliBarDanmaku()">
+                <button onclick="window.CinemaEngine.submitBiliBarDanmaku()" style="background: var(--primary-color); color: #fff; border: none; padding: 8px 18px; border-radius: 18px; font-size: 13px; font-weight: bold; cursor: pointer;">发送</button>
+                <div onclick="window.CinemaEngine.toggleBiliDanmakuBar(false)" style="color: rgba(255,255,255,0.7); padding: 4px 8px; cursor: pointer; font-size: 20px;"><i class="ph ph-x"></i></div>
             </div>
         `;
 
@@ -302,7 +298,7 @@ export const CinemaEngine = {
 
         const fsBubble = document.getElementById('cinema-fullscreen-bubble');
         const fsText = document.getElementById('fs-bubble-text');
-        if (fsBubble && fsText && this.isLandscape) {
+        if (fsBubble && fsText) {
             fsText.innerText = text;
             fsBubble.style.opacity = '1';
             clearTimeout(this._fsTimer);
@@ -380,6 +376,22 @@ ${persona}
         }, 110000);
     }
 };
+
+// 监听退出全屏
+if (typeof document !== 'undefined') {
+    document.addEventListener('fullscreenchange', () => {
+        const fsBubble = document.getElementById('cinema-fullscreen-bubble');
+        const fsBtn = document.getElementById('cinema-fullscreen-btn');
+        const exitBtn = document.getElementById('cinema-exit-fs-btn');
+        const box = document.getElementById('cinema-screen-box');
+        if (!document.fullscreenElement) {
+            if (box) box.classList.remove('fullscreen-mode');
+            if (fsBubble) fsBubble.style.display = 'none';
+            if (fsBtn) fsBtn.style.display = 'none';
+            if (exitBtn) exitBtn.style.display = 'none';
+        }
+    });
+}
 
 if (typeof window !== 'undefined') {
     window.CinemaEngine = CinemaEngine;

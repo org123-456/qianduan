@@ -42,7 +42,7 @@
     </button>
 </div>
 
-<!-- ================= 其他全局弹窗 ================= -->
+<!-- ================= 倒数日弹窗 ================= -->
 <div id="cd-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeCdSheet()"></div>
 <div id="cd-modal" class="thought-modal" style="padding: 20px;">
     <div class="thought-header"><i class="ph-fill ph-calendar-star"></i> 编辑倒数日</div>
@@ -60,6 +60,7 @@
     </div>
 </div>
 
+<!-- ================= 传纸条弹窗 ================= -->
 <div id="note-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeNoteModal()"></div>
 <div id="note-modal" class="thought-modal" style="padding: 20px; z-index: 9001;">
     <div class="thought-header"><i class="ph-fill ph-paper-plane-tilt"></i> 传纸条</div>
@@ -70,6 +71,7 @@
     </div>
 </div>
 
+<!-- ================= 歌单弹窗 ================= -->
 <div id="playlist-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.togglePlaylist()"></div>
 <div id="playlist-modal" class="thought-modal" style="padding: 20px; z-index: 9001;">
     <div class="thought-header"><span><i class="ph-fill ph-playlist"></i> 共听歌单</span></div>
@@ -77,6 +79,7 @@
     <button class="btn-refresh" onclick="window.PhoneUI.togglePlaylist()" style="margin-top: 15px;">关闭</button>
 </div>
 
+<!-- ================= 课表弹窗 ================= -->
 <div id="schedule-modal-bg" class="action-sheet-bg" onclick="window.PhoneUI.closeScheduleModal()"></div>
 <div id="schedule-modal" class="thought-modal" style="padding: 20px; z-index: 9001;">
     <div class="thought-header" id="schedule-modal-title"><i class="ph-fill ph-pencil-simple"></i> 编辑课程</div>
@@ -105,7 +108,7 @@
 
 <audio id="shared-audio-player" src=""></audio>
 
-<!-- ================= 主应用容器 ================= -->
+<!-- ================= 主应用窗口 ================= -->
 <div id="app-container">
     <div class="top-bar">
         <div class="menu-btn" onclick="window.PhoneUI.toggleTheme()"><i class="ph-fill ph-moon" id="theme-icon"></i></div>
@@ -118,8 +121,8 @@
 
     <div class="page-container" id="scroll-box">
         
-        <!-- 首页 (Tab 0) -->
-        <div id="page-home" class="page">
+        <!-- 页面 0: 首页 (Home) -->
+        <div id="page-home" class="page active">
             <div class="home-slider" id="home-slider" onscroll="window.PhoneUI.updateHomeDots()">
                 <div class="home-screen-page">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; flex-shrink: 0;">
@@ -185,7 +188,7 @@
             <div class="home-pagination" id="home-dots"><div class="dot active"></div><div class="dot"></div></div>
         </div>
 
-        <!-- 记忆海 (Tab 1) -->
+        <!-- 页面 1: 记忆海 (Memory) -->
         <div id="page-memory" class="page" style="padding: 0; overflow: hidden;">
             <div id="memory-cover-view" class="memory-cover-view">
                 <div class="memory-frame-wrap">
@@ -208,12 +211,11 @@
                     </div>
                 </div>
                 <div id="memory-fragments-container"></div>
-                
                 <div class="sky-fab" onclick="window.PhoneUI.openSkyConsole()"><i class="ph-fill ph-magic-wand"></i></div>
             </div>
         </div>
 
-        <!-- 聊天页 (Tab 2) -->
+        <!-- 页面 2: 聊天 (Chat) -->
         <div id="page-chat" class="page">
             <div id="app-content-list"></div>
             <div id="sticker-panel" class="chat-plus-menu" style="display: flex; flex-wrap: wrap; justify-content: flex-start; align-content: flex-start; padding: 15px; gap: 12px; overflow-y: auto; max-height: 280px; z-index: 89;"></div>
@@ -243,9 +245,8 @@
             </div>
         </div>
 
-        <!-- 共听与放映室页 (Tab 3) -->
+        <!-- 页面 3: 共听与放映室 (Together) -->
         <div id="page-together" class="page" style="background: var(--bg-gradient-start); display: flex; flex-direction: column;">
-            
             <div style="display: flex; justify-content: center; padding: 15px 0 5px 0; z-index: 20;">
                 <div style="background: rgba(0,0,0,0.06); padding: 4px; border-radius: 20px; display: flex; gap: 6px; border: 1px solid var(--border-color); backdrop-filter: blur(10px);">
                     <button id="btn-toggle-music" onclick="window.PhoneUI.switchTogetherMode('music')" style="border: none; background: #fff; color: var(--primary-color); padding: 6px 16px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
@@ -257,7 +258,7 @@
                 </div>
             </div>
 
-            <!-- 模式一：音乐 -->
+            <!-- 音乐视图 -->
             <div id="together-music-view" style="flex: 1; display: flex; flex-direction: column;">
                 <div style="padding: 30px 20px 10px; text-align: center; color: var(--text-main);">
                     <div id="music-title" style="font-size: 22px; font-weight: bold;">等待点歌...</div>
@@ -290,7 +291,7 @@
                 </div>
             </div>
 
-            <!-- 模式二：私人放映室 -->
+            <!-- 放映室视图 -->
             <div id="together-cinema-view" style="flex: 1; display: none; flex-direction: column; padding: 10px 15px 90px 15px; position: relative;">
                 <div id="cinema-screen-box" style="width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 25px rgba(0,0,0,0.2); position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 1px solid var(--border-color);">
                     <i class="ph-fill ph-film-slate" style="font-size: 48px; color: rgba(255,255,255,0.2); margin-bottom: 8px;"></i>
@@ -305,9 +306,7 @@
                 <div style="margin-top: 15px; background: var(--icon-bg); padding: 12px; border-radius: 14px; border: 1px solid var(--border-color);">
                     <div style="display: flex; gap: 8px; margin-bottom: 8px;">
                         <input type="text" id="cinema-bili-input" placeholder="输入B站链接或BV号 (如 BV1xx...)" style="flex: 1; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border-color); font-size: 12px; background: var(--window-bg); color: var(--text-main); outline: none;">
-                        <button onclick="window.PhoneUI.playBilibiliPrompt()" style="background: var(--primary-color); color: #fff; border: none; padding: 0 14px; border-radius: 10px; font-size: 12px; font-weight: bold; cursor: pointer; white-space: nowrap;">
-                            放映
-                        </button>
+                        <button onclick="window.PhoneUI.playBilibiliPrompt()" style="background: var(--primary-color); color: #fff; border: none; padding: 0 14px; border-radius: 10px; font-size: 12px; font-weight: bold; cursor: pointer; white-space: nowrap;">放映</button>
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <label for="cinema-local-file" style="cursor: pointer; font-size: 11px; color: var(--primary-color); display: flex; align-items: center; gap: 4px;">
@@ -325,10 +324,9 @@
                     </button>
                 </div>
             </div>
-
         </div>
 
-        <!-- 朋友圈页 (Tab 4) -->
+        <!-- 页面 4: 朋友圈 (Space) -->
         <div id="page-moments" class="page">
             <div id="moments-content-area"></div>
             <div class="fab-post" onclick="window.PhoneUI.openPostModal()"><i class="ph ph-camera"></i></div>
@@ -632,6 +630,6 @@ function togglePlayUI(forceState) {
 }
 </script>
 
-<script type="module" src="js/main.js?v=2026.99"></script>
+<script type="module" src="js/main.js?v=2026.999"></script>
 </body>
 </html>

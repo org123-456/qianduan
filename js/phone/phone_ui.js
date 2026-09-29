@@ -4,8 +4,8 @@ import { DiaryUI } from './ui/diary_ui.js';
 import { MomentsUI } from './ui/moments_ui.js';
 import { ScheduleUI } from './ui/schedule_ui.js';
 import { StudyUI } from './ui/study_ui.js';
-import { CallUI } from './ui/call_ui.js';          // 🌟 引入你原本的专属通话
-import { SettingsUI } from './ui/settings_ui.js';  // 🌟 引入刚建好的专属设置
+import { CallUI } from './ui/call_ui.js';
+import { SettingsUI } from './ui/settings_ui.js';
 
 export const PhoneUI = {
     ...ChatUI,
@@ -41,6 +41,16 @@ export const PhoneUI = {
         });
     },
 
+    async editPolaroidText() {
+        const current = localStorage.getItem('polaroid_custom_text') || '';
+        const text = await this.showCustomPrompt('给这张照片写句寄语吧：', current);
+        if (text !== null) {
+            localStorage.setItem('polaroid_custom_text', text.trim());
+            this.updateHomeWidget();
+        }
+    },
+
+    // 🌟 修复：完整保留从本地 IndexedDB 数据库读取照片、拍立得、纪念日的逻辑
     async updateHomeWidget() {
         try {
             const daysEl = document.getElementById('home-love-days');
@@ -70,7 +80,63 @@ export const PhoneUI = {
             }
 
             this.renderCountdown();
-        } catch(e) {}
+
+            // 拍立得寄语与点击编辑
+            let polaroidText = document.getElementById('polaroid-text');
+            if (polaroidText) {
+                const newText = polaroidText.cloneNode(true);
+                polaroidText.parentNode.replaceChild(newText, polaroidText);
+                polaroidText = newText;
+
+                polaroidText.style.pointerEvents = 'auto';
+                polaroidText.style.position = 'relative';
+                polaroidText.style.zIndex = '100';
+                
+                const triggerEdit = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.PhoneUI.editPolaroidText();
+                };
+
+                polaroidText.addEventListener('click', triggerEdit);
+                polaroidText.addEventListener('touchend', triggerEdit);
+
+                const customText = localStorage.getItem('polaroid_custom_text');
+                if (customText) {
+                    polaroidText.innerText = `“${customText}”`;
+                } else {
+                    polaroidText.innerText = "“我们的故事才刚刚开始...”";
+                }
+            }
+
+            // 🌟 核心：从 IndexedDB 异步读取用户自己换过的头像和拍立得照片！
+            if (window.PhoneAPI && window.PhoneAPI.LocalDB) {
+                const elements = document.querySelectorAll('[data-img]');
+                for (const el of elements) {
+                    const key = el.dataset.img;
+                    if (key === 'my_avatar' || key === 'ta_avatar') {
+                        const b64 = localStorage.getItem(key);
+                        if (b64) {
+                            if (el.tagName.toLowerCase() === 'img') el.src = b64;
+                            continue;
+                        }
+                    }
+                    try {
+                        const blob = await window.PhoneAPI.LocalDB.get(key);
+                        if (blob) {
+                            const url = window.PhoneAPI.LocalDB.urlOf(key, blob);
+                            if (el.tagName.toLowerCase() === 'img') el.src = url;
+                            else {
+                                const imgChild = el.querySelector('img');
+                                if (imgChild) imgChild.src = url;
+                            }
+                        }
+                    } catch(e) {}
+                }
+            }
+        } catch(e) {
+            console.error("更新首页 Widget 失败:", e);
+        }
     },
 
     renderCountdown() {
@@ -151,7 +217,7 @@ export const PhoneUI = {
         } catch (e) {}
     },
 
-    // 🌟 放映室 / 音乐模式切换
+    // 放映室 / 音乐模式切换
     switchTogetherMode(mode) {
         const musicView = document.getElementById('together-music-view');
         const cinemaView = document.getElementById('together-cinema-view');
@@ -195,8 +261,7 @@ export const PhoneUI = {
         if (title !== null && window.PhoneEngine && window.PhoneEngine.loadBilibiliVideo) {
             const ok = window.PhoneEngine.loadBilibiliVideo(val, title);
             if (ok) {
-                const label = document.getElementById('cinema-current-title-label');
-                if (label) label.innerText = `当前: ${title}`;
+                document.getElementById('cinema-current-title-label').innerText = `当前: ${title}`;
                 inputEl.value = '';
             }
         }
@@ -259,8 +324,69 @@ export const PhoneUI = {
         });
     },
 
+    // 🌟 修复：完整补全长按换图（相框、拍立得、壁纸）事件监听与 IndexedDB 本地保存逻辑！
     bindLongPresses() {
-        // 头像长按绑定
+        const elements = document.querySelectorAll('.long-pressable');
+        const fileInput = document.getElementById('global-file-input');
+        let holdTimer = null, pendingKey = null, pendingEl = null;
+
+        elements.forEach(el => {
+            const key = el.dataset.img;
+            if (el.dataset.bound) return;
+            el.dataset.bound = "true";
+
+            const start = () => {
+                el.classList.add('holding');
+                clearTimeout(holdTimer);
+                holdTimer = setTimeout(() => {
+                    el.classList.remove('holding');
+                    pendingKey = key; pendingEl = el;
+                    if (fileInput) fileInput.click();
+                }, 500);
+            };
+            const cancel = () => { clearTimeout(holdTimer); el.classList.remove('holding'); };
+
+            el.addEventListener('touchstart', start, { passive: true });
+            el.addEventListener('touchend', cancel);
+            el.addEventListener('touchmove', cancel, { passive: true });
+            el.addEventListener('mousedown', start);
+            el.addEventListener('mouseup', cancel);
+            el.addEventListener('mouseleave', cancel);
+            el.addEventListener('contextmenu', e => e.preventDefault());
+        });
+
+        if (fileInput && !fileInput.dataset.bound) {
+            fileInput.dataset.bound = "true";
+            fileInput.addEventListener('change', async e => {
+                const f = e.target.files && e.target.files[0];
+                e.target.value = '';
+                if (!f || !pendingKey) return;
+                if (window.PhoneAPI) window.PhoneAPI.showToast('处理中...');
+                try {
+                    const blob = await window.PhoneAPI.LocalDB.shrink(f, 800);
+                    await window.PhoneAPI.LocalDB.set(pendingKey, blob);
+                    const url = window.PhoneAPI.LocalDB.urlOf(pendingKey, blob);
+                    
+                    const allTargetEls = document.querySelectorAll(`[data-img="${pendingKey}"]`);
+                    allTargetEls.forEach(targetEl => {
+                        if (targetEl.tagName.toLowerCase() === 'img') {
+                            targetEl.src = url;
+                        } else {
+                            if (pendingKey.startsWith('bg_')) {
+                                let cssVar = '--bg-image-' + pendingKey.replace('bg_', '').replace(/_/g, '-');
+                                if (pendingKey === 'bg_global') cssVar = '--bg-image-global';
+                                document.documentElement.style.setProperty(cssVar, `url('${url}')`);
+                            } else {
+                                const imgChild = targetEl.querySelector('img');
+                                if (imgChild) imgChild.src = url;
+                            }
+                        }
+                    });
+                    if (window.PhoneAPI) window.PhoneAPI.showToast('✨ 换图成功！已永久保存在本地。');
+                } catch (err) { if (window.PhoneAPI) window.PhoneAPI.showToast('换图失败'); }
+                pendingKey = null; pendingEl = null;
+            });
+        }
     },
 
     triggerAvatarUpload(key) {
@@ -275,10 +401,15 @@ export const PhoneUI = {
         }
         fileInput.onchange = (e) => {
             const f = e.target.files && e.target.files[0];
+            fileInput.value = '';
             if (!f) return;
             const reader = new FileReader();
             reader.onload = (event) => {
                 localStorage.setItem(key, event.target.result);
+                const allTargetEls = document.querySelectorAll(`[data-img="${key}"]`);
+                allTargetEls.forEach(el => {
+                    if (el.tagName.toLowerCase() === 'img') el.src = event.target.result;
+                });
                 if (window.PhoneAPI) window.PhoneAPI.showToast("头像更换成功！");
             };
             reader.readAsDataURL(f);

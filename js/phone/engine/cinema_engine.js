@@ -1,23 +1,23 @@
 /**
- * 🎬 专属放映室引擎 (CinemaEngine) - 全视频兼容终极版
+ * 🎬 专属放映室引擎 (CinemaEngine) - 官方极速纯净版
  */
 export const CinemaEngine = {
     currentVideoType: 'none',
     currentVideoTitle: '未命名视频',
     currentVid: '',
     cinemaTimer: null,
-    currentLineIndex: 0, // 0: 官方纯净极速线路, 1: 免App防跳线路, 2: 备用解析线路
+    currentLineIndex: 0,
 
-    // 智能、强力提取纯净 BV 号或 av 号
+    // 智能提取纯净 BV 号
     extractBiliId(input) {
         if (!input) return null;
         let str = String(input).trim();
 
-        // 1. 暴力正则提取标准 BV 号 (BV 开头 + 10 位字母数字，忽略大小写和后缀参数)
+        // 1. 匹配 BV 号
         const bvMatch = str.match(/(BV[a-zA-Z0-9]{10})/i);
         if (bvMatch) return bvMatch[1];
 
-        // 2. 提取 av 号
+        // 2. 匹配 av 号
         const avMatch = str.match(/av(\d+)/i);
         if (avMatch) return `av${avMatch[1]}`;
 
@@ -30,11 +30,11 @@ export const CinemaEngine = {
         let str = input.trim();
         let vid = this.extractBiliId(str);
 
-        // 如果用户直接贴的是 b23.tv 手机短链且里面没直接写 BV
+        // 如果用户贴的是 b23.tv 短链且未直接包含 BV
         if (!vid && str.includes('b23.tv')) {
             const shortMatch = str.match(/https?:\/\/b23\.tv\/[a-zA-Z0-9]+/i);
             if (shortMatch) {
-                if (window.PhoneAPI) window.PhoneAPI.showToast("🔍 正在还原 B站 短链接...");
+                if (window.PhoneAPI) window.PhoneAPI.showToast("🔍 正在解析短链接...");
                 try {
                     const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(shortMatch[0])}`);
                     const html = await res.text();
@@ -43,9 +43,9 @@ export const CinemaEngine = {
             }
         }
 
-        // 如果还是没解析出来，弹窗让用户补录 BV 号
+        // 兜底补录
         if (!vid) {
-            const manualBv = prompt("💡 未能在链接里抓到视频ID，请输入该视频的 BV号 (如 BV1...，在B站视频下方)：", "");
+            const manualBv = prompt("💡 请输入该视频的 BV号 (如 BV1xx...，在B站视频下方)：", "");
             if (manualBv) vid = this.extractBiliId(manualBv);
         }
 
@@ -64,22 +64,20 @@ export const CinemaEngine = {
         return true;
     },
 
-    // 核心播放器渲染
+    // 核心渲染器 (使用官方手机端专属纯净 HTML5 播放器，彻底告别 IP失效与跳App)
     renderPlayer() {
         const screenContainer = document.getElementById('cinema-screen-box');
         if (!screenContainer || !this.currentVid) return;
 
-        let finalUrl = '';
+        // 🌟 双官方纯净线路：
+        // 线路 0: 手机版官方内嵌纯净流 (无任何广告与APP跳转弹窗)
+        // 线路 1: 宽屏全功能官方播放流
         const lines = [
-            // 线路 0：官方原生高清纯净嵌入流 (最稳，绝无解析失败，自带弹幕开关与画质)
-            `https://player.bilibili.com/player.html?bvid=${this.currentVid}&page=1&high_quality=1&as_wide=1&danmaku=0`,
-            // 线路 1：免 App 拦截线路
-            `https://jx.jsonplayer.com/player/?url=https://www.bilibili.com/video/${this.currentVid}`,
-            // 线路 2：全能备用线路
-            `https://www.yemu.xyz/?url=https://www.bilibili.com/video/${this.currentVid}`
+            `https://www.bilibili.com/blackboard/html5mobileplayer.html?bvid=${this.currentVid}&as_wide=1&high_quality=1&danmaku=0`,
+            `https://player.bilibili.com/player.html?bvid=${this.currentVid}&page=1&high_quality=1&as_wide=1&danmaku=0`
         ];
 
-        finalUrl = lines[this.currentLineIndex % lines.length];
+        const finalUrl = lines[this.currentLineIndex % lines.length];
 
         screenContainer.innerHTML = `
             <iframe id="cinema-iframe-player" 
@@ -103,21 +101,19 @@ export const CinemaEngine = {
 
             <!-- 切线路按钮 -->
             <div onclick="window.CinemaEngine.toggleLine()" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: #fff; font-size: 10px; padding: 4px 10px; border-radius: 10px; cursor: pointer; backdrop-filter: blur(5px); z-index: 70; border: 1px solid rgba(255,255,255,0.1);">
-                <i class="ph ph-arrows-clockwise"></i> 换线路 (${(this.currentLineIndex % lines.length) + 1}/3)
+                <i class="ph ph-arrows-clockwise"></i> 换线路 (${(this.currentLineIndex % lines.length) + 1}/2)
             </div>
         `;
     },
 
-    // 循环切换线路
     toggleLine() {
         this.currentLineIndex++;
-        const lineNames = ["官方极速线路", "免App纯净线路", "全能备用线路"];
-        const curName = lineNames[this.currentLineIndex % lineNames.length];
+        const lineNames = ["手机纯净线路", "宽屏高清线路"];
+        const curName = lineNames[this.currentLineIndex % 2];
         if (window.PhoneAPI) window.PhoneAPI.showToast(`已切换至：${curName}`);
         this.renderPlayer();
     },
 
-    // 发射漂浮弹幕
     shootDanmaku(text, sender = 'me') {
         const stage = document.getElementById('cinema-danmaku-stage');
         if (!stage) return;
@@ -161,7 +157,6 @@ export const CinemaEngine = {
         setTimeout(() => { danmaku.remove(); }, 8500);
     },
 
-    // 快捷呼出全屏弹幕输入
     async openDanmakuPrompt() {
         let text = '';
         if (window.PhoneUI && window.PhoneUI.showCustomPrompt) {
@@ -174,7 +169,6 @@ export const CinemaEngine = {
         this.handleCommentFlow(text.trim());
     },
 
-    // 载入本地视频
     loadLocalVideo(file) {
         if (!file) return;
         this.currentVideoType = 'local';

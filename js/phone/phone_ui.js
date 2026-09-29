@@ -48,7 +48,6 @@ export const PhoneUI = {
         }
     },
 
-    // 🌟 核心：恢复从本地 IndexedDB 数据库读取头像、拍立得、相框
     async updateHomeWidget() {
         try {
             const daysEl = document.getElementById('home-love-days');
@@ -104,7 +103,6 @@ export const PhoneUI = {
                 }
             }
 
-            // 🌟 读取长按保存在本地的真实图片
             if (window.PhoneAPI && window.PhoneAPI.LocalDB) {
                 const elements = document.querySelectorAll('[data-img]');
                 for (const el of elements) {
@@ -212,7 +210,6 @@ export const PhoneUI = {
         } catch (e) {}
     },
 
-    // 🌟 放映室 / 音乐切换
     switchTogetherMode(mode) {
         const musicView = document.getElementById('together-music-view');
         const cinemaView = document.getElementById('together-cinema-view');
@@ -226,12 +223,10 @@ export const PhoneUI = {
             if (btnMusic) {
                 btnMusic.style.background = '#fff';
                 btnMusic.style.color = 'var(--primary-color)';
-                btnMusic.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
             }
             if (btnCinema) {
                 btnCinema.style.background = 'transparent';
                 btnCinema.style.color = 'var(--text-sub)';
-                btnCinema.style.boxShadow = 'none';
             }
         } else {
             musicView.style.display = 'none';
@@ -239,12 +234,10 @@ export const PhoneUI = {
             if (btnCinema) {
                 btnCinema.style.background = '#fff';
                 btnCinema.style.color = 'var(--primary-color)';
-                btnCinema.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
             }
             if (btnMusic) {
                 btnMusic.style.background = 'transparent';
                 btnMusic.style.color = 'var(--text-sub)';
-                btnMusic.style.boxShadow = 'none';
             }
             const avatar = localStorage.getItem('ta_avatar') || '';
             const avatarEl = document.getElementById('cinema-companion-avatar');
@@ -260,8 +253,7 @@ export const PhoneUI = {
         if (title !== null && window.PhoneEngine && window.PhoneEngine.loadBilibiliVideo) {
             const ok = window.PhoneEngine.loadBilibiliVideo(val, title);
             if (ok) {
-                const label = document.getElementById('cinema-current-title-label');
-                if (label) label.innerText = `当前: ${title}`;
+                document.getElementById('cinema-current-title-label').innerText = `当前: ${title}`;
                 inputEl.value = '';
             }
         }
@@ -416,7 +408,6 @@ export const PhoneUI = {
         fileInput.click();
     },
 
-    // 🌟 设置页面与控制台（完整保留导出/导入/绘画保存/Token看板）
     switchSetTab(tabId) {
         ['basic', 'ai', 'draw', 'sys'].forEach(id => {
             const tab = document.getElementById('stab-' + id);
@@ -668,7 +659,6 @@ export const PhoneUI = {
                 <div style="display:flex;gap:10px;"><button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.syncToCloud()" style="flex:1;margin-top:0;background:linear-gradient(135deg, var(--primary-color), var(--secondary-color));"><i class="ph-fill ph-cloud-arrow-up"></i> 备份到云端</button><button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.restoreFromCloud()" style="flex:1;margin-top:0;background:var(--icon-bg);color:var(--text-main);border:1px solid var(--border-color);"><i class="ph-fill ph-cloud-arrow-down"></i> 从云端拉取</button></div>
             </div>
             
-            <!-- 🌟 100% 完整补齐：本地文件备份 (JSON) 导出/导入卡片 -->
             <div class="card">
                 <h3 style="color:var(--primary-color);margin-bottom:15px;"><i class="ph-fill ph-floppy-disk-back"></i> 本地文件备份 (JSON)</h3>
                 <div style="display:flex;gap:10px;">

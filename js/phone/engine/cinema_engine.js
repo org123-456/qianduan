@@ -1,5 +1,5 @@
 /**
- * 🎬 专属放映室引擎 (CinemaEngine) - 官方极速纯净版
+ * 🎬 专属放映室引擎 (CinemaEngine) - 画面无遮挡完美版
  */
 export const CinemaEngine = {
     currentVideoType: 'none',
@@ -8,29 +8,21 @@ export const CinemaEngine = {
     cinemaTimer: null,
     currentLineIndex: 0,
 
-    // 智能提取纯净 BV 号
     extractBiliId(input) {
         if (!input) return null;
         let str = String(input).trim();
-
-        // 1. 匹配 BV 号
         const bvMatch = str.match(/(BV[a-zA-Z0-9]{10})/i);
         if (bvMatch) return bvMatch[1];
-
-        // 2. 匹配 av 号
         const avMatch = str.match(/av(\d+)/i);
         if (avMatch) return `av${avMatch[1]}`;
-
         return null;
     },
 
-    // 载入视频
     async loadBilibiliVideo(input, title = '') {
         if (!input || !input.trim()) return false;
         let str = input.trim();
         let vid = this.extractBiliId(str);
 
-        // 如果用户贴的是 b23.tv 短链且未直接包含 BV
         if (!vid && str.includes('b23.tv')) {
             const shortMatch = str.match(/https?:\/\/b23\.tv\/[a-zA-Z0-9]+/i);
             if (shortMatch) {
@@ -43,7 +35,6 @@ export const CinemaEngine = {
             }
         }
 
-        // 兜底补录
         if (!vid) {
             const manualBv = prompt("💡 请输入该视频的 BV号 (如 BV1xx...，在B站视频下方)：", "");
             if (manualBv) vid = this.extractBiliId(manualBv);
@@ -64,14 +55,11 @@ export const CinemaEngine = {
         return true;
     },
 
-    // 核心渲染器 (使用官方手机端专属纯净 HTML5 播放器，彻底告别 IP失效与跳App)
+    // 核心渲染器 (按钮移出屏幕外，零遮挡)
     renderPlayer() {
         const screenContainer = document.getElementById('cinema-screen-box');
         if (!screenContainer || !this.currentVid) return;
 
-        // 🌟 双官方纯净线路：
-        // 线路 0: 手机版官方内嵌纯净流 (无任何广告与APP跳转弹窗)
-        // 线路 1: 宽屏全功能官方播放流
         const lines = [
             `https://www.bilibili.com/blackboard/html5mobileplayer.html?bvid=${this.currentVid}&as_wide=1&high_quality=1&danmaku=0`,
             `https://player.bilibili.com/player.html?bvid=${this.currentVid}&page=1&high_quality=1&as_wide=1&danmaku=0`
@@ -79,6 +67,7 @@ export const CinemaEngine = {
 
         const finalUrl = lines[this.currentLineIndex % lines.length];
 
+        // 🌟 视频屏幕彻底纯净，只有视频和飘过的透明弹幕
         screenContainer.innerHTML = `
             <iframe id="cinema-iframe-player" 
                     src="${finalUrl}" 
@@ -91,24 +80,39 @@ export const CinemaEngine = {
                     style="width: 100%; height: 100%; border-radius: 14px; border: none; background: #000;">
             </iframe>
             
-            <!-- 全屏弹幕舞台 -->
+            <!-- 全屏弹幕舞台 (点击穿透，不挡任何操作) -->
             <div id="cinema-danmaku-stage" style="position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 60;"></div>
+        `;
 
-            <!-- 弹幕输入悬浮胶囊 -->
-            <div onclick="window.CinemaEngine.openDanmakuPrompt()" style="position: absolute; bottom: 12px; right: 12px; background: rgba(0,0,0,0.65); color: #fff; font-size: 11px; padding: 6px 12px; border-radius: 18px; cursor: pointer; backdrop-filter: blur(8px); z-index: 70; border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; gap: 5px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
-                <i class="ph-fill ph-chat-teardrop-dots" style="color: var(--primary-color);"></i> 发弹幕
+        // 🌟 将控制工具条独立挂在视频框正下方，干干净净
+        let toolBar = document.getElementById('cinema-ext-toolbar');
+        if (!toolBar) {
+            toolBar = document.createElement('div');
+            toolBar.id = 'cinema-ext-toolbar';
+            toolBar.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding: 0 4px;';
+            screenContainer.parentNode.insertBefore(toolBar, screenContainer.nextSibling);
+        }
+
+        const lineNames = ["手机纯净流", "宽屏高清流"];
+        toolBar.innerHTML = `
+            <div style="font-size: 11px; color: var(--text-sub); display: flex; align-items: center; gap: 4px;">
+                <i class="ph-fill ph-film-strip" style="color: var(--primary-color);"></i>
+                <span style="font-weight: bold; color: var(--text-main);">${this.currentVideoTitle}</span>
             </div>
-
-            <!-- 切线路按钮 -->
-            <div onclick="window.CinemaEngine.toggleLine()" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: #fff; font-size: 10px; padding: 4px 10px; border-radius: 10px; cursor: pointer; backdrop-filter: blur(5px); z-index: 70; border: 1px solid rgba(255,255,255,0.1);">
-                <i class="ph ph-arrows-clockwise"></i> 换线路 (${(this.currentLineIndex % lines.length) + 1}/2)
+            <div style="display: flex; gap: 8px;">
+                <button onclick="window.CinemaEngine.toggleLine()" style="background: var(--icon-bg); border: 1px solid var(--border-color); color: var(--text-sub); font-size: 11px; padding: 4px 10px; border-radius: 14px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                    <i class="ph ph-arrows-clockwise"></i> ${lineNames[this.currentLineIndex % 2]}
+                </button>
+                <button onclick="window.CinemaEngine.openDanmakuPrompt()" style="background: var(--primary-color); border: none; color: #fff; font-size: 11px; font-weight: bold; padding: 4px 12px; border-radius: 14px; cursor: pointer; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+                    <i class="ph-fill ph-chat-teardrop-dots"></i> 发弹幕
+                </button>
             </div>
         `;
     },
 
     toggleLine() {
         this.currentLineIndex++;
-        const lineNames = ["手机纯净线路", "宽屏高清线路"];
+        const lineNames = ["手机纯净流", "宽屏高清流"];
         const curName = lineNames[this.currentLineIndex % 2];
         if (window.PhoneAPI) window.PhoneAPI.showToast(`已切换至：${curName}`);
         this.renderPlayer();
@@ -181,9 +185,6 @@ export const CinemaEngine = {
         screenContainer.innerHTML = `
             <video id="cinema-local-player" src="${videoUrl}" controls playsinline style="width: 100%; height: 100%; border-radius: 14px; object-fit: contain; background: #000;"></video>
             <div id="cinema-danmaku-stage" style="position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 60;"></div>
-            <div onclick="window.CinemaEngine.openDanmakuPrompt()" style="position: absolute; bottom: 12px; right: 12px; background: rgba(0,0,0,0.65); color: #fff; font-size: 11px; padding: 6px 12px; border-radius: 18px; cursor: pointer; backdrop-filter: blur(8px); z-index: 70; border: 1px solid rgba(255,255,255,0.2);">
-                <i class="ph-fill ph-chat-teardrop-dots" style="color: var(--primary-color);"></i> 发弹幕
-            </div>
         `;
 
         this.updateCompanionBubble(`“带了新带子来？行，老狼今天陪你盯完全场。”`);

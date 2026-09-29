@@ -1,6 +1,5 @@
 /**
- * 🎬 专属放映室引擎 (CinemaEngine) - 增强版
- * 完美支持：B站App短链(b23.tv)、BV号提取、本地视频流、实时伴看互动
+ * 🎬 专属放映室引擎 (CinemaEngine) - 防弹窗终极版
  */
 export const CinemaEngine = {
     currentVideoType: 'none',
@@ -12,40 +11,26 @@ export const CinemaEngine = {
         if (!input) return null;
         const str = input.trim();
 
-        // 1. 直接匹配 BV 号 (如 BV1GJ411x7h7)
+        // 1. 匹配 BV 号
         const bvMatch = str.match(/(BV[a-zA-Z0-9]{10})/i);
         if (bvMatch) return bvMatch[1];
 
-        // 2. 直接匹配 av 号
+        // 2. 匹配 av 号
         const avMatch = str.match(/av(\d+)/i);
         if (avMatch) return `av${avMatch[1]}`;
 
-        // 3. 匹配 b23.tv 短链 (从分享文本中抽取出短链)
+        // 3. 匹配 b23.tv 短链
         const b23Match = str.match(/https?:\/\/b23\.tv\/[a-zA-Z0-9]+/i);
-        if (b23Match) {
-            try {
-                if (window.PhoneAPI) window.PhoneAPI.showToast("🔍 正在解析 B站 手机端短链接...");
-                // 通过免费无跨域 API 还原短链目标地址
-                const res = await fetch(`https://api.bilibili.com/x/web-interface/share/click`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: `share_target=1&share_mode=1&oid=0&platform=android&share_url=${encodeURIComponent(b23Match[0])}`
-                }).catch(() => null);
-                
-                // 兜底方案：直接用短链作为 iframe 或引导用户
-                return b23Match[0];
-            } catch(e) {}
-            return b23Match[0];
-        }
+        if (b23Match) return b23Match[0];
 
         return null;
     },
 
-    // 载入 B站视频
+    // 载入 B站视频 (开启反劫持沙箱，彻底封杀跳转App弹窗)
     async loadBilibiliVideo(input, title = '') {
         const vid = await this.extractBiliId(input);
         if (!vid) {
-            if (window.PhoneAPI) window.PhoneAPI.showToast("⚠️ 未识别到B站链接或BV号");
+            if (window.PhoneAPI) window.PhoneAPI.showToast("⚠️ 未识别到有效B站链接或BV号");
             return false;
         }
 
@@ -61,12 +46,20 @@ export const CinemaEngine = {
         } else if (vid.startsWith('av')) {
             iframeUrl = `https://player.bilibili.com/player.html?aid=${vid.replace('av','')}&page=1&high_quality=1&as_wide=1&danmaku=0`;
         } else {
-            // 短链接兼容直连模式
             iframeUrl = vid;
         }
 
+        // 🌟 核心：sandbox 属性彻底拦截“未能成功跳转客户端”弹窗！
         screenContainer.innerHTML = `
-            <iframe src="${iframeUrl}" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" style="width: 100%; height: 100%; border-radius: 14px; border: none; background: #000;"></iframe>
+            <iframe src="${iframeUrl}" 
+                    scrolling="no" 
+                    border="0" 
+                    frameborder="no" 
+                    framespacing="0" 
+                    allowfullscreen="true" 
+                    sandbox="allow-top-navigation-by-user-activation allow-same-origin allow-forms allow-scripts"
+                    style="width: 100%; height: 100%; border-radius: 14px; border: none; background: #000;">
+            </iframe>
         `;
 
         this.updateCompanionBubble(`“案发现场（视频）准备好了。坐吧，让我看看这道题到底有多难。”`);

@@ -259,7 +259,6 @@ export const PhoneUI = {
         }
     },
 
-    // 🌟 修复：完整补全 memory_vault 记忆库列表、favorites 收藏夹与日记的初始化！
     openApp(appId, appName) {
         if (window.Config) window.Config.currentAppId = appId;
         const titleEl = document.getElementById('app-window-title');
@@ -285,7 +284,6 @@ export const PhoneUI = {
             winEl.classList.remove('fullscreen-mode'); 
         }
 
-        // 🌟 核心：唤醒记忆库列表（日常与锚点）
         if (appId === 'memory_vault') {
             if (window.Config) window.Config.memoryVaultTab = 'daily';
             contentEl.innerHTML = `
@@ -455,6 +453,7 @@ export const PhoneUI = {
         if (window.PhoneAPI) window.PhoneAPI.showToast("💾 绘画配置已成功保存！");
     },
 
+    // 🌟 修复：选择预设后，自动将配置回填并刷新
     fillPresetData() {
         const select = document.getElementById('preset-delete-select');
         if (!select || !select.value) return;
@@ -466,7 +465,12 @@ export const PhoneUI = {
             document.getElementById('preset-url').value = preset.url || '';
             document.getElementById('preset-key').value = preset.key || '';
             document.getElementById('preset-model').value = preset.model || '';
-            if (window.PhoneAPI) window.PhoneAPI.showToast('✏️ 已加载预设，修改后点击保存即可覆盖');
+            
+            // 自动同步为当前生效模型
+            if (window.PhoneAPI && window.PhoneAPI.assignEngine) {
+                window.PhoneAPI.assignEngine('main', preset.id);
+            }
+            if (window.PhoneAPI) window.PhoneAPI.showToast(`已切换至预设：${preset.name}`);
         }
     },
 
@@ -563,6 +567,7 @@ export const PhoneUI = {
         }
     },
 
+    // 🌟 核心：修复设置面板的布局穿透与点不动问题
     renderSettings() {
         const contentEl = document.getElementById('app-window-content');
         if (!contentEl) return;
@@ -573,17 +578,11 @@ export const PhoneUI = {
         const myAvatar = localStorage.getItem('my_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa';
         const taAvatar = localStorage.getItem('ta_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=TA&backgroundColor=e8f0fa';
 
-        const roleId = window.Config?.currentContactId || 'role_001';
-        const allItems = window.Config?.phoneData?.[roleId]?.wechat?.items || [];
-        const cleanItems = allItems.filter(i => i.sender !== 'typing' && i.content);
-        const lastIdx = parseInt(localStorage.getItem('memory_last_summary_index') || '0', 10);
-        const unsummarizedCount = Math.max(0, cleanItems.length - lastIdx);
-
         const curChatLimit = localStorage.getItem('context_chat_limit') || '60';
         const curVaultLimit = localStorage.getItem('context_vault_limit') || '15';
 
         contentEl.innerHTML = `
-        <div class="settings-tabs">
+        <div class="settings-tabs" style="position: relative; z-index: 10;">
             <div class="settings-tab active" id="stab-basic" onclick="window.PhoneUI.switchSetTab('basic')">基础/UI</div>
             <div class="settings-tab" id="stab-ai" onclick="window.PhoneUI.switchSetTab('ai')">大模型</div>
             <div class="settings-tab" id="stab-draw" onclick="window.PhoneUI.switchSetTab('draw')">绘画引擎</div>
@@ -646,14 +645,39 @@ export const PhoneUI = {
                 </div>
             </div>
 
-            <div class="card">
-                <h3 style="color:var(--primary-color);margin-bottom:10px;"><i class="ph-fill ph-database"></i> 语言引擎预设 (文本模型)</h3>
-                <div style="display:flex;gap:8px;align-items:center;margin-bottom:15px;"><select id="preset-delete-select" onchange="window.PhoneUI.fillPresetData()" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--primary-color);"><option value="">-- 选择预设以编辑或删除 --</option></select><button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.deletePreset()" style="width:auto;margin:0;background:transparent;color:var(--danger-color);border:1px solid var(--danger-color);padding:8px 12px;"><i class="ph ph-trash"></i></button></div>
-                <div style="margin-bottom:10px;"><input type="text" id="preset-name" placeholder="起个名字 (如: 硅基-DeepSeek)" style="width:100%;padding:8px;border-radius:8px;"></div>
-                <div style="margin-bottom:10px;"><input type="text" id="preset-url" placeholder="接口地址 (Base URL)" style="width:100%;padding:8px;border-radius:8px;"></div>
-                <div style="margin-bottom:10px;"><input type="password" id="preset-key" placeholder="API Key (密钥)" style="width:100%;padding:8px;border-radius:8px;"></div>
-                <div style="margin-bottom:15px;"><input type="text" id="preset-model" placeholder="模型名称 (Model)" style="width:100%;padding:8px;border-radius:8px;"></div>
-                <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.savePreset()" style="margin-top:0;"><i class="ph ph-floppy-disk"></i> 保存 / 更新当前预设</button>
+            <!-- 🌟 重新布局预设管理卡片，100% 顺畅点击，绝不漂移穿透 -->
+            <div class="card" style="position: relative; z-index: 5;">
+                <h3 style="color:var(--primary-color);margin-bottom:12px;"><i class="ph-fill ph-database"></i> 语言引擎预设 (文本模型)</h3>
+                
+                <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 15px; width: 100%;">
+                    <select id="preset-delete-select" onchange="window.PhoneUI.fillPresetData()" style="flex: 1; min-width: 0; padding: 10px; border-radius: 10px; border: 1.5px solid var(--primary-color); background: var(--icon-bg); color: var(--text-main); font-size: 13px;">
+                        <option value="">-- 选择预设以读取或切换 --</option>
+                    </select>
+                    <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.deletePreset()" style="width: auto; margin: 0; background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); padding: 10px 14px; border-radius: 10px; flex-shrink: 0;" title="删除选中的预设">
+                        <i class="ph ph-trash"></i>
+                    </button>
+                </div>
+
+                <div style="margin-bottom:10px;">
+                    <label style="font-size:11px;color:var(--text-sub);">预设名称 (别名)</label>
+                    <input type="text" id="preset-name" placeholder="起个名字 (如: 空悲切-Sonnet)" style="width:100%;padding:10px;border-radius:8px;margin-top:4px;">
+                </div>
+                <div style="margin-bottom:10px;">
+                    <label style="font-size:11px;color:var(--text-sub);">接口地址 (Base URL)</label>
+                    <input type="text" id="preset-url" placeholder="如: https://api.blanka.cc" style="width:100%;padding:10px;border-radius:8px;margin-top:4px;">
+                </div>
+                <div style="margin-bottom:10px;">
+                    <label style="font-size:11px;color:var(--text-sub);">API Key (密钥)</label>
+                    <input type="password" id="preset-key" placeholder="sk-..." style="width:100%;padding:10px;border-radius:8px;margin-top:4px;">
+                </div>
+                <div style="margin-bottom:15px;">
+                    <label style="font-size:11px;color:var(--text-sub);">模型名称 (Model)</label>
+                    <input type="text" id="preset-model" placeholder="如: [特价纯血]claude-sonnet-4-6" style="width:100%;padding:10px;border-radius:8px;margin-top:4px;">
+                </div>
+                
+                <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.savePreset()" style="margin-top:0; width: 100%; padding: 12px; border-radius: 12px; font-weight: bold; background: var(--primary-color);">
+                    <i class="ph ph-floppy-disk"></i> 保存 / 更新当前预设
+                </button>
             </div>
         </div>
 

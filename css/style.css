@@ -587,24 +587,3 @@ input, textarea, select { background: var(--input-bg); border: 1px solid var(--b
         opacity: 0;
     }
 }
-
-/* 🌟 放映室强制横屏影院模式 */
-#cinema-screen-box.landscape-fixed {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100vh !important;
-    height: 100vw !important;
-    max-width: none !important;
-    max-height: none !important;
-    transform: rotate(90deg) translateY(-100%);
-    transform-origin: top left;
-    z-index: 99999 !important;
-    border-radius: 0 !important;
-    background: #000 !important;
-}
-
-#cinema-screen-box.landscape-fixed iframe,
-#cinema-screen-box.landscape-fixed video {
-    border-radius: 0 !important;
-}

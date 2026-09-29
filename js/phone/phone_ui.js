@@ -249,7 +249,7 @@ export const PhoneUI = {
         const inputEl = document.getElementById('cinema-bili-input');
         if (!inputEl || !inputEl.value.trim()) return;
         const val = inputEl.value.trim();
-        const title = prompt("给视频起个名字（方便TA理解，如：高数讲解）", "高数课");
+        const title = prompt("给视频起个名字（如：高数讲解）", "高数课");
         if (title !== null && window.PhoneEngine && window.PhoneEngine.loadBilibiliVideo) {
             const ok = window.PhoneEngine.loadBilibiliVideo(val, title);
             if (ok) {
@@ -259,17 +259,50 @@ export const PhoneUI = {
         }
     },
 
+    // 🌟 修复：完整补全 memory_vault 记忆库列表、favorites 收藏夹与日记的初始化！
     openApp(appId, appName) {
         if (window.Config) window.Config.currentAppId = appId;
-        document.getElementById('app-window-title').innerText = appName;
+        const titleEl = document.getElementById('app-window-title');
         const winEl = document.getElementById('app-window');
-        winEl.classList.add('open');
-        if (appId === 'diary') winEl.classList.add('fullscreen-mode');
-        else winEl.classList.remove('fullscreen-mode');
+        const contentEl = document.getElementById('app-window-content');
+        if (!titleEl || !winEl || !contentEl) return;
 
-        if (appId === 'settings') this.renderSettings();
-        else if (appId === 'schedule') {
-            document.getElementById('app-window-content').innerHTML = `
+        titleEl.innerText = appName;
+        winEl.classList.add('open');
+
+        contentEl.style.padding = '20px';
+        contentEl.style.background = 'transparent';
+        contentEl.style.display = 'block';
+        contentEl.style.overflow = 'auto';
+
+        if (appId === 'diary') { 
+            winEl.classList.add('fullscreen-mode'); 
+            const diaryTitle = localStorage.getItem('diary_title') || 'His Diary';
+            contentEl.innerHTML = `<div id="diary-cover-view" class="diary-cover-view"><div class="diary-book-cover long-pressable" data-img="bg_diary_cover" id="diary-book-cover" onclick="window.PhoneUI.unlockDiary()"><div class="diary-title">${this.escapeHtml(diaryTitle)}</div><div class="diary-hint">点击翻开日记</div></div><div class="diary-back-btn" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div></div><div id="diary-inside-view" class="diary-inside-view"><div class="diary-back-btn" onclick="window.PhoneUI.closeApp()" style="top:20px;left:15px;background:rgba(0,0,0,0.1);color:#333;z-index:50;"><i class="ph ph-caret-left"></i></div><div id="diary-content-area" style="display:flex;flex-direction:column;height:100%;"></div></div>`;
+            this.renderDiaryPage();
+            this.bindLongPresses();
+        } else { 
+            winEl.classList.remove('fullscreen-mode'); 
+        }
+
+        // 🌟 核心：唤醒记忆库列表（日常与锚点）
+        if (appId === 'memory_vault') {
+            if (window.Config) window.Config.memoryVaultTab = 'daily';
+            contentEl.innerHTML = `
+                <div class="vault-tabs">
+                    <div class="vault-tab active" id="tab-daily" onclick="window.PhoneUI.switchVaultTab('daily')">日常 (Daily)</div>
+                    <div class="vault-tab" id="tab-permanent" onclick="window.PhoneUI.switchVaultTab('permanent')">锚点 (Permanent)</div>
+                </div>
+                <button class="btn-refresh" onclick="window.PhoneUI.remindEchoVault()" style="margin-top: 0; margin-bottom: 15px; background: linear-gradient(135deg, #a78bfa, #8b5cf6); border-radius: 16px; box-shadow: 0 4px 15px rgba(167, 139, 250, 0.4);"><i class="ph-fill ph-bottle"></i> 捞一个漂流瓶</button>
+                <div id="vault-content-area" style="padding-bottom: 80px;"></div>
+            `;
+            this.renderMemoryVault();
+        } else if (appId === 'favorites') {
+            this.renderFavorites();
+        } else if (appId === 'settings') {
+            this.renderSettings();
+        } else if (appId === 'schedule') {
+            contentEl.innerHTML = `
                 <div class="vault-tabs" id="schedule-tabs" style="margin-bottom: 15px; overflow-x: auto; display: flex; white-space: nowrap;"></div>
                 <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                     <button class="btn-refresh" onclick="window.PhoneUI.importScheduleAI()" style="flex: 1; margin: 0; background: linear-gradient(135deg, #a78bfa, #8b5cf6);"><i class="ph-fill ph-sparkle"></i> AI 智能排课</button>
@@ -279,7 +312,9 @@ export const PhoneUI = {
             `;
             this.currentScheduleDay = new Date().getDay() === 0 ? 7 : new Date().getDay();
             this.renderSchedule();
-        } else if (appId === 'study') this.renderStudyRoom();
+        } else if (appId === 'study') {
+            this.renderStudyRoom();
+        }
     },
 
     closeApp() {
@@ -319,7 +354,7 @@ export const PhoneUI = {
     bindLongPresses() {
         const elements = document.querySelectorAll('.long-pressable');
         const fileInput = document.getElementById('global-file-input');
-        let holdTimer = null, pendingKey = null, pendingEl = null;
+        let holdTimer = null, pendingKey = null;
 
         elements.forEach(el => {
             const key = el.dataset.img;
@@ -331,7 +366,7 @@ export const PhoneUI = {
                 clearTimeout(holdTimer);
                 holdTimer = setTimeout(() => {
                     el.classList.remove('holding');
-                    pendingKey = key; pendingEl = el;
+                    pendingKey = key;
                     if (fileInput) fileInput.click();
                 }, 500);
             };
@@ -352,30 +387,20 @@ export const PhoneUI = {
                 const f = e.target.files && e.target.files[0];
                 e.target.value = '';
                 if (!f || !pendingKey) return;
-                if (window.PhoneAPI) window.PhoneAPI.showToast('处理中...');
                 try {
                     const blob = await window.PhoneAPI.LocalDB.shrink(f, 800);
                     await window.PhoneAPI.LocalDB.set(pendingKey, blob);
                     const url = window.PhoneAPI.LocalDB.urlOf(pendingKey, blob);
-                    
-                    const allTargetEls = document.querySelectorAll(`[data-img="${pendingKey}"]`);
-                    allTargetEls.forEach(targetEl => {
-                        if (targetEl.tagName.toLowerCase() === 'img') {
-                            targetEl.src = url;
-                        } else {
-                            if (pendingKey.startsWith('bg_')) {
-                                let cssVar = '--bg-image-' + pendingKey.replace('bg_', '').replace(/_/g, '-');
-                                if (pendingKey === 'bg_global') cssVar = '--bg-image-global';
-                                document.documentElement.style.setProperty(cssVar, `url('${url}')`);
-                            } else {
-                                const imgChild = targetEl.querySelector('img');
-                                if (imgChild) imgChild.src = url;
-                            }
+                    document.querySelectorAll(`[data-img="${pendingKey}"]`).forEach(targetEl => {
+                        if (targetEl.tagName.toLowerCase() === 'img') targetEl.src = url;
+                        else {
+                            const imgChild = targetEl.querySelector('img');
+                            if (imgChild) imgChild.src = url;
                         }
                     });
                     if (window.PhoneAPI) window.PhoneAPI.showToast('✨ 换图成功！已保存在本地。');
-                } catch (err) { if (window.PhoneAPI) window.PhoneAPI.showToast('换图失败'); }
-                pendingKey = null; pendingEl = null;
+                } catch (err) {}
+                pendingKey = null;
             });
         }
     },
@@ -397,8 +422,7 @@ export const PhoneUI = {
             const reader = new FileReader();
             reader.onload = (event) => {
                 localStorage.setItem(key, event.target.result);
-                const allTargetEls = document.querySelectorAll(`[data-img="${key}"]`);
-                allTargetEls.forEach(el => {
+                document.querySelectorAll(`[data-img="${key}"]`).forEach(el => {
                     if (el.tagName.toLowerCase() === 'img') el.src = event.target.result;
                 });
                 if (window.PhoneAPI) window.PhoneAPI.showToast("头像更换成功！");
@@ -557,7 +581,6 @@ export const PhoneUI = {
 
         const curChatLimit = localStorage.getItem('context_chat_limit') || '60';
         const curVaultLimit = localStorage.getItem('context_vault_limit') || '15';
-        const curThreshold = localStorage.getItem('memory_auto_threshold') || '8';
 
         contentEl.innerHTML = `
         <div class="settings-tabs">
@@ -572,12 +595,12 @@ export const PhoneUI = {
                 <h3 style="color:var(--primary-color);margin-bottom:15px;"><i class="ph-fill ph-user-circle"></i> 基础设定 (头像与名字)</h3>
                 <div style="display:flex; justify-content:space-around; align-items:center; margin-bottom:20px; background: var(--icon-bg); padding: 15px; border-radius: 16px; border: 1px dashed var(--border-color);">
                     <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
-                        <img id="set-my-avatar" src="${myAvatar}" onclick="window.PhoneUI.triggerAvatarUpload('my_avatar')" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid var(--border-color); cursor:pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                        <img id="set-my-avatar" src="${myAvatar}" onclick="window.PhoneUI.triggerAvatarUpload('my_avatar')" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid var(--border-color); cursor:pointer;">
                         <span style="font-size:11px; color:var(--text-sub); font-weight:bold;">点击换图</span>
                     </div>
                     <i class="ph-fill ph-arrows-left-right" style="color:var(--border-color); font-size:24px;"></i>
                     <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
-                        <img id="set-ta-avatar" src="${taAvatar}" onclick="window.PhoneUI.triggerAvatarUpload('ta_avatar')" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid var(--border-color); cursor:pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                        <img id="set-ta-avatar" src="${taAvatar}" onclick="window.PhoneUI.triggerAvatarUpload('ta_avatar')" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid var(--border-color); cursor:pointer;">
                         <span style="font-size:11px; color:var(--text-sub); font-weight:bold;">点击换图</span>
                     </div>
                 </div>
@@ -591,13 +614,13 @@ export const PhoneUI = {
                 <h3 style="color:var(--primary-color);margin-bottom:10px;"><i class="ph-fill ph-palette"></i> UI 主题装修</h3>
                 <div class="engine-title"><i class="ph-fill ph-paint-brush"></i> 全局主题色</div>
                 <div class="color-picker-container">
-                    <div id="color-btn-blue" class="color-circle c-blue ${currentColor === 'blue' ? 'active' : ''}" onclick="window.PhoneUI.changeAppColor('blue')" title="星河水"></div>
-                    <div id="color-btn-purple" class="color-circle c-purple ${currentColor === 'purple' ? 'active' : ''}" onclick="window.PhoneUI.changeAppColor('purple')" title="冰晶紫"></div>
-                    <div id="color-btn-pink" class="color-circle c-pink ${currentColor === 'pink' ? 'active' : ''}" onclick="window.PhoneUI.changeAppColor('pink')" title="薄雾粉"></div>
-                    <div id="color-btn-gold" class="color-circle c-gold ${currentColor === 'gold' ? 'active' : ''}" onclick="window.PhoneUI.changeAppColor('gold')" title="天光金"></div>
+                    <div id="color-btn-blue" class="color-circle c-blue ${currentColor === 'blue' ? 'active' : ''}" onclick="window.PhoneUI.changeAppColor('blue')"></div>
+                    <div id="color-btn-purple" class="color-circle c-purple ${currentColor === 'purple' ? 'active' : ''}" onclick="window.PhoneUI.changeAppColor('purple')"></div>
+                    <div id="color-btn-pink" class="color-circle c-pink ${currentColor === 'pink' ? 'active' : ''}" onclick="window.PhoneUI.changeAppColor('pink')"></div>
+                    <div id="color-btn-gold" class="color-circle c-gold ${currentColor === 'gold' ? 'active' : ''}" onclick="window.PhoneUI.changeAppColor('gold')"></div>
                 </div>
                 <div class="engine-title"><i class="ph-fill ph-heart" style="color:var(--danger-color);"></i> 恋爱纪念日</div>
-                <div style="margin-bottom:15px;"><label style="font-size:11px;color:var(--text-sub);">相爱起始日 (用于首页天数计算)</label><input type="date" id="love-start-date" value="${localStorage.getItem('love_start_date') || defaultDate}" onchange="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
+                <div style="margin-bottom:15px;"><label style="font-size:11px;color:var(--text-sub);">相爱起始日</label><input type="date" id="love-start-date" value="${localStorage.getItem('love_start_date') || defaultDate}" onchange="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
                 <div class="engine-title"><i class="ph-fill ph-text-aa"></i> 日记本专属设置</div>
                 <div style="margin-bottom:10px;"><label style="font-size:11px;color:var(--danger-color);font-weight:bold;">日记起始日期</label><input type="date" id="diary-start-date" value="${defaultDate}" onchange="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
                 <div style="margin-bottom:10px;"><label style="font-size:11px;color:var(--text-sub);">封面标题</label><input type="text" id="diary-title" placeholder="His Diary" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px;border-radius:8px;margin-top:4px;"></div>
@@ -613,12 +636,6 @@ export const PhoneUI = {
 
             <div class="card">
                 <h3 style="color:var(--primary-color);margin-bottom:15px;"><i class="ph-fill ph-sliders-horizontal"></i> 记忆与上下文调节</h3>
-                <div style="background:var(--icon-bg); padding:12px; border-radius:12px; margin-bottom:15px; border:1px dashed var(--border-color); display:flex; justify-content:space-between; align-items:center;">
-                    <div style="flex:1;">
-                        <div style="font-size:12px; font-weight:bold;">未总结消息：<span style="color:var(--primary-color); font-size:16px;">${unsummarizedCount}</span> 条</div>
-                    </div>
-                    <button onclick="localStorage.setItem('memory_last_summary_index', cleanItems.length.toString()); PhoneUI.renderSettings(); PhoneUI.switchSetTab('ai'); PhoneAPI.showToast('✅ 历史旧账已全部清零！');" style="padding:6px 8px; font-size:11px; border-radius:8px; background:transparent; color:var(--text-sub); border:1px solid var(--border-color); cursor:pointer;">清零旧账</button>
-                </div>
                 <div style="margin-bottom:15px;">
                     <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:5px;"><span style="font-weight:bold;">聊天上下文携带条数</span><span id="label-chat-limit" style="color:var(--primary-color); font-weight:bold;">${curChatLimit} 条</span></div>
                     <input type="range" min="10" max="200" step="5" value="${curChatLimit}" oninput="document.getElementById('label-chat-limit').innerText = this.value + ' 条'; localStorage.setItem('context_chat_limit', this.value);" style="width:100%;">

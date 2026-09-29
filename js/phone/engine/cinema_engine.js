@@ -1,30 +1,40 @@
 /**
- * 🎬 专属放映室引擎 (CinemaEngine) - 弹幕全屏伴看豪华版
+ * 🎬 专属放映室引擎 (CinemaEngine) - 全视频兼容终极版
  */
 export const CinemaEngine = {
     currentVideoType: 'none',
-    currentVideoTitle: '高数网课',
+    currentVideoTitle: '未命名视频',
     currentVid: '',
     cinemaTimer: null,
-    usePureLine: true,
+    currentLineIndex: 0, // 0: 官方纯净极速线路, 1: 免App防跳线路, 2: 备用解析线路
 
+    // 智能、强力提取纯净 BV 号或 av 号
     extractBiliId(input) {
         if (!input) return null;
-        const str = input.trim();
+        let str = String(input).trim();
+
+        // 1. 暴力正则提取标准 BV 号 (BV 开头 + 10 位字母数字，忽略大小写和后缀参数)
         const bvMatch = str.match(/(BV[a-zA-Z0-9]{10})/i);
         if (bvMatch) return bvMatch[1];
+
+        // 2. 提取 av 号
         const avMatch = str.match(/av(\d+)/i);
         if (avMatch) return `av${avMatch[1]}`;
+
         return null;
     },
 
+    // 载入视频
     async loadBilibiliVideo(input, title = '') {
-        let vid = this.extractBiliId(input);
+        if (!input || !input.trim()) return false;
+        let str = input.trim();
+        let vid = this.extractBiliId(str);
 
-        if (!vid && input.includes('b23.tv')) {
-            const shortMatch = input.match(/https?:\/\/b23\.tv\/[a-zA-Z0-9]+/i);
+        // 如果用户直接贴的是 b23.tv 手机短链且里面没直接写 BV
+        if (!vid && str.includes('b23.tv')) {
+            const shortMatch = str.match(/https?:\/\/b23\.tv\/[a-zA-Z0-9]+/i);
             if (shortMatch) {
-                if (window.PhoneAPI) window.PhoneAPI.showToast("🔍 正在解析短链接...");
+                if (window.PhoneAPI) window.PhoneAPI.showToast("🔍 正在还原 B站 短链接...");
                 try {
                     const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(shortMatch[0])}`);
                     const html = await res.text();
@@ -33,69 +43,81 @@ export const CinemaEngine = {
             }
         }
 
+        // 如果还是没解析出来，弹窗让用户补录 BV 号
         if (!vid) {
-            const manualBv = prompt("💡 请输入该视频的 BV号 (如 BV1xx...，在视频简介下方)：", "");
+            const manualBv = prompt("💡 未能在链接里抓到视频ID，请输入该视频的 BV号 (如 BV1...，在B站视频下方)：", "");
             if (manualBv) vid = this.extractBiliId(manualBv);
         }
 
         if (!vid) {
-            if (window.PhoneAPI) window.PhoneAPI.showToast("⚠️ 未能提取到有效BV号");
+            if (window.PhoneAPI) window.PhoneAPI.showToast("⚠️ 未能提取到有效的视频编号");
             return false;
         }
 
         this.currentVid = vid;
         this.currentVideoType = 'bilibili';
-        this.currentVideoTitle = title.trim() || '数学网课';
+        this.currentVideoTitle = title.trim() || '精彩视频';
 
         this.renderPlayer();
-        this.updateCompanionBubble(`“案发现场（视频）准备好了。坐吧，老狼陪你一起看。”`);
+        this.updateCompanionBubble(`“带子装好了。坐吧，让我看看你今天挑的片子。”`);
         this.startProactiveCompanion();
         return true;
     },
 
+    // 核心播放器渲染
     renderPlayer() {
         const screenContainer = document.getElementById('cinema-screen-box');
         if (!screenContainer || !this.currentVid) return;
 
         let finalUrl = '';
-        if (this.usePureLine) {
-            finalUrl = `https://jx.jsonplayer.com/player/?url=https://www.bilibili.com/video/${this.currentVid}`;
-        } else {
-            finalUrl = `https://player.bilibili.com/player.html?bvid=${this.currentVid}&page=1&high_quality=1&as_wide=1&danmaku=0`;
-        }
+        const lines = [
+            // 线路 0：官方原生高清纯净嵌入流 (最稳，绝无解析失败，自带弹幕开关与画质)
+            `https://player.bilibili.com/player.html?bvid=${this.currentVid}&page=1&high_quality=1&as_wide=1&danmaku=0`,
+            // 线路 1：免 App 拦截线路
+            `https://jx.jsonplayer.com/player/?url=https://www.bilibili.com/video/${this.currentVid}`,
+            // 线路 2：全能备用线路
+            `https://www.yemu.xyz/?url=https://www.bilibili.com/video/${this.currentVid}`
+        ];
+
+        finalUrl = lines[this.currentLineIndex % lines.length];
 
         screenContainer.innerHTML = `
-            <iframe src="${finalUrl}" 
+            <iframe id="cinema-iframe-player" 
+                    src="${finalUrl}" 
                     scrolling="no" 
                     border="0" 
                     frameborder="no" 
                     framespacing="0" 
                     allowfullscreen="true" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     style="width: 100%; height: 100%; border-radius: 14px; border: none; background: #000;">
             </iframe>
             
-            <!-- 🌟 全屏弹幕渲染舞台 (置顶在播放器之上) -->
+            <!-- 全屏弹幕舞台 -->
             <div id="cinema-danmaku-stage" style="position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 60;"></div>
 
-            <!-- 🌟 视频框内快捷吐槽胶囊 -->
+            <!-- 弹幕输入悬浮胶囊 -->
             <div onclick="window.CinemaEngine.openDanmakuPrompt()" style="position: absolute; bottom: 12px; right: 12px; background: rgba(0,0,0,0.65); color: #fff; font-size: 11px; padding: 6px 12px; border-radius: 18px; cursor: pointer; backdrop-filter: blur(8px); z-index: 70; border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; gap: 5px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
                 <i class="ph-fill ph-chat-teardrop-dots" style="color: var(--primary-color);"></i> 发弹幕
             </div>
 
             <!-- 切线路按钮 -->
-            <div onclick="window.CinemaEngine.toggleLine()" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: #fff; font-size: 10px; padding: 4px 8px; border-radius: 10px; cursor: pointer; backdrop-filter: blur(5px); z-index: 70;">
-                <i class="ph ph-arrows-clockwise"></i> 切线路
+            <div onclick="window.CinemaEngine.toggleLine()" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: #fff; font-size: 10px; padding: 4px 10px; border-radius: 10px; cursor: pointer; backdrop-filter: blur(5px); z-index: 70; border: 1px solid rgba(255,255,255,0.1);">
+                <i class="ph ph-arrows-clockwise"></i> 换线路 (${(this.currentLineIndex % lines.length) + 1}/3)
             </div>
         `;
     },
 
+    // 循环切换线路
     toggleLine() {
-        this.usePureLine = !this.usePureLine;
-        if (window.PhoneAPI) window.PhoneAPI.showToast(`已切换至：${this.usePureLine ? '免App纯净线路' : '官方线路'}`);
+        this.currentLineIndex++;
+        const lineNames = ["官方极速线路", "免App纯净线路", "全能备用线路"];
+        const curName = lineNames[this.currentLineIndex % lineNames.length];
+        if (window.PhoneAPI) window.PhoneAPI.showToast(`已切换至：${curName}`);
         this.renderPlayer();
     },
 
-    // 🌟 发射单条漂浮弹幕 (支持用户与不死途专属高光样式)
+    // 发射漂浮弹幕
     shootDanmaku(text, sender = 'me') {
         const stage = document.getElementById('cinema-danmaku-stage');
         if (!stage) return;
@@ -103,9 +125,7 @@ export const CinemaEngine = {
         const danmaku = document.createElement('div');
         const isTa = (sender === 'ta');
         const taAvatar = localStorage.getItem('ta_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=TA&backgroundColor=e8f0fa';
-
-        // 随机在屏幕上中高度轨道飘过 (15% ~ 65% 之间，避开顶部控制和底部进度条)
-        const topPercent = Math.floor(Math.random() * 50) + 15;
+        const topPercent = Math.floor(Math.random() * 45) + 15;
 
         danmaku.style.cssText = `
             position: absolute;
@@ -115,7 +135,7 @@ export const CinemaEngine = {
             font-size: ${isTa ? '14px' : '13px'};
             font-weight: bold;
             color: ${isTa ? '#fff' : 'rgba(255,255,255,0.9)'};
-            background: ${isTa ? 'linear-gradient(135deg, rgba(167, 139, 250, 0.85), rgba(99, 102, 241, 0.85))' : 'rgba(0,0,0,0.5)'};
+            background: ${isTa ? 'linear-gradient(135deg, rgba(167, 139, 250, 0.88), rgba(99, 102, 241, 0.88))' : 'rgba(0,0,0,0.55)'};
             padding: ${isTa ? '4px 12px 4px 6px' : '4px 10px'};
             border-radius: 20px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
@@ -138,11 +158,10 @@ export const CinemaEngine = {
         }
 
         stage.appendChild(danmaku);
-        // 动画播完自动清理 DOM
         setTimeout(() => { danmaku.remove(); }, 8500);
     },
 
-    // 快捷呼出全屏弹幕输入栏
+    // 快捷呼出全屏弹幕输入
     async openDanmakuPrompt() {
         let text = '';
         if (window.PhoneUI && window.PhoneUI.showCustomPrompt) {
@@ -193,9 +212,7 @@ export const CinemaEngine = {
         }, 6000);
     },
 
-    // 核心交互：发弹幕 ➡️ 发射自己弹幕 ➡️ AI 思考 ➡️ 屏幕飘出 TA 的神级弹幕
     async handleCommentFlow(userSay) {
-        // 1. 发射你的弹幕
         this.shootDanmaku(userSay, 'me');
         this.updateCompanionBubble(`我: “${userSay}” ...`);
 
@@ -204,10 +221,10 @@ export const CinemaEngine = {
             const taName = localStorage.getItem('char_name') || 'TA';
             const myName = localStorage.getItem('my_name') || '我';
 
-            const sysPrompt = `【系统指令】：你扮演${taName}。你此刻正和${myName}并肩坐在一起看视频网课《${this.currentVideoTitle}》。
+            const sysPrompt = `【系统指令】：你扮演${taName}。你此刻正和${myName}并肩坐在一起看视频《${this.currentVideoTitle}》。
 ${persona}
 
-【情境任务】：对方看视频时随手发了条弹幕跟你吐槽：“${userSay}”。
+【情境任务】：对方看视频时随口发了条弹幕跟你吐槽：“${userSay}”。
 【要求】：
 1. 极其简短的弹幕风格，神回复/冷幽默/宠溺吐槽（15~30字以内）。
 2. 符合你老派侦探、散漫嘴贫、又极度护短可靠的性格。
@@ -220,18 +237,16 @@ ${persona}
 
             const cleanReply = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<inner>[\s\S]*?<\/inner>/gi, '').trim();
             if (cleanReply) {
-                // 2. 延迟 1 秒后，TA 的专属高光弹幕飘过屏幕！
                 setTimeout(() => {
                     this.shootDanmaku(cleanReply, 'ta');
                     this.updateCompanionBubble(cleanReply);
                 }, 1000);
             }
         } catch (e) {
-            this.updateCompanionBubble(`“……刚才在看那道题的辅助线，你刚才说什么？”`);
+            this.updateCompanionBubble(`“……刚才在看画面，你刚才说什么？”`);
         }
     },
 
-    // 底部输入框发送事件
     sendCinemaComment() {
         const input = document.getElementById('cinema-comment-input');
         if (!input || !input.value.trim()) return;
@@ -251,7 +266,7 @@ ${persona}
                 const persona = localStorage.getItem('char_persona') || '';
                 const myName = localStorage.getItem('my_name') || '她';
 
-                const prompt = `你扮演${taName}，正陪${myName}看数学课《${this.currentVideoTitle}》。请针对当前情境随手在屏幕上发一条极短弹幕（如吐槽黑板数字像密码、自己嚼香蕉、或老派冷幽默）。要求：20字以内，口语，严禁括号描写！`;
+                const prompt = `你扮演${taName}，正陪${myName}看视频《${this.currentVideoTitle}》。请针对当前情境随手在屏幕上发一条极短弹幕（20字以内，口语，严禁括号描写！）。`;
                 const reply = await window.PhoneAPI.chatWithAI([
                     { role: 'system', content: persona },
                     { role: 'user', content: prompt }

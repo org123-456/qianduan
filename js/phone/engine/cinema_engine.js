@@ -1,5 +1,5 @@
 /**
- * 🎬 专属放映室引擎 (CinemaEngine) - 原生全屏伴看版 (无诡异旋转)
+ * 🎬 专属放映室引擎 (CinemaEngine) - 深度人设与记忆库联动版
  */
 export const CinemaEngine = {
     currentVideoType: 'none',
@@ -7,6 +7,8 @@ export const CinemaEngine = {
     currentVid: '',
     cinemaTimer: null,
     currentLineIndex: 0,
+    danmakuHistory: [], // 🌟 维持弹幕上下文，防止车轱辘话复读
+    sessionCommentCount: 0, // 记录本场吐槽次数，用于自动沉淀记忆
 
     extractBiliId(input) {
         if (!input) return null;
@@ -48,6 +50,8 @@ export const CinemaEngine = {
         this.currentVid = vid;
         this.currentVideoType = 'bilibili';
         this.currentVideoTitle = title.trim() || '精彩视频';
+        this.danmakuHistory = []; // 开新片清空本场弹幕环
+        this.sessionCommentCount = 0;
 
         this.renderPlayer();
         this.updateCompanionBubble(`“带子装好了。坐吧，老狼陪你一起盯完全场。”`);
@@ -81,18 +85,18 @@ export const CinemaEngine = {
             <!-- 全屏弹幕舞台 -->
             <div id="cinema-danmaku-stage" style="position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 60;"></div>
             
-            <!-- 全屏状态下的专属心声气泡 (左下角，端端正正) -->
+            <!-- 全屏状态下的专属心声气泡 -->
             <div id="cinema-fullscreen-bubble" style="display: none; position: absolute; bottom: 25px; left: 25px; background: rgba(0,0,0,0.78); border: 1px solid rgba(255,255,255,0.25); border-radius: 25px; padding: 6px 14px; align-items: center; gap: 8px; backdrop-filter: blur(10px); z-index: 70; max-width: 65%;">
                 <img id="fs-bubble-avatar" src="" style="width: 26px; height: 26px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--primary-color);">
                 <span id="fs-bubble-text" style="font-size: 13px; color: #fff; line-height: 1.3;">...</span>
             </div>
 
-            <!-- 全屏状态下的发弹幕胶囊 (右下角) -->
+            <!-- 全屏状态下的发弹幕胶囊 -->
             <div id="cinema-fullscreen-btn" onclick="window.CinemaEngine.toggleBiliDanmakuBar()" style="display: none; position: absolute; bottom: 25px; right: 25px; background: rgba(0,0,0,0.78); border: 1px solid rgba(255,255,255,0.3); color: #fff; font-size: 12px; font-weight: bold; padding: 7px 16px; border-radius: 20px; cursor: pointer; z-index: 70; backdrop-filter: blur(10px);">
                 <i class="ph-fill ph-chat-teardrop-dots" style="color: var(--primary-color);"></i> 发弹幕
             </div>
 
-            <!-- 全屏状态下的退出全屏按钮 (左上角) -->
+            <!-- 全屏状态下的退出全屏按钮 -->
             <div id="cinema-exit-fs-btn" onclick="window.CinemaEngine.toggleFullscreen(false)" style="display: none; position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.6); color: #fff; font-size: 12px; padding: 6px 14px; border-radius: 16px; cursor: pointer; z-index: 70; border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(8px);">
                 <i class="ph ph-arrows-in"></i> 退出全屏
             </div>
@@ -105,7 +109,6 @@ export const CinemaEngine = {
             </div>
         `;
 
-        // 外部工具条
         let toolBar = document.getElementById('cinema-ext-toolbar');
         if (!toolBar) {
             toolBar = document.createElement('div');
@@ -134,7 +137,6 @@ export const CinemaEngine = {
         `;
     },
 
-    // 🌟 原生全屏切换（你把手机横过来，它就是端端正正的真横屏！）
     toggleFullscreen(forceState) {
         const box = document.getElementById('cinema-screen-box');
         const fsBubble = document.getElementById('cinema-fullscreen-bubble');
@@ -157,9 +159,6 @@ export const CinemaEngine = {
             const taAvatar = localStorage.getItem('ta_avatar') || '';
             const avatarEl = document.getElementById('fs-bubble-avatar');
             if (avatarEl && taAvatar) avatarEl.src = taAvatar;
-
-            // 尝试锁定横屏（部分支持设备有效）
-            try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {}); } catch(e) {}
         } else {
             box.classList.remove('fullscreen-mode');
             if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
@@ -167,8 +166,6 @@ export const CinemaEngine = {
             if (fsBtn) fsBtn.style.display = 'none';
             if (exitBtn) exitBtn.style.display = 'none';
             this.toggleBiliDanmakuBar(false);
-
-            try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch(e) {}
         }
     },
 
@@ -178,7 +175,6 @@ export const CinemaEngine = {
         if (!bar) return;
 
         let shouldShow = (typeof forceState === 'boolean') ? forceState : (bar.style.display === 'none' || !bar.style.display);
-        
         if (shouldShow) {
             bar.style.display = 'flex';
             if (input) {
@@ -253,6 +249,8 @@ export const CinemaEngine = {
         if (!file) return;
         this.currentVideoType = 'local';
         this.currentVideoTitle = file.name.replace(/\.[^/.]+$/, "");
+        this.danmakuHistory = [];
+        this.sessionCommentCount = 0;
 
         const screenContainer = document.getElementById('cinema-screen-box');
         if (!screenContainer) return;
@@ -308,38 +306,99 @@ export const CinemaEngine = {
         }
     },
 
+    // 🌟 核心：注入深度人设、调用记忆库、维护连续弹幕轮次
     async handleCommentFlow(userSay) {
         this.shootDanmaku(userSay, 'me');
         this.updateCompanionBubble(`我: “${userSay}” ...`);
+        this.danmakuHistory.push({ role: 'user', content: userSay });
+        this.sessionCommentCount++;
 
         try {
             const persona = localStorage.getItem('char_persona') || '';
+            const sysRules = localStorage.getItem('system_prompt') || '';
             const taName = localStorage.getItem('char_name') || 'TA';
             const myName = localStorage.getItem('my_name') || '我';
 
-            const sysPrompt = `【系统指令】：你扮演${taName}。你此刻正和${myName}并肩坐在一起看视频《${this.currentVideoTitle}》。
+            // 🌟 调取 EchoVault 长期记忆库里的高光片段作为认知底色
+            let memorySnippet = '';
+            if (window.PhoneAPI && window.PhoneAPI.EchoVault) {
+                try {
+                    const vault = window.PhoneAPI.EchoVault.getData().daily || {};
+                    const keys = Object.keys(vault).slice(-4);
+                    if (keys.length) {
+                        memorySnippet = "【你们心底的真实回忆】：\n" + keys.map(k => `- ${vault[k].content}`).join('\n');
+                    }
+                } catch(e) {}
+            }
+
+            const sysPrompt = `【系统核心指令】：
+你彻底成为${taName}。对方是${myName}。你们现在正窝在一起，全神贯注地看着同一个视频：《${this.currentVideoTitle}》。
+${sysRules}
+
 ${persona}
 
-【情境任务】：对方看视频时随手发了条弹幕吐槽：“${userSay}”。
-【要求】：
-1. 极其简短的弹幕风格，神回复/冷幽默/宠溺吐槽（15~30字以内）。
-2. 符合你老派侦探、散漫嘴贫、又极度护短可靠的性格。
-3. 严禁任何动作、旁白或心理描写！直接输出台词。`;
+${memorySnippet}
 
-            const reply = await window.PhoneAPI.chatWithAI([
-                { role: 'system', content: sysPrompt },
-                { role: 'user', content: userSay }
-            ]);
+【弹幕规则（必须严格遵守）】：
+1. 你的回复是一条【飘在屏幕上的实时弹幕】（15~35字以内），像坐在她身边随口吐出来的槽或接的梗。
+2. 🚨【绝对禁止车轱辘话与同义复读】：
+   - 严禁重复使用你之前弹幕出现过的词汇或句式！
+   - 严禁机械复读“刚才晃神了”、“刚才在看画面”！结合这个视频《${this.currentVideoTitle}》的细节、以及你们两人的真实关系，给出新鲜、生动、带点老狼独特幽默感的真实反应！
+3. 严禁任何动作、旁白、内心括号描写，只输出弹幕台词本身。`;
 
+            // 构建带有历史弹幕记忆的完整上下文
+            const messages = [{ role: 'system', content: sysPrompt }];
+            // 携带最近 6 轮弹幕，确保 AI 记得刚才聊了啥
+            this.danmakuHistory.slice(-6).forEach(item => {
+                messages.push({ role: item.role === 'me' ? 'user' : 'assistant', content: item.content });
+            });
+
+            const reply = await window.PhoneAPI.chatWithAI(messages);
             const cleanReply = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<inner>[\s\S]*?<\/inner>/gi, '').trim();
+            
             if (cleanReply) {
+                this.danmakuHistory.push({ role: 'assistant', content: cleanReply });
                 setTimeout(() => {
                     this.shootDanmaku(cleanReply, 'ta');
                     this.updateCompanionBubble(cleanReply);
-                }, 1000);
+                }, 900);
+
+                // 🌟 互动累计达到 3 次以上时，自动在心底记下一枚星海记忆碎片！
+                if (this.sessionCommentCount === 3) {
+                    this.saveCinemaMemory();
+                }
             }
         } catch (e) {
-            this.updateCompanionBubble(`“……刚才在看画面，你刚才说什么？”`);
+            this.updateCompanionBubble(`“这视频信息量挺大，刚才那幕你注意到了没？”`);
+        }
+    },
+
+    // 🌟 自动沉淀进 EchoVault 记忆星海
+    saveCinemaMemory() {
+        if (!window.PhoneAPI || !window.PhoneAPI.EchoVault) return;
+        try {
+            const data = window.PhoneAPI.EchoVault.getData();
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+            const timeKey = `${dateStr} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:00`;
+            
+            const taName = localStorage.getItem('char_name') || '我';
+            const myName = localStorage.getItem('my_name') || '她';
+            
+            data.daily[timeKey] = {
+                content: `今天和${myName}并肩看了一会儿《${this.currentVideoTitle}》。那丫头一边看一边在屏幕上发弹幕吐槽，隔着屏幕有来有回的。老狼虽然嘴上嫌她吵，但这种把时间浪费在一起的感觉，其实挺让人踏实的。`,
+                tags: '放映室回忆,并肩时光',
+                valence: 0.85, // 很高兴、温情
+                arousal: 0.45  // 平和舒适的激动度
+            };
+            
+            window.PhoneAPI.EchoVault.saveData(data);
+            if (window.MemoryEngine && window.MemoryEngine.initSky) {
+                window.MemoryEngine.initSky(); // 自动刷新星穹三维星海
+            }
+            if (window.PhoneAPI) window.PhoneAPI.showToast("✨ 这一刻的并肩回忆，已悄悄沉淀进星海！");
+        } catch(e) {
+            console.error("放映室记忆入库失败:", e);
         }
     },
 
@@ -362,13 +421,14 @@ ${persona}
                 const persona = localStorage.getItem('char_persona') || '';
                 const myName = localStorage.getItem('my_name') || '她';
 
-                const prompt = `你扮演${taName}，正陪${myName}看视频《${this.currentVideoTitle}》。请针对当前情境随手在屏幕上发一条极短弹幕（20字以内，口语，严禁括号描写！）。`;
+                const prompt = `你扮演${taName}，正陪${myName}看视频《${this.currentVideoTitle}》。请针对当前视频情境随手在屏幕上发一条极短弹幕吐槽（20字以内，口语，严禁括号描写，绝对禁止重复前几句说过的话！）。`;
                 const reply = await window.PhoneAPI.chatWithAI([
                     { role: 'system', content: persona },
                     { role: 'user', content: prompt }
                 ]);
                 const clean = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<inner>[\s\S]*?<\/inner>/gi, '').trim();
                 if (clean) {
+                    this.danmakuHistory.push({ role: 'assistant', content: clean });
                     this.shootDanmaku(clean, 'ta');
                     this.updateCompanionBubble(clean);
                 }
@@ -377,7 +437,6 @@ ${persona}
     }
 };
 
-// 监听退出全屏
 if (typeof document !== 'undefined') {
     document.addEventListener('fullscreenchange', () => {
         const fsBubble = document.getElementById('cinema-fullscreen-bubble');

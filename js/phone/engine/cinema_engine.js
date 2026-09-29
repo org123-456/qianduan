@@ -1,5 +1,5 @@
 /**
- * 🎬 专属放映室引擎 (CinemaEngine) - 全屏沉浸伴看终极版
+ * 🎬 专属放映室引擎 (CinemaEngine) - B站同款全屏极简弹幕栏版
  */
 export const CinemaEngine = {
     currentVideoType: 'none',
@@ -55,7 +55,6 @@ export const CinemaEngine = {
         return true;
     },
 
-    // 核心渲染器 (画面内部 0 遮挡，所有按钮全部下放)
     renderPlayer() {
         const screenContainer = document.getElementById('cinema-screen-box');
         if (!screenContainer || !this.currentVid) return;
@@ -67,7 +66,6 @@ export const CinemaEngine = {
 
         const finalUrl = lines[this.currentLineIndex % lines.length];
 
-        // 🌟 视频屏幕彻底纯净：无多余按钮，全屏弹幕舞台采用 pointer-events: none 绝不阻挡点击！
         screenContainer.innerHTML = `
             <iframe id="cinema-iframe-player" 
                     src="${finalUrl}" 
@@ -83,19 +81,26 @@ export const CinemaEngine = {
             <!-- 全屏弹幕舞台 -->
             <div id="cinema-danmaku-stage" style="position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 60;"></div>
             
-            <!-- 🌟 全屏状态下的专属悬浮气泡 (只有全屏时才显示在画面左下角) -->
-            <div id="cinema-fullscreen-bubble" style="display: none; position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.75); border: 1px solid rgba(255,255,255,0.25); border-radius: 25px; padding: 6px 14px; align-items: center; gap: 8px; backdrop-filter: blur(10px); z-index: 70; max-width: 75%; animation: fadeIn 0.3s ease;">
+            <!-- 全屏左下角悬浮心声小气泡 -->
+            <div id="cinema-fullscreen-bubble" style="display: none; position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.75); border: 1px solid rgba(255,255,255,0.25); border-radius: 25px; padding: 6px 14px; align-items: center; gap: 8px; backdrop-filter: blur(10px); z-index: 70; max-width: 75%;">
                 <img id="fs-bubble-avatar" src="" style="width: 26px; height: 26px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--primary-color);">
                 <span id="fs-bubble-text" style="font-size: 12px; color: #fff; line-height: 1.3;">...</span>
             </div>
 
-            <!-- 🌟 全屏状态下的发弹幕小按钮 (浮在画面右下角) -->
-            <div id="cinema-fullscreen-btn" onclick="window.CinemaEngine.openDanmakuPrompt()" style="display: none; position: absolute; bottom: 20px; right: 20px; background: var(--primary-color); color: #fff; font-size: 11px; font-weight: bold; padding: 7px 14px; border-radius: 20px; cursor: pointer; z-index: 70; box-shadow: 0 4px 15px rgba(0,0,0,0.4);">
-                <i class="ph-fill ph-chat-teardrop-dots"></i> 发弹幕
+            <!-- 全屏唤起弹幕条悬浮按钮 -->
+            <div id="cinema-fullscreen-btn" onclick="window.CinemaEngine.toggleBiliDanmakuBar()" style="display: none; position: absolute; bottom: 20px; right: 20px; background: rgba(0,0,0,0.65); border: 1px solid rgba(255,255,255,0.25); color: #fff; font-size: 11px; font-weight: bold; padding: 7px 14px; border-radius: 20px; cursor: pointer; z-index: 70; backdrop-filter: blur(10px);">
+                <i class="ph-fill ph-chat-teardrop-dots" style="color: var(--primary-color);"></i> 发弹幕
+            </div>
+
+            <!-- 🌟 B站同款：直接内嵌在屏幕底部的半透明极简弹幕输入条 -->
+            <div id="cinema-bili-danmaku-bar" style="position: absolute; bottom: 0; left: 0; right: 0; padding: 8px 12px; background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); display: none; align-items: center; gap: 8px; z-index: 80; border-top: 1px solid rgba(255,255,255,0.15);">
+                <input type="text" id="cinema-bili-bar-input" placeholder="发条弹幕和不死途吐槽..." style="flex: 1; padding: 8px 14px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.12); color: #fff; font-size: 12px; outline: none;" onkeydown="if(event.key==='Enter') window.CinemaEngine.submitBiliBarDanmaku()">
+                <button onclick="window.CinemaEngine.submitBiliBarDanmaku()" style="background: var(--primary-color); color: #fff; border: none; padding: 6px 14px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; flex-shrink: 0;">发送</button>
+                <div onclick="window.CinemaEngine.toggleBiliDanmakuBar(false)" style="color: rgba(255,255,255,0.6); padding: 4px 6px; cursor: pointer; font-size: 18px;"><i class="ph ph-x"></i></div>
             </div>
         `;
 
-        // 🌟 将控制工具条挂在视频屏幕下方外部，绝不遮挡视频内播放条
+        // 外部工具条
         let toolBar = document.getElementById('cinema-ext-toolbar');
         if (!toolBar) {
             toolBar = document.createElement('div');
@@ -114,6 +119,9 @@ export const CinemaEngine = {
                 <button onclick="window.CinemaEngine.toggleLine()" style="background: var(--icon-bg); border: 1px solid var(--border-color); color: var(--text-sub); font-size: 11px; padding: 4px 8px; border-radius: 12px; cursor: pointer;">
                     <i class="ph ph-arrows-clockwise"></i> ${lineNames[this.currentLineIndex % 2]}
                 </button>
+                <button onclick="window.CinemaEngine.toggleBiliDanmakuBar()" style="background: var(--icon-bg); border: 1px solid var(--border-color); color: var(--text-main); font-size: 11px; font-weight: bold; padding: 4px 10px; border-radius: 12px; cursor: pointer;">
+                    <i class="ph-fill ph-chat-teardrop-dots" style="color: var(--primary-color);"></i> 发弹幕
+                </button>
                 <button onclick="window.CinemaEngine.toggleImmersiveFullscreen()" style="background: linear-gradient(135deg, var(--primary-color), #a78bfa); border: none; color: #fff; font-size: 11px; font-weight: bold; padding: 4px 12px; border-radius: 12px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
                     <i class="ph-bold ph-corners-out"></i> 全屏伴看
                 </button>
@@ -121,8 +129,34 @@ export const CinemaEngine = {
         `;
     },
 
-    // 🌟 核心：一键进入【真·全屏沉浸伴看模式】
-    // 将整个播放器大盒子全屏，这样气泡、弹幕、输入框全都能在全屏画面里显示！
+    // 🌟 弹出或收起 B站同款底部半透明弹幕栏
+    toggleBiliDanmakuBar(forceState) {
+        const bar = document.getElementById('cinema-bili-danmaku-bar');
+        const input = document.getElementById('cinema-bili-bar-input');
+        if (!bar) return;
+
+        let shouldShow = (typeof forceState === 'boolean') ? forceState : (bar.style.display === 'none' || !bar.style.display);
+        
+        if (shouldShow) {
+            bar.style.display = 'flex';
+            if (input) {
+                input.value = '';
+                setTimeout(() => input.focus(), 100);
+            }
+        } else {
+            bar.style.display = 'none';
+        }
+    },
+
+    // 提交底部条的弹幕
+    submitBiliBarDanmaku() {
+        const input = document.getElementById('cinema-bili-bar-input');
+        if (!input || !input.value.trim()) return;
+        const text = input.value.trim();
+        this.toggleBiliDanmakuBar(false); // 发完自动收起，不挡视频
+        this.handleCommentFlow(text);
+    },
+
     toggleImmersiveFullscreen() {
         const box = document.getElementById('cinema-screen-box');
         const fsBubble = document.getElementById('cinema-fullscreen-bubble');
@@ -133,7 +167,6 @@ export const CinemaEngine = {
             if (box.requestFullscreen) box.requestFullscreen();
             else if (box.webkitRequestFullscreen) box.webkitRequestFullscreen();
             
-            // 全屏时唤醒画面内的专属气泡与发弹幕按钮
             if (fsBubble) fsBubble.style.display = 'flex';
             if (fsBtn) fsBtn.style.display = 'block';
             
@@ -198,18 +231,6 @@ export const CinemaEngine = {
         setTimeout(() => { danmaku.remove(); }, 8500);
     },
 
-    async openDanmakuPrompt() {
-        let text = '';
-        if (window.PhoneUI && window.PhoneUI.showCustomPrompt) {
-            text = await window.PhoneUI.showCustomPrompt('💬 弹幕吐槽（TA 会在屏幕上用弹幕回你）：');
-        } else {
-            text = prompt('💬 弹幕吐槽：');
-        }
-        if (!text || !text.trim()) return;
-
-        this.handleCommentFlow(text.trim());
-    },
-
     loadLocalVideo(file) {
         if (!file) return;
         this.currentVideoType = 'local';
@@ -226,8 +247,13 @@ export const CinemaEngine = {
                 <img id="fs-bubble-avatar" src="" style="width: 26px; height: 26px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--primary-color);">
                 <span id="fs-bubble-text" style="font-size: 12px; color: #fff;">...</span>
             </div>
-            <div id="cinema-fullscreen-btn" onclick="window.CinemaEngine.openDanmakuPrompt()" style="display: none; position: absolute; bottom: 20px; right: 20px; background: var(--primary-color); color: #fff; font-size: 11px; font-weight: bold; padding: 7px 14px; border-radius: 20px; cursor: pointer; z-index: 70;">
+            <div id="cinema-fullscreen-btn" onclick="window.CinemaEngine.toggleBiliDanmakuBar()" style="display: none; position: absolute; bottom: 20px; right: 20px; background: rgba(0,0,0,0.65); border: 1px solid rgba(255,255,255,0.25); color: #fff; font-size: 11px; font-weight: bold; padding: 7px 14px; border-radius: 20px; cursor: pointer; z-index: 70;">
                 <i class="ph-fill ph-chat-teardrop-dots"></i> 发弹幕
+            </div>
+            <div id="cinema-bili-danmaku-bar" style="position: absolute; bottom: 0; left: 0; right: 0; padding: 8px 12px; background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); display: none; align-items: center; gap: 8px; z-index: 80; border-top: 1px solid rgba(255,255,255,0.15);">
+                <input type="text" id="cinema-bili-bar-input" placeholder="发条弹幕和不死途吐槽..." style="flex: 1; padding: 8px 14px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.12); color: #fff; font-size: 12px; outline: none;" onkeydown="if(event.key==='Enter') window.CinemaEngine.submitBiliBarDanmaku()">
+                <button onclick="window.CinemaEngine.submitBiliBarDanmaku()" style="background: var(--primary-color); color: #fff; border: none; padding: 6px 14px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer;">发送</button>
+                <div onclick="window.CinemaEngine.toggleBiliDanmakuBar(false)" style="color: rgba(255,255,255,0.6); padding: 4px 6px; cursor: pointer;"><i class="ph ph-x"></i></div>
             </div>
         `;
 
@@ -235,9 +261,7 @@ export const CinemaEngine = {
         this.startProactiveCompanion();
     },
 
-    // 同时更新页面气泡与【全屏画面内部气泡】
     updateCompanionBubble(text) {
-        // 1. 正常页面气泡
         const bubble = document.getElementById('cinema-companion-bubble');
         const bubbleText = document.getElementById('cinema-bubble-text');
         if (bubble && bubbleText) {
@@ -251,7 +275,6 @@ export const CinemaEngine = {
             }, 6000);
         }
 
-        // 2. 🌟 全屏状态下的画面内气泡
         const fsBubble = document.getElementById('cinema-fullscreen-bubble');
         const fsText = document.getElementById('fs-bubble-text');
         if (fsBubble && fsText && document.fullscreenElement) {
@@ -333,7 +356,6 @@ ${persona}
     }
 };
 
-// 监听全屏退出，自动清理全屏气泡
 if (typeof document !== 'undefined') {
     document.addEventListener('fullscreenchange', () => {
         const fsBubble = document.getElementById('cinema-fullscreen-bubble');

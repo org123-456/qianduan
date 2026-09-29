@@ -453,7 +453,6 @@ export const PhoneUI = {
         if (window.PhoneAPI) window.PhoneAPI.showToast("💾 绘画配置已成功保存！");
     },
 
-    // 🌟 修复：选择预设后，自动将配置回填并刷新
     fillPresetData() {
         const select = document.getElementById('preset-delete-select');
         if (!select || !select.value) return;
@@ -466,11 +465,69 @@ export const PhoneUI = {
             document.getElementById('preset-key').value = preset.key || '';
             document.getElementById('preset-model').value = preset.model || '';
             
-            // 自动同步为当前生效模型
-            if (window.PhoneAPI && window.PhoneAPI.assignEngine) {
-                window.PhoneAPI.assignEngine('main', preset.id);
-            }
-            if (window.PhoneAPI) window.PhoneAPI.showToast(`已切换至预设：${preset.name}`);
+            // 自动同步为主引擎
+            localStorage.setItem('main_engine_id', preset.id);
+            if (window.PhoneAPI) window.PhoneAPI.showToast(`已载入预设：${preset.name}`);
+        }
+    },
+
+    // 🌟 核心破局点：百分之百保证成功的保存预设逻辑，直接生效！
+    handleSavePreset() {
+        const nameEl = document.getElementById('preset-name');
+        const urlEl = document.getElementById('preset-url');
+        const keyEl = document.getElementById('preset-key');
+        const modelEl = document.getElementById('preset-model');
+        const selectEl = document.getElementById('preset-delete-select');
+
+        if (!nameEl || !urlEl || !keyEl || !modelEl) {
+            alert("未找到输入框");
+            return;
+        }
+
+        const name = nameEl.value.trim();
+        const url = urlEl.value.trim();
+        const key = keyEl.value.trim();
+        const model = modelEl.value.trim();
+
+        if (!name || !url || !key || !model) {
+            if (window.PhoneAPI) window.PhoneAPI.showToast("⚠️ 请把名称、URL、KEY和模型名字都填齐！");
+            else alert("请把4项信息都填齐！");
+            return;
+        }
+
+        let presets = JSON.parse(localStorage.getItem('ai_api_presets') || '[]');
+        let currentId = selectEl ? selectEl.value : '';
+
+        // 如果下拉框选了已有的，直接更新；否则新建
+        let target = presets.find(p => p.id === currentId || p.name === name);
+        if (target) {
+            target.name = name;
+            target.url = url;
+            target.key = key;
+            target.model = model;
+        } else {
+            currentId = 'preset_' + Date.now();
+            target = { id: currentId, name, url, key, model };
+            presets.push(target);
+        }
+
+        // 存回本地
+        localStorage.setItem('ai_api_presets', JSON.stringify(presets));
+        
+        // 🌟 强行将这个刚刚保存的预设，直接设为当前正在使用的活跃主模型！
+        localStorage.setItem('main_engine_id', target.id);
+        localStorage.setItem('api_url', target.url);
+        localStorage.setItem('api_key', target.key);
+        localStorage.setItem('api_model', target.model);
+
+        if (window.PhoneAPI && window.PhoneAPI.refreshPresetDropdowns) {
+            window.PhoneAPI.refreshPresetDropdowns();
+        }
+
+        if (window.PhoneAPI) {
+            window.PhoneAPI.showToast(`✅ 保存成功！当前主引擎已切换为：${name}`);
+        } else {
+            alert(`保存成功！当前主引擎已切换为：${name}`);
         }
     },
 
@@ -567,7 +624,6 @@ export const PhoneUI = {
         }
     },
 
-    // 🌟 核心：修复设置面板的布局穿透与点不动问题
     renderSettings() {
         const contentEl = document.getElementById('app-window-content');
         if (!contentEl) return;
@@ -645,7 +701,7 @@ export const PhoneUI = {
                 </div>
             </div>
 
-            <!-- 🌟 重新布局预设管理卡片，100% 顺畅点击，绝不漂移穿透 -->
+            <!-- 🌟 按钮直接绑定经过彻底重写的 handleSavePreset -->
             <div class="card" style="position: relative; z-index: 5;">
                 <h3 style="color:var(--primary-color);margin-bottom:12px;"><i class="ph-fill ph-database"></i> 语言引擎预设 (文本模型)</h3>
                 
@@ -675,7 +731,7 @@ export const PhoneUI = {
                     <input type="text" id="preset-model" placeholder="如: [特价纯血]claude-sonnet-4-6" style="width:100%;padding:10px;border-radius:8px;margin-top:4px;">
                 </div>
                 
-                <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.savePreset()" style="margin-top:0; width: 100%; padding: 12px; border-radius: 12px; font-weight: bold; background: var(--primary-color);">
+                <button class="btn-refresh" onclick="window.PhoneUI.handleSavePreset()" style="margin-top:0; width: 100%; padding: 12px; border-radius: 12px; font-weight: bold; background: var(--primary-color); color: #fff; cursor: pointer;">
                     <i class="ph ph-floppy-disk"></i> 保存 / 更新当前预设
                 </button>
             </div>

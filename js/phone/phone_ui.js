@@ -430,17 +430,25 @@ export const PhoneUI = {
         fileInput.click();
     },
 
+    // 🌟 彻底修复 Tab 切换：直接强制修改 style.display，杜绝任何内联样式死锁
     switchSetTab(tabId) {
         ['basic', 'ai', 'draw', 'sys'].forEach(id => {
             const tab = document.getElementById('stab-' + id);
             const sec = document.getElementById('set-sec-' + id);
             if (tab) tab.classList.remove('active');
-            if (sec) sec.classList.remove('active');
+            if (sec) {
+                sec.classList.remove('active');
+                sec.style.display = 'none'; // 强制隐藏
+            }
         });
+
         const activeTab = document.getElementById('stab-' + tabId);
         const activeSec = document.getElementById('set-sec-' + tabId);
         if (activeTab) activeTab.classList.add('active');
-        if (activeSec) activeSec.classList.add('active');
+        if (activeSec) {
+            activeSec.classList.add('active');
+            activeSec.style.display = 'flex'; // 强制唤醒为 flex 弹性布局
+        }
     },
 
     saveDrawSettings() {
@@ -465,17 +473,15 @@ export const PhoneUI = {
             document.getElementById('preset-key').value = preset.key || '';
             document.getElementById('preset-model').value = preset.model || '';
             
-            // 自动设为当前主引擎
             localStorage.setItem('main_engine_id', preset.id);
             localStorage.setItem('api_url', preset.url);
             localStorage.setItem('api_key', preset.key);
             localStorage.setItem('api_model', preset.model);
 
-            if (window.PhoneAPI) window.PhoneAPI.showToast(`已载入并切换至预设：${preset.name}`);
+            if (window.PhoneAPI) window.PhoneAPI.showToast(`已载入预设：${preset.name}`);
         }
     },
 
-    // 🌟 核心：穿透式预设保存方法
     handleSavePreset(e) {
         if (e) {
             e.preventDefault();
@@ -489,7 +495,7 @@ export const PhoneUI = {
         const selectEl = document.getElementById('preset-delete-select');
 
         if (!nameEl || !urlEl || !keyEl || !modelEl) {
-            alert("未找到输入框，请刷新重试");
+            alert("未找到输入框");
             return;
         }
 
@@ -521,13 +527,11 @@ export const PhoneUI = {
 
         localStorage.setItem('ai_api_presets', JSON.stringify(presets));
         
-        // 立即激活为正在使用的主模型
         localStorage.setItem('main_engine_id', target.id);
         localStorage.setItem('api_url', target.url);
         localStorage.setItem('api_key', target.key);
         localStorage.setItem('api_model', target.model);
 
-        // 刷新下拉框
         if (window.PhoneAPI && window.PhoneAPI.refreshPresetDropdowns) {
             window.PhoneAPI.refreshPresetDropdowns();
         }
@@ -632,7 +636,6 @@ export const PhoneUI = {
         }
     },
 
-    // 🌟 全新重构设置 UI：彻底击碎图层重叠、找回完整人设框、优雅重构记忆抽取面板
     renderSettings() {
         const contentEl = document.getElementById('app-window-content');
         if (!contentEl) return;
@@ -660,8 +663,7 @@ export const PhoneUI = {
             <div class="settings-tab" id="stab-sys" onclick="window.PhoneUI.switchSetTab('sys')">系统维护</div>
         </div>
 
-        <!-- 基础设置 -->
-        <div id="set-sec-basic" class="set-section active" style="display: flex; flex-direction: column; gap: 15px;">
+        <div id="set-sec-basic" class="set-section" style="display: flex; flex-direction: column; gap: 15px;">
             <div class="card" style="padding: 16px;">
                 <h3 style="color:var(--primary-color);margin-bottom:15px; font-size: 15px;"><i class="ph-fill ph-user-circle"></i> 基础设定 (头像与名字)</h3>
                 <div style="display:flex; justify-content:space-around; align-items:center; margin-bottom:20px; background: var(--icon-bg); padding: 15px; border-radius: 16px; border: 1px dashed var(--border-color);">
@@ -695,10 +697,7 @@ export const PhoneUI = {
             </div>
         </div>
 
-        <!-- 🌟 大模型与记忆设置：彻底修复层级与样式 -->
         <div id="set-sec-ai" class="set-section" style="display: none; flex-direction: column; gap: 18px;">
-            
-            <!-- 1. 提示词与人设 -->
             <div class="card" style="padding: 16px; border: 1px solid var(--border-color);">
                 <h3 style="color:var(--primary-color);margin-bottom:12px; font-size: 15px;"><i class="ph-fill ph-scroll"></i> 提示词与人设</h3>
                 <div style="margin-bottom:15px;">
@@ -711,11 +710,8 @@ export const PhoneUI = {
                 </div>
             </div>
 
-            <!-- 2. 🌟 优雅重构的记忆提取与上下文控制台 -->
             <div class="card" style="padding: 16px; border: 1px solid var(--border-color);">
                 <h3 style="color:var(--primary-color);margin-bottom:12px; font-size: 15px;"><i class="ph-fill ph-brain"></i> 记忆管理与上下文提取</h3>
-                
-                <!-- 仪表盘小卡片 -->
                 <div style="background: var(--icon-bg); padding: 14px; border-radius: 12px; margin-bottom: 16px; border: 1px dashed var(--border-color); display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <div style="font-size: 11px; color: var(--text-sub);">未总结的历史聊天账目</div>
@@ -727,13 +723,12 @@ export const PhoneUI = {
                         <button onclick="if(window.PhoneEngine){window.PhoneEngine.extractMemory('wechat'); PhoneUI.renderSettings(); PhoneUI.switchSetTab('ai');}" style="padding: 8px 12px; font-size: 12px; font-weight: bold; border-radius: 10px; background: var(--primary-color); color: #fff; border: none; cursor: pointer;">
                             <i class="ph-fill ph-sparkle"></i> 立即提取
                         </button>
-                        <button onclick="localStorage.setItem('memory_last_summary_index', cleanItems.length.toString()); PhoneUI.renderSettings(); PhoneUI.switchSetTab('ai'); PhoneAPI.showToast('✅ 历史旧账已全部清零！');" style="padding: 8px 10px; font-size: 12px; border-radius: 10px; background: transparent; color: var(--text-sub); border: 1px solid var(--border-color); cursor: pointer;" title="不总结历史消息，直接从当前最新开始计算">
+                        <button onclick="localStorage.setItem('memory_last_summary_index', cleanItems.length.toString()); PhoneUI.renderSettings(); PhoneUI.switchSetTab('ai'); PhoneAPI.showToast('✅ 历史旧账已全部清零！');" style="padding: 8px 10px; font-size: 12px; border-radius: 10px; background: transparent; color: var(--text-sub); border: 1px solid var(--border-color); cursor: pointer;">
                             清零旧账
                         </button>
                     </div>
                 </div>
 
-                <!-- 滑动调节条 -->
                 <div style="margin-bottom: 16px;">
                     <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px;">
                         <span style="font-weight: bold; color: var(--text-main);">聊天上下文携带条数</span>
@@ -751,7 +746,6 @@ export const PhoneUI = {
                 </div>
             </div>
 
-            <!-- 3. 🌟 预设库（绝对不再被空气墙遮挡） -->
             <div class="card" style="padding: 16px; border: 1px solid var(--border-color); position: relative; z-index: 10;">
                 <h3 style="color:var(--primary-color);margin-bottom:12px; font-size: 15px;"><i class="ph-fill ph-database"></i> 语言引擎预设配置</h3>
                 
@@ -759,7 +753,7 @@ export const PhoneUI = {
                     <select id="preset-delete-select" onchange="window.PhoneUI.fillPresetData()" style="flex: 1; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--primary-color); background: var(--icon-bg); color: var(--text-main); font-size: 13px; outline: none;">
                         <option value="">-- 点击选择预设切换 --</option>
                     </select>
-                    <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.deletePreset()" style="width: auto; margin: 0; background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); padding: 10px 14px; border-radius: 10px; flex-shrink: 0;" title="删除当前选中的预设">
+                    <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.deletePreset()" style="width: auto; margin: 0; background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); padding: 10px 14px; border-radius: 10px; flex-shrink: 0;">
                         <i class="ph ph-trash"></i>
                     </button>
                 </div>
@@ -781,7 +775,6 @@ export const PhoneUI = {
                     <input type="text" id="preset-model" placeholder="如: claude-3-5-sonnet-20241022" style="width:100%;padding:10px;border-radius:8px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main);">
                 </div>
                 
-                <!-- 🌟 强力触控绑定，保证必点必响应 -->
                 <button type="button" 
                         onclick="window.PhoneUI.handleSavePreset(event)" 
                         ontouchend="window.PhoneUI.handleSavePreset(event)"
@@ -791,7 +784,6 @@ export const PhoneUI = {
             </div>
         </div>
 
-        <!-- 绘画引擎 -->
         <div id="set-sec-draw" class="set-section" style="display: none; flex-direction: column; gap: 15px;">
             <div class="card" style="padding: 16px;">
                 <h3 style="color:var(--primary-color);margin-bottom:10px; font-size: 15px;"><i class="ph-fill ph-image"></i> 绘画引擎配置 (DALL-E 格式)</h3>
@@ -805,7 +797,6 @@ export const PhoneUI = {
             </div>
         </div>
 
-        <!-- 系统维护 -->
         <div id="set-sec-sys" class="set-section" style="display: none; flex-direction: column; gap: 15px;">
             <div class="card" style="border: 1px solid var(--primary-color); padding: 16px;">
                 <h3 style="color:var(--primary-color);margin-bottom:10px; font-size: 15px;"><i class="ph-fill ph-cloud-check"></i> Cloudflare 云端同步</h3>

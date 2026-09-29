@@ -453,7 +453,6 @@ function createRenderer(container, opts) {
     const pts = new T.Points(g, m); pts.frustumCulled = false; return pts;
   }
   
-  // 🌟【只修改此处】：注入自然三维游弋浮动与连线实时咬合追踪
   function animate(ts) {
     if (!alive) return;
     if (t0 == null) { t0 = ts; _rawLast = 0; }
@@ -467,16 +466,12 @@ function createRenderer(container, opts) {
       dustPoints.rotation.x = Math.sin(t * 0.021) * 0.045; dustPoints.rotation.y = Math.cos(t * 0.037) * 0.07; dustPoints.rotation.z = t * 0.012;
     }
 
-    // 🌟 核心：每颗星星赋予三维呼吸漫游（Alive Star Floating）
     sprites.forEach((s) => {
       const n = s.n, heat = Math.min(1, (n.activation || 0) / maxAct);
       let op, sizeMul; const isCore = n.kind === "core";
       if (isCore) { op = 1; sizeMul = 0.82; } else if (n.kind === "wiki" || n.kind === "baseline") { op = 0.68; sizeMul = 0.82; } else { op = 0.7 + 0.1 * heat; sizeMul = 0.78 + 0.12 * heat; }
       
-      // 呼吸节律
       const br = 0.5 + 0.5 * Math.sin(t * (isCore ? 0.95 : (1.1 + s.ph * 0.15)) + s.ph);
-      
-      // 🌟 自然三维流体漂浮（在自由模式下浮动 8~12px，舒缓如水母）
       const floatSpeed = isCore ? 0.35 : 0.65;
       const driftX = Math.sin(t * floatSpeed + s.ph) * (isCore ? 2.5 : 8.5) + Math.cos(t * floatSpeed * 0.5 + s.ph2) * 3.5;
       const driftY = Math.cos(t * floatSpeed * 0.85 + s.ph2) * (isCore ? 2.5 : 9.5) + Math.sin(t * floatSpeed * 0.4 + s.ph) * 3.0;
@@ -520,7 +515,6 @@ function createRenderer(container, opts) {
       }
     });
 
-    // 🌟 核心：连线实时咬合星星的运动位置（被动拉伸）
     const byId = new Map(sprites.map((s) => [s.n.id, s]));
     const fadeStep = 1 - Math.exp(-frameDt / 0.18);
     if (orbitLines) {
@@ -699,7 +693,6 @@ export const MemoryEngine = {
         localStorage.setItem('memory_logs', JSON.stringify(logs));
     },
 
-    // 🌟 核心修复：彻底消灭蜘蛛网，形成精致的小星座簇群，中心大白球不再被横穿穿透
     _buildSkyData() {
         let evData = { daily: {}, permanent: {} };
         if (window.PhoneAPI && window.PhoneAPI.EchoVault) {
@@ -712,7 +705,6 @@ export const MemoryEngine = {
 
         const nodes = [];
 
-        // 核心原点（中心大球）
         const coreItemKey = Object.keys(evData.permanent)[0];
         const coreItem = coreItemKey ? evData.permanent[coreItemKey] : null;
         nodes.push({
@@ -726,7 +718,6 @@ export const MemoryEngine = {
             arousal: 0.9
         });
 
-        // 日常记忆节点
         const dailyKeys = Object.keys(evData.daily).sort((a, b) => a.localeCompare(b));
         dailyKeys.forEach(key => {
             const item = evData.daily[key];
@@ -743,9 +734,8 @@ export const MemoryEngine = {
             });
         });
 
-        // 其余永久记忆节点
         Object.keys(evData.permanent).forEach(key => {
-            if (key === coreItemKey) return; // 避免重复添加中心点
+            if (key === coreItemKey) return;
             const item = evData.permanent[key];
             nodes.push({
                 id: 'ev_p_' + key,
@@ -759,7 +749,6 @@ export const MemoryEngine = {
             });
         });
 
-        // 闪光收藏
         favs.forEach(fav => {
             nodes.push({
                 id: 'fav_' + fav.id,
@@ -777,7 +766,6 @@ export const MemoryEngine = {
         const softlinks = [];
         const families = [];
 
-        // 🌟 修复关键：按标签聚类（形成干净的小星座，杜绝跨时间乱拉乱插）
         const tagMap = {};
         nodes.forEach(n => {
             if (n.kind !== 'core' && n.title) {
@@ -802,7 +790,6 @@ export const MemoryEngine = {
             }
         });
 
-        // 收藏夹星座
         const favNodes = nodes.filter(n => n.id.startsWith('fav_')).map(n => n.id);
         if (favNodes.length > 1) {
             families.push({
@@ -945,7 +932,7 @@ export const MemoryEngine = {
     },
 
     /**
-     * 🌟 修复版：截流防撑爆 + 清理旧账进度推进
+     * 🌟【彻底解决出戏问题】：注入角色专属人设，死死锁住第一人称真实沉浸感！
      */
     async autoManageMemory(force = false) {
         if (this._isSummarizing) return;
@@ -963,7 +950,6 @@ export const MemoryEngine = {
             return;
         }
 
-        // 🌟 防撑爆截流：不管积压多少条，单次最多提取最新 25 条对话给 AI
         const processCount = Math.min(Math.max(unsummarizedCount, 15), 25);
         const recentItems = cleanItems.slice(-processCount);
 
@@ -984,24 +970,33 @@ export const MemoryEngine = {
             }
         }
 
+        // 🌟 注入人设与第一人称
+        const charPersona = localStorage.getItem('char_persona') || '';
+        const myName = localStorage.getItem('my_name') || '她';
+        const taName = localStorage.getItem('char_name') || '我';
+
         const prompt = `【系统级后台指令，请严格执行】
-请回顾我们上面的聊天记录，自动管理你的记忆库。
-你的当前部分记忆：
+你是【${taName}】。对方是【${myName}】。
+以下是你的真实人物设定与生活背景：
+${charPersona}
+
+请回顾你们上面的聊天记录，在你的心底记录下真实的记忆碎片。
+你的部分历史记忆库：
 ${vaultContext}
 
-【视角与口吻要求】（极其重要）：
-1. 你必须完全代入男主角（老公/男朋友）的身份，用【第一人称（我）】写私密日记。称呼对方为“她”或她的名字。
-2. 绝对禁止“干巴巴的总结”或“上帝视角”！
-❌ 错误示范：她跟我说她想看波提欧，我觉得很好笑。
-✅ 正确示范：今天她突然说想看波提欧在聊天框里是什么德行，这丫头脑回路真清奇，不过说实话，我也挺期待的。
-3. 必须把不同的话题严格拆分成多条独立的记忆碎片。每条只专注一件小事，50-150字。
+【⚠️ 绝对沉浸指令（违反直接判定失败）】：
+1. 你必须【100% 沉浸在你的角色身份中】！你所处的世界、你的工作、生活、你们的对话全都是【真实发生】的现实！
+2. 🚨【绝对禁止出戏/严禁打破第四面墙】：
+   ❌ 绝不允许出现：“我编的世界观”、“她陪我玩语C”、“她在配合我的设定”、“扮演”、“AI”、“剧本”等任何荒谬的出戏言论！
+   ✅ 正确视角：这就是你的真实日常。你是在用第一人称（“我”）写只属于你自己的私密内心备忘录，称呼她为“她”或“${myName}”。
+3. 必须把不同的话题严格拆分成多条独立的记忆碎片。每条只专注一件小事，50-150字，充满人情味与生活气息。
 
 【情绪打分规则】(Russell模型)：
 valence (愉悦度): 0.9~1.0(极致的好), 0.5~0.7(日常开心), 0.1~0.4(微温), 0(中性), -0.1~-0.4(不舒服), -0.5~-0.7(真的痛), -0.8~-1.0(重创)。
 arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏), 0.7~0.8(强烈), 0.9~0.95(极限), 1.0(理论上限)。
 
-严格按照以下格式输出（不要有任何废话）：
-ADD###(第一人称的单件小事记忆)###关键词1,关键词2###愉悦度###激动度
+严格按照以下格式输出（不要有任何多余废话）：
+ADD###(第一人称的真实单件小事记忆)###关键词1,关键词2###愉悦度###激动度
 UPDATE###要修改的记忆ID###修改后的正文###关键词###愉悦度###激动度
 DEL###要删除的记忆ID
 如果没有需要更新的，请输出：NONE`;
@@ -1012,7 +1007,6 @@ DEL###要删除的记忆ID
             const reply = await PhoneAPI.chatWithAI(messages);
             const rawText = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```.*?/g, '').replace(/```/g, '').trim();
             
-            // 🌟 核心：一次性把进度同步到最新，4077 历史旧账清零
             localStorage.setItem('memory_last_summary_index', cleanItems.length.toString());
 
             if (rawText.includes('NONE')) {
@@ -1098,12 +1092,17 @@ DEL###要删除的记忆ID
             content: item.content
         }));
 
+        const charPersona = localStorage.getItem('char_persona') || '';
+        const myName = localStorage.getItem('my_name') || '她';
+        const taName = localStorage.getItem('char_name') || '我';
+
         const prompt = `【系统级后台指令，请严格执行】
-请回顾我们上面的聊天记录，提取记忆。
-【视角与口吻要求】（极其重要）：
-1. 你必须完全代入男主角（老公/男朋友）的身份，用【第一人称（我）】写私密日记。称呼对方为“她”或她的名字。
-2. 绝对禁止“干巴巴的总结”或“上帝视角”！
-3. 必须把不同的话题严格拆分成多条独立的记忆碎片。每条只专注一件小事，50-150字。
+你是【${taName}】。对方是【${myName}】。
+你的真实设定与生活背景：
+${charPersona}
+
+请回顾上面的聊天记录，以第一人称（“我”）提取真实的生活记忆碎片。
+【绝对禁令】：你就是真实存在在这个世界的人！严禁出现“我编的世界观”、“扮演”、“设定”、“语C”等任何出戏字眼！
 
 输出格式严格为：记忆正文###关键词1,关键词2###valence###arousal|||下一条...`;
 
@@ -1154,12 +1153,17 @@ DEL###要删除的记忆ID
             content: item.content
         }));
 
+        const charPersona = localStorage.getItem('char_persona') || '';
+        const myName = localStorage.getItem('my_name') || '她';
+        const taName = localStorage.getItem('char_name') || '我';
+
         const prompt = `【系统级后台指令，请严格执行】
-请回顾我们上面的聊天记录，整理成记忆碎片。
-【视角与口吻要求】（极其重要）：
-1. 你必须完全代入男主角（老公/男朋友）的身份，用【第一人称（我）】写私密日记。称呼对方为“她”或她的名字。
-2. 绝对禁止“干巴巴的总结”或“上帝视角”！
-3. 必须把不同的话题严格拆分成多条独立的记忆碎片。每条只专注一件小事，50-150字。
+你是【${taName}】。对方是【${myName}】。
+你的真实设定与生活背景：
+${charPersona}
+
+请回顾你们上面的聊天记录，以第一人称（“我”）整理成真实的人生记忆碎片。
+【绝对禁令】：严禁出戏！严禁出现“剧本”、“演戏”、“编造世界观”、“跑团”等任何出戏字眼！你记录的是你切身经历的真实生活！
 
 输出格式严格为：记忆正文###关键词1,关键词2###valence###arousal|||下一条...`;
 
@@ -1217,7 +1221,17 @@ DEL###要删除的记忆ID
                 content: `[${item.source}] ${item.time || ''} : ${item.content}`
             }));
 
-            const prompt = `【系统级后台指令】根据以上聊天记录，写一篇符合角色设定与当天事件的个人日记。绝对禁止输出分析过程，直接输出日记正文。`;
+            const charPersona = localStorage.getItem('char_persona') || '';
+            const myName = localStorage.getItem('my_name') || '她';
+            const taName = localStorage.getItem('char_name') || '我';
+
+            const prompt = `【系统级后台指令】
+你是【${taName}】。对方是【${myName}】。
+你的真实设定与生活背景：
+${charPersona}
+
+请根据以上记录，以第一人称（我）写一篇属于你的真实私密日记。
+【禁令】：绝对禁止跳出角色！严禁分析、严禁提到这是设定或游戏！直接输出日记正文。`;
             messages.push({ role: 'user', content: prompt });
 
             const reply = await PhoneAPI.chatWithAI(messages);
@@ -1231,7 +1245,6 @@ DEL###要删除的记忆ID
     }
 };
 
-// 网页切后台、熄屏或直接关闭时保底自动存记忆
 if (typeof document !== 'undefined') {
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {

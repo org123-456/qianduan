@@ -567,3 +567,23 @@ input, textarea, select { background: var(--input-bg); border: 1px solid var(--b
 .log-tag.add { background: rgba(74, 222, 128, 0.2); color: #4ade80; }
 .log-tag.update { background: rgba(96, 165, 250, 0.2); color: #60a5fa; }
 .log-tag.del { background: rgba(248, 113, 113, 0.2); color: #f87171; }
+
+/* 🌟 放映室弹幕飞行轨迹与高光动画 */
+@keyframes danmakuFly {
+    0% {
+        transform: translateX(100%);
+        right: 0%;
+        opacity: 0;
+    }
+    5% {
+        opacity: 1;
+    }
+    90% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(-150%);
+        right: 100%;
+        opacity: 0;
+    }
+}

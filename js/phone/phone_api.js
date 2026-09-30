@@ -187,6 +187,7 @@ export const PhoneAPI = {
         }
     },
     
+    // 🌟 核心防报错保护：优先保障名字与人设绝对写入，UI 重绘做隔离
     _doSave() {
         const saveIfExist = (id, key, isCheckbox = false) => { 
             const el = document.getElementById(id); 
@@ -199,18 +200,41 @@ export const PhoneAPI = {
                 }
             }
         };
-        saveIfExist('my-name', 'my_name'); saveIfExist('char-name', 'char_name');
-        saveIfExist('bg-global', 'bg_global'); saveIfExist('bg-chat', 'bg_chat');
-        saveIfExist('bg-diary-cover', 'bg_diary_cover'); saveIfExist('bg-diary-page', 'bg_diary_page');
+
+        // 🌟 1. 名字、人设、系统提示词排在最首位执行，绝不受后续任何报错影响
+        saveIfExist('my-name', 'my_name'); 
+        saveIfExist('char-name', 'char_name');
+        saveIfExist('system-prompt', 'system_prompt'); 
+        saveIfExist('char-persona', 'char_persona');
+
+        // 🌟 2. 纪念日与日记
         saveIfExist('love-start-date', 'love_start_date');
-        saveIfExist('diary-title', 'diary_title'); saveIfExist('diary-start-date', 'diary_start_date');
+        saveIfExist('diary-title', 'diary_title'); 
+        saveIfExist('diary-start-date', 'diary_start_date');
+
+        // 🌟 3. 壁纸 URL
+        saveIfExist('bg-global', 'bg_global'); 
+        saveIfExist('bg-chat', 'bg_chat');
+        saveIfExist('bg-diary-cover', 'bg_diary_cover'); 
+        saveIfExist('bg-diary-page', 'bg_diary_page');
         
-        this.applyUITheme();
+        // 🌟 4. 安全保护主题重刷，防止异常阻断
+        try { 
+            this.applyUITheme(); 
+        } catch(e) {
+            console.warn('UI主题更新跳过:', e);
+        }
         
-        saveIfExist('system-prompt', 'system_prompt'); saveIfExist('char-persona', 'char_persona');
-        saveIfExist('img-api-url', 'img_api_url'); saveIfExist('img-api-key', 'img_api_key'); saveIfExist('img-api-model', 'img_api_model');
-        const charName = localStorage.getItem('char_name'); const myName = localStorage.getItem('my_name');
-        if (charName && myName) { const titleEl = document.getElementById('top-title'); if (titleEl) titleEl.innerText = `${myName} & ${charName}`; }
+        saveIfExist('img-api-url', 'img_api_url'); 
+        saveIfExist('img-api-key', 'img_api_key'); 
+        saveIfExist('img-api-model', 'img_api_model');
+
+        const charName = localStorage.getItem('char_name'); 
+        const myName = localStorage.getItem('my_name');
+        if (charName && myName) { 
+            const titleEl = document.getElementById('top-title'); 
+            if (titleEl) titleEl.innerText = `${myName} & ${charName}`; 
+        }
     },
     
     autoSave() { try { this._doSave(); } catch (e) {} },
@@ -218,20 +242,34 @@ export const PhoneAPI = {
     loadSettings() {
         try {
             const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
-            setVal('my-name', localStorage.getItem('my_name') || ''); setVal('char-name', localStorage.getItem('char_name') || '');
-            setVal('bg-global', localStorage.getItem('bg_global') || ''); setVal('bg-chat', localStorage.getItem('bg_chat') || '');
-            setVal('bg-diary-cover', localStorage.getItem('bg_diary_cover') || ''); setVal('bg-diary-page', localStorage.getItem('bg_diary_page') || '');
+            setVal('my-name', localStorage.getItem('my_name') || ''); 
+            setVal('char-name', localStorage.getItem('char_name') || '');
+            setVal('system-prompt', localStorage.getItem('system_prompt') || ''); 
+            setVal('char-persona', localStorage.getItem('char_persona') || '');
+
+            setVal('bg-global', localStorage.getItem('bg_global') || ''); 
+            setVal('bg-chat', localStorage.getItem('bg_chat') || '');
+            setVal('bg-diary-cover', localStorage.getItem('bg_diary_cover') || ''); 
+            setVal('bg-diary-page', localStorage.getItem('bg_diary_page') || '');
             setVal('diary-title', localStorage.getItem('diary_title') || 'His Diary');
-            const today = new Date(); const defaultDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+            const today = new Date(); 
+            const defaultDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
             setVal('diary-start-date', localStorage.getItem('diary_start_date') || defaultDate);
             setVal('love-start-date', localStorage.getItem('love_start_date') || defaultDate);
             
-            this.applyUITheme();
+            try { this.applyUITheme(); } catch(e){}
             
-            setVal('system-prompt', localStorage.getItem('system_prompt') || ''); setVal('char-persona', localStorage.getItem('char_persona') || '');
-            setVal('img-api-url', localStorage.getItem('img_api_url') || ''); setVal('img-api-key', localStorage.getItem('img_api_key') || ''); setVal('img-api-model', localStorage.getItem('img_api_model') || 'dall-e-3');
-            const savedCharName = localStorage.getItem('char_name'); const savedMyName = localStorage.getItem('my_name');
-            if (savedCharName && savedMyName) { const titleEl = document.getElementById('top-title'); if (titleEl) titleEl.innerText = `${savedMyName} & ${savedCharName}`; }
+            setVal('img-api-url', localStorage.getItem('img_api_url') || ''); 
+            setVal('img-api-key', localStorage.getItem('img_api_key') || ''); 
+            setVal('img-api-model', localStorage.getItem('img_api_model') || 'dall-e-3');
+
+            const savedCharName = localStorage.getItem('char_name'); 
+            const savedMyName = localStorage.getItem('my_name');
+            if (savedCharName && savedMyName) { 
+                const titleEl = document.getElementById('top-title'); 
+                if (titleEl) titleEl.innerText = `${savedMyName} & ${savedCharName}`; 
+            }
         } catch (error) {}
     },
     
@@ -501,7 +539,6 @@ export const PhoneAPI = {
         }
     },
 
-    // 🌟 直接委托给独立的 DrawEngine 生图模块，保证兼容性
     async generateImage(promptText, options = {}) {
         if (window.DrawEngine && window.DrawEngine.generateImage) {
             return await window.DrawEngine.generateImage(promptText, options);

@@ -5,6 +5,17 @@ import { PhoneUI } from '../phone_ui.js';
 export const ChatEngine = {
     currentMsgIndex: -1,
 
+    // 安全持久化辅助函数，防止 QuotaExceeded 异常导致整段 JS 猝死
+    _safeSaveData() {
+        try {
+            if (Config?.phoneData) {
+                localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+            }
+        } catch (e) {
+            console.warn('⚠️ 存储空间接近配额或超出，跳过本次持久化写入：', e);
+        }
+    },
+
     getRealIndex(index) {
         const roleId = Config?.currentContactId;
         const items = Config?.phoneData?.[roleId]?.wechat?.items || [];
@@ -24,7 +35,7 @@ export const ChatEngine = {
         }
 
         if (changed) {
-            localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+            this._safeSaveData();
             if (PhoneUI) PhoneUI.renderAppContent?.('wechat');
             PhoneAPI?.showToast?.('✅ 已强制清除卡死的 AI 状态！');
             return;
@@ -57,27 +68,44 @@ export const ChatEngine = {
         input.onchange = async (e) => {
             const file = e.target.files[0];
             if (!file) return;
-            PhoneAPI.showToast('🖼️ 图片处理中...');
+            PhoneAPI.showToast('🖼️ 图片处理与压缩中...');
             const reader = new FileReader();
             reader.onload = (event) => {
                 const img = new Image();
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
-                    let width = img.width; let height = img.height; const MAX_SIZE = 800;
-                    if (width > height && width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
-                    else if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
-                    canvas.width = width; canvas.height = height;
+                    let width = img.width; 
+                    let height = img.height; 
+                    
+                    // 🌟 核心优化：最大边缩到 500px，既清晰又防爆存储（体积下降90%）
+                    const MAX_SIZE = 500;
+                    if (width > height && width > MAX_SIZE) { 
+                        height = Math.round(height * (MAX_SIZE / width)); 
+                        width = MAX_SIZE; 
+                    } else if (height > MAX_SIZE) { 
+                        width = Math.round(width * (MAX_SIZE / height)); 
+                        height = MAX_SIZE; 
+                    }
+                    canvas.width = width; 
+                    canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
-                    const base64Url = canvas.toDataURL('image/jpeg', 0.7);
+                    
+                    // 优先 WebP，不支持则自动使用 JPEG
+                    let base64Url = canvas.toDataURL('image/webp', 0.6);
+                    if (!base64Url.startsWith('data:image/webp')) {
+                        base64Url = canvas.toDataURL('image/jpeg', 0.6);
+                    }
+
                     const roleId = Config?.currentContactId;
                     if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
                     if (!Config.phoneData[roleId].wechat) Config.phoneData[roleId].wechat = { items: [] };
                     const now = new Date();
                     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
                     const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                    
                     Config.phoneData[roleId].wechat.items.push({ sender: 'me', content: `![图片](${base64Url})`, time: timeStr, date: dateStr });
-                    localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+                    this._safeSaveData();
                     PhoneUI.renderAppContent('wechat');
                 };
                 img.src = event.target.result;
@@ -109,14 +137,14 @@ export const ChatEngine = {
                 reader.onload = (event) => {
                     const content = event.target.result;
                     chatItems.push({ sender: 'me', content: `📁 [发送了文件: ${file.name}]\n\n文件内容如下：\n\n\`\`\`\n${content}\n\`\`\``, time: timeStr, date: dateStr });
-                    localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+                    this._safeSaveData();
                     PhoneUI.renderAppContent('wechat');
                 };
                 reader.readAsText(file);
             } else {
                 const sizeMB = (file.size / 1024 / 1024).toFixed(2);
                 chatItems.push({ sender: 'me', content: `📁 [发送了文件: ${file.name}] (大小: ${sizeMB}MB)\n\n【系统提示】：用户向你发送了一份文件。由于跨次元限制，内容暂时不能直接展开。`, time: timeStr, date: dateStr });
-                localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+                this._safeSaveData();
                 PhoneUI.renderAppContent('wechat');
             }
         };
@@ -136,7 +164,7 @@ export const ChatEngine = {
         const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         
         Config.phoneData[roleId].wechat.items.push({ sender: 'me', content, time: timeStr, date: dateStr });
-        localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+        this._safeSaveData();
         PhoneUI.renderAppContent?.('wechat');
     },
 
@@ -178,7 +206,7 @@ export const ChatEngine = {
         if (newText !== null && newText.trim() !== '') {
             item.content = newText.trim();
             PhoneUI.renderAppContent?.('wechat');
-            localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+            this._safeSaveData();
             PhoneAPI.showToast('✅ 修改成功');
         }
     },
@@ -191,7 +219,7 @@ export const ChatEngine = {
         if (Config?.phoneData?.[roleId]?.wechat?.items) {
             Config.phoneData[roleId].wechat.items.splice(realIndex, 1);
             PhoneUI.renderAppContent?.('wechat');
-            localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+            this._safeSaveData();
             PhoneAPI.showToast('🗑️ 消息已删除');
         }
     },
@@ -203,7 +231,7 @@ export const ChatEngine = {
         const realIndex = this.getRealIndex(this.currentMsgIndex);
         if (Config?.phoneData?.[roleId]?.wechat?.items) {
             Config.phoneData[roleId].wechat.items.splice(realIndex);
-            localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+            this._safeSaveData();
             PhoneUI.renderAppContent?.('wechat'); 
             this.sendChatMessage(true);
         }
@@ -224,7 +252,7 @@ export const ChatEngine = {
         chatItems.push({ sender: 'me', content: text, time: timeStr, date: dateStr });
         inputEl.value = '';
         PhoneUI.renderAppContent?.('wechat');
-        localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+        this._safeSaveData();
     },
 
     async sendChatMessage(isRegen = false) {
@@ -270,7 +298,7 @@ export const ChatEngine = {
 
         chatItems.push({ sender: 'typing' });
         PhoneUI.renderAppContent('wechat');
-        localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+        this._safeSaveData(); // 安全写入，即便超限也不阻断后续请求
 
         try {
             const shareMemory = localStorage.getItem('share_memory') === 'true';
@@ -333,11 +361,13 @@ export const ChatEngine = {
                 } catch(e) {}
             }
 
-            // 长期记忆
+            // 🌟 核心防报错保护：长期记忆
             const vaultLimit = parseInt(localStorage.getItem('context_vault_limit') || '15', 10);
-            const allVault = PhoneAPI.getMemoryVault();
-            let accessibleVault = allVault;
-            if (!shareMemory) accessibleVault = allVault.filter(v => v.isCore || v.source === '线上微信');
+            const allVault = (PhoneAPI && PhoneAPI.getMemoryVault) ? (PhoneAPI.getMemoryVault() || []) : [];
+            let accessibleVault = Array.isArray(allVault) ? allVault : [];
+            if (!shareMemory && Array.isArray(accessibleVault)) {
+                accessibleVault = accessibleVault.filter(v => v && (v.isCore || v.source === '线上微信'));
+            }
             if (accessibleVault.length > 0) {
                 const recentVault = accessibleVault.slice(-vaultLimit).map(v => `[${v.id}] ${v.source}: ${v.content}`).join('\n');
                 dynamicPrompt += `\n【长期记忆档案】：\n${recentVault}\n`;
@@ -348,7 +378,7 @@ export const ChatEngine = {
             const recentItems = chatItems.slice(-MAX_CONTEXT);
             
             recentItems.forEach((item) => {
-                if (item.sender !== 'typing') {
+                if (item && item.sender !== 'typing') {
                     let text = item.content;
                     const imgMatch = text ? text.match(/^!\[.*?\]\((.*?)\)$/) : null;
                     if (item.sender === 'me' && imgMatch) {
@@ -400,7 +430,7 @@ export const ChatEngine = {
                 chatItems.push({ sender: 'other', content: part, time: timeStr, date: dateStr, innerThought: thought });
             }
 
-            // 🌟 2.【绝妙兜底】：如果用户在求画画（比如“画根香蕉”），而 AI 答应了（“行 那就来一根”）却没吐出图片：
+            // 🌟 2.【兜底生图】
             const userWantsDrawing = /画|照片|自拍|图/i.test(latestUserText);
             const aiAgreed = /行|好|来一|画|看|给你/i.test(finalReply);
 
@@ -429,17 +459,20 @@ export const ChatEngine = {
             }
             
             PhoneUI.renderAppContent('wechat');
-            localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+            this._safeSaveData();
 
             if (window.MemoryEngine && window.MemoryEngine.autoManageMemory) {
                 setTimeout(() => { window.MemoryEngine.autoManageMemory(false); }, 1000);
             }
 
         } catch (error) {
-            PhoneAPI.showToast(error.message);
-            chatItems.pop();
+            console.error('发送或调用模型异常:', error);
+            PhoneAPI.showToast(error.message || '请求遇到异常，请检查网络');
+            if (chatItems.length > 0 && chatItems[chatItems.length - 1].sender === 'typing') {
+                chatItems.pop();
+            }
             PhoneUI.renderAppContent('wechat');
-            localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+            this._safeSaveData();
         }
     }
 };

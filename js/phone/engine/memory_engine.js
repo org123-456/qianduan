@@ -210,7 +210,7 @@ function layout(nodes, links, softlinks) {
       dx *= inv; dy *= inv; dz *= inv; fx[i] += dx * f; fy[i] += dy * f; fz[i] += dz * f; fx[j] -= dx * f; fy[j] -= dy * f; fz[j] -= dz * f;
     }
     for (const [i, j, k, rest] of edges) {
-      const dx = nodes[j].x - nodes[i].x, dy = nodes[j].y - nodes[i].y, dz = nodes[j].z - nodes[j].z;
+      const dx = nodes[j].x - nodes[i].x, dy = nodes[j].y - nodes[i].y, dz = nodes[j].z - nodes[i].z;
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) + 0.01, f = k * (dist - rest) / dist;
       fx[i] += dx * f; fy[i] += dy * f; fz[i] += dz * f; fx[j] -= dx * f; fy[j] -= dy * f; fz[j] -= dz * f;
     }
@@ -690,7 +690,7 @@ export const MemoryEngine = {
         });
         
         if (logs.length > 50) logs.shift();
-        localStorage.setItem('memory_logs', JSON.stringify(logs));
+        try { localStorage.setItem('memory_logs', JSON.stringify(logs)); } catch(e) {}
     },
 
     _buildSkyData() {
@@ -705,7 +705,7 @@ export const MemoryEngine = {
 
         const nodes = [];
 
-        const coreItemKey = Object.keys(evData.permanent)[0];
+        const coreItemKey = Object.keys(evData.permanent || {})[0];
         const coreItem = coreItemKey ? evData.permanent[coreItemKey] : null;
         nodes.push({
             id: 'core_center',
@@ -718,15 +718,16 @@ export const MemoryEngine = {
             arousal: 0.9
         });
 
-        const dailyKeys = Object.keys(evData.daily).sort((a, b) => a.localeCompare(b));
+        const dailyKeys = Object.keys(evData.daily || {}).sort((a, b) => a.localeCompare(b));
         dailyKeys.forEach(key => {
             const item = evData.daily[key];
+            if (!item) return;
             const displayDate = key.split(' ')[0]; 
             nodes.push({
                 id: 'ev_d_' + key, 
                 title: item.tags || '日常记录',
                 date: displayDate,
-                content: item.content,
+                content: item.content || '',
                 kind: 'event',
                 importance: 2,
                 valence: item.valence !== undefined ? item.valence : 0.5,
@@ -734,14 +735,15 @@ export const MemoryEngine = {
             });
         });
 
-        Object.keys(evData.permanent).forEach(key => {
+        Object.keys(evData.permanent || {}).forEach(key => {
             if (key === coreItemKey) return;
             const item = evData.permanent[key];
+            if (!item) return;
             nodes.push({
                 id: 'ev_p_' + key,
                 title: key,
                 date: item.created ? item.created.split('T')[0] : '永久',
-                content: item.content,
+                content: item.content || '',
                 kind: 'event',
                 importance: 4,
                 valence: item.valence !== undefined ? item.valence : 0.8,
@@ -750,11 +752,12 @@ export const MemoryEngine = {
         });
 
         favs.forEach(fav => {
+            if (!fav) return;
             nodes.push({
                 id: 'fav_' + fav.id,
                 title: '⭐ 闪光碎片',
-                date: fav.time,
-                content: fav.content,
+                date: fav.time || '',
+                content: fav.content || '',
                 kind: 'event',
                 importance: 3,
                 valence: 0.8, 
@@ -834,7 +837,7 @@ export const MemoryEngine = {
                 const textEl = document.getElementById('blindbox-text');
                 const metaEl = document.getElementById('blindbox-meta');
                 if (textEl && metaEl) {
-                    let content = node.content.replace(/---/g, '\n').trim();
+                    let content = (node.content || '').replace(/---/g, '\n').trim();
                     textEl.innerText = `“${content}”`;
                     metaEl.innerText = `${node.date || ''} · ${node.title}`;
                 }
@@ -867,10 +870,10 @@ export const MemoryEngine = {
 
     _scanKeywords(userText) {
         if (!userText) return '';
-        const vault = PhoneAPI.getMemoryVault() || [];
+        const vault = (PhoneAPI && PhoneAPI.getMemoryVault) ? (PhoneAPI.getMemoryVault() || []) : [];
         const triggeredMemories = [];
         vault.forEach(item => {
-            if (item.keywords && typeof item.keywords === 'string') {
+            if (item && item.keywords && typeof item.keywords === 'string') {
                 const kws = item.keywords.split(',').map(k => k.trim()).filter(Boolean);
                 if (kws.some(kw => userText.includes(kw))) triggeredMemories.push(`[${item.id}] ${item.source}: ${item.content}`);
             }
@@ -932,16 +935,31 @@ export const MemoryEngine = {
     },
 
     /**
-     * 🌟【彻底解决出戏问题】：注入角色专属人设，死死锁住第一人称真实沉浸感！
+     * 🌟 手动一键整理记忆接口（可由按钮随时调用）
+     */
+    async manualManageMemory() {
+        return await this.autoManageMemory(true);
+    },
+
+    /**
+     * 🌟 智能记忆碎片归档（支持自动静默 / 手动调用）
      */
     async autoManageMemory(force = false) {
         if (this._isSummarizing) return;
+        
+        // 🌟 记忆模式开关：默认为 false（手动模式），可在设置里切换为 'true' 自动模式
+        const isAutoEnabled = localStorage.getItem('memory_auto_mode') === 'true';
+        if (!force && !isAutoEnabled) {
+            // 如果不是手动强制触发，且未开启自动总结，则直接跳过
+            return;
+        }
+
         const roleId = Config?.currentContactId;
         const items = Config?.phoneData?.[roleId]?.wechat?.items || [];
         const cleanItems = items.filter(i => i.sender !== 'typing' && i.content);
 
         const lastIndex = parseInt(localStorage.getItem('memory_last_summary_index') || '0', 10);
-        const threshold = parseInt(localStorage.getItem('memory_auto_threshold') || '8', 10);
+        const threshold = parseInt(localStorage.getItem('memory_auto_threshold') || '12', 10);
         
         const unsummarizedCount = cleanItems.length - lastIndex;
         if (!force && unsummarizedCount < threshold) return;
@@ -950,11 +968,13 @@ export const MemoryEngine = {
             return;
         }
 
-        const processCount = Math.min(Math.max(unsummarizedCount, 15), 25);
+        const processCount = Math.min(Math.max(unsummarizedCount, 15), 30);
         const recentItems = cleanItems.slice(-processCount);
 
         this._isSummarizing = true;
-        if (window.PhoneAPI) window.PhoneAPI.showToast("🧠 正在提取近期记忆碎片，请稍候...");
+        if (force && window.PhoneAPI) {
+            window.PhoneAPI.showToast("🧠 正在提取近期记忆碎片，请稍候...");
+        }
 
         const messages = recentItems.map(item => ({
             role: item.sender === 'me' ? 'user' : 'assistant',
@@ -963,14 +983,13 @@ export const MemoryEngine = {
         
         let vaultContext = '暂无';
         if (window.PhoneAPI && window.PhoneAPI.EchoVault) {
-            const vault = window.PhoneAPI.EchoVault.getData().daily;
+            const vault = window.PhoneAPI.EchoVault.getData().daily || {};
             const vaultKeys = Object.keys(vault).slice(-5);
             if (vaultKeys.length > 0) {
                 vaultContext = vaultKeys.map(k => `[ID: ${k}] ${vault[k].content}`).join('\n');
             }
         }
 
-        // 🌟 注入人设与第一人称
         const charPersona = localStorage.getItem('char_persona') || '';
         const myName = localStorage.getItem('my_name') || '她';
         const taName = localStorage.getItem('char_name') || '我';
@@ -1006,12 +1025,11 @@ DEL###要删除的记忆ID
         try {
             const reply = await PhoneAPI.chatWithAI(messages);
             const rawText = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```.*?/g, '').replace(/```/g, '').trim();
-            
-            localStorage.setItem('memory_last_summary_index', cleanItems.length.toString());
 
             if (rawText.includes('NONE')) {
-                if (window.PhoneAPI) window.PhoneAPI.showToast("✅ 已审阅近期对话，暂无特殊记忆需收录");
-                this._isSummarizing = false;
+                // 🌟 成功执行后才更新已读指针
+                localStorage.setItem('memory_last_summary_index', cleanItems.length.toString());
+                if (force && window.PhoneAPI) window.PhoneAPI.showToast("✅ 已审阅近期对话，暂无特殊记忆需收录");
                 return;
             }
 
@@ -1019,10 +1037,7 @@ DEL###要删除的记忆ID
             let added = 0, updated = 0, deleted = 0;
 
             const data = window.PhoneAPI.EchoVault ? window.PhoneAPI.EchoVault.getData() : null;
-            if (!data) {
-                this._isSummarizing = false;
-                return;
-            }
+            if (!data) return;
 
             const now = new Date();
             const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
@@ -1063,18 +1078,21 @@ DEL###要删除的记忆ID
                 }
             });
 
+            // 🌟 只有当真正成功解析并更新了，才前移记忆指针
+            localStorage.setItem('memory_last_summary_index', cleanItems.length.toString());
+
             if (added > 0 || updated > 0 || deleted > 0) {
                 window.PhoneAPI.EchoVault.saveData(data);
                 if (window.PhoneAPI && window.PhoneAPI.showToast) {
-                    PhoneAPI.showToast(`✨ TA在心里记下了新事！(新增 ${added} 条)`);
+                    PhoneAPI.showToast(`✨ TA在心里记下了新事！(收录 ${added} 条)`);
                 }
                 this.initSky(); 
-            } else {
+            } else if (force) {
                 if (window.PhoneAPI) window.PhoneAPI.showToast("✅ 已审阅，未发现需单独入库的记忆碎片");
             }
         } catch(e) {
             console.error("Auto memory failed:", e);
-            if (window.PhoneAPI) window.PhoneAPI.showToast("❌ 整理失败，请检查网络或稍后再试");
+            if (force && window.PhoneAPI) window.PhoneAPI.showToast("❌ 整理失败，未改变记录指针");
         } finally {
             this._isSummarizing = false;
         }
@@ -1197,7 +1215,9 @@ ${charPersona}
                 window.PhoneAPI.EchoVault.saveData(data);
 
                 Config.phoneData[roleId][sourceApp].items = [];
-                localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+                try {
+                    localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+                } catch(e){}
                 if (sourceApp === 'novel') PhoneUI.renderNovelContent?.();
                 else PhoneUI.renderAppContent?.('wechat');
                 PhoneAPI.showToast('🧹 洗地完成！界面已清空，情绪记忆已入库。');
@@ -1245,13 +1265,7 @@ ${charPersona}
     }
 };
 
-if (typeof document !== 'undefined') {
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'hidden') {
-            MemoryEngine.autoManageMemory(true);
-        }
-    });
-    window.addEventListener('beforeunload', () => {
-        MemoryEngine.autoManageMemory(true);
-    });
+// 挂载到全局
+if (typeof window !== 'undefined') {
+    window.MemoryEngine = MemoryEngine;
 }

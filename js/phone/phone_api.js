@@ -67,7 +67,7 @@ export const PhoneAPI = {
             const raw = localStorage.getItem('echovault_data');
             let parsed = raw ? JSON.parse(raw) : null;
             
-            if (!parsed || (Object.keys(parsed.daily).length === 0 && Object.keys(parsed.permanent).length === 0)) {
+            if (!parsed || (Object.keys(parsed.daily || {}).length === 0 && Object.keys(parsed.permanent || {}).length === 0)) {
                 const defaultData = { daily: {}, permanent: {}, archive: {} };
                 let oldVaultRaw = localStorage.getItem('memory_vault_entries');
                 if (!oldVaultRaw) oldVaultRaw = localStorage.getItem('memory_vault_entries_backup');
@@ -81,6 +81,7 @@ export const PhoneAPI = {
                                 defaultData.permanent[title] = { type: 'permanent', created: `${item.date} ${item.time}`, importance: 10, tags: item.source, hits: 0, content: item.content, comments: [] };
                             } else {
                                 const dateStr = item.date || new Date().toISOString().split('T')[0];
+                                const created = `${item.date || ''} ${item.time || ''}`.trim() || dateStr;
                                 if (defaultData.daily[dateStr]) defaultData.daily[dateStr].content += `\n\n---\n\n${item.content}`;
                                 else defaultData.daily[dateStr] = { type: 'daily', created, importance: 5, tags: item.source, hits: 0, content: item.content, comments: [] };
                             }
@@ -93,9 +94,18 @@ export const PhoneAPI = {
                 }
                 return defaultData;
             }
+            if (!parsed.daily) parsed.daily = {};
+            if (!parsed.permanent) parsed.permanent = {};
+            if (!parsed.archive) parsed.archive = {};
             return parsed;
         },
-        saveData(data) { localStorage.setItem('echovault_data', JSON.stringify(data)); },
+        saveData(data) { 
+            try {
+                localStorage.setItem('echovault_data', JSON.stringify(data)); 
+            } catch(e) {
+                console.warn('EchoVault 保存超限', e);
+            }
+        },
         calculateScore(meta, daysOld) {
             const importance = parseInt(meta.importance) || 5;
             const hits = parseInt(meta.hits) || 0;
@@ -183,7 +193,7 @@ export const PhoneAPI = {
             if (el) {
                 const val = isCheckbox ? el.checked : el.value.trim();
                 const oldVal = localStorage.getItem(key);
-                localStorage.setItem(key, val);
+                try { localStorage.setItem(key, val); } catch(e){}
                 if (key.startsWith('bg_') && val !== oldVal && this.LocalDB) {
                     this.LocalDB.delete(key);
                 }
@@ -319,7 +329,9 @@ export const PhoneAPI = {
             const roleId = window.Config?.currentContactId;
             if(roleId && window.Config?.phoneData?.[roleId]) {
                 window.Config.phoneData[roleId].wechat = { items: [] };
-                localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
+                try {
+                    localStorage.setItem('phone_data', JSON.stringify(window.Config.phoneData));
+                } catch(e){}
             }
             if (window.PhoneUI && window.PhoneUI.renderAppContent) window.PhoneUI.renderAppContent('wechat');
             this.showToast("🗑️ 所有记录已清空！");
@@ -329,10 +341,28 @@ export const PhoneAPI = {
     getArchives() { return JSON.parse(localStorage.getItem('story_archives') || '[]'); },
     
     getMemoryVault() { 
-        const ev = this.EchoVault.getData(); let arr = [];
-        Object.keys(ev.daily).forEach(date => { arr.push({ id: date, date: date, time: '00:00', source: ev.daily[date].tags || '日常', content: ev.daily[date].content, isCore: false, keywords: ev.daily[date].tags }); });
-        Object.keys(ev.permanent).forEach(title => { arr.push({ id: title, date: ev.permanent[title].created.split(' ')[0], time: '00:00', source: ev.permanent[title].tags || '锚点', content: ev.permanent[title].content, isCore: true, keywords: title }); });
-        return arr;
+        try {
+            const ev = this.EchoVault.getData(); 
+            let arr = [];
+            if (ev?.daily) {
+                Object.keys(ev.daily).forEach(date => { 
+                    if (ev.daily[date]) {
+                        arr.push({ id: date, date: date, time: '00:00', source: ev.daily[date].tags || '日常', content: ev.daily[date].content || '', isCore: false, keywords: ev.daily[date].tags || '' }); 
+                    }
+                });
+            }
+            if (ev?.permanent) {
+                Object.keys(ev.permanent).forEach(title => { 
+                    if (ev.permanent[title]) {
+                        arr.push({ id: title, date: (ev.permanent[title].created || '').split(' ')[0] || '2025-01-01', time: '00:00', source: ev.permanent[title].tags || '锚点', content: ev.permanent[title].content || '', isCore: true, keywords: title }); 
+                    }
+                });
+            }
+            return arr;
+        } catch(e) {
+            console.error('获取记忆库失败:', e);
+            return [];
+        }
     },
     saveToMemoryVault(summaries, source, isCore = false) {
         let summaryArray = Array.isArray(summaries) ? summaries : [summaries];
@@ -358,9 +388,11 @@ export const PhoneAPI = {
         const prompt = usage.prompt_tokens || 0;
         const completion = usage.completion_tokens || 0;
 
-        localStorage.setItem('token_last_usage', JSON.stringify({ prompt, completion, total, time: Date.now() }));
-        const historyTotal = parseInt(localStorage.getItem('token_total_count') || '0', 10) + total;
-        localStorage.setItem('token_total_count', historyTotal.toString());
+        try {
+            localStorage.setItem('token_last_usage', JSON.stringify({ prompt, completion, total, time: Date.now() }));
+            const historyTotal = parseInt(localStorage.getItem('token_total_count') || '0', 10) + total;
+            localStorage.setItem('token_total_count', historyTotal.toString());
+        } catch(e){}
     },
 
     getTokenStats() {
@@ -434,13 +466,23 @@ export const PhoneAPI = {
         const config = this.getEngineConfig();
         if (!config) throw new Error("请先去【系统设置】里分配引擎配置！");
         const endpoint = config.url.endsWith('/chat/completions') ? config.url : config.url.replace(/\/$/, '') + '/chat/completions';
+        
         try {
             const response = await fetch(endpoint, { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.key}` }, 
                 body: JSON.stringify({ model: config.model, messages: messages, temperature: 0.7 }) 
             });
-            if (!response.ok) throw new Error(`API 报错: ${response.status}`);
+
+            if (!response.ok) {
+                let errDetail = `${response.status}`;
+                try {
+                    const errData = await response.json();
+                    if (errData?.error?.message) errDetail += `: ${errData.error.message}`;
+                } catch(e){}
+                throw new Error(`API 报错: ${errDetail}`);
+            }
+
             const data = await response.json();
 
             if (data.usage) {
@@ -451,9 +493,12 @@ export const PhoneAPI = {
                 this.recordTokenUsage({ prompt_tokens: Math.round(approxPrompt / 2), completion_tokens: Math.round(approxReply / 2), total_tokens: Math.round((approxPrompt + approxReply) / 2) });
             }
 
-            let reply = data.choices[0].message.content || '';
+            let reply = data.choices?.[0]?.message?.content || '';
             return reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-        } catch (error) { throw new Error("网络错误或 API 配置不正确"); }
+        } catch (error) { 
+            console.error("chatWithAI 异常:", error);
+            throw new Error(error.message || "网络错误或 API 配置不正确"); 
+        }
     },
 
     // 🌟 直接委托给独立的 DrawEngine 生图模块，保证兼容性
@@ -465,10 +510,26 @@ export const PhoneAPI = {
     },
     
     getDiaries() { return JSON.parse(localStorage.getItem('char_diaries') || '{}'); },
-    saveDiary(dateStr, content) { const diaries = this.getDiaries(); diaries[dateStr] = content; localStorage.setItem('char_diaries', JSON.stringify(diaries)); },
+    saveDiary(dateStr, content) { 
+        const diaries = this.getDiaries(); 
+        diaries[dateStr] = content; 
+        try { localStorage.setItem('char_diaries', JSON.stringify(diaries)); } catch(e){}
+    },
     getFavorites() { return JSON.parse(localStorage.getItem('starry_favorites') || '[]'); },
-    saveFavorite(text, source, sender) { const favs = this.getFavorites(); favs.push({ id: 'fav_' + Date.now(), content: text, source: source, sender: sender, time: new Date().toISOString().split('T')[0] }); localStorage.setItem('starry_favorites', JSON.stringify(favs)); this.showToast('⭐ 已存入星海收藏夹！'); },
-    deleteFavorite(id) { if (!confirm('确定删除吗？')) return; let favs = this.getFavorites(); favs = favs.filter(f => f.id !== id); localStorage.setItem('starry_favorites', JSON.stringify(favs)); if (window.PhoneUI && window.PhoneUI.renderAppContent) window.PhoneUI.renderAppContent('favorites'); this.showToast('🗑️ 已删除'); },
+    saveFavorite(text, source, sender) { 
+        const favs = this.getFavorites(); 
+        favs.push({ id: 'fav_' + Date.now(), content: text, source: source, sender: sender, time: new Date().toISOString().split('T')[0] }); 
+        try { localStorage.setItem('starry_favorites', JSON.stringify(favs)); } catch(e){}
+        this.showToast('⭐ 已存入星海收藏夹！'); 
+    },
+    deleteFavorite(id) { 
+        if (!confirm('确定删除吗？')) return; 
+        let favs = this.getFavorites(); 
+        favs = favs.filter(f => f.id !== id); 
+        try { localStorage.setItem('starry_favorites', JSON.stringify(favs)); } catch(e){}
+        if (window.PhoneUI && window.PhoneUI.renderAppContent) window.PhoneUI.renderAppContent('favorites'); 
+        this.showToast('🗑️ 已删除'); 
+    },
 
     async syncToCloud() {
         this.showToast("☁️ 正在上传存档至 Supabase 数据库...");

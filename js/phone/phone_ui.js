@@ -480,6 +480,30 @@ export const PhoneUI = {
         });
     },
 
+    // 🌟 手动保存提示词与人设（带触感与明确反馈）
+    savePromptAndPersona() {
+        const sysVal = document.getElementById('system-prompt')?.value ?? '';
+        const charVal = document.getElementById('char-persona')?.value ?? '';
+        
+        localStorage.setItem('system_prompt', sysVal);
+        localStorage.setItem('char_persona', charVal);
+
+        const btn = document.getElementById('btn-save-prompts');
+        if (btn) {
+            const origHtml = btn.innerHTML;
+            btn.innerHTML = `<i class="ph-bold ph-check"></i> 已保存至本地！`;
+            btn.style.background = '#2a9d8f';
+            setTimeout(() => {
+                btn.innerHTML = origHtml;
+                btn.style.background = 'var(--primary-color)';
+            }, 1500);
+        }
+
+        if (window.PhoneAPI && window.PhoneAPI.showToast) {
+            window.PhoneAPI.showToast('✅ 核心指令与人设已安全保存！');
+        }
+    },
+
     saveDrawSettings() {
         const urlEl = document.getElementById('img-api-url');
         const keyEl = document.getElementById('img-api-key');
@@ -672,7 +696,7 @@ export const PhoneUI = {
             <div class="settings-tab" id="stab-sys" onclick="window.PhoneUI.switchSetTab('sys')">系统维护</div>
         </div>
 
-        <!-- 1. 基础设置（含底部留白） -->
+        <!-- 1. 基础设置 -->
         <div id="set-sec-basic" class="set-section active" style="flex-direction: column; gap: 15px; padding-bottom: 100px;">
             <div class="card" style="padding: 16px;">
                 <h3 style="color:var(--primary-color);margin-bottom:15px; font-size: 15px;"><i class="ph-fill ph-user-circle"></i> 基础设定 (头像与名字)</h3>
@@ -741,8 +765,9 @@ export const PhoneUI = {
             </div>
         </div>
 
-        <!-- 2. 大模型与记忆设置（🌟 核心加固：直接双向绑定 localStorage 保证100%保存） -->
+        <!-- 2. 大模型与记忆设置 -->
         <div id="set-sec-ai" class="set-section" style="flex-direction: column; gap: 18px; padding-bottom: 100px;">
+            <!-- 🌟 提示词与人设卡片（已加上专用保存按钮！） -->
             <div class="card" style="padding: 16px; border: 1px solid var(--border-color);">
                 <h3 style="color:var(--primary-color);margin-bottom:12px; font-size: 15px;"><i class="ph-fill ph-scroll"></i> 提示词与人设</h3>
                 <div style="margin-bottom:15px;">
@@ -751,12 +776,20 @@ export const PhoneUI = {
                         oninput="localStorage.setItem('system_prompt', this.value)" 
                         style="width:100%;padding:10px;border-radius:10px;resize:vertical;font-size:13px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main); line-height: 1.5;"></textarea>
                 </div>
-                <div>
+                <div style="margin-bottom:15px;">
                     <label style="font-size:13px;color:var(--text-main);font-weight:bold; display: block; margin-bottom: 6px;">2. 角色完整人设 (性格/口吻/设定)</label>
                     <textarea id="char-persona" rows="6" 
                         oninput="localStorage.setItem('char_persona', this.value)" 
                         style="width:100%;padding:10px;border-radius:10px;resize:vertical;font-size:13px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main); line-height: 1.5;"></textarea>
                 </div>
+
+                <!-- 🌟 实体保存按钮，点击直接保存并弹提示 -->
+                <button type="button" 
+                        id="btn-save-prompts"
+                        onclick="window.PhoneUI.savePromptAndPersona()"
+                        style="width: 100%; padding: 12px; border-radius: 10px; font-weight: bold; background: var(--primary-color); color: #fff; border: none; cursor: pointer; font-size: 13px; display: flex; justify-content: center; align-items: center; gap: 6px; box-shadow: 0 3px 10px rgba(0,0,0,0.12); transition: 0.2s;">
+                    <i class="ph-bold ph-floppy-disk"></i> 💾 保存提示词与角色人设
+                </button>
             </div>
 
             <div class="card" style="padding: 16px; border: 1px solid var(--border-color);">

@@ -672,7 +672,7 @@ export const PhoneUI = {
             <div class="settings-tab" id="stab-sys" onclick="window.PhoneUI.switchSetTab('sys')">系统维护</div>
         </div>
 
-        <!-- 1. 基础设置（加上 100px 底部 padding 防止被系统条遮挡） -->
+        <!-- 1. 基础设置（含底部留白） -->
         <div id="set-sec-basic" class="set-section active" style="flex-direction: column; gap: 15px; padding-bottom: 100px;">
             <div class="card" style="padding: 16px;">
                 <h3 style="color:var(--primary-color);margin-bottom:15px; font-size: 15px;"><i class="ph-fill ph-user-circle"></i> 基础设定 (头像与名字)</h3>
@@ -706,7 +706,6 @@ export const PhoneUI = {
                 <div style="margin-bottom:15px;"><input type="date" id="love-start-date" value="${localStorage.getItem('love_start_date') || defaultDate}" onchange="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:10px;border-radius:8px;border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main);"></div>
             </div>
 
-            <!-- 🌟 补回：自定义壁纸卡片 -->
             <div class="card" style="padding: 16px;">
                 <h3 style="color:var(--primary-color);margin-bottom:12px; font-size: 15px;"><i class="ph-fill ph-image-square"></i> 自定义背景壁纸</h3>
                 <div style="display:flex; flex-direction:column; gap:12px;">
@@ -742,17 +741,21 @@ export const PhoneUI = {
             </div>
         </div>
 
-        <!-- 2. 大模型与记忆设置 -->
+        <!-- 2. 大模型与记忆设置（🌟 核心加固：直接双向绑定 localStorage 保证100%保存） -->
         <div id="set-sec-ai" class="set-section" style="flex-direction: column; gap: 18px; padding-bottom: 100px;">
             <div class="card" style="padding: 16px; border: 1px solid var(--border-color);">
                 <h3 style="color:var(--primary-color);margin-bottom:12px; font-size: 15px;"><i class="ph-fill ph-scroll"></i> 提示词与人设</h3>
                 <div style="margin-bottom:15px;">
                     <label style="font-size:13px;color:var(--text-main);font-weight:bold; display: block; margin-bottom: 6px;">1. 系统核心指令 (规则/防八股)</label>
-                    <textarea id="system-prompt" rows="3" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:10px;border-radius:10px;resize:vertical;font-size:13px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main); line-height: 1.5;"></textarea>
+                    <textarea id="system-prompt" rows="3" 
+                        oninput="localStorage.setItem('system_prompt', this.value)" 
+                        style="width:100%;padding:10px;border-radius:10px;resize:vertical;font-size:13px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main); line-height: 1.5;"></textarea>
                 </div>
                 <div>
                     <label style="font-size:13px;color:var(--text-main);font-weight:bold; display: block; margin-bottom: 6px;">2. 角色完整人设 (性格/口吻/设定)</label>
-                    <textarea id="char-persona" rows="6" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:10px;border-radius:10px;resize:vertical;font-size:13px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main); line-height: 1.5;"></textarea>
+                    <textarea id="char-persona" rows="6" 
+                        oninput="localStorage.setItem('char_persona', this.value)" 
+                        style="width:100%;padding:10px;border-radius:10px;resize:vertical;font-size:13px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main); line-height: 1.5;"></textarea>
                 </div>
             </div>
 

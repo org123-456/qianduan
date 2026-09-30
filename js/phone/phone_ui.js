@@ -71,7 +71,7 @@ export const PhoneUI = {
                 let html = '';
                 for (let i = 0; i < first; i++) html += '<span></span>';
                 for (let d = 1; d <= days; d++) {
-                    html += d === today ? `<span class="today">${d}</span>` : `<span>${d}</span>`;
+                    html += d === today ? `<span class="today">${d}</span>` : `<span class="other-day">${d}</span>`;
                 }
                 calGrid.innerHTML = html;
             }
@@ -430,7 +430,35 @@ export const PhoneUI = {
         fileInput.click();
     },
 
-    // 🌟 彻底重写 Tab 切换：使用 setProperty 强制 override 优先级，100% 切换成功！
+    triggerWallpaperUpload(key) {
+        let fileInput = document.getElementById('settings-wallpaper-input');
+        if (!fileInput) {
+            fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.id = 'settings-wallpaper-input';
+            fileInput.accept = 'image/*';
+            fileInput.style.display = 'none';
+            document.body.appendChild(fileInput);
+        }
+        fileInput.onchange = (e) => {
+            const f = e.target.files && e.target.files[0];
+            fileInput.value = '';
+            if (!f) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const el = document.getElementById(key.replace(/_/g, '-'));
+                if (el) el.value = event.target.result;
+                localStorage.setItem(key, event.target.result);
+                if (window.PhoneAPI && window.PhoneAPI.applyUITheme) {
+                    window.PhoneAPI.applyUITheme();
+                }
+                if (window.PhoneAPI) window.PhoneAPI.showToast("壁纸设置成功！");
+            };
+            reader.readAsDataURL(f);
+        };
+        fileInput.click();
+    },
+
     switchSetTab(tabId) {
         const tabs = ['basic', 'ai', 'draw', 'sys'];
         tabs.forEach(id => {
@@ -483,7 +511,6 @@ export const PhoneUI = {
         }
     },
 
-    // 🌟 纯原生执行保存：直接从 DOM 提取、直接写入 localStorage
     executeSavePresetDirectly() {
         const name = (document.getElementById('preset-name')?.value || '').trim();
         const url = (document.getElementById('preset-url')?.value || '').trim();
@@ -513,7 +540,6 @@ export const PhoneUI = {
 
         localStorage.setItem('ai_api_presets', JSON.stringify(presets));
         
-        // 立即激活当前主模型配置
         localStorage.setItem('main_engine_id', target.id);
         localStorage.setItem('api_url', target.url);
         localStorage.setItem('api_key', target.key);
@@ -619,7 +645,6 @@ export const PhoneUI = {
         }
     },
 
-    // 🌟 全新重构设置 UI：彻底移除导致死锁的内联 display 属性！
     renderSettings() {
         const contentEl = document.getElementById('app-window-content');
         if (!contentEl) return;
@@ -647,8 +672,8 @@ export const PhoneUI = {
             <div class="settings-tab" id="stab-sys" onclick="window.PhoneUI.switchSetTab('sys')">系统维护</div>
         </div>
 
-        <!-- 1. 基础设置 -->
-        <div id="set-sec-basic" class="set-section active" style="flex-direction: column; gap: 15px;">
+        <!-- 1. 基础设置（加上 100px 底部 padding 防止被系统条遮挡） -->
+        <div id="set-sec-basic" class="set-section active" style="flex-direction: column; gap: 15px; padding-bottom: 100px;">
             <div class="card" style="padding: 16px;">
                 <h3 style="color:var(--primary-color);margin-bottom:15px; font-size: 15px;"><i class="ph-fill ph-user-circle"></i> 基础设定 (头像与名字)</h3>
                 <div style="display:flex; justify-content:space-around; align-items:center; margin-bottom:20px; background: var(--icon-bg); padding: 15px; border-radius: 16px; border: 1px dashed var(--border-color);">
@@ -680,10 +705,45 @@ export const PhoneUI = {
                 <div class="engine-title" style="margin-bottom: 6px; font-size: 12px; font-weight: bold; color: var(--text-main);"><i class="ph-fill ph-heart" style="color:var(--danger-color);"></i> 恋爱纪念日</div>
                 <div style="margin-bottom:15px;"><input type="date" id="love-start-date" value="${localStorage.getItem('love_start_date') || defaultDate}" onchange="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:10px;border-radius:8px;border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main);"></div>
             </div>
+
+            <!-- 🌟 补回：自定义壁纸卡片 -->
+            <div class="card" style="padding: 16px;">
+                <h3 style="color:var(--primary-color);margin-bottom:12px; font-size: 15px;"><i class="ph-fill ph-image-square"></i> 自定义背景壁纸</h3>
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                            <label style="font-size:12px; font-weight:bold; color:var(--text-main);">全局背景壁纸</label>
+                            <button onclick="window.PhoneUI.triggerWallpaperUpload('bg_global')" style="font-size:11px; background:var(--primary-color); color:#fff; border:none; padding:4px 10px; border-radius:6px; cursor:pointer;">本地上传</button>
+                        </div>
+                        <input type="text" id="bg-global" placeholder="外链图片 URL 或点击上传" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border-color);background:var(--window-bg);color:var(--text-main);font-size:12px;">
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                            <label style="font-size:12px; font-weight:bold; color:var(--text-main);">聊天窗口壁纸</label>
+                            <button onclick="window.PhoneUI.triggerWallpaperUpload('bg_chat')" style="font-size:11px; background:var(--primary-color); color:#fff; border:none; padding:4px 10px; border-radius:6px; cursor:pointer;">本地上传</button>
+                        </div>
+                        <input type="text" id="bg-chat" placeholder="外链图片 URL 或点击上传" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border-color);background:var(--window-bg);color:var(--text-main);font-size:12px;">
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                            <label style="font-size:12px; font-weight:bold; color:var(--text-main);">日记封面壁纸</label>
+                            <button onclick="window.PhoneUI.triggerWallpaperUpload('bg_diary_cover')" style="font-size:11px; background:var(--primary-color); color:#fff; border:none; padding:4px 10px; border-radius:6px; cursor:pointer;">本地上传</button>
+                        </div>
+                        <input type="text" id="bg-diary-cover" placeholder="外链图片 URL 或点击上传" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border-color);background:var(--window-bg);color:var(--text-main);font-size:12px;">
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                            <label style="font-size:12px; font-weight:bold; color:var(--text-main);">日记内页壁纸</label>
+                            <button onclick="window.PhoneUI.triggerWallpaperUpload('bg_diary_page')" style="font-size:11px; background:var(--primary-color); color:#fff; border:none; padding:4px 10px; border-radius:6px; cursor:pointer;">本地上传</button>
+                        </div>
+                        <input type="text" id="bg-diary-page" placeholder="外链图片 URL 或点击上传" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border-color);background:var(--window-bg);color:var(--text-main);font-size:12px;">
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- 2. 大模型与记忆设置 -->
-        <div id="set-sec-ai" class="set-section" style="flex-direction: column; gap: 18px;">
+        <div id="set-sec-ai" class="set-section" style="flex-direction: column; gap: 18px; padding-bottom: 100px;">
             <div class="card" style="padding: 16px; border: 1px solid var(--border-color);">
                 <h3 style="color:var(--primary-color);margin-bottom:12px; font-size: 15px;"><i class="ph-fill ph-scroll"></i> 提示词与人设</h3>
                 <div style="margin-bottom:15px;">
@@ -696,7 +756,6 @@ export const PhoneUI = {
                 </div>
             </div>
 
-            <!-- 记忆抽取卡片（高对比深色字体，一目了然） -->
             <div class="card" style="padding: 16px; border: 1px solid var(--border-color);">
                 <h3 style="color:var(--primary-color);margin-bottom:12px; font-size: 15px;"><i class="ph-fill ph-brain"></i> 记忆管理与上下文提取</h3>
                 
@@ -734,7 +793,6 @@ export const PhoneUI = {
                 </div>
             </div>
 
-            <!-- 预设配置卡片 -->
             <div class="card" style="padding: 16px; border: 1px solid var(--border-color);">
                 <h3 style="color:var(--primary-color);margin-bottom:12px; font-size: 15px;"><i class="ph-fill ph-database"></i> 语言引擎预设配置</h3>
                 
@@ -773,7 +831,7 @@ export const PhoneUI = {
         </div>
 
         <!-- 3. 绘画引擎 -->
-        <div id="set-sec-draw" class="set-section" style="flex-direction: column; gap: 15px;">
+        <div id="set-sec-draw" class="set-section" style="flex-direction: column; gap: 15px; padding-bottom: 100px;">
             <div class="card" style="padding: 16px;">
                 <h3 style="color:var(--primary-color);margin-bottom:10px; font-size: 15px;"><i class="ph-fill ph-image"></i> 绘画引擎配置 (DALL-E 格式)</h3>
                 <div style="margin-bottom:10px;"><input type="text" id="img-api-url" placeholder="接口地址 (例如: https://dangao.iisbo.com/v1)" style="width:100%;padding:10px;border-radius:8px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main);"></div>
@@ -787,7 +845,7 @@ export const PhoneUI = {
         </div>
 
         <!-- 4. 系统维护 -->
-        <div id="set-sec-sys" class="set-section" style="flex-direction: column; gap: 15px;">
+        <div id="set-sec-sys" class="set-section" style="flex-direction: column; gap: 15px; padding-bottom: 100px;">
             <div class="card" style="border: 1px solid var(--primary-color); padding: 16px;">
                 <h3 style="color:var(--primary-color);margin-bottom:10px; font-size: 15px;"><i class="ph-fill ph-cloud-check"></i> Cloudflare 云端同步</h3>
                 <div style="display:flex;gap:10px;"><button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.syncToCloud()" style="flex:1;margin-top:0;background:linear-gradient(135deg, var(--primary-color), var(--secondary-color));"><i class="ph-fill ph-cloud-arrow-up"></i> 备份到云端</button><button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.restoreFromCloud()" style="flex:1;margin-top:0;background:var(--icon-bg);color:var(--text-main);border:1px solid var(--border-color);"><i class="ph-fill ph-cloud-arrow-down"></i> 从云端拉取</button></div>
@@ -810,9 +868,8 @@ export const PhoneUI = {
         </div>
         `;
 
-        // 🌟 核心：页面构建完毕后，直接给保存按钮挂载物理事件监听，绝不丢事件
         setTimeout(() => {
-            this.switchSetTab('basic'); // 默认进基础页，打好 display 标
+            this.switchSetTab('basic');
             const saveBtn = document.getElementById('btn-direct-save-preset');
             if (saveBtn) {
                 saveBtn.addEventListener('click', (e) => {

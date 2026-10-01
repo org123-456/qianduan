@@ -132,7 +132,6 @@ export const DiaryUI = {
                         <i class="ph-fill ph-feather diary-quote-icon"></i>
                         <div class="diary-quote">${formattedQuote}</div>
                     </div>
-                    ${this.renderDiaryShelfInline()}
                 </div>
 
                 <div class="page-turner">
@@ -160,7 +159,8 @@ export const DiaryUI = {
         const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
         const weekStr = `星期${weekDays[targetDate.getDay()]}`;
 
-        const diaries = window.PhoneAPI ? window.PhoneAPI.getDiaries() : {};
+        // TA 日记由 DiaryUI 自己负责读写；不要从 PhoneAPI 取，否则生成成功后页面读不到。
+        const diaries = this.getDiaries();
         let content = diaries?.[dateStr] || '';
 
         let html = `
@@ -200,9 +200,7 @@ export const DiaryUI = {
             `;
         }
 
-        // 🌟 将书架直接附在日记正文下方
         html += `
-                ${this.renderDiaryShelfInline()}
             </div>
 
             <div class="page-turner">
@@ -316,9 +314,13 @@ ${dateStr}
         }
     },
 
-    regenerateDiary(dateStr) {
+    async regenerateDiary(dateStr) {
         if (!confirm('确定要让大侦探重写这页日记吗？')) return;
-        this.generateDiary(dateStr);
+        const diaries = this.getDiaries();
+        delete diaries[dateStr];
+        this.saveDiaries(diaries);
+        const content = await this.generateDiary(dateStr);
+        if (content) this.renderDiaryPage();
     },
 
     renderMyDiary() {

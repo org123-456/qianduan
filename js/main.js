@@ -5,6 +5,23 @@ import { PhoneEngine } from './phone/phone_engine.js';
 import { WechatApp } from './apps/wechat.js';
 import { MemoryEngine } from './phone/engine/memory_engine.js';
 
+const APP_BUILD = '2026.10.01-pwa4';
+
+async function checkPwaBuild() {
+    try {
+        const current = document.querySelector('meta[name="app-build"]')?.content || '';
+        if (current !== APP_BUILD) return;
+        const stamp = Date.now();
+        const response = await fetch('./index.html?build-check=' + stamp, { cache: 'no-store' });
+        const html = await response.text();
+        const match = html.match(/<meta[^>]+name=["']app-build["'][^>]+content=["']([^"']+)["']/i);
+        const remoteBuild = match?.[1] || '';
+        if (remoteBuild && remoteBuild !== APP_BUILD) {
+            window.location.replace('./index.html?update=' + stamp);
+        }
+    } catch (e) {}
+}
+
 let msgCounter = 0;
 
 const legacySendUserMsgOnly = PhoneEngine.sendUserMsgOnly;
@@ -46,6 +63,7 @@ window.MemoryEngine = MemoryEngine;
 window.Apps = { wechat: WechatApp };
 
 document.addEventListener('DOMContentLoaded', () => {
+    checkPwaBuild();
     console.log('✅ 核心引擎已挂载，路径加载成功！');
 
     const savedTheme = localStorage.getItem('theme') || 'light';

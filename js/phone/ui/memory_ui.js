@@ -139,7 +139,7 @@ export const MemoryUI = {
         const cleanItems = items.filter(i => i && i.sender !== 'typing' && i.content);
         const hiddenOrInvalid = items.filter(i => !i || i.sender === 'typing' || !i.content).length;
         const summaryIndex = Math.max(0, Math.min(parseInt(localStorage.getItem('memory_last_summary_index') || '0', 10), cleanItems.length));
-        const keepRecent = Math.min(50, cleanItems.length);
+        const keepRecent = Math.min(120, cleanItems.length);
         const deletable = Math.max(0, summaryIndex - Math.min(keepRecent, summaryIndex));
 
         const first = cleanItems[0] || null;
@@ -205,7 +205,7 @@ export const MemoryUI = {
         const items = window.Config?.phoneData?.[roleId]?.wechat?.items || [];
         const cleanItems = items.filter(i => i && i.sender !== 'typing' && i.content);
         const summaryIndex = Math.max(0, Math.min(parseInt(localStorage.getItem('memory_last_summary_index') || '0', 10), cleanItems.length));
-        const keepCount = Math.min(50, cleanItems.length);
+        const keepCount = Math.min(120, cleanItems.length);
         const safeCutoff = Math.max(0, Math.min(summaryIndex, cleanItems.length - keepCount));
         if (safeCutoff <= 0) {
             window.PhoneAPI?.showToast?.('目前没有可以安全清理的旧聊天。');

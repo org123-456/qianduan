@@ -282,28 +282,11 @@ export const PhoneUI = {
         contentEl.style.display = 'block';
         contentEl.style.overflow = 'auto';
 
-        // 🌟 打开日记：在主视图直接打开日记，底部直挂两本书
-        if (appId === 'diary') { 
-            winEl.classList.add('fullscreen-mode'); 
-            const diaryTitle = localStorage.getItem('diary_title') || 'His Diary';
-            contentEl.innerHTML = `
-                <div id="diary-cover-view" class="diary-cover-view">
-                    <div class="diary-book-cover long-pressable" data-img="bg_diary_cover" id="diary-book-cover" style="cursor:default;">
-                        <div class="diary-title">${this.escapeHtml(diaryTitle)}</div>
-                        <div class="diary-hint" style="margin-bottom:24px;">选择一本，进入属于你们的日记</div>
-                        ${this.renderDiaryShelfInline()}
-                    </div>
-                    <div class="diary-back-btn" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div>
-                </div>
-                <div id="diary-inside-view" class="diary-inside-view">
-                    <div class="diary-back-btn" onclick="window.PhoneUI.showDiaryShelf()" style="top:20px;left:15px;background:rgba(0,0,0,0.18);color:#fff;z-index:50;"><i class="ph ph-caret-left"></i></div>
-                    <div id="diary-content-area" style="display:flex;flex-direction:column;min-height:100%;"></div>
-                </div>
-            `;
-            this.renderDiaryPage();
-            this.bindLongPresses();
-            if (this.applyDiaryBackgrounds) this.applyDiaryBackgrounds();
-        } else { 
+        // 🌟 日记入口统一走沉浸式全屏阅读；Space 里的书架只负责选书。
+        if (appId === 'diary') {
+            this.openDiaryFullscreen(this.currentDiaryBook || 'ta');
+            return;
+        } else {
             winEl.classList.remove('fullscreen-mode'); 
         }
 

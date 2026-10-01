@@ -3,10 +3,42 @@
 import { gameData, increaseAffection } from './data.js';
 import { triggerEvent } from './events.js';
 
+function addMemory(title, text) {
+  gameData.memories.push({
+    id: Date.now(),
+    title,
+    text
+  });
+}
+
+function handleAction(action) {
+  if (action === 'meet') {
+    triggerEvent('first_meeting');
+    addMemory('第一次相遇', '今天来到了此间归处。');
+  }
+
+  if (action === 'talk') {
+    increaseAffection(1);
+    if (gameData.companion.state) {
+      gameData.companion.state.mood = '愉快';
+    }
+    addMemory('一次聊天', '今天进行了一次温暖的交流。');
+  }
+
+  if (action === 'rest') {
+    if (gameData.companion.state) {
+      gameData.companion.state.energy = Math.min(100, gameData.companion.state.energy + 10);
+      gameData.companion.state.mood = '平静';
+    }
+    addMemory('一起休息', '一起度过了一段安静的时间。');
+  }
+}
+
 export function renderGameUI(container) {
   if (!container) return;
 
   const companion = gameData.companion;
+  const latestMemory = gameData.memories.at(-1);
 
   container.innerHTML = `
     <div class="this-place-game">
@@ -24,6 +56,11 @@ export function renderGameUI(container) {
         <div>章节：${gameData.progress.chapter}</div>
       </div>
 
+      <div class="this-place-memory">
+        <strong>最近记忆：</strong>
+        <div>${latestMemory ? latestMemory.text : '还没有发生什么。'}</div>
+      </div>
+
       <div class="this-place-actions">
         <button data-action="meet" type="button">开始相遇</button>
         <button data-action="talk" type="button">聊聊天</button>
@@ -32,31 +69,9 @@ export function renderGameUI(container) {
     </div>
   `;
 
-  const actions = container.querySelectorAll('[data-action]');
-
-  actions.forEach((button) => {
+  container.querySelectorAll('[data-action]').forEach((button) => {
     button.addEventListener('click', () => {
-      const action = button.dataset.action;
-
-      if (action === 'meet') {
-        triggerEvent('first_meeting');
-      }
-
-      if (action === 'talk') {
-        increaseAffection(1);
-        gameData.memories.push({
-          id: Date.now(),
-          title: '一次聊天',
-          text: '今天进行了一次普通的交流。'
-        });
-      }
-
-      if (action === 'rest') {
-        if (gameData.companion.state) {
-          gameData.companion.state.energy = Math.min(100, gameData.companion.state.energy + 10);
-        }
-      }
-
+      handleAction(button.dataset.action);
       renderGameUI(container);
     });
   });

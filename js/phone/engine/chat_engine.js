@@ -33,8 +33,11 @@ export const ChatEngine = {
     getRealIndex(index) {
         const roleId = Config?.currentContactId;
         const items = Config?.phoneData?.[roleId]?.wechat?.items || [];
-        if (items.length > 50 && index < 50) return items.length - 50 + index;
-        return index;
+        const start = Number(window.ChatUI?._chatRenderStartIndex);
+        if (Number.isInteger(start) && start >= 0 && start <= items.length) {
+            return Math.min(items.length - 1, start + Number(index));
+        }
+        return Number(index);
     },
 
     cleanStuckTyping() {

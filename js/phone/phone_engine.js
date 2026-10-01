@@ -1,5 +1,5 @@
 import { ChatEngine } from './engine/chat_engine.js';
-import { ReaderEngine } from './engine/reader_engine.js';
+import { ReaderEngine } from './engine/reader_engine.js?v=2';
 import { GalleryEngine } from './engine/gallery_engine.js';
 import { DrawEngine } from './engine/draw_engine.js';
 import { CinemaEngine } from './engine/cinema_engine.js'; // 🌟 引入放映室引擎

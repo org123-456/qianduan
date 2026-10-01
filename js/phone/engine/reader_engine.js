@@ -304,7 +304,8 @@ export const ReaderEngine = {
     },
 
     async openBook(bookId) {
-        const bookshelf = JSON.parse(localStorage.getItem('reader_bookshelf') || '[]');
+        await this.hydrateReaderStorage();
+        const bookshelf = await this._getStoredArray('reader_bookshelf', []);
         const book = bookshelf.find(b => b.id === bookId);
         if (!book) return;
         PhoneAPI.showToast('📖 正在打开书本...');

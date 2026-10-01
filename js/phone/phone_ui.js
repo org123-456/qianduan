@@ -274,7 +274,7 @@ export const PhoneUI = {
         contentEl.style.display = 'block';
         contentEl.style.overflow = 'auto';
 
-        // 🌟 按你的要求修改为 renderDiaryShelf 并直接 return
+        // 🌟 满足你的修改：使用双人书架入口并立即 return
         if (appId === 'diary') {
             winEl.classList.add('fullscreen-mode');
             this.renderDiaryShelf();
@@ -644,7 +644,6 @@ export const PhoneUI = {
         }
     },
 
-    // 🌟 纯字符串双轨安全保存（绝不破坏人设）
     async savePromptAndPersona() {
         const sysVal = document.getElementById('system-prompt')?.value || '';
         const charVal = document.getElementById('char-persona')?.value || '';
@@ -676,7 +675,6 @@ export const PhoneUI = {
         }
     },
 
-    // 🌟 核心：100% 还原全部 4 个板块，每一个卡片、每一个按钮都完整无缺！
     renderSettings() {
         const contentEl = document.getElementById('app-window-content');
         if (!contentEl) return;
@@ -704,7 +702,7 @@ export const PhoneUI = {
             <div class="settings-tab" id="stab-sys" onclick="window.PhoneUI.switchSetTab('sys')">系统维护</div>
         </div>
 
-        <!-- 1. 基础设置（完整保留名字、头像、主题色、恋爱日、壁纸） -->
+        <!-- 1. 基础设置 -->
         <div id="set-sec-basic" class="set-section active" style="flex-direction: column; gap: 15px; padding-bottom: 100px;">
             <div class="card" style="padding: 16px;">
                 <h3 style="color:var(--primary-color);margin-bottom:15px; font-size: 15px;"><i class="ph-fill ph-user-circle"></i> 基础设定 (头像与名字)</h3>
@@ -918,7 +916,6 @@ export const PhoneUI = {
                 window.PhoneAPI.loadSettings();
             }
 
-            // 安全读取人设（双轨保障）
             let finalSys = localStorage.getItem('system_prompt') || '';
             let finalChar = localStorage.getItem('char_persona') || '';
 

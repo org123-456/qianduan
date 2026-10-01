@@ -157,28 +157,41 @@ export const ReaderEngine = {
             bookshelf = await this._getStoredArray('reader_bookshelf', []);
         }
 
-        // 如果元数据曾被清掉，但 TXT 正文 Blob 还在 IndexedDB 里，尝试把孤儿书找回来。
-        if ((!bookshelf || !bookshelf.length) && window.PhoneAPI?.LocalDB?.listKeys) {
+        // 如果书架元数据缺失/不完整，但 TXT 正文 Blob 还在 IndexedDB 里，尝试把孤儿书找回来。
+        if (window.PhoneAPI?.LocalDB?.listKeys) {
             try {
                 const keys = await window.PhoneAPI.LocalDB.listKeys();
                 const bookKeys = keys.filter(key => typeof key === 'string' && key.indexOf('book_') === 0);
-                bookshelf = [];
+                const knownIds = new Set(bookshelf.map(book => book.id));
+                let recoveredCount = 0;
+
                 for (let i = 0; i < bookKeys.length; i++) {
                     const id = bookKeys[i];
+                    if (knownIds.has(id)) continue;
                     const blob = await window.PhoneAPI.LocalDB.get(id);
                     if (!blob) continue;
+
+                    let recoveredTitle = '导入的书籍 ' + (i + 1);
+                    try {
+                        const sample = await blob.slice(0, 300).text();
+                        const firstLine = sample.split(/\\r?\\n/).map(line => line.trim()).find(Boolean);
+                        if (firstLine && firstLine.length <= 40) recoveredTitle = firstLine;
+                    } catch (e) {}
+
                     bookshelf.push({
                         id,
-                        title: '导入的书籍 ' + (i + 1),
+                        title: recoveredTitle,
                         offsets: [0],
                         currentIndex: 0,
                         lastRead: 0,
                         recovered: true
                     });
+                    recoveredCount++;
                 }
-                if (bookshelf.length) {
+
+                if (recoveredCount) {
                     await this._saveStoredArray('reader_bookshelf', bookshelf);
-                    PhoneAPI.showToast('📚 已从本地存储恢复 ' + bookshelf.length + ' 本书');
+                    window.PhoneAPI?.showToast?.('📚 已从本地存储恢复 ' + recoveredCount + ' 本书');
                 }
             } catch (e) {
                 console.warn('书架恢复失败', e);

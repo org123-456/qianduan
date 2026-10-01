@@ -187,7 +187,6 @@ export const PhoneAPI = {
         }
     },
     
-    // 🌟 核心防报错保护：优先保障名字与人设绝对写入，UI 重绘做隔离
     _doSave() {
         const saveIfExist = (id, key, isCheckbox = false) => { 
             const el = document.getElementById(id); 
@@ -201,29 +200,18 @@ export const PhoneAPI = {
             }
         };
 
-        // 🌟 1. 名字、人设、系统提示词排在最首位执行，绝不受后续任何报错影响
         saveIfExist('my-name', 'my_name'); 
         saveIfExist('char-name', 'char_name');
-        saveIfExist('system-prompt', 'system_prompt'); 
-        saveIfExist('char-persona', 'char_persona');
-
-        // 🌟 2. 纪念日与日记
         saveIfExist('love-start-date', 'love_start_date');
         saveIfExist('diary-title', 'diary_title'); 
         saveIfExist('diary-start-date', 'diary_start_date');
 
-        // 🌟 3. 壁纸 URL
         saveIfExist('bg-global', 'bg_global'); 
         saveIfExist('bg-chat', 'bg_chat');
         saveIfExist('bg-diary-cover', 'bg_diary_cover'); 
         saveIfExist('bg-diary-page', 'bg_diary_page');
         
-        // 🌟 4. 安全保护主题重刷，防止异常阻断
-        try { 
-            this.applyUITheme(); 
-        } catch(e) {
-            console.warn('UI主题更新跳过:', e);
-        }
+        try { this.applyUITheme(); } catch(e) {}
         
         saveIfExist('img-api-url', 'img_api_url'); 
         saveIfExist('img-api-key', 'img_api_key'); 
@@ -244,8 +232,6 @@ export const PhoneAPI = {
             const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
             setVal('my-name', localStorage.getItem('my_name') || ''); 
             setVal('char-name', localStorage.getItem('char_name') || '');
-            setVal('system-prompt', localStorage.getItem('system_prompt') || ''); 
-            setVal('char-persona', localStorage.getItem('char_persona') || '');
 
             setVal('bg-global', localStorage.getItem('bg_global') || ''); 
             setVal('bg-chat', localStorage.getItem('bg_chat') || '');

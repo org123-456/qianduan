@@ -66,10 +66,38 @@ export const Config = {
 
             // 恢复优先级：有实际聊天记录的数据 > 空壳数据。
             // 关键点：不再因为 IndexedDB 里存在一个空对象，就把旧聊天覆盖掉。
-            if (isUsablePhoneData(saved) || !isUsablePhoneData(legacy)) {
-                this.phoneData = saved || legacy || {};
-            } else {
-                this.phoneData = legacy;
+            // 不再二选一：旧 localStorage 里可能保留着相册/图片，
+            // 而 IndexedDB 里保留着聊天。两份数据要做深度合并，避免互相覆盖。
+            const mergeData = (base, extra) => {
+                const out = (base && typeof base === 'object') ? structuredClone(base) : {};
+                if (!extra || typeof extra !== 'object') return out;
+                for (const [roleId, roleData] of Object.entries(extra)) {
+                    if (!out[roleId] || typeof out[roleId] !== 'object') out[roleId] = {};
+                    if (!roleData || typeof roleData !== 'object') continue;
+                    for (const [section, value] of Object.entries(roleData)) {
+                        if (section === 'wechat' && value?.items && out[roleId]?.wechat?.items) {
+                            const existing = out[roleId].wechat.items;
+                            const incoming = value.items;
+                            const byId = new Map(existing.map((x, i) => [x?.id ?? ('idx_' + i), x]));
+                            for (const item of incoming) byId.set(item?.id ?? ('incoming_' + Math.random()), item);
+                            out[roleId].wechat.items = Array.from(byId.values());
+                        } else if (section === 'gallery' && value?.items) {
+                            const a = out[roleId].gallery?.items || [];
+                            const b = value.items || [];
+                            const byId = new Map(a.map((x, i) => [x?.id ?? ('idx_' + i), x]));
+                            for (const item of b) byId.set(item?.id ?? ('incoming_' + Date.now()), item);
+                            out[roleId].gallery = { ...(out[roleId].gallery || {}), ...(value || {}), items: Array.from(byId.values()) };
+                        } else if (out[roleId][section] == null || (Array.isArray(out[roleId][section]) && out[roleId][section].length === 0)) {
+                            out[roleId][section] = value;
+                        }
+                    }
+                }
+                return out;
+            };
+
+            this.phoneData = mergeData(saved, legacy);
+            if (!isUsablePhoneData(this.phoneData)) {
+                this.phoneData = mergeData(legacy, saved);
             }
 
             // 如果发现旧 localStorage 比 IDB 更完整，把它重新写回 IDB。

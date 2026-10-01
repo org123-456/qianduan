@@ -2,15 +2,27 @@
 
 import { gameData, increaseAffection, addMemory } from './data.js';
 import { triggerEvent } from './events.js';
+import { getEvent } from './event_config.js';
+
+function applyEvent(eventId) {
+  const config = getEvent(eventId);
+  if (!config) return;
+
+  triggerEvent(eventId, config);
+
+  if (config.memory) {
+    addMemory(config.memory);
+  }
+
+  if (config.effects?.chapter) {
+    gameData.progress.chapter = config.effects.chapter;
+  }
+}
 
 const actions = {
   meet() {
-    triggerEvent('first_meeting');
+    applyEvent('first_meeting');
     gameData.progress.firstMeeting = true;
-    addMemory({
-      title: '第一次相遇',
-      text: '今天来到了此间归处。'
-    });
   },
 
   talk() {

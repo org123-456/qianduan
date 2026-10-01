@@ -178,6 +178,87 @@ export const PhoneUI = {
         if (winEl) winEl.classList.remove('open');
     },
 
+    // 🌟 核心：右上角切 API 弹窗模块完整挂载！
+    openApiModal() {
+        const bg = document.getElementById('api-modal-bg');
+        const modal = document.getElementById('api-modal');
+        if (!bg || !modal) return;
+        if (window.PhoneAPI && window.PhoneAPI.refreshPresetDropdowns) {
+            window.PhoneAPI.refreshPresetDropdowns();
+        }
+        bg.classList.add('show');
+        modal.classList.add('show');
+        this.renderApiModalContent();
+    },
+
+    closeApiModal() {
+        const bg = document.getElementById('api-modal-bg');
+        const modal = document.getElementById('api-modal');
+        if (bg) bg.classList.remove('show');
+        if (modal) modal.classList.remove('show');
+    },
+
+    async renderApiModalContent() {
+        const modal = document.getElementById('api-modal');
+        if (!modal) return;
+
+        let tokenBoard = document.getElementById('api-token-board');
+        if (!tokenBoard) {
+            tokenBoard = document.createElement('div');
+            tokenBoard.id = 'api-token-board';
+            tokenBoard.style.cssText = 'margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 12px;';
+            modal.appendChild(tokenBoard);
+        }
+
+        const stats = window.PhoneAPI ? window.PhoneAPI.getTokenStats() : { totalCount: 0, totalCost: '0.0000', lastUsage: null, lastCost: '0.0000', pricePerM: 2.0 };
+        let lastInfo = stats.lastUsage ? `入: ${stats.lastUsage.prompt} | 出: ${stats.lastUsage.completion} | 总: <b>${stats.lastUsage.total}</b> (约 ￥${stats.lastCost})` : '暂无调用记录';
+
+        tokenBoard.innerHTML = `
+            <div style="font-size: 13px; font-weight: bold; color: var(--primary-color); display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <span><i class="ph-fill ph-wallet"></i> 实时账户与用量</span>
+                <span style="font-size: 10px; color: var(--text-sub); cursor: pointer;" onclick="window.PhoneUI.editTokenPrice()">单价: ￥${stats.pricePerM}/1M ✎</span>
+            </div>
+
+            <div style="background: var(--icon-bg); padding: 10px; border-radius: 10px; font-size: 11px; display: flex; flex-direction: column; gap: 5px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--text-sub);">本次累计消耗：</span>
+                    <span style="font-weight: bold; color: var(--text-main); font-family: monospace;">${stats.totalCount.toLocaleString()} Tokens (约 ￥${stats.totalCost})</span>
+                </div>
+                <div style="border-top: 1px dashed var(--border-color); margin: 2px 0;"></div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--text-sub);">最近一次对话：</span>
+                    <span style="color: var(--text-main); font-size: 10px;">${lastInfo}</span>
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+                <button onclick="if(window.PhoneAPI){window.PhoneAPI.resetTokenStats(); window.PhoneUI.renderApiModalContent();}" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-sub); font-size: 10px; padding: 3px 8px; border-radius: 6px; cursor: pointer;">清零本地统计</button>
+            </div>
+        `;
+    },
+
+    async editTokenPrice() {
+        const cur = localStorage.getItem('token_price_per_m') || '2.0';
+        const price = await this.showCustomPrompt('每 100 万 Token 的综合估算价格(元)：', cur);
+        if (price !== null && !isNaN(parseFloat(price))) {
+            localStorage.setItem('token_price_per_m', parseFloat(price).toString());
+            this.renderApiModalContent();
+        }
+    },
+
+    showCustomPrompt(title, defaultValue = '') {
+        return new Promise(resolve => {
+            const bg = document.getElementById('custom-prompt-bg');
+            const modal = document.getElementById('custom-prompt-modal');
+            document.getElementById('custom-prompt-title').innerText = title;
+            const input = document.getElementById('custom-prompt-input');
+            input.value = defaultValue;
+            bg.classList.add('show'); modal.classList.add('show');
+            document.getElementById('custom-prompt-confirm').onclick = () => { bg.classList.remove('show'); modal.classList.remove('show'); resolve(input.value); };
+            document.getElementById('custom-prompt-cancel').onclick = () => { bg.classList.remove('show'); modal.classList.remove('show'); resolve(null); };
+        });
+    },
+
     switchSetTab(tabId) {
         const tabs = ['basic', 'ai', 'draw', 'sys'];
         tabs.forEach(id => {
@@ -202,7 +283,6 @@ export const PhoneUI = {
         }
     },
 
-    // 🌟 计算 localStorage 已占用真实大小
     getStorageUsage() {
         let total = 0;
         for (let x in localStorage) {
@@ -210,20 +290,17 @@ export const PhoneUI = {
                 total += (localStorage[x].length + x.length) * 2;
             }
         }
-        const kb = (total / 1024).toFixed(1);
         const mb = (total / 1024 / 1024).toFixed(2);
         const percent = Math.min(100, Math.round((total / (5 * 1024 * 1024)) * 100));
-        return { kb, mb, percent };
+        return { mb, percent };
     },
 
-    // 🌟 渲染系统日志与内存看板
     renderDebugLogs() {
         const container = document.getElementById('debug-log-container');
         if (!container) return;
 
-        const { kb, mb, percent } = this.getStorageUsage();
+        const { mb, percent } = this.getStorageUsage();
         const logs = window.PhoneAPI?.logger ? window.PhoneAPI.logger.getLogs() : [];
-
         let statusColor = percent > 85 ? '#e63946' : (percent > 60 ? '#f4a261' : '#2a9d8f');
 
         let html = `
@@ -264,14 +341,11 @@ export const PhoneUI = {
         container.innerHTML = html;
     },
 
-    // 🌟 提示词与超长人设双保险保存（纯字符串写入 IndexedDB）
     async savePromptAndPersona() {
         const sysVal = document.getElementById('system-prompt')?.value || '';
         const charVal = document.getElementById('char-persona')?.value || '';
         
         let report = [];
-
-        // 1. 无条件写入大容量 IndexedDB
         if (window.PhoneAPI && window.PhoneAPI.LocalDB) {
             try {
                 await window.PhoneAPI.LocalDB.set('direct_sys_text', sysVal);
@@ -279,21 +353,17 @@ export const PhoneUI = {
                 report.push("大容量数据库: 成功 ✔");
             } catch(e) {
                 report.push("大容量数据库: 失败 ✖ (" + e.message + ")");
-                window.PhoneAPI.logger.log('ERROR', 'LocalDB写入失败', e.message);
             }
         }
 
-        // 2. 尝试写入 localStorage
         try {
             localStorage.setItem('system_prompt', sysVal);
             localStorage.setItem('char_persona', charVal);
             report.push("localStorage: 成功 ✔");
         } catch(e) {
             report.push("localStorage: 配额已满 ⚠ (已由大容量库接管)");
-            window.PhoneAPI.logger.log('WARN', 'localStorage超限，已转存LocalDB', `人设字数: ${charVal.length}`);
         }
 
-        // 实时弹窗展示
         alert(`【保存状态诊断】\n\n` + report.join('\n') + `\n\n人设总字数: ${charVal.length} 字\n已安全落地！`);
 
         const btn = document.getElementById('btn-save-prompts');
@@ -383,19 +453,7 @@ export const PhoneUI = {
         if (!contentEl) return;
         const today = new Date();
         const defaultDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        
         const currentColor = localStorage.getItem('app_color') || 'blue';
-        const myAvatar = localStorage.getItem('my_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa';
-        const taAvatar = localStorage.getItem('ta_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=TA&backgroundColor=e8f0fa';
-
-        const roleId = window.Config?.currentContactId || 'role_001';
-        const allItems = window.Config?.phoneData?.[roleId]?.wechat?.items || [];
-        const cleanItems = allItems.filter(i => i.sender !== 'typing' && i.content);
-        const lastIdx = parseInt(localStorage.getItem('memory_last_summary_index') || '0', 10);
-        const unsummarizedCount = Math.max(0, cleanItems.length - lastIdx);
-
-        const curChatLimit = localStorage.getItem('context_chat_limit') || '60';
-        const curVaultLimit = localStorage.getItem('context_vault_limit') || '15';
 
         contentEl.innerHTML = `
         <div class="settings-tabs" style="display: flex; gap: 6px; margin-bottom: 20px;">
@@ -408,19 +466,8 @@ export const PhoneUI = {
         <!-- 1. 基础设置 -->
         <div id="set-sec-basic" class="set-section active" style="flex-direction: column; gap: 15px; padding-bottom: 100px;">
             <div class="card" style="padding: 16px;">
-                <h3 style="color:var(--primary-color);margin-bottom:15px; font-size: 15px;"><i class="ph-fill ph-user-circle"></i> 基础设定 (头像与名字)</h3>
-                <div style="display:flex; justify-content:space-around; align-items:center; margin-bottom:20px; background: var(--icon-bg); padding: 15px; border-radius: 16px; border: 1px dashed var(--border-color);">
-                    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
-                        <img id="set-my-avatar" src="${myAvatar}" onclick="window.PhoneUI.triggerAvatarUpload('my_avatar')" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid var(--border-color); cursor:pointer;">
-                        <span style="font-size:11px; color:var(--text-sub); font-weight:bold;">点击换图</span>
-                    </div>
-                    <i class="ph-fill ph-arrows-left-right" style="color:var(--border-color); font-size:24px;"></i>
-                    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
-                        <img id="set-ta-avatar" src="${taAvatar}" onclick="window.PhoneUI.triggerAvatarUpload('ta_avatar')" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid var(--border-color); cursor:pointer;">
-                        <span style="font-size:11px; color:var(--text-sub); font-weight:bold;">点击换图</span>
-                    </div>
-                </div>
-                <div style="display:flex;gap:10px;margin-bottom:10px;">
+                <h3 style="color:var(--primary-color);margin-bottom:15px; font-size: 15px;"><i class="ph-fill ph-user-circle"></i> 基础设定 (名字)</h3>
+                <div style="display:flex;gap:10px;">
                     <div style="flex:1;"><label style="font-size:12px;color:var(--text-main); font-weight: bold;">我的名字</label><input type="text" id="my-name" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:10px;border-radius:8px;margin-top:4px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main);"></div>
                     <div style="flex:1;"><label style="font-size:12px;color:var(--text-main); font-weight: bold;">TA的名字</label><input type="text" id="char-name" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:10px;border-radius:8px;margin-top:4px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main);"></div>
                 </div>
@@ -428,15 +475,13 @@ export const PhoneUI = {
 
             <div class="card" style="padding: 16px;">
                 <h3 style="color:var(--primary-color);margin-bottom:10px; font-size: 15px;"><i class="ph-fill ph-palette"></i> UI 主题装修</h3>
-                <div class="engine-title" style="margin-top: 10px; margin-bottom: 8px; font-size: 12px; font-weight: bold; color: var(--text-main);"><i class="ph-fill ph-paint-brush"></i> 全局主题色</div>
                 <div class="color-picker-container" style="display: flex; gap: 12px; margin-bottom: 15px;">
                     <div id="color-btn-blue" class="color-circle c-blue ${currentColor === 'blue' ? 'active' : ''}" onclick="window.PhoneUI.changeAppColor('blue')"></div>
                     <div id="color-btn-purple" class="color-circle c-purple ${currentColor === 'purple' ? 'active' : ''}" onclick="window.PhoneUI.changeAppColor('purple')"></div>
                     <div id="color-btn-pink" class="color-circle c-pink ${currentColor === 'pink' ? 'active' : ''}" onclick="window.PhoneUI.changeAppColor('pink')"></div>
                     <div id="color-btn-gold" class="color-circle c-gold ${currentColor === 'gold' ? 'active' : ''}" onclick="window.PhoneUI.changeAppColor('gold')"></div>
                 </div>
-                <div class="engine-title" style="margin-bottom: 6px; font-size: 12px; font-weight: bold; color: var(--text-main);"><i class="ph-fill ph-heart" style="color:var(--danger-color);"></i> 恋爱纪念日</div>
-                <div style="margin-bottom:15px;"><input type="date" id="love-start-date" value="${localStorage.getItem('love_start_date') || defaultDate}" onchange="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:10px;border-radius:8px;border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main);"></div>
+                <div style="margin-bottom:15px;"><label style="font-size:12px;font-weight:bold;color:var(--text-main);">恋爱纪念日</label><input type="date" id="love-start-date" value="${localStorage.getItem('love_start_date') || defaultDate}" onchange="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:10px;border-radius:8px;border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main); margin-top:4px;"></div>
             </div>
         </div>
 
@@ -489,7 +534,6 @@ export const PhoneUI = {
 
         <!-- 4. 系统维护与报错追踪 -->
         <div id="set-sec-sys" class="set-section" style="flex-direction: column; gap: 15px; padding-bottom: 100px;">
-            <!-- 🌟 核心：报错诊断与运行日志看板 -->
             <div class="card" style="padding: 16px; border: 1.5px solid var(--primary-color);">
                 <h3 style="color:var(--primary-color);margin-bottom:12px; font-size: 15px;"><i class="ph-fill ph-activity"></i> 运行状态与报错追踪</h3>
                 <div id="debug-log-container">
@@ -512,7 +556,6 @@ export const PhoneUI = {
                 window.PhoneAPI.loadSettings();
             }
 
-            // 🌟 终极读取：优先读取 IndexedDB 中的超长纯文本！
             let finalSys = localStorage.getItem('system_prompt') || '';
             let finalChar = localStorage.getItem('char_persona') || '';
 

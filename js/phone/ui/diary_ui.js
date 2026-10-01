@@ -105,9 +105,49 @@ export const DiaryUI = {
         if (!area) return;
 
         this.currentDiaryBook = type;
+        const taName = localStorage.getItem('char_name') || 'TA';
+        const isMine = type === 'mine';
+        const title = isMine ? '我的日记' : `${taName}的日记`;
+        const subtitle = isMine ? 'MY DIARY' : 'HIS DIARY';
+        const cover = localStorage.getItem('bg_diary_cover') || '';
+        
         area.innerHTML = `
-            <div id="diary-inline-content" class="diary-inline-content" style="margin-top:15px;">
-                <div id="diary-content-area" style="display:flex;flex-direction:column;"></div>
+            <div class="diary-inline-reader">
+                <button class="diary-inline-back" onclick="window.PhoneUI.showDiaryShelfInline()">
+                    <i class="ph ph-caret-left"></i><span>日记架</span>
+                </button>
+
+                <div class="diary-book-cover-screen" onclick="window.PhoneUI.openDiaryInnerInline()">
+                    <div class="diary-cover-book ${isMine ? 'mine-cover' : 'ta-cover'}" ${cover ? `style="background-image:url('${this.escapeAttribute(cover)}')"` : ''}>
+                        <div class="diary-cover-glow"></div>
+                        <div class="diary-cover-ribbon"></div>
+                        <div class="diary-cover-content">
+                            <div class="diary-cover-small">OUR PRIVATE NOTES</div>
+                            <div class="diary-cover-title">${this.escapeHtml(title)}</div>
+                            <div class="diary-cover-subtitle">${subtitle}</div>
+                            <div class="diary-cover-line"></div>
+                            <div class="diary-cover-hint"><i class="ph ph-hand-tap"></i> 轻触封面，翻开这一页</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        this.applyDiaryBackgrounds();
+    },
+
+    async openDiaryInnerInline() {
+        const area = document.getElementById('moments-diary-inline');
+        if (!area) return;
+
+        const type = this.currentDiaryBook || 'ta';
+        area.innerHTML = `
+            <div class="diary-inline-reader diary-inline-pages">
+                <button class="diary-inline-back" onclick="window.PhoneUI.openDiaryInline('${type}')">
+                    <i class="ph ph-caret-left"></i><span>封面</span>
+                </button>
+                <div id="diary-inline-content" class="diary-inline-content">
+                    <div id="diary-content-area" style="display:flex;flex-direction:column;min-height:0;"></div>
+                </div>
             </div>
         `;
 
@@ -125,21 +165,37 @@ export const DiaryUI = {
     renderDiaryShelfInline() {
         const taName = localStorage.getItem('char_name') || 'TA';
         return `
-            <div class="diary-shelf-inline-container" style="margin-top: 40px; padding: 20px 10px 40px; border-top: 1px dashed rgba(0,0,0,0.15);">
-                <div style="font-size: 13px; font-weight: bold; color: var(--primary-color); margin-bottom: 15px; text-align: center; letter-spacing: 1px;">
-                    📖 双人日记架 · 选择一本打开
+            <div class="diary-inline-shelf">
+                <div class="diary-inline-intro">
+                    <div class="diary-inline-kicker"><i class="ph-fill ph-book-bookmark"></i> OUR PRIVATE DIARY</div>
+                    <div class="diary-inline-heading">藏在这里的两本小秘密</div>
+                    <div class="diary-inline-desc">一本属于TA，一本属于你。想写的时候，就轻轻翻开。</div>
                 </div>
-                <div style="display: flex; justify-content: center; gap: 15px;">
-                    <div onclick="window.PhoneUI.openDiaryInline('ta')" 
-                         style="flex: 1; max-width: 150px; background: linear-gradient(145deg, #789bbc, #354f70); border-radius: 8px 14px 14px 8px; padding: 18px 10px; color: #fff; text-align: center; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.15); transition: 0.2s;">
-                        <div style="font-family: 'Long Cang', cursive; font-size: 19px; font-weight: bold;">${this.escapeHtml(taName)}的日记</div>
-                        <div style="font-size: 9px; opacity: 0.8; margin-top: 6px; letter-spacing: 1px;">HIS DIARY</div>
-                    </div>
-                    <div onclick="window.PhoneUI.openDiaryInline('mine')" 
-                         style="flex: 1; max-width: 150px; background: linear-gradient(145deg, #d69aaa, #754d68); border-radius: 8px 14px 14px 8px; padding: 18px 10px; color: #fff; text-align: center; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.15); transition: 0.2s;">
-                        <div style="font-family: 'Long Cang', cursive; font-size: 19px; font-weight: bold;">我的日记</div>
-                        <div style="font-size: 9px; opacity: 0.8; margin-top: 6px; letter-spacing: 1px;">MY DIARY</div>
-                    </div>
+
+                <div class="diary-inline-books">
+                    <button class="diary-inline-book-card ta-book" onclick="window.PhoneUI.openDiaryInline('ta')">
+                        <div class="diary-book-spine"></div>
+                        <div class="diary-book-paper-edge"></div>
+                        <div class="diary-book-card-icon"><i class="ph-fill ph-feather"></i></div>
+                        <div class="diary-book-card-title">${this.escapeHtml(taName)}的日记</div>
+                        <div class="diary-book-card-subtitle">HIS DIARY</div>
+                        <div class="diary-book-card-hint">TA 的心里话 · 自动记录</div>
+                    </button>
+
+                    <button class="diary-inline-book-card mine-book" onclick="window.PhoneUI.openDiaryInline('mine')">
+                        <div class="diary-book-spine"></div>
+                        <div class="diary-book-paper-edge"></div>
+                        <div class="diary-book-card-icon"><i class="ph-fill ph-heart"></i></div>
+                        <div class="diary-book-card-title">我的日记</div>
+                        <div class="diary-book-card-subtitle">MY DIARY</div>
+                        <div class="diary-book-card-hint">写给自己的小角落</div>
+                    </button>
+                </div>
+
+                <div class="diary-inline-footer">
+                    <i class="ph ph-sparkle"></i>
+                    <span>这里的每一页，都只属于你们两个</span>
+                    <i class="ph ph-sparkle"></i>
                 </div>
             </div>
         `;

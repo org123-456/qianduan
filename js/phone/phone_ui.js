@@ -1,7 +1,7 @@
 import { ChatUI } from './ui/chat_ui.js';
 import { MemoryUI } from './ui/memory_ui.js';
-import { DiaryUI } from './ui/diary_ui.js';
-import { MomentsUI } from './ui/moments_ui.js';
+import { DiaryUI } from './ui/diary_ui.js?v=2026.10.01-diary2';
+import { MomentsUI } from './ui/moments_ui.js?v=2026.10.01-diary2';
 import { ScheduleUI } from './ui/schedule_ui.js';
 import { StudyUI } from './ui/study_ui.js';
 import { CallUI } from './ui/call_ui.js';

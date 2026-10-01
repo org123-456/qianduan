@@ -11,6 +11,7 @@ export const PhoneEngine = {
   ...GalleryEngine,
   ...DrawEngine,
   ...CinemaEngine, // 🌟 导出合并
+  ...GameEngine, // 🎮 游戏系统挂载
 };
 
 

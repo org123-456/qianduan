@@ -51,7 +51,7 @@ export const PhoneUI = {
             await window.PhoneEngine?.renderBookshelf?.();
         } catch (e) {
             console.error('书架恢复失败：', e);
-            PhoneAPI?.showToast?.('⚠️ 书架读取失败');
+            window.PhoneAPI?.showToast?.('⚠️ 书架读取失败');
         }
     },
 

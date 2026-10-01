@@ -1,5 +1,7 @@
 // 此间归处 - 数据层
 
+import { saveGame, loadGame } from './save.js';
+
 export const gameData = {
   player: {
     name: '玩家',
@@ -37,6 +39,7 @@ export function setCompanion(character) {
     ...character,
     unlocked: true
   };
+  saveGame(gameData);
 }
 
 export function addMemory(memory) {
@@ -44,8 +47,17 @@ export function addMemory(memory) {
     id: Date.now(),
     ...memory
   });
+  saveGame(gameData);
 }
 
 export function increaseAffection(value = 1) {
   gameData.relationship.affection += value;
+  saveGame(gameData);
+}
+
+export function restoreGame() {
+  const saved = loadGame();
+  if (!saved) return;
+
+  Object.assign(gameData, saved);
 }

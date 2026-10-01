@@ -137,35 +137,66 @@ export const MemoryUI = {
         const roleId = window.Config?.currentContactId;
         const items = window.Config?.phoneData?.[roleId]?.wechat?.items || [];
         const cleanItems = items.filter(i => i && i.sender !== 'typing' && i.content);
+        const hiddenOrInvalid = items.filter(i => !i || i.sender === 'typing' || !i.content).length;
         const summaryIndex = Math.max(0, Math.min(parseInt(localStorage.getItem('memory_last_summary_index') || '0', 10), cleanItems.length));
         const keepRecent = Math.min(50, cleanItems.length);
         const deletable = Math.max(0, summaryIndex - Math.min(keepRecent, summaryIndex));
+
+        const first = cleanItems[0] || null;
+        const last = cleanItems[cleanItems.length - 1] || null;
+        const describeItem = (item) => {
+            if (!item) return '无';
+            const text = String(item.content || '').replace(/\\s+/g, ' ').trim();
+            const stamp = item.time || item.timestamp || item.createdAt || item.date || '';
+            return this.escapeHtml((stamp ? '[' + stamp + '] ' : '') + text.slice(0, 120));
+        };
+
         const data = window.PhoneAPI?.EchoVault?.getData?.() || { daily: {}, permanent: {} };
-        const memories = Object.entries(data.daily || {})
-            .sort((a,b) => b[0].localeCompare(a[0]))
-            .slice(0, 8);
+        const dailyCount = Object.keys(data.daily || {}).length;
+        const permanentCount = Object.keys(data.permanent || {}).length;
 
         const el = document.getElementById('chat-cleanup-panel');
         if (!el) return;
-        const memoryList = memories.length ? memories.map(([key, item]) => `
-            <div style="padding:8px 10px;border-radius:10px;background:var(--icon-bg);margin-top:6px;">
-                <div style="font-size:11px;color:var(--text-sub);">🧠 ${this.escapeHtml(key)}</div>
-                <div style="font-size:12px;color:var(--text-main);margin-top:3px;line-height:1.45;">${this.escapeHtml(item?.content || '')}</div>
-            </div>`).join('') : '<div style="color:var(--text-sub);font-size:12px;">还没有已归档的记忆。</div>';
-
         el.innerHTML = `
             <div style="border:1px solid var(--border-color);border-radius:16px;padding:14px;background:var(--icon-bg);margin-bottom:15px;">
-                <div style="font-weight:700;color:var(--text-main);">🧹 聊天记录整理</div>
-                <div style="font-size:12px;color:var(--text-sub);line-height:1.5;margin-top:6px;">
-                    已总结指针：${summaryIndex} 条聊天 · 默认保留最近 ${keepRecent} 条。
-                    <br>下面这些记忆已经进入记忆库，确认后可以清掉较早的原始聊天。
+                <div style="font-weight:700;color:var(--text-main);">🔎 聊天记录诊断（只读）</div>
+                <div style="font-size:12px;color:var(--text-sub);line-height:1.55;margin-top:7px;">
+                    这个页面现在只负责“数账”，不会删除或修改任何聊天。
                 </div>
-                <div style="margin-top:10px;font-size:12px;color:var(--text-main);font-weight:600;">最近归档的记忆</div>
-                ${memoryList}
-                <button class="btn-refresh" onclick="window.PhoneUI.cleanArchivedChats()" style="width:100%;margin-top:12px;background:linear-gradient(135deg,#f59eac,#ec6f91);border-radius:14px;">
-                    🗑️ 清理已总结的旧聊天 ${deletable > 0 ? '(' + deletable + '条)' : ''}
+
+                <div style="margin-top:11px;display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+                    <div style="padding:9px;border-radius:10px;background:var(--window-bg);">
+                        <div style="font-size:11px;color:var(--text-sub);">底层 items 总数</div>
+                        <div style="font-size:19px;font-weight:800;color:var(--primary-color);">${items.length}</div>
+                    </div>
+                    <div style="padding:9px;border-radius:10px;background:var(--window-bg);">
+                        <div style="font-size:11px;color:var(--text-sub);">正常聊天条数</div>
+                        <div style="font-size:19px;font-weight:800;color:var(--primary-color);">${cleanItems.length}</div>
+                    </div>
+                    <div style="padding:9px;border-radius:10px;background:var(--window-bg);">
+                        <div style="font-size:11px;color:var(--text-sub);">非正常/占位条数</div>
+                        <div style="font-size:19px;font-weight:800;color:var(--text-sub);">${hiddenOrInvalid}</div>
+                    </div>
+                    <div style="padding:9px;border-radius:10px;background:var(--window-bg);">
+                        <div style="font-size:11px;color:var(--text-sub);">记忆库条目</div>
+                        <div style="font-size:19px;font-weight:800;color:var(--primary-color);">${dailyCount + permanentCount}</div>
+                    </div>
+                </div>
+
+                <div style="margin-top:10px;padding:10px;border-radius:10px;background:var(--window-bg);font-size:11px;line-height:1.6;color:var(--text-sub);">
+                    <div><b style="color:var(--text-main);">记忆总结指针：</b>${summaryIndex}</div>
+                    <div><b style="color:var(--text-main);">当前清理算法认为可清理：</b>${deletable}</div>
+                    <div><b style="color:var(--text-main);">当前保留区：</b>最近 ${keepRecent} 条</div>
+                    <div style="margin-top:5px;"><b style="color:var(--text-main);">最早一条：</b>${describeItem(first)}</div>
+                    <div><b style="color:var(--text-main);">最新一条：</b>${describeItem(last)}</div>
+                </div>
+
+                <div style="margin-top:10px;font-size:11px;color:var(--text-sub);line-height:1.5;">
+                    如果“底层总数”远大于你在聊天页面实际能翻到的数量，就说明统计对象里可能包含聊天界面没有展示的历史/特殊条目。现在先不要删，先用这个数字确认数据结构。
+                </div>
+                <button class="btn-refresh" onclick="window.PhoneUI.renderChatCleanupPanel()" style="width:100%;margin-top:10px;">
+                    🔄 重新统计
                 </button>
-                <div style="font-size:11px;color:var(--text-sub);margin-top:7px;text-align:center;">不会删除记忆库；只清理已总结范围内、且超过最近保留区的聊天。</div>
             </div>`;
     },
 

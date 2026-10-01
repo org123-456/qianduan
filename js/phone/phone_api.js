@@ -402,12 +402,34 @@ export const PhoneAPI = {
         this.showToast('🗑️ 已删除'); 
     },
 
-    async forceUpdate() { 
-        if (confirm("确定要强制刷新并获取最新代码吗？")) { 
-            if ('serviceWorker' in navigator) { const registrations = await navigator.serviceWorker.getRegistrations(); for (let reg of registrations) { await reg.unregister(); } } 
-            if ('caches' in window) { const keys = await caches.keys(); for (let key of keys) { await caches.delete(key); } } 
-            window.location.href = window.location.pathname + '?t=' + new Date().getTime(); 
-        } 
+    async forceUpdate() {
+        if (!confirm("确定要强制刷新并获取最新代码吗？")) return;
+
+        try {
+            // 只清理“代码缓存”，不碰 localStorage / IndexedDB，避免误伤聊天、日记和图片。
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (const reg of registrations) await reg.unregister();
+            }
+            if ('caches' in window) {
+                const keys = await caches.keys();
+                for (const key of keys) await caches.delete(key);
+            }
+
+            // 先从网络拿一次最新首页，再带时间戳重新进入。
+            // 这样桌面 PWA 不会一直拿着旧的启动文档。
+            const stamp = Date.now();
+            try {
+                await fetch('./index.html?force=' + stamp, {
+                    cache: 'no-store',
+                    headers: { 'Cache-Control': 'no-cache' }
+                });
+            } catch (e) {}
+
+            window.location.replace('./index.html?force=' + stamp);
+        } catch (e) {
+            window.location.replace('./index.html?force=' + Date.now());
+        }
     }
 };
 

@@ -62,8 +62,15 @@ window.PhoneEngine = PhoneEngine;
 window.MemoryEngine = MemoryEngine; 
 window.Apps = { wechat: WechatApp };
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     checkPwaBuild();
+    // 先恢复聊天记录，再渲染微信，避免页面启动时把空数据画出来。
+    try {
+        await Config.hydratePhoneData();
+        console.log('✅ 聊天记录已从本地持久存储恢复');
+    } catch (e) {
+        console.error('聊天记录恢复失败:', e);
+    }
     console.log('✅ 核心引擎已挂载，路径加载成功！');
 
     const savedTheme = localStorage.getItem('theme') || 'light';

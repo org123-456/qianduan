@@ -5,7 +5,6 @@ import { PhoneUI } from '../phone_ui.js';
 export const ChatEngine = {
     currentMsgIndex: -1,
 
-    // 安全持久化辅助函数，防止 QuotaExceeded 异常导致整段 JS 猝死
     _safeSaveData() {
         try {
             if (Config?.phoneData) {
@@ -77,7 +76,6 @@ export const ChatEngine = {
                     let width = img.width; 
                     let height = img.height; 
                     
-                    // 🌟 核心优化：最大边缩到 500px，既清晰又防爆存储（体积下降90%）
                     const MAX_SIZE = 500;
                     if (width > height && width > MAX_SIZE) { 
                         height = Math.round(height * (MAX_SIZE / width)); 
@@ -91,7 +89,6 @@ export const ChatEngine = {
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
                     
-                    // 优先 WebP，不支持则自动使用 JPEG
                     let base64Url = canvas.toDataURL('image/webp', 0.6);
                     if (!base64Url.startsWith('data:image/webp')) {
                         base64Url = canvas.toDataURL('image/jpeg', 0.6);
@@ -298,12 +295,23 @@ export const ChatEngine = {
 
         chatItems.push({ sender: 'typing' });
         PhoneUI.renderAppContent('wechat');
-        this._safeSaveData(); // 安全写入，即便超限也不阻断后续请求
+        this._safeSaveData();
 
         try {
             const shareMemory = localStorage.getItem('share_memory') === 'true';
-            const systemPrompt = localStorage.getItem('system_prompt') || '';
-            const charPersona = localStorage.getItem('char_persona') || '';
+            
+            // 🌟 核心：双通道读取系统提示词与人设（超长自动兼容 IndexedDB）
+            let systemPrompt = localStorage.getItem('system_prompt') || '';
+            let charPersona = localStorage.getItem('char_persona') || '';
+
+            if (localStorage.getItem('stored_in_idb') === 'true' && window.PhoneAPI?.LocalDB) {
+                try {
+                    const sysBlob = await window.PhoneAPI.LocalDB.get('saved_system_prompt');
+                    const charBlob = await window.PhoneAPI.LocalDB.get('saved_char_persona');
+                    if (sysBlob) systemPrompt = await sysBlob.text();
+                    if (charBlob) charPersona = await charBlob.text();
+                } catch(e) {}
+            }
             
             const currentNow = new Date();
             const curYear = currentNow.getFullYear();
@@ -331,8 +339,6 @@ export const ChatEngine = {
             let formatRule = "【最高禁令】：绝对禁止输出任何分析过程、思考步骤！直接输出角色的台词！\n";
             formatRule += "【微信连发机制】：不限制气泡数量，请务必把你想说的话完整说完！根据换行符切分微信气泡。\n";
             formatRule += "【读心术机制】：在正式回复之前，你必须使用 <inner> 和 </inner> 标签包裹一段角色此刻真实的内心独白。\n";
-            
-            // 🌟 强行教会 AI 画图协议指令
             formatRule += "【发图/画画规则】：当用户要求你画画、或者你想发送照片/图片时，你必须单独输出一行指令：`[DRAW: 详细的英文画面描述]`。严禁只用嘴说，必须带上 [DRAW: ...] 标记！\n";
             stablePrompt += formatRule;
             
@@ -361,7 +367,7 @@ export const ChatEngine = {
                 } catch(e) {}
             }
 
-            // 🌟 核心防报错保护：长期记忆
+            // 长期记忆
             const vaultLimit = parseInt(localStorage.getItem('context_vault_limit') || '15', 10);
             const allVault = (PhoneAPI && PhoneAPI.getMemoryVault) ? (PhoneAPI.getMemoryVault() || []) : [];
             let accessibleVault = Array.isArray(allVault) ? allVault : [];
@@ -400,7 +406,7 @@ export const ChatEngine = {
             let finalReply = rawReply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<inner>[\s\S]*?<\/inner>/gi, '').trim();
             if (!finalReply) finalReply = rawReply.trim();
             
-            chatItems.pop(); // 移除 typing
+            chatItems.pop();
 
             const replyParts = finalReply.split('\n').map(s => s.trim()).filter(Boolean);
             let hasDrawnImage = false;
@@ -409,7 +415,6 @@ export const ChatEngine = {
                 let part = replyParts[idx];
                 const thought = idx === 0 ? innerThought : '（连发消息，心声已在上一条显示）';
 
-                // 🌟 1. 显式画图指令嗅探
                 const drawMatch = part.match(/\[DRAW:\s*(.*?)\]/i) || part.match(/https?:\/\/image\.pollinations\.ai\/prompt\/([^?\s)]+)/i);
 
                 if (drawMatch) {
@@ -430,7 +435,6 @@ export const ChatEngine = {
                 chatItems.push({ sender: 'other', content: part, time: timeStr, date: dateStr, innerThought: thought });
             }
 
-            // 🌟 2.【兜底生图】
             const userWantsDrawing = /画|照片|自拍|图/i.test(latestUserText);
             const aiAgreed = /行|好|来一|画|看|给你/i.test(finalReply);
 

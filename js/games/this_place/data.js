@@ -32,6 +32,10 @@ export const gameData = {
 
   memories: [],
 
+  eventHistory: [],
+
+  miniGameProgress: {},
+
   progress: {
     chapter: 0,
     firstMeeting: false

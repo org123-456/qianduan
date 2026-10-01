@@ -415,6 +415,10 @@ export const PhoneUI = {
     },
 
     closeApp() {
+        if (window.Config?.currentAppId === 'games') {
+            GameUI.close();
+            return;
+        }
         const winEl = document.getElementById('app-window');
         if (winEl) { winEl.classList.remove('open'); winEl.classList.remove('fullscreen-mode'); }
     },

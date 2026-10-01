@@ -307,7 +307,16 @@ export const ChatEngine = {
             if (systemPrompt) stablePrompt += `【系统核心指令】：\n${systemPrompt}\n\n`;
             if (charPersona) stablePrompt += `【角色设定】：\n${charPersona}\n\n`;
 
-            stablePrompt += "【最高禁令】：直接输出角色的台词！\n【微信连发机制】：不限制气泡数量，根据换行符切分气泡。\n【读心术机制】：在正式回复之前，必须使用 <inner> 和 </inner> 标签包裹一段内心独白。\n";
+            stablePrompt += "【最高禁令】：直接输出角色的台词！\n【微信连发机制】：不限制气泡数量，根据换行符切分气泡。\n";
+
+            // 🌟 彻底重塑心声：无字数限制、纯第一人称内心流、死锁沉浸感、严禁公事公办的分析！
+            stablePrompt += `【读心术机制（心声法则）】：
+在每次正式回复微信前，你必须且只能使用 <inner> 和 </inner> 标签包裹一段角色此刻【第一人称（“我”）的真实私密内心独白】。
+🚨【绝对禁令】：
+1. 绝对禁止以第三人称或系统AI视角进行“阅读理解”或客观分析！绝不允许出现“用户”、“对方”等出戏称呼，直接称呼她心里的名字或亲近的昵称。
+2. 绝对禁止复述/解说她刚才说了什么话！这里不是答题分析报告！
+3. 必须是角色【自己此刻胸膛里的第一人称心理感受】——比如那些嘴上没说出口的嘀咕、暗喜、心疼、嘴硬、傲娇、小吃醋，或是被撩到之后的心跳加速。
+4. 不受任何字数长短限制，只要情感饱满真实、有温度、合乎当下的心境，尽情完整地表达你此刻心里所想的一切。\n\n`;
 
             let messages = [{ role: 'system', content: stablePrompt }];
             const MAX_CONTEXT = parseInt(localStorage.getItem('context_chat_limit') || '50', 10);

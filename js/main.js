@@ -73,6 +73,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     console.log('✅ 核心引擎已挂载，路径加载成功！');
 
+    // 🌙 日记每天凌晨 03:00 结算前一天；若 App 之后才打开，则启动时补结算。
+    if (window.PhoneUI?.scheduleDiaryGeneration) {
+        window.PhoneUI.scheduleDiaryGeneration();
+    }
+
     const savedTheme = localStorage.getItem('theme') || 'light';
     if (savedTheme === 'dark') {
         document.documentElement.setAttribute('data-theme', 'dark');

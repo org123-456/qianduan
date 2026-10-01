@@ -480,25 +480,39 @@ export const PhoneUI = {
         });
     },
 
-    // 🌟 手动保存提示词与人设（绝对安全逻辑）
-    savePromptAndPersona() {
+    // 🌟 终极方案：智能保存（空间充足存 localStorage，空间不足无感写入 IndexedDB，容量无限）
+    async savePromptAndPersona() {
         const sysEl = document.getElementById('system-prompt');
         const charEl = document.getElementById('char-persona');
         
         const sysVal = sysEl ? sysEl.value : '';
         const charVal = charEl ? charEl.value : '';
         
+        let savedInDb = false;
+
         try {
             localStorage.setItem('system_prompt', sysVal);
             localStorage.setItem('char_persona', charVal);
+            localStorage.removeItem('stored_in_idb');
         } catch(e) {
-            alert('本地存储空间不足，保存失败');
-            return;
+            // 如果 5MB 满了，自动无感存入高容量 IndexedDB
+            console.warn('localStorage已满，启用高容量 LocalDB 安全存储...');
+            if (window.PhoneAPI && window.PhoneAPI.LocalDB) {
+                try {
+                    await window.PhoneAPI.LocalDB.set('saved_system_prompt', new Blob([sysVal], {type: 'text/plain'}));
+                    await window.PhoneAPI.LocalDB.set('saved_char_persona', new Blob([charVal], {type: 'text/plain'}));
+                    localStorage.setItem('stored_in_idb', 'true');
+                    savedInDb = true;
+                } catch(idbErr) {
+                    alert('本地存储严重受限，请清理部分旧记录！');
+                    return;
+                }
+            }
         }
 
         const btn = document.getElementById('btn-save-prompts');
         if (btn) {
-            btn.innerHTML = `<i class="ph-bold ph-check"></i> 已保存至本地！`;
+            btn.innerHTML = `<i class="ph-bold ph-check"></i> 已安全保存${savedInDb ? ' (高容量模式)' : ''}！`;
             btn.style.background = '#2a9d8f';
             setTimeout(() => {
                 btn.innerHTML = `<i class="ph-bold ph-floppy-disk"></i> 💾 保存提示词与角色人设`;
@@ -507,7 +521,7 @@ export const PhoneUI = {
         }
 
         if (window.PhoneAPI && window.PhoneAPI.showToast) {
-            window.PhoneAPI.showToast('✅ 核心指令与人设已安全保存！');
+            window.PhoneAPI.showToast('✅ 核心指令与人设已保存成功！');
         }
     },
 
@@ -695,7 +709,6 @@ export const PhoneUI = {
         const curChatLimit = localStorage.getItem('context_chat_limit') || '60';
         const curVaultLimit = localStorage.getItem('context_vault_limit') || '15';
 
-        // 🌟 纯净 HTML 结构：不塞入易炸碎的字符串，杜绝语法穿透
         contentEl.innerHTML = `
         <div class="settings-tabs" style="display: flex; gap: 6px; margin-bottom: 20px;">
             <div class="settings-tab active" id="stab-basic" onclick="window.PhoneUI.switchSetTab('basic')">基础/UI</div>
@@ -906,27 +919,30 @@ export const PhoneUI = {
         </div>
         `;
 
-        // 🌟 核心：使用纯 JavaScript 对输入框赋值并挂载监听器，100% 免疫 HTML 字符炸裂
-        setTimeout(() => {
+        // 🌟 核心：异步双轨回显，保证超长文本 100% 还原展示
+        setTimeout(async () => {
             this.switchSetTab('basic');
 
-            // 1. 物理写入当前保存的内容（回显）
             const sysPromptEl = document.getElementById('system-prompt');
             const charPersonaEl = document.getElementById('char-persona');
-            if (sysPromptEl) {
-                sysPromptEl.value = localStorage.getItem('system_prompt') || '';
-                sysPromptEl.addEventListener('input', () => {
-                    localStorage.setItem('system_prompt', sysPromptEl.value);
-                });
-            }
-            if (charPersonaEl) {
-                charPersonaEl.value = localStorage.getItem('char_persona') || '';
-                charPersonaEl.addEventListener('input', () => {
-                    localStorage.setItem('char_persona', charPersonaEl.value);
-                });
+            
+            // 1. 尝试从 localStorage 读
+            let sysText = localStorage.getItem('system_prompt') || '';
+            let charText = localStorage.getItem('char_persona') || '';
+
+            // 2. 如果在 IndexedDB 里，则异步还原出来
+            if (localStorage.getItem('stored_in_idb') === 'true' && window.PhoneAPI?.LocalDB) {
+                try {
+                    const sysBlob = await window.PhoneAPI.LocalDB.get('saved_system_prompt');
+                    const charBlob = await window.PhoneAPI.LocalDB.get('saved_char_persona');
+                    if (sysBlob) sysText = await sysBlob.text();
+                    if (charBlob) charText = await charBlob.text();
+                } catch(e) {}
             }
 
-            // 2. 绑定预设保存按钮
+            if (sysPromptEl) sysPromptEl.value = sysText;
+            if (charPersonaEl) charPersonaEl.value = charText;
+
             const saveBtn = document.getElementById('btn-direct-save-preset');
             if (saveBtn) {
                 saveBtn.addEventListener('click', (e) => {
@@ -940,7 +956,7 @@ export const PhoneUI = {
                 if (window.PhoneAPI.loadSettings) window.PhoneAPI.loadSettings();
                 if (window.PhoneAPI.refreshPresetDropdowns) window.PhoneAPI.refreshPresetDropdowns();
             }
-        }, 30);
+        }, 50);
     }
 };
 

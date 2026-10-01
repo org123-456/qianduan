@@ -2,6 +2,7 @@
 // 游戏入口模块
 
 import { renderGameUI } from './ui.js';
+import { initGameState, getGameState } from './systems/game_state.js';
 
 const ThisPlaceGame = {
   id: 'this-place',
@@ -9,15 +10,15 @@ const ThisPlaceGame = {
   icon: '🏡',
   description: '一个关于陪伴、成长与记忆的养成游戏。',
   status: '开发中',
-  version: '0.1.0',
+  version: '0.2.0',
 
   init(container) {
-    console.log('此间归处初始化');
     this.container = container;
+    initGameState();
   },
 
   mount(container) {
-    renderGameUI(container);
+    renderGameUI(container, getGameState());
   },
 
   destroy() {

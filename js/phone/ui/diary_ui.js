@@ -7,21 +7,13 @@ export const DiaryUI = {
         this.openDiaryBook('ta');
     },
 
-    openDiaryBook(type) {
+    openDiaryBook(type = 'ta') {
         this.currentDiaryBook = type;
-        if (type === 'mine') {
-            this.renderMyDiary();
-        } else {
-            this.renderDiaryPage();
-        }
-    },
 
-    unlockDiary() {
-        const cover = document.getElementById('diary-book-cover');
         const coverView = document.getElementById('diary-cover-view');
         const insideView = document.getElementById('diary-inside-view');
 
-        if (cover) cover.classList.add('opened');
+        // 从“书架”选择一本后才真正翻开日记。
         if (coverView) coverView.classList.add('opened');
         if (insideView) insideView.classList.add('opened');
 
@@ -29,8 +21,18 @@ export const DiaryUI = {
             window.Config.diaryPageIndex = -1;
         }
 
-        this.renderDiaryPage();
+        if (type === 'mine') {
+            this.renderMyDiary();
+        } else {
+            this.renderDiaryPage();
+        }
+
         this.bindDiarySwipe();
+        this.applyDiaryBackgrounds();
+    },
+
+    unlockDiary(type = 'ta') {
+        this.openDiaryBook(type);
     },
 
     bindDiarySwipe() {
@@ -88,13 +90,13 @@ export const DiaryUI = {
         this.renderDiaryPage();
     },
 
-    // 🌟 核心：在日记底部直接内嵌展示两本书！随时可以在 TA的日记 / 我的日记 之间切换
+    // 🌟 双人书架：放在封面页，选择一本后再进入对应日记。
     renderDiaryShelfInline() {
         const taName = localStorage.getItem('char_name') || 'TA';
         return `
             <div class="diary-shelf-inline-container" style="margin-top: 40px; padding: 20px 10px 40px; border-top: 1px dashed rgba(0,0,0,0.15);">
                 <div style="font-size: 13px; font-weight: bold; color: var(--primary-color); margin-bottom: 15px; text-align: center; letter-spacing: 1px;">
-                    📖 双人日记架 (点击切换)
+                    📖 双人日记架 · 选择一本打开
                 </div>
                 <div style="display: flex; justify-content: center; gap: 15px;">
                     <div onclick="window.PhoneUI.openDiaryBook('ta')" 

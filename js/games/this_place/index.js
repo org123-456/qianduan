@@ -2,17 +2,16 @@
 // 游戏入口模块
 
 import { renderGameUI } from './ui.js';
-import { initGameState, getGameState } from './systems/game_state.js';
-import { saveGame, loadGame } from './systems/save_system.js';
-import { onEvent } from './events.js';
-import { gameData, addMemory, increaseAffection, setCompanion } from './data.js';
+import { saveGame, loadGame } from './save.js';
+import { onEvent, createMemory, triggerEvent } from './system.js';
+import { gameData, increaseAffection, setCompanion } from './data.js';
 
 function restoreGameData() {
   const saved = loadGame();
 
-  if (!saved || !saved.data) return;
+  if (!saved) return;
 
-  Object.assign(gameData, saved.data);
+  Object.assign(gameData, saved);
 }
 
 function initFirstMeeting() {
@@ -28,11 +27,7 @@ function initFirstMeeting() {
       personality: []
     });
 
-    addMemory({
-      title: '第一次相遇',
-      text: '新的故事开始了。'
-    });
-
+    createMemory('story', '第一次相遇', '新的故事开始了。');
     increaseAffection(1);
     saveGame(gameData);
   });
@@ -44,17 +39,16 @@ const ThisPlaceGame = {
   icon: '🏡',
   description: '一个关于陪伴、成长与记忆的养成游戏。',
   status: '开发中',
-  version: '0.3.3',
+  version: '0.3.4',
 
   init(container) {
     this.container = container;
     restoreGameData();
-    initGameState();
     initFirstMeeting();
   },
 
   mount(container) {
-    renderGameUI(container, getGameState());
+    renderGameUI(container, gameData);
   },
 
   destroy() {

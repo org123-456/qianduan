@@ -322,7 +322,7 @@ ${recentDialogue}
             bottomHtml += '</div>';
         } else if (currentTab === 'diary') {
             bottomHtml = `
-                <div id="moments-diary-inline" style="padding: 0 10px 80px;">
+                <div id="moments-diary-inline" class="moments-diary-inline-shell">
                     ${this.renderDiaryShelfInline()}
                 </div>
             `;

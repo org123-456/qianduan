@@ -165,7 +165,15 @@ export const ReaderEngine = {
                 html += `
                 <div class="book-wrap" onclick="window.PhoneEngine.openBook('${book.id}')">
                     <div class="book-del-btn" onclick="event.stopPropagation(); window.PhoneEngine.deleteBook('${book.id}')"><i class="ph ph-x"></i></div>
-                    <div class="book-cover-3d">${this.escapeHtml(book.title).substring(0, 8)}</div>
+                    <div class="book-cover-3d imported-book-cover">
+                        <div class="book-cover-shine"></div>
+                        <div class="book-cover-content">
+                            <i class="ph-fill ph-book-open-text book-cover-icon"></i>
+                            <div class="book-cover-label">共读时光</div>
+                            <div class="book-cover-name">${this.escapeHtml(book.title)}</div>
+                            <div class="book-cover-line"></div>
+                        </div>
+                    </div>
                     <div class="book-title-ui">${this.escapeHtml(book.title)}</div>
                     <div class="book-progress-ui">${progress}</div>
                 </div>`;

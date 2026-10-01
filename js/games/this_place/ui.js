@@ -1,39 +1,7 @@
 // 此间归处 - UI层
 
-import { gameData, increaseAffection, addMemory } from './data.js';
-import { triggerEvent } from './events.js';
-
-function handleAction(action) {
-  if (action === 'meet') {
-    triggerEvent('first_meeting');
-    addMemory({
-      title: '第一次相遇',
-      text: '今天来到了此间归处。'
-    });
-  }
-
-  if (action === 'talk') {
-    increaseAffection(1);
-    if (gameData.companion.state) {
-      gameData.companion.state.mood = '愉快';
-    }
-    addMemory({
-      title: '一次聊天',
-      text: '今天进行了一次温暖的交流。'
-    });
-  }
-
-  if (action === 'rest') {
-    if (gameData.companion.state) {
-      gameData.companion.state.energy = Math.min(100, gameData.companion.state.energy + 10);
-      gameData.companion.state.mood = '平静';
-    }
-    addMemory({
-      title: '一起休息',
-      text: '一起度过了一段安静的时间。'
-    });
-  }
-}
+import { gameData } from './data.js';
+import { executeAction } from './actions.js';
 
 export function renderGameUI(container) {
   if (!container) return;
@@ -72,7 +40,7 @@ export function renderGameUI(container) {
 
   container.querySelectorAll('[data-action]').forEach((button) => {
     button.addEventListener('click', () => {
-      handleAction(button.dataset.action);
+      executeAction(button.dataset.action);
       renderGameUI(container);
     });
   });

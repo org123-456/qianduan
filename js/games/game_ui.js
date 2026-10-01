@@ -11,7 +11,7 @@ function getElements() {
 function renderHall() {
     const { title, content } = getElements();
     if (!content) return;
-
+    GameEngine.unmountActiveGame();
     if (title) title.innerText = '游戏';
 
     const games = GameEngine.getGames();
@@ -42,13 +42,41 @@ function renderHall() {
     });
 }
 
+function contentLoading() {
+    const { title, content } = getElements();
+    if (!content) return;
+    if (title) title.innerText = '游戏';
+    content.innerHTML = '<div class="game-placeholder"><div class="game-placeholder-icon">🎮</div><div class="game-placeholder-title">游戏加载中</div><div>正在准备游戏列表。</div></div>';
+}
+
 function openGame(gameId) {
     const { title, content } = getElements();
     const game = GameEngine.getGame(gameId);
     if (!game || !content) return;
 
     if (title) title.innerText = game.name;
-    GameEngine.mountGame(gameId, content);
+    try {
+        GameEngine.mountGame(gameId, content);
+        const back = document.createElement('button');
+        back.className = 'games-back-btn';
+        back.type = 'button';
+        back.textContent = '‹ 返回游戏大厅';
+        back.addEventListener('click', renderHall);
+        content.insertBefore(back, content.firstChild);
+    } catch (error) {
+        console.error('Game ' + gameId + ' error:', error);
+        content.innerHTML = '';
+        const box = document.createElement('div');
+        box.className = 'game-placeholder';
+        box.innerHTML = '<div class="game-placeholder-icon">⚠️</div><div class="game-placeholder-title">这个游戏暂时无法打开</div><div>请稍后再试，其他游戏仍可继续使用。</div>';
+        const back = document.createElement('button');
+        back.className = 'games-back-btn';
+        back.type = 'button';
+        back.textContent = '返回游戏大厅';
+        back.addEventListener('click', renderHall);
+        box.appendChild(back);
+        content.appendChild(box);
+    }
 }
 
 export const GameUI = {
@@ -56,7 +84,14 @@ export const GameUI = {
         const { window } = getElements();
         if (!window) return;
         window.classList.add('open');
-        renderHall();
+        const ready = window.GameGamesReady;
+        if (ready && typeof ready.then === 'function') {
+            contentLoading();
+            ready.then(() => renderHall()).catch(error => {
+                console.error('Game registry error:', error);
+                renderHall();
+            });
+        } else renderHall();
     },
 
     renderHall,
@@ -64,6 +99,7 @@ export const GameUI = {
     openGame,
 
     close() {
+        GameEngine.unmountActiveGame();
         const { window } = getElements();
         if (window) window.classList.remove('open');
     }

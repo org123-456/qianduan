@@ -122,6 +122,30 @@ export const ReaderEngine = {
         try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
     },
 
+    async hydrateBookAnnotations(bookId) {
+        const keys = [
+            `book_comments_${bookId}`,
+            `book_highlights_${bookId}`
+        ];
+        for (const key of keys) {
+            let localValue = null;
+            try {
+                const raw = localStorage.getItem(key);
+                if (raw) localValue = JSON.parse(raw);
+            } catch (e) {}
+            if (Array.isArray(localValue)) {
+                try { await window.PhoneAPI?.LocalDB?.set(key, localValue); } catch (e) {}
+                continue;
+            }
+            try {
+                const stored = await window.PhoneAPI?.LocalDB?.get(key);
+                if (Array.isArray(stored)) {
+                    localStorage.setItem(key, JSON.stringify(stored));
+                }
+            } catch (e) {}
+        }
+    },
+
     async hydrateReaderStorage() {
         // 先恢复书架元数据；旧版本只存在 localStorage，新版本同时放 IndexedDB。
         let bookshelf = [];
@@ -313,6 +337,7 @@ export const ReaderEngine = {
             const blob = await window.PhoneAPI.LocalDB.get(bookId);
             if (!blob) throw new Error('找不到书籍正文文件');
             const text = await blob.text();
+            await this.hydrateBookAnnotations(book.id);
             book.lastRead = Date.now();
             localStorage.setItem('reader_bookshelf', JSON.stringify(bookshelf));
             if (!window.Config) window.Config = {};
@@ -496,6 +521,7 @@ export const ReaderEngine = {
         if (!highlights.includes(text)) {
             highlights.push(text);
             localStorage.setItem(`book_highlights_${config.id}`, JSON.stringify(highlights));
+            try { await window.PhoneAPI?.LocalDB?.set(`book_highlights_${config.id}`, highlights); } catch (e) {}
             this._saveToNotebook(config.title, text, '', 'highlight');
             PhoneAPI.showToast('🖍️ 已划线并收录至摘录本！');
             this.renderCurrentPage();
@@ -543,6 +569,7 @@ export const ReaderEngine = {
             let comments = JSON.parse(localStorage.getItem(`book_comments_${config.id}`) || '[]');
             comments.push({ id: commentId, quote: text, comment: finalReply, thread: [{ sender: 'ta', text: finalReply, time: Date.now() }] });
             localStorage.setItem(`book_comments_${config.id}`, JSON.stringify(comments));
+            try { await window.PhoneAPI?.LocalDB?.set(`book_comments_${config.id}`, comments); } catch (e) {}
             this._saveToNotebook(config.title, text, finalReply, 'comment', [{ sender: 'ta', text: finalReply }]);
             this.renderCurrentPage();
             setTimeout(() => {
@@ -645,6 +672,7 @@ export const ReaderEngine = {
             const finalReply = rawReply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
             target.thread.push({ sender: 'ta', text: finalReply, time: Date.now() });
             localStorage.setItem(`book_comments_${config.id}`, JSON.stringify(comments));
+            try { await window.PhoneAPI?.LocalDB?.set(`book_comments_${config.id}`, comments); } catch (e) {}
             const tEl = document.getElementById('thread-typing');
             if (tEl) tEl.remove();
             this.renderThreadChat(target);

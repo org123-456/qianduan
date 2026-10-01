@@ -1,27 +1,11 @@
 // 此间归处 - 行为逻辑层
 
 import { gameData, increaseAffection, addMemory } from './data.js';
-import { triggerEvent } from './events.js';
-import { getEvent } from './event_config.js';
-
-function applyEvent(eventId) {
-  const config = getEvent(eventId);
-  if (!config) return;
-
-  triggerEvent(eventId, config);
-
-  if (config.memory) {
-    addMemory(config.memory);
-  }
-
-  if (config.effects?.chapter) {
-    gameData.progress.chapter = config.effects.chapter;
-  }
-}
+import { runEvent } from './event_engine.js';
 
 const actions = {
   meet() {
-    applyEvent('first_meeting');
+    runEvent('first_meeting');
     gameData.progress.firstMeeting = true;
   },
 

@@ -3,6 +3,8 @@ import { PhoneAPI } from './phone/phone_api.js';
 import { PhoneUI } from './phone/phone_ui.js?v=2026.10.02-storage3';
 import { PhoneEngine } from './phone/phone_engine.js?v=2'; 
 import { WechatApp } from './apps/wechat.js';
+import { GameUI } from './games/index.js';
+import { GameEngine } from './games/game_engine.js';
 let MemoryEngine = null;
 
 // 版本更新交给 Service Worker 的网络优先策略，不再依赖手工 build 号。
@@ -45,6 +47,8 @@ window.PhoneUI = PhoneUI;
 window.PhoneEngine = PhoneEngine;
 window.MemoryEngine = MemoryEngine; 
 window.Apps = { wechat: WechatApp };
+window.GameUI = GameUI;
+window.GameEngine = GameEngine;
 
 document.addEventListener('DOMContentLoaded', async () => {
     // 先恢复聊天记录，再渲染微信，避免页面启动时把空数据画出来。

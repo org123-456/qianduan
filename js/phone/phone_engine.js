@@ -7,7 +7,6 @@ import { CinemaEngine } from './engine/cinema_engine.js'; // 🌟 引入放映�
 export const PhoneEngine = {
   ...ChatEngine,
   ...ReaderEngine,
-  ...MemoryEngine,
   ...GalleryEngine,
   ...DrawEngine,
   ...CinemaEngine, // 🌟 导出合并

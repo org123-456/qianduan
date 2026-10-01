@@ -437,7 +437,6 @@ ${dateStr}
                         <button class="my-diary-clear" onclick="window.PhoneUI.clearMyDiary()"><i class="ph ph-trash"></i> 清空</button>
                     </div>
                 </div>
-                ${this.renderDiaryShelfInline()}
             </div>
         `;
 

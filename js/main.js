@@ -68,6 +68,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.warn('⚠️ 记忆引擎暂时无法加载，主界面不受影响：', err);
         });
 
+    // 尽量申请持久化存储：聊天、图片、书籍等走 IndexedDB 时，降低浏览器因存储压力自动清理的风险。
+    try {
+        const persistent = await window.PhoneAPI?.requestPersistentStorage?.();
+        const estimate = await window.PhoneAPI?.getStorageEstimate?.();
+        if (estimate) console.log('💾 浏览器存储：', estimate.usageMB + 'MB / ' + estimate.quotaGB + 'GB', persistent ? '(持久化)' : '(普通)');
+    } catch (e) {
+        console.warn('⚠️ 存储初始化跳过:', e);
+    }
+
     // 启动时先恢复设置/主题，再渲染页面，避免“刚打开还是默认蓝色，点一次设置才变粉”。
     if (window.PhoneAPI?.loadSettings) {
         try { window.PhoneAPI.loadSettings(); } catch (e) { console.warn('启动设置恢复失败:', e); }

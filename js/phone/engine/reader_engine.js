@@ -368,7 +368,7 @@ export const ReaderEngine = {
         }
     },
 
-    deleteBook(bookId) {
+    async deleteBook(bookId) {
         if (!confirm('确定要从书架移除这本书吗？相关的段评和进度也会被删除！')) return;
         let bookshelf = await this._getStoredArray('reader_bookshelf', []);
         bookshelf = bookshelf.filter(b => b.id !== bookId);

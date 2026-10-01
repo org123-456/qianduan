@@ -302,7 +302,7 @@ export const ReaderEngine = {
         listEl.innerHTML = html;
     },
 
-    openNotebook() {
+    async openNotebook() {
         if (window.PhoneUI && window.PhoneUI.showReadingView) window.PhoneUI.showReadingView('我的摘录本');
         const footer = document.getElementById('reader-footer');
         if (footer) footer.style.display = 'none';

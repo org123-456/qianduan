@@ -1,10 +1,10 @@
 // 此间归处 - 陪伴对象
 
-import { CharacterBase } from './character_base.js';
+import { createCharacter } from './character_base.js';
 
-export class Companion extends CharacterBase {
+export class Companion {
   constructor(data = {}) {
-    super(data);
+    Object.assign(this, createCharacter(data));
     this.role = 'companion';
     this.relationship = {
       affection: 0,

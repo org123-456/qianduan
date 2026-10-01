@@ -11,7 +11,10 @@ export const gameData = {
     name: null,
     unlocked: false,
     personality: [],
-    state: 'unknown'
+    state: {
+      mood: '平静',
+      energy: 100
+    }
   },
 
   relationship: {

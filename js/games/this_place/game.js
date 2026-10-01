@@ -1,10 +1,10 @@
 // 此间归处 - 崩铁·不死途专属 2D 温馨小窝 + 风铃拍立得手账系统
 
-// 🌟 核心魔法：自动锁定当前 this_place 文件夹的真实路径，彻底解决找不到图片的问题！
-const BASE_URL = new URL('.', import.meta.url).href;
+// 🌟 使用专属高速 CDN 绝对路径，彻底消灭 404！
+const BASE_URL = 'https://cdn.jsdelivr.net/gh/org123-456/qianduan@main/js/games/this_place/';
 
 const ASSETS = {
-  // 小窝背景池（自动拼接正确路径）
+  // 小窝背景池
   rooms: {
     day: BASE_URL + 'room_day.png',
     dusk: BASE_URL + 'room_dusk.png',

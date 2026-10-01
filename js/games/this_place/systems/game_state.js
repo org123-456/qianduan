@@ -3,8 +3,6 @@
 const state = {
   initialized: false,
   day: 1,
-  chapter: 0,
-  firstMeeting: false,
   lastAction: null
 };
 
@@ -25,7 +23,5 @@ export function getGameState() {
 export function resetGameState() {
   state.initialized = false;
   state.day = 1;
-  state.chapter = 0;
-  state.firstMeeting = false;
   state.lastAction = null;
 }

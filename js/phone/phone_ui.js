@@ -148,6 +148,117 @@ export const PhoneUI = {
         numEl.innerText = Math.abs(diff);
     },
 
+    openCdSheet() {
+        const cfg = JSON.parse(localStorage.getItem('cc_countdown') || '{"title":"见到你","date":"2025-05-09","pre":"还有","suf":"天"}');
+        document.getElementById('cd-in-title').value = cfg.title;
+        document.getElementById('cd-in-date').value = cfg.date;
+        document.getElementById('cd-in-pre').value = cfg.pre;
+        document.getElementById('cd-in-suf').value = cfg.suf;
+        document.getElementById('cd-modal-bg').classList.add('show');
+        document.getElementById('cd-modal').classList.add('show');
+    },
+
+    closeCdSheet() {
+        document.getElementById('cd-modal-bg').classList.remove('show');
+        document.getElementById('cd-modal').classList.remove('show');
+    },
+
+    saveCdSheet() {
+        const date = document.getElementById('cd-in-date').value;
+        if (!date) return;
+        localStorage.setItem('cc_countdown', JSON.stringify({
+            title: document.getElementById('cd-in-title').value.trim(),
+            date: date,
+            pre: document.getElementById('cd-in-pre').value.trim(),
+            suf: document.getElementById('cd-in-suf').value.trim()
+        }));
+        this.renderCountdown();
+        this.closeCdSheet();
+    },
+
+    openNoteModal() {
+        document.getElementById('note-modal-bg').classList.add('show');
+        document.getElementById('note-modal').classList.add('show');
+        const input = document.getElementById('note-input');
+        if (input) { input.value = ''; setTimeout(() => input.focus(), 100); }
+    },
+
+    closeNoteModal() {
+        document.getElementById('note-modal-bg').classList.remove('show');
+        document.getElementById('note-modal').classList.remove('show');
+    },
+
+    async sendNote() {
+        const input = document.getElementById('note-input');
+        if (!input || !input.value.trim()) return;
+        const text = input.value.trim();
+        this.closeNoteModal();
+        localStorage.setItem('home_note_content', `“${text}”`);
+        this.updateHomeWidget();
+        if (window.PhoneAPI) window.PhoneAPI.showToast('纸条已递出...');
+
+        try {
+            const persona = localStorage.getItem('char_persona') || '';
+            const reply = await window.PhoneAPI.chatWithAI([
+                { role: 'system', content: `你扮演角色。${persona}\n请给用户写一张20字以内的极短纸条回信。直接输出内容，不要描写。` },
+                { role: 'user', content: text }
+            ]);
+            if (reply) {
+                localStorage.setItem('home_note_content', `“${reply}”`);
+                this.updateHomeWidget();
+            }
+        } catch (e) {}
+    },
+
+    switchTogetherMode(mode) {
+        const musicView = document.getElementById('together-music-view');
+        const cinemaView = document.getElementById('together-cinema-view');
+        const btnMusic = document.getElementById('btn-toggle-music');
+        const btnCinema = document.getElementById('btn-toggle-cinema');
+        if (!musicView || !cinemaView) return;
+
+        if (mode === 'music') {
+            musicView.style.display = 'flex';
+            cinemaView.style.display = 'none';
+            if (btnMusic) {
+                btnMusic.style.background = '#fff';
+                btnMusic.style.color = 'var(--primary-color)';
+            }
+            if (btnCinema) {
+                btnCinema.style.background = 'transparent';
+                btnCinema.style.color = 'var(--text-sub)';
+            }
+        } else {
+            musicView.style.display = 'none';
+            cinemaView.style.display = 'flex';
+            if (btnCinema) {
+                btnCinema.style.background = '#fff';
+                btnCinema.style.color = 'var(--primary-color)';
+            }
+            if (btnMusic) {
+                btnMusic.style.background = 'transparent';
+                btnMusic.style.color = 'var(--text-sub)';
+            }
+            const avatar = localStorage.getItem('ta_avatar') || '';
+            const avatarEl = document.getElementById('cinema-companion-avatar');
+            if (avatarEl && avatar) avatarEl.src = avatar;
+        }
+    },
+
+    playBilibiliPrompt() {
+        const inputEl = document.getElementById('cinema-bili-input');
+        if (!inputEl || !inputEl.value.trim()) return;
+        const val = inputEl.value.trim();
+        const title = prompt("给视频起个名字（如：高数讲解）", "高数课");
+        if (title !== null && window.PhoneEngine && window.PhoneEngine.loadBilibiliVideo) {
+            const ok = window.PhoneEngine.loadBilibiliVideo(val, title);
+            if (ok) {
+                document.getElementById('cinema-current-title-label').innerText = `当前: ${title}`;
+                inputEl.value = '';
+            }
+        }
+    },
+
     openApp(appId, appName) {
         if (window.Config) window.Config.currentAppId = appId;
         const titleEl = document.getElementById('app-window-title');
@@ -163,86 +274,65 @@ export const PhoneUI = {
         contentEl.style.display = 'block';
         contentEl.style.overflow = 'auto';
 
-        if (appId === 'settings') {
-            this.renderSettings();
-        } else if (appId === 'memory_vault') {
-            contentEl.innerHTML = `<div id="vault-content-area" style="padding-bottom: 80px;"></div>`;
+        if (appId === 'diary') { 
+            winEl.classList.add('fullscreen-mode'); 
+            const diaryTitle = localStorage.getItem('diary_title') || 'His Diary';
+            contentEl.innerHTML = `<div id="diary-cover-view" class="diary-cover-view"><div class="diary-book-cover long-pressable" data-img="bg_diary_cover" id="diary-book-cover" onclick="window.PhoneUI.unlockDiary()"><div class="diary-title">${this.escapeHtml(diaryTitle)}</div><div class="diary-hint">点击翻开日记</div></div><div class="diary-back-btn" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div></div><div id="diary-inside-view" class="diary-inside-view"><div class="diary-back-btn" onclick="window.PhoneUI.closeApp()" style="top:20px;left:15px;background:rgba(0,0,0,0.1);color:#333;z-index:50;"><i class="ph ph-caret-left"></i></div><div id="diary-content-area" style="display:flex;flex-direction:column;height:100%;"></div></div>`;
+            this.renderDiaryPage();
+            this.bindLongPresses();
+        } else { 
+            winEl.classList.remove('fullscreen-mode'); 
+        }
+
+        if (appId === 'memory_vault') {
+            if (window.Config) window.Config.memoryVaultTab = 'daily';
+            contentEl.innerHTML = `
+                <div class="vault-tabs">
+                    <div class="vault-tab active" id="tab-daily" onclick="window.PhoneUI.switchVaultTab('daily')">日常 (Daily)</div>
+                    <div class="vault-tab" id="tab-permanent" onclick="window.PhoneUI.switchVaultTab('permanent')">锚点 (Permanent)</div>
+                </div>
+                <button class="btn-refresh" onclick="window.PhoneUI.remindEchoVault()" style="margin-top: 0; margin-bottom: 15px; background: linear-gradient(135deg, #a78bfa, #8b5cf6); border-radius: 16px; box-shadow: 0 4px 15px rgba(167, 139, 250, 0.4);"><i class="ph-fill ph-bottle"></i> 捞一个漂流瓶</button>
+                <div id="vault-content-area" style="padding-bottom: 80px;"></div>
+            `;
             this.renderMemoryVault();
         } else if (appId === 'favorites') {
             this.renderFavorites();
+        } else if (appId === 'settings') {
+            this.renderSettings();
+        } else if (appId === 'schedule') {
+            contentEl.innerHTML = `
+                <div class="vault-tabs" id="schedule-tabs" style="margin-bottom: 15px; overflow-x: auto; display: flex; white-space: nowrap;"></div>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <button class="btn-refresh" onclick="window.PhoneUI.importScheduleAI()" style="flex: 1; margin: 0; background: linear-gradient(135deg, #a78bfa, #8b5cf6);"><i class="ph-fill ph-sparkle"></i> AI 智能排课</button>
+                    <button class="btn-refresh" onclick="window.PhoneUI.openScheduleModal(-1)" style="flex: 1; margin: 0; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color);"><i class="ph ph-plus"></i> 添加课程</button>
+                </div>
+                <div id="schedule-list-area" style="padding-bottom: 80px; display: flex; flex-direction: column; gap: 10px;"></div>
+            `;
+            this.currentScheduleDay = new Date().getDay() === 0 ? 7 : new Date().getDay();
+            this.renderSchedule();
+        } else if (appId === 'study') {
+            this.renderStudyRoom();
         }
     },
 
     closeApp() {
         const winEl = document.getElementById('app-window');
-        if (winEl) winEl.classList.remove('open');
+        if (winEl) { winEl.classList.remove('open'); winEl.classList.remove('fullscreen-mode'); }
     },
 
-    // 🌟 核心：右上角切 API 弹窗模块完整挂载！
-    openApiModal() {
-        const bg = document.getElementById('api-modal-bg');
-        const modal = document.getElementById('api-modal');
-        if (!bg || !modal) return;
-        if (window.PhoneAPI && window.PhoneAPI.refreshPresetDropdowns) {
-            window.PhoneAPI.refreshPresetDropdowns();
-        }
-        bg.classList.add('show');
-        modal.classList.add('show');
-        this.renderApiModalContent();
+    toggleTheme() {
+        const current = document.documentElement.getAttribute('data-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
     },
 
-    closeApiModal() {
-        const bg = document.getElementById('api-modal-bg');
-        const modal = document.getElementById('api-modal');
-        if (bg) bg.classList.remove('show');
-        if (modal) modal.classList.remove('show');
-    },
-
-    async renderApiModalContent() {
-        const modal = document.getElementById('api-modal');
-        if (!modal) return;
-
-        let tokenBoard = document.getElementById('api-token-board');
-        if (!tokenBoard) {
-            tokenBoard = document.createElement('div');
-            tokenBoard.id = 'api-token-board';
-            tokenBoard.style.cssText = 'margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 12px;';
-            modal.appendChild(tokenBoard);
-        }
-
-        const stats = window.PhoneAPI ? window.PhoneAPI.getTokenStats() : { totalCount: 0, totalCost: '0.0000', lastUsage: null, lastCost: '0.0000', pricePerM: 2.0 };
-        let lastInfo = stats.lastUsage ? `入: ${stats.lastUsage.prompt} | 出: ${stats.lastUsage.completion} | 总: <b>${stats.lastUsage.total}</b> (约 ￥${stats.lastCost})` : '暂无调用记录';
-
-        tokenBoard.innerHTML = `
-            <div style="font-size: 13px; font-weight: bold; color: var(--primary-color); display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                <span><i class="ph-fill ph-wallet"></i> 实时账户与用量</span>
-                <span style="font-size: 10px; color: var(--text-sub); cursor: pointer;" onclick="window.PhoneUI.editTokenPrice()">单价: ￥${stats.pricePerM}/1M ✎</span>
-            </div>
-
-            <div style="background: var(--icon-bg); padding: 10px; border-radius: 10px; font-size: 11px; display: flex; flex-direction: column; gap: 5px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="color: var(--text-sub);">本次累计消耗：</span>
-                    <span style="font-weight: bold; color: var(--text-main); font-family: monospace;">${stats.totalCount.toLocaleString()} Tokens (约 ￥${stats.totalCost})</span>
-                </div>
-                <div style="border-top: 1px dashed var(--border-color); margin: 2px 0;"></div>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="color: var(--text-sub);">最近一次对话：</span>
-                    <span style="color: var(--text-main); font-size: 10px;">${lastInfo}</span>
-                </div>
-            </div>
-            
-            <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
-                <button onclick="if(window.PhoneAPI){window.PhoneAPI.resetTokenStats(); window.PhoneUI.renderApiModalContent();}" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-sub); font-size: 10px; padding: 3px 8px; border-radius: 6px; cursor: pointer;">清零本地统计</button>
-            </div>
-        `;
-    },
-
-    async editTokenPrice() {
-        const cur = localStorage.getItem('token_price_per_m') || '2.0';
-        const price = await this.showCustomPrompt('每 100 万 Token 的综合估算价格(元)：', cur);
-        if (price !== null && !isNaN(parseFloat(price))) {
-            localStorage.setItem('token_price_per_m', parseFloat(price).toString());
-            this.renderApiModalContent();
+    togglePlaylist() {
+        const modal = document.getElementById('playlist-modal');
+        const bg = document.getElementById('playlist-modal-bg');
+        if (modal && bg) {
+            modal.classList.toggle('show');
+            bg.classList.toggle('show');
         }
     },
 
@@ -257,6 +347,116 @@ export const PhoneUI = {
             document.getElementById('custom-prompt-confirm').onclick = () => { bg.classList.remove('show'); modal.classList.remove('show'); resolve(input.value); };
             document.getElementById('custom-prompt-cancel').onclick = () => { bg.classList.remove('show'); modal.classList.remove('show'); resolve(null); };
         });
+    },
+
+    bindLongPresses() {
+        const elements = document.querySelectorAll('.long-pressable');
+        const fileInput = document.getElementById('global-file-input');
+        let holdTimer = null, pendingKey = null;
+
+        elements.forEach(el => {
+            const key = el.dataset.img;
+            if (el.dataset.bound) return;
+            el.dataset.bound = "true";
+
+            const start = () => {
+                el.classList.add('holding');
+                clearTimeout(holdTimer);
+                holdTimer = setTimeout(() => {
+                    el.classList.remove('holding');
+                    pendingKey = key;
+                    if (fileInput) fileInput.click();
+                }, 500);
+            };
+            const cancel = () => { clearTimeout(holdTimer); el.classList.remove('holding'); };
+
+            el.addEventListener('touchstart', start, { passive: true });
+            el.addEventListener('touchend', cancel);
+            el.addEventListener('touchmove', cancel, { passive: true });
+            el.addEventListener('mousedown', start);
+            el.addEventListener('mouseup', cancel);
+            el.addEventListener('mouseleave', cancel);
+            el.addEventListener('contextmenu', e => e.preventDefault());
+        });
+
+        if (fileInput && !fileInput.dataset.bound) {
+            fileInput.dataset.bound = "true";
+            fileInput.addEventListener('change', async e => {
+                const f = e.target.files && e.target.files[0];
+                e.target.value = '';
+                if (!f || !pendingKey) return;
+                try {
+                    const blob = await window.PhoneAPI.LocalDB.shrink(f, 800);
+                    await window.PhoneAPI.LocalDB.set(pendingKey, blob);
+                    const url = window.PhoneAPI.LocalDB.urlOf(pendingKey, blob);
+                    document.querySelectorAll(`[data-img="${pendingKey}"]`).forEach(targetEl => {
+                        if (targetEl.tagName.toLowerCase() === 'img') targetEl.src = url;
+                        else {
+                            const imgChild = targetEl.querySelector('img');
+                            if (imgChild) imgChild.src = url;
+                        }
+                    });
+                    if (window.PhoneAPI) window.PhoneAPI.showToast('✨ 换图成功！已保存在本地。');
+                } catch (err) {}
+                pendingKey = null;
+            });
+        }
+    },
+
+    triggerAvatarUpload(key) {
+        let fileInput = document.getElementById('settings-avatar-input');
+        if (!fileInput) {
+            fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.id = 'settings-avatar-input';
+            fileInput.accept = 'image/*';
+            fileInput.style.display = 'none';
+            document.body.appendChild(fileInput);
+        }
+        fileInput.onchange = (e) => {
+            const f = e.target.files && e.target.files[0];
+            fileInput.value = '';
+            if (!f) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                localStorage.setItem(key, event.target.result);
+                document.querySelectorAll(`[data-img="${key}"]`).forEach(el => {
+                    if (el.tagName.toLowerCase() === 'img') el.src = event.target.result;
+                });
+                if (window.PhoneAPI) window.PhoneAPI.showToast("头像更换成功！");
+            };
+            reader.readAsDataURL(f);
+        };
+        fileInput.click();
+    },
+
+    triggerWallpaperUpload(key) {
+        let fileInput = document.getElementById('settings-wallpaper-input');
+        if (!fileInput) {
+            fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.id = 'settings-wallpaper-input';
+            fileInput.accept = 'image/*';
+            fileInput.style.display = 'none';
+            document.body.appendChild(fileInput);
+        }
+        fileInput.onchange = (e) => {
+            const f = e.target.files && e.target.files[0];
+            fileInput.value = '';
+            if (!f) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const el = document.getElementById(key.replace(/_/g, '-'));
+                if (el) el.value = event.target.result;
+                localStorage.setItem(key, event.target.result);
+                if (window.PhoneAPI && window.PhoneAPI.applyUITheme) {
+                    window.PhoneAPI.applyUITheme();
+                }
+                if (window.PhoneAPI) window.PhoneAPI.showToast("壁纸设置成功！");
+            };
+            reader.readAsDataURL(f);
+        };
+        fileInput.click();
     },
 
     switchSetTab(tabId) {
@@ -278,103 +478,6 @@ export const PhoneUI = {
                 }
             }
         });
-        if (tabId === 'sys') {
-            this.renderDebugLogs();
-        }
-    },
-
-    getStorageUsage() {
-        let total = 0;
-        for (let x in localStorage) {
-            if (localStorage.hasOwnProperty(x)) {
-                total += (localStorage[x].length + x.length) * 2;
-            }
-        }
-        const mb = (total / 1024 / 1024).toFixed(2);
-        const percent = Math.min(100, Math.round((total / (5 * 1024 * 1024)) * 100));
-        return { mb, percent };
-    },
-
-    renderDebugLogs() {
-        const container = document.getElementById('debug-log-container');
-        if (!container) return;
-
-        const { mb, percent } = this.getStorageUsage();
-        const logs = window.PhoneAPI?.logger ? window.PhoneAPI.logger.getLogs() : [];
-        let statusColor = percent > 85 ? '#e63946' : (percent > 60 ? '#f4a261' : '#2a9d8f');
-
-        let html = `
-            <div style="background: var(--icon-bg); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 12px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                    <span style="font-size:12px; font-weight:bold; color:var(--text-main);">本地存储 (5MB配额):</span>
-                    <span style="font-size:12px; font-weight:bold; color:${statusColor};">${mb} MB / 5.0 MB (${percent}%)</span>
-                </div>
-                <div style="width:100%; height:6px; background:rgba(0,0,0,0.08); border-radius:3px; overflow:hidden;">
-                    <div style="width:${percent}%; height:100%; background:${statusColor}; transition:0.3s;"></div>
-                </div>
-            </div>
-
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span style="font-size:12px; font-weight:bold; color:var(--text-main);"><i class="ph-bold ph-terminal"></i> 运行追踪 (${logs.length}条)</span>
-                <div style="display:flex; gap:6px;">
-                    <button onclick="navigator.clipboard.writeText(localStorage.getItem('sys_error_logs') || '无日志'); alert('✅ 日志已复制到剪贴板！');" style="font-size:10px; padding:3px 8px; border-radius:6px; background:var(--primary-color); color:#fff; border:none; cursor:pointer;">复制日志</button>
-                    <button onclick="if(window.PhoneAPI){window.PhoneAPI.logger.clear(); window.PhoneUI.renderDebugLogs();}" style="font-size:10px; padding:3px 8px; border-radius:6px; background:transparent; color:var(--text-sub); border:1px solid var(--border-color); cursor:pointer;">清空</button>
-                </div>
-            </div>
-
-            <div style="background:#1e1e24; color:#d4d4d4; font-family:monospace; font-size:11px; padding:10px; border-radius:10px; max-height:180px; overflow-y:auto; line-height:1.5;">
-        `;
-
-        if (logs.length === 0) {
-            html += `<div style="color:#6c757d;">暂无任何异常，系统运行顺畅 ✨</div>`;
-        } else {
-            logs.forEach(l => {
-                let badge = l.type === 'ERROR' ? 'color:#ff6b6b' : (l.type === 'CRASH' ? 'color:#ff4757;font-weight:bold;' : 'color:#1dd1a1');
-                html += `<div style="margin-bottom:6px; border-bottom:1px dashed #333; padding-bottom:4px;">
-                    <span style="color:#888;">[${l.time}]</span> <span style="${badge}">[${l.type}]</span> <b>${this.escapeHtml(l.msg)}</b>
-                    ${l.detail ? `<div style="color:#aaa; font-size:10px; word-break:break-all;">${this.escapeHtml(l.detail)}</div>` : ''}
-                </div>`;
-            });
-        }
-
-        html += `</div>`;
-        container.innerHTML = html;
-    },
-
-    async savePromptAndPersona() {
-        const sysVal = document.getElementById('system-prompt')?.value || '';
-        const charVal = document.getElementById('char-persona')?.value || '';
-        
-        let report = [];
-        if (window.PhoneAPI && window.PhoneAPI.LocalDB) {
-            try {
-                await window.PhoneAPI.LocalDB.set('direct_sys_text', sysVal);
-                await window.PhoneAPI.LocalDB.set('direct_char_text', charVal);
-                report.push("大容量数据库: 成功 ✔");
-            } catch(e) {
-                report.push("大容量数据库: 失败 ✖ (" + e.message + ")");
-            }
-        }
-
-        try {
-            localStorage.setItem('system_prompt', sysVal);
-            localStorage.setItem('char_persona', charVal);
-            report.push("localStorage: 成功 ✔");
-        } catch(e) {
-            report.push("localStorage: 配额已满 ⚠ (已由大容量库接管)");
-        }
-
-        alert(`【保存状态诊断】\n\n` + report.join('\n') + `\n\n人设总字数: ${charVal.length} 字\n已安全落地！`);
-
-        const btn = document.getElementById('btn-save-prompts');
-        if (btn) {
-            btn.innerHTML = `<i class="ph-bold ph-check"></i> 保存完毕！`;
-            btn.style.background = '#2a9d8f';
-            setTimeout(() => {
-                btn.innerHTML = `<i class="ph-bold ph-floppy-disk"></i> 💾 保存提示词与角色人设`;
-                btn.style.background = 'var(--primary-color)';
-            }, 1200);
-        }
     },
 
     saveDrawSettings() {
@@ -448,12 +551,117 @@ export const PhoneUI = {
         alert(`✅ 保存成功！当前主引擎已切换为：\n${name} (${model})`);
     },
 
+    openApiModal() {
+        const bg = document.getElementById('api-modal-bg');
+        const modal = document.getElementById('api-modal');
+        if (!bg || !modal) return;
+        if (window.PhoneAPI && window.PhoneAPI.refreshPresetDropdowns) {
+            window.PhoneAPI.refreshPresetDropdowns();
+        }
+        bg.classList.add('show');
+        modal.classList.add('show');
+        this.renderApiModalContent();
+    },
+
+    closeApiModal() {
+        const bg = document.getElementById('api-modal-bg');
+        const modal = document.getElementById('api-modal');
+        if (bg) bg.classList.remove('show');
+        if (modal) modal.classList.remove('show');
+    },
+
+    async renderApiModalContent() {
+        const modal = document.getElementById('api-modal');
+        if (!modal) return;
+
+        let tokenBoard = document.getElementById('api-token-board');
+        if (!tokenBoard) {
+            tokenBoard = document.createElement('div');
+            tokenBoard.id = 'api-token-board';
+            tokenBoard.style.cssText = 'margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 12px;';
+            modal.appendChild(tokenBoard);
+        }
+
+        const stats = window.PhoneAPI ? window.PhoneAPI.getTokenStats() : { totalCount: 0, totalCost: '0.0000', lastUsage: null, lastCost: '0.0000', pricePerM: 2.0 };
+        let lastInfo = stats.lastUsage ? `入: ${stats.lastUsage.prompt} | 出: ${stats.lastUsage.completion} | 总: <b>${stats.lastUsage.total}</b> (约 ￥${stats.lastCost})` : '暂无调用记录';
+
+        tokenBoard.innerHTML = `
+            <div style="font-size: 13px; font-weight: bold; color: var(--primary-color); display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <span><i class="ph-fill ph-wallet"></i> 实时账户与用量</span>
+                <span style="font-size: 10px; color: var(--text-sub); cursor: pointer;" onclick="window.PhoneUI.editTokenPrice()">单价: ￥${stats.pricePerM}/1M ✎</span>
+            </div>
+
+            <div style="background: var(--icon-bg); padding: 10px; border-radius: 10px; font-size: 11px; display: flex; flex-direction: column; gap: 5px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--text-sub);">本次累计消耗：</span>
+                    <span style="font-weight: bold; color: var(--text-main); font-family: monospace;">${stats.totalCount.toLocaleString()} Tokens (约 ￥${stats.totalCost})</span>
+                </div>
+                <div style="border-top: 1px dashed var(--border-color); margin: 2px 0;"></div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--text-sub);">最近一次对话：</span>
+                    <span style="color: var(--text-main); font-size: 10px;">${lastInfo}</span>
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+                <button onclick="if(window.PhoneAPI){window.PhoneAPI.resetTokenStats(); window.PhoneUI.renderApiModalContent();}" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-sub); font-size: 10px; padding: 3px 8px; border-radius: 6px; cursor: pointer;">清零本地统计</button>
+            </div>
+        `;
+    },
+
+    async editTokenPrice() {
+        const cur = localStorage.getItem('token_price_per_m') || '2.0';
+        const price = await this.showCustomPrompt('每 100 万 Token 的综合估算价格(元)：', cur);
+        if (price !== null && !isNaN(parseFloat(price))) {
+            localStorage.setItem('token_price_per_m', parseFloat(price).toString());
+            this.renderApiModalContent();
+        }
+    },
+
+    async savePromptAndPersona() {
+        const sysVal = document.getElementById('system-prompt')?.value || '';
+        const charVal = document.getElementById('char-persona')?.value || '';
+        
+        let report = [];
+        if (window.PhoneAPI && window.PhoneAPI.LocalDB) {
+            try {
+                await window.PhoneAPI.LocalDB.set('direct_sys_text', sysVal);
+                await window.PhoneAPI.LocalDB.set('direct_char_text', charVal);
+                report.push("大容量数据库: 成功 ✔");
+            } catch(e) {
+                report.push("大容量数据库: 失败 ✖ (" + e.message + ")");
+            }
+        }
+
+        try {
+            localStorage.setItem('system_prompt', sysVal);
+            localStorage.setItem('char_persona', charVal);
+            report.push("localStorage: 成功 ✔");
+        } catch(e) {
+            report.push("localStorage: 配额已满 ⚠ (已由大容量库接管)");
+        }
+
+        alert(`【保存状态诊断】\n\n` + report.join('\n') + `\n\n人设总字数: ${charVal.length} 字\n已安全落地！`);
+
+        const btn = document.getElementById('btn-save-prompts');
+        if (btn) {
+            btn.innerHTML = `<i class="ph-bold ph-check"></i> 保存完毕！`;
+            btn.style.background = '#2a9d8f';
+            setTimeout(() => {
+                btn.innerHTML = `<i class="ph-bold ph-floppy-disk"></i> 💾 保存提示词与角色人设`;
+                btn.style.background = 'var(--primary-color)';
+            }, 1200);
+        }
+    },
+
     renderSettings() {
         const contentEl = document.getElementById('app-window-content');
         if (!contentEl) return;
         const today = new Date();
         const defaultDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         const currentColor = localStorage.getItem('app_color') || 'blue';
+        const myAvatar = localStorage.getItem('my_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa';
+        const taAvatar = localStorage.getItem('ta_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=TA&backgroundColor=e8f0fa';
 
         contentEl.innerHTML = `
         <div class="settings-tabs" style="display: flex; gap: 6px; margin-bottom: 20px;">
@@ -466,7 +674,18 @@ export const PhoneUI = {
         <!-- 1. 基础设置 -->
         <div id="set-sec-basic" class="set-section active" style="flex-direction: column; gap: 15px; padding-bottom: 100px;">
             <div class="card" style="padding: 16px;">
-                <h3 style="color:var(--primary-color);margin-bottom:15px; font-size: 15px;"><i class="ph-fill ph-user-circle"></i> 基础设定 (名字)</h3>
+                <h3 style="color:var(--primary-color);margin-bottom:15px; font-size: 15px;"><i class="ph-fill ph-user-circle"></i> 基础设定 (头像与名字)</h3>
+                <div style="display:flex; justify-content:space-around; align-items:center; margin-bottom:20px; background: var(--icon-bg); padding: 15px; border-radius: 16px; border: 1px dashed var(--border-color);">
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+                        <img id="set-my-avatar" src="${myAvatar}" onclick="window.PhoneUI.triggerAvatarUpload('my_avatar')" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid var(--border-color); cursor:pointer;">
+                        <span style="font-size:11px; color:var(--text-sub); font-weight:bold;">点击换图</span>
+                    </div>
+                    <i class="ph-fill ph-arrows-left-right" style="color:var(--border-color); font-size:24px;"></i>
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+                        <img id="set-ta-avatar" src="${taAvatar}" onclick="window.PhoneUI.triggerAvatarUpload('ta_avatar')" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid var(--border-color); cursor:pointer;">
+                        <span style="font-size:11px; color:var(--text-sub); font-weight:bold;">点击换图</span>
+                    </div>
+                </div>
                 <div style="display:flex;gap:10px;">
                     <div style="flex:1;"><label style="font-size:12px;color:var(--text-main); font-weight: bold;">我的名字</label><input type="text" id="my-name" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:10px;border-radius:8px;margin-top:4px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main);"></div>
                     <div style="flex:1;"><label style="font-size:12px;color:var(--text-main); font-weight: bold;">TA的名字</label><input type="text" id="char-name" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:10px;border-radius:8px;margin-top:4px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main);"></div>
@@ -532,15 +751,8 @@ export const PhoneUI = {
             </div>
         </div>
 
-        <!-- 4. 系统维护与报错追踪 -->
+        <!-- 4. 系统维护 -->
         <div id="set-sec-sys" class="set-section" style="flex-direction: column; gap: 15px; padding-bottom: 100px;">
-            <div class="card" style="padding: 16px; border: 1.5px solid var(--primary-color);">
-                <h3 style="color:var(--primary-color);margin-bottom:12px; font-size: 15px;"><i class="ph-fill ph-activity"></i> 运行状态与报错追踪</h3>
-                <div id="debug-log-container">
-                    <div style="text-align:center; padding:15px; color:var(--text-sub);"><i class="ph ph-spinner spin-anim"></i> 正在读取系统运行状况...</div>
-                </div>
-            </div>
-
             <div class="card" style="padding: 16px;">
                 <h3 style="color:var(--danger-color);margin-bottom:15px; font-size: 15px;"><i class="ph-fill ph-warning-circle"></i> 系统维护</h3>
                 <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.forceUpdate()" style="background:#f4a261;margin-top:0;margin-bottom:10px;"><i class="ph ph-arrows-clockwise"></i> 强制更新系统并清缓存</button>
@@ -581,6 +793,7 @@ export const PhoneUI = {
                 });
             }
 
+            if (this.bindLongPresses) this.bindLongPresses();
             if (window.PhoneAPI && window.PhoneAPI.refreshPresetDropdowns) {
                 window.PhoneAPI.refreshPresetDropdowns();
             }
@@ -588,4 +801,12 @@ export const PhoneUI = {
     }
 };
 
-if (typeof window !== 'undefined') { window.PhoneUI = PhoneUI; }
+// 🌟 全局挂载与初始化启动
+if (typeof window !== 'undefined') { 
+    window.PhoneUI = PhoneUI; 
+    // 页面完全载入后自动执行一次首页更新
+    window.addEventListener('DOMContentLoaded', () => {
+        PhoneUI.updateHomeWidget?.();
+        PhoneUI.bindLongPresses?.();
+    });
+}

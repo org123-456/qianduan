@@ -68,6 +68,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.warn('⚠️ 记忆引擎暂时无法加载，主界面不受影响：', err);
         });
 
+    // 启动时先恢复设置/主题，再渲染页面，避免“刚打开还是默认蓝色，点一次设置才变粉”。
+    if (window.PhoneAPI?.loadSettings) {
+        try { window.PhoneAPI.loadSettings(); } catch (e) { console.warn('启动设置恢复失败:', e); }
+    }
+
     // 🌙 日记每天凌晨 03:00 结算前一天；若 App 之后才打开，则启动时补结算。
     if (window.PhoneUI?.scheduleDiaryGeneration) {
         window.PhoneUI.scheduleDiaryGeneration();
@@ -91,7 +96,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (window.PhoneAPI) {
             if (window.PhoneAPI.refreshPresetDropdowns) window.PhoneAPI.refreshPresetDropdowns();
             if (window.PhoneAPI.refreshPromptDropdowns) window.PhoneAPI.refreshPromptDropdowns();
-            if (window.PhoneAPI.loadSettings) window.PhoneAPI.loadSettings();
         }
         console.log('✅ 设置已成功加载！');
     }, 300);

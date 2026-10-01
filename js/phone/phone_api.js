@@ -138,6 +138,33 @@ export const PhoneAPI = {
         }
     },
     
+    async requestPersistentStorage() {
+        try {
+            if (!navigator.storage) return false;
+            if (navigator.storage.persisted && await navigator.storage.persisted()) return true;
+            if (navigator.storage.persist) return await navigator.storage.persist();
+        } catch (e) {
+            console.warn('⚠️ 无法申请持久化存储:', e);
+        }
+        return false;
+    },
+
+    async getStorageEstimate() {
+        try {
+            if (!navigator.storage?.estimate) return null;
+            const e = await navigator.storage.estimate();
+            return {
+                usage: e.usage || 0,
+                quota: e.quota || 0,
+                usageMB: ((e.usage || 0) / 1024 / 1024).toFixed(1),
+                quotaGB: ((e.quota || 0) / 1024 / 1024 / 1024).toFixed(2),
+                persistent: navigator.storage.persisted ? await navigator.storage.persisted() : false
+            };
+        } catch (e) {
+            return null;
+        }
+    },
+
     showToast(msg) {
         const toast = document.getElementById('toast');
         const toastMsg = document.getElementById('toast-msg');

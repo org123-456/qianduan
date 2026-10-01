@@ -98,6 +98,88 @@ export const ReaderEngine = {
         }
     },
 
+    async _getStoredArray(key, fallback = []) {
+        try {
+            const dbValue = await window.PhoneAPI?.LocalDB?.get(key);
+            if (Array.isArray(dbValue)) return dbValue;
+            if (typeof dbValue === 'string') {
+                const parsed = JSON.parse(dbValue);
+                if (Array.isArray(parsed)) return parsed;
+            }
+        } catch (e) {}
+        try {
+            const raw = localStorage.getItem(key);
+            return raw ? (JSON.parse(raw) || fallback) : fallback;
+        } catch (e) {
+            return fallback;
+        }
+    },
+
+    async _saveStoredArray(key, value) {
+        try {
+            if (window.PhoneAPI?.LocalDB) await window.PhoneAPI.LocalDB.set(key, value);
+        } catch (e) {}
+        try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+    },
+
+    async hydrateReaderStorage() {
+        // 先恢复书架元数据；旧版本只存在 localStorage，新版本同时放 IndexedDB。
+        let bookshelf = [];
+        try {
+            const raw = localStorage.getItem('reader_bookshelf');
+            if (raw) bookshelf = JSON.parse(raw) || [];
+        } catch (e) {}
+        if (!Array.isArray(bookshelf) || !bookshelf.length) {
+            bookshelf = await this._getStoredArray('reader_bookshelf', []);
+        }
+
+        // 如果元数据曾被清掉，但 TXT 正文 Blob 还在 IndexedDB 里，尝试把孤儿书找回来。
+        if ((!bookshelf || !bookshelf.length) && window.PhoneAPI?.LocalDB?.listKeys) {
+            try {
+                const keys = await window.PhoneAPI.LocalDB.listKeys();
+                const bookKeys = keys.filter(key => typeof key === 'string' && key.indexOf('book_') === 0);
+                bookshelf = [];
+                for (let i = 0; i < bookKeys.length; i++) {
+                    const id = bookKeys[i];
+                    const blob = await window.PhoneAPI.LocalDB.get(id);
+                    if (!blob) continue;
+                    bookshelf.push({
+                        id,
+                        title: '导入的书籍 ' + (i + 1),
+                        offsets: [0],
+                        currentIndex: 0,
+                        lastRead: 0,
+                        recovered: true
+                    });
+                }
+                if (bookshelf.length) {
+                    await this._saveStoredArray('reader_bookshelf', bookshelf);
+                    PhoneAPI.showToast('📚 已从本地存储恢复 ' + bookshelf.length + ' 本书');
+                }
+            } catch (e) {
+                console.warn('书架恢复失败', e);
+            }
+        }
+
+        await this._saveStoredArray('reader_bookshelf', Array.isArray(bookshelf) ? bookshelf : []);
+
+        // 摘录本也迁移到 IndexedDB，避免以后再跟着 localStorage 一起消失。
+        let notebook = [];
+        try {
+            const raw = localStorage.getItem('reader_notebook');
+            if (raw) notebook = JSON.parse(raw) || [];
+        } catch (e) {}
+        if (!Array.isArray(notebook) || !notebook.length) {
+            notebook = await this._getStoredArray('reader_notebook', []);
+        }
+        await this._saveStoredArray('reader_notebook', Array.isArray(notebook) ? notebook : []);
+
+        return {
+            bookshelf: Array.isArray(bookshelf) ? bookshelf : [],
+            notebook: Array.isArray(notebook) ? notebook : []
+        };
+    },
+
     importBook(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -113,11 +195,11 @@ export const ReaderEngine = {
                 const blob = new Blob([text], { type: 'text/plain' });
                 await window.PhoneAPI.LocalDB.set(bookId, blob);
 
-                let bookshelf = JSON.parse(localStorage.getItem('reader_bookshelf') || '[]');
+                let bookshelf = await this._getStoredArray('reader_bookshelf', []);
                 bookshelf.push({ id: bookId, title, offsets: [0], currentIndex: 0, lastRead: Date.now() });
-                localStorage.setItem('reader_bookshelf', JSON.stringify(bookshelf));
+                await this._saveStoredArray('reader_bookshelf', bookshelf);
                 PhoneAPI.showToast('✅ 导入成功！');
-                this.renderBookshelf();
+                await this.renderBookshelf();
             } catch (err) {
                 PhoneAPI.showToast('⚠️ 导入失败：' + err.message);
             }
@@ -138,12 +220,13 @@ export const ReaderEngine = {
         event.target.value = '';
     },
 
-    renderBookshelf() {
+    async renderBookshelf() {
+        await this.hydrateReaderStorage();
         const listEl = document.getElementById('bookshelf-list');
         if (!listEl) return;
         const headerTitle = document.getElementById('reader-header-title');
         if (headerTitle) headerTitle.innerText = '共读书架';
-        const bookshelf = JSON.parse(localStorage.getItem('reader_bookshelf') || '[]').sort((a, b) => b.lastRead - a.lastRead);
+        const bookshelf = (await this._getStoredArray('reader_bookshelf', [])).sort((a, b) => (b.lastRead || 0) - (a.lastRead || 0));
 
         let html = `
             <div class="book-wrap" onclick="window.PhoneEngine.openNotebook()">
@@ -190,7 +273,7 @@ export const ReaderEngine = {
         if (readingView) readingView.style.overflowY = 'auto';
         const container = document.getElementById('reader-page-container');
         if (!container) return;
-        const notebook = JSON.parse(localStorage.getItem('reader_notebook') || '[]');
+        const notebook = await this._getStoredArray('reader_notebook', []);
         const charName = localStorage.getItem('char_name') || 'TA';
 
         if (notebook.length === 0) {
@@ -248,13 +331,17 @@ export const ReaderEngine = {
 
     deleteBook(bookId) {
         if (!confirm('确定要从书架移除这本书吗？相关的段评和进度也会被删除！')) return;
-        let bookshelf = JSON.parse(localStorage.getItem('reader_bookshelf') || '[]');
+        let bookshelf = await this._getStoredArray('reader_bookshelf', []);
         bookshelf = bookshelf.filter(b => b.id !== bookId);
-        localStorage.setItem('reader_bookshelf', JSON.stringify(bookshelf));
+        await this._saveStoredArray('reader_bookshelf', bookshelf);
         localStorage.removeItem(`book_comments_${bookId}`);
         localStorage.removeItem(`book_highlights_${bookId}`);
-        if (window.PhoneAPI && window.PhoneAPI.LocalDB) window.PhoneAPI.LocalDB.delete(bookId);
-        this.renderBookshelf();
+        if (window.PhoneAPI && window.PhoneAPI.LocalDB) {
+            window.PhoneAPI.LocalDB.delete(bookId);
+            window.PhoneAPI.LocalDB.delete(`book_comments_${bookId}`);
+            window.PhoneAPI.LocalDB.delete(`book_highlights_${bookId}`);
+        }
+        await this.renderBookshelf();
     },
 
     calculatePageEnd(text, startOffset, bookId) {
@@ -358,13 +445,14 @@ export const ReaderEngine = {
     },
 
     _saveBookProgress(config) {
-        let bookshelf = JSON.parse(localStorage.getItem('reader_bookshelf') || '[]');
-        const idx = bookshelf.findIndex(b => b.id === config.id);
-        if (idx !== -1) {
-            bookshelf[idx].offsets = config.offsets;
-            bookshelf[idx].currentIndex = config.currentIndex;
-            localStorage.setItem('reader_bookshelf', JSON.stringify(bookshelf));
-        }
+        this._getStoredArray('reader_bookshelf', []).then(bookshelf => {
+            const idx = bookshelf.findIndex(b => b.id === config.id);
+            if (idx !== -1) {
+                bookshelf[idx].offsets = config.offsets;
+                bookshelf[idx].currentIndex = config.currentIndex;
+                this._saveStoredArray('reader_bookshelf', bookshelf);
+            }
+        });
     },
 
     prevPage() {
@@ -386,9 +474,10 @@ export const ReaderEngine = {
     },
 
     _saveToNotebook(bookTitle, quote, comment, type, thread = null) {
-        let notebook = JSON.parse(localStorage.getItem('reader_notebook') || '[]');
-        notebook.push({ bookTitle, quote, comment, type, thread, date: Date.now() });
-        localStorage.setItem('reader_notebook', JSON.stringify(notebook));
+        this._getStoredArray('reader_notebook', []).then(notebook => {
+            notebook.push({ bookTitle, quote, comment, type, thread, date: Date.now() });
+            this._saveStoredArray('reader_notebook', notebook);
+        });
     },
 
     saveHighlight() {

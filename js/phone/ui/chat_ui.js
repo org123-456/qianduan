@@ -43,6 +43,7 @@ export const ChatUI = {
             }, 100);
 
             if (appId === 'wechat') {
+                this.ensureChatSearchButton();
                 if (window.PhoneUI && window.PhoneUI.updateHomeWidget) {
                     window.PhoneUI.updateHomeWidget();
                 }
@@ -58,6 +59,111 @@ export const ChatUI = {
                 if (this.renderMoments) this.renderMoments();
             }
         }
+    },
+
+    ensureChatSearchButton() {
+        if (document.getElementById('chat-history-search-btn')) return;
+        const btn = document.createElement('button');
+        btn.id = 'chat-history-search-btn';
+        btn.type = 'button';
+        btn.title = '搜索聊天记录';
+        btn.innerHTML = '<i class="ph ph-magnifying-glass"></i>';
+        btn.style.cssText = 'position:fixed;right:14px;top:calc(env(safe-area-inset-top, 0px) + 58px);z-index:120;display:flex;align-items:center;justify-content:center;width:40px;height:40px;border:none;border-radius:50%;background:var(--window-bg);color:var(--primary-color);box-shadow:0 4px 14px rgba(0,0,0,.12);cursor:pointer;font-size:20px;';
+        btn.onclick = () => this.openChatHistorySearch();
+        document.body.appendChild(btn);
+    },
+
+    openChatHistorySearch() {
+        this.closeChatMenu();
+        this.closeStickerPanel();
+
+        let modal = document.getElementById('chat-history-search-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'chat-history-search-modal';
+            modal.style.cssText = 'position:fixed;inset:0;z-index:99990;background:rgba(0,0,0,.28);backdrop-filter:blur(8px);display:flex;align-items:flex-start;justify-content:center;padding:calc(env(safe-area-inset-top, 0px) + 54px) 14px 20px;';
+            modal.innerHTML = `
+                <div style="width:min(680px,100%);height:min(78vh,720px);background:var(--window-bg);border:1px solid var(--border-color);border-radius:22px;box-shadow:0 15px 50px rgba(0,0,0,.22);display:flex;flex-direction:column;overflow:hidden;">
+                    <div style="display:flex;align-items:center;gap:10px;padding:15px;border-bottom:1px solid var(--border-color);">
+                        <i class="ph ph-magnifying-glass" style="font-size:20px;color:var(--primary-color);"></i>
+                        <input id="chat-history-search-input" type="search" placeholder="搜索全部聊天记录……" autocomplete="off" style="flex:1;border:none;outline:none;background:transparent;color:var(--text-main);font-size:15px;">
+                        <button type="button" onclick="window.PhoneUI.closeChatHistorySearch()" style="border:none;background:var(--icon-bg);color:var(--text-main);width:34px;height:34px;border-radius:50%;font-size:18px;">×</button>
+                    </div>
+                    <div id="chat-history-search-meta" style="padding:8px 15px;font-size:11px;color:var(--text-sub);border-bottom:1px solid var(--border-color);">可搜索全部本地聊天，不受聊天页面只显示最近 1000 条的限制。</div>
+                    <div id="chat-history-search-results" style="flex:1;overflow-y:auto;padding:10px 12px;"></div>
+                </div>`;
+            document.body.appendChild(modal);
+            const input = document.getElementById('chat-history-search-input');
+            input.addEventListener('input', (e) => this.searchChatHistory(e.target.value));
+            modal.addEventListener('click', (e) => { if (e.target === modal) this.closeChatHistorySearch(); });
+        }
+        modal.style.display = 'flex';
+        const input = document.getElementById('chat-history-search-input');
+        if (input) {
+            input.value = '';
+            setTimeout(() => input.focus(), 50);
+        }
+        this.searchChatHistory('');
+    },
+
+    closeChatHistorySearch() {
+        const modal = document.getElementById('chat-history-search-modal');
+        if (modal) modal.style.display = 'none';
+    },
+
+    searchChatHistory(query) {
+        const results = document.getElementById('chat-history-search-results');
+        const meta = document.getElementById('chat-history-search-meta');
+        if (!results) return;
+
+        const roleId = window.Config?.currentContactId;
+        const items = window.Config?.phoneData?.[roleId]?.wechat?.items || [];
+        const q = String(query || '').trim().toLowerCase();
+
+        if (!q) {
+            meta.textContent = `本地共有 ${items.length} 条聊天。输入关键词后会从全部记录搜索，不会修改任何数据。`;
+            results.innerHTML = '<div style="text-align:center;padding:50px 15px;color:var(--text-sub);font-size:13px;">🔎 输入你记得的词、句子、日期或时间<br><span style="font-size:11px;">例如：外卖 / bug / 2026-09-30 / 23:07</span></div>';
+            return;
+        }
+
+        const matches = [];
+        for (let i = items.length - 1; i >= 0; i--) {
+            const item = items[i];
+            if (!item || item.sender === 'typing') continue;
+            const content = String(item.content || '');
+            const time = String(item.time || item.timestamp || item.createdAt || item.date || '');
+            const haystack = (content + ' ' + time).toLowerCase();
+            if (haystack.includes(q)) {
+                matches.push({ item, index: i });
+                if (matches.length >= 80) break;
+            }
+        }
+
+        meta.textContent = matches.length
+            ? `找到 ${matches.length}${matches.length >= 80 ? '+' : ''} 条匹配记录（按最新在前显示）`
+            : '没有找到匹配记录。';
+
+        if (!matches.length) {
+            results.innerHTML = '<div style="text-align:center;padding:55px 15px;color:var(--text-sub);font-size:13px;">没有找到这句话。<br>可以换一个更短的关键词试试。</div>';
+            return;
+        }
+
+        results.innerHTML = matches.map(({item, index}) => {
+            const raw = String(item.content || '');
+            const stamp = item.time || item.timestamp || item.createdAt || item.date || '';
+            const sender = item.sender === 'me' ? '我' : (item.sender === 'other' ? 'TA' : String(item.sender || ''));
+            const escaped = this.escapeHtml(raw.length > 260 ? raw.slice(0, 260) + '…' : raw);
+            const safeStamp = this.escapeHtml(String(stamp));
+            const safeSender = this.escapeHtml(sender);
+            return `
+                <div style="padding:12px 10px;margin-bottom:8px;border:1px solid var(--border-color);border-radius:13px;background:var(--icon-bg);">
+                    <div style="display:flex;justify-content:space-between;gap:10px;font-size:11px;color:var(--text-sub);margin-bottom:6px;">
+                        <span>${safeSender}</span><span>${safeStamp}</span>
+                    </div>
+                    <div style="font-size:13px;line-height:1.55;color:var(--text-main);white-space:pre-wrap;word-break:break-word;">${escaped}</div>
+                    <div style="margin-top:7px;font-size:10px;color:var(--text-sub);">第 ${index + 1} 条原始记录</div>
+                </div>`;
+        }).join('');
     },
 
     toggleChatMenu() {

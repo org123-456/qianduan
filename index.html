@@ -637,13 +637,48 @@ function togglePlayUI(forceState) {
 </script>
 
 <script>
-    // 不再依赖手工 PWA 版本号：Service Worker 负责网络优先，代码更新自动生效。
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js').catch(err => console.warn('SW 注册失败:', err));
+    // 启动急救：先彻底退出旧 Service Worker，避免旧缓存与新版模块混装。
+    // 只清 Cache Storage，不碰 localStorage / IndexedDB，因此聊天、日记、书籍数据都会保留。
+    (async () => {
+        try {
+            const key = 'cc_boot_recovered_20261001';
+            if ('serviceWorker' in navigator) {
+                const regs = await navigator.serviceWorker.getRegistrations();
+                if (regs.length && !sessionStorage.getItem(key)) {
+                    sessionStorage.setItem(key, '1');
+                    await Promise.all(regs.map(r => r.unregister()));
+                    if ('caches' in window) {
+                        const names = await caches.keys();
+                        await Promise.all(names.map(n => caches.delete(n)));
+                    }
+                    location.reload();
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn('启动清理失败:', e);
+        }
+        window.addEventListener('error', e => {
+            const msg = e?.error?.stack || e?.message || String(e);
+            console.error('Boot error:', msg);
+            const box = document.createElement('pre');
+            box.id = 'boot-error';
+            box.textContent = '应用启动失败：\n' + msg;
+            box.style.cssText = 'position:fixed;inset:10px;z-index:999999;background:#fff;color:#b91c1c;padding:16px;border-radius:12px;white-space:pre-wrap;overflow:auto;font:12px/1.5 monospace;';
+            document.body.appendChild(box);
         });
-    }
+        window.addEventListener('unhandledrejection', e => {
+            const msg = e?.reason?.stack || e?.reason?.message || String(e?.reason);
+            console.error('Boot rejection:', msg);
+        });
+        import('./js/main.js?boot=20261001-1').catch(err => {
+            console.error('main.js import failed:', err);
+            const box = document.createElement('pre');
+            box.textContent = '主程序加载失败：\n' + (err?.stack || err);
+            box.style.cssText = 'position:fixed;inset:10px;z-index:999999;background:#fff;color:#b91c1c;padding:16px;border-radius:12px;white-space:pre-wrap;overflow:auto;font:12px/1.5 monospace;';
+            document.body.appendChild(box);
+        });
+    })();
 </script>
-<script type="module" src="js/main.js"></script>
 </body>
 </html>

@@ -5,6 +5,7 @@ import { MomentsUI } from './ui/moments_ui.js?v=2026.10.01-diary4';
 import { ScheduleUI } from './ui/schedule_ui.js';
 import { StudyUI } from './ui/study_ui.js';
 import { CallUI } from './ui/call_ui.js';
+import { GameUI } from '../games/game_ui.js';
 
 export const PhoneUI = {
     ...ChatUI,
@@ -360,6 +361,12 @@ export const PhoneUI = {
         contentEl.style.background = 'transparent';
         contentEl.style.display = 'block';
         contentEl.style.overflow = 'auto';
+
+        // 游戏大厅由独立 GameUI 管理，PhoneUI 只负责把它挂载到通用 App 窗口。
+        if (appId === 'games') {
+            GameUI.open();
+            return;
+        }
 
         // 共读时光使用独立阅读器窗口，不走通用 app-window，避免返回层级错乱。
         if (appId === 'reader' || appId === 'reading' || appId === 'bookshelf') {

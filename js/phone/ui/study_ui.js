@@ -15,7 +15,7 @@ export const StudyUI = {
     quizScore: 0,
     quizOptions: [],
     
-    defaultWords: [
+    gaokaoWords: [
         {w: 'adapt', m: 'v. 适应'}, {w: 'balance', m: 'n. 平衡；v. 保持平衡'},
         {w: 'benefit', m: 'n. 好处；v. 受益'}, {w: 'curious', m: 'a. 好奇的'},
         {w: 'discover', m: 'v. 发现'}, {w: 'effort', m: 'n. 努力'},
@@ -192,7 +192,7 @@ export const StudyUI = {
         if (!modal) return;
 
         const vData = this.initVocabData();
-        const allWords = this.defaultWords.concat(vData.customWords);
+        const allWords = this.gaokaoWords.concat(vData.customWords);
         const now = Date.now();
 
         let reviewList = [], learningList = [], masteredList = [];
@@ -274,7 +274,7 @@ export const StudyUI = {
             `;
         } else {
             const vData = this.initVocabData();
-            const totalWords = this.defaultWords.length + vData.customWords.length;
+            const totalWords = this.gaokaoWords.length + vData.customWords.length;
             const learnedCount = Object.keys(vData.records).length;
             const now = Date.now();
             const needReviewCount = Object.values(vData.records).filter(r => r.nextReview <= now).length;
@@ -328,7 +328,7 @@ export const StudyUI = {
     // ================= 随堂测验模块 =================
     startQuiz() {
         const vData = this.initVocabData();
-        const allWords = this.defaultWords.concat(vData.customWords);
+        const allWords = this.gaokaoWords.concat(vData.customWords);
         const learnedKeys = Object.keys(vData.records);
         
         if (learnedKeys.length < 10) {
@@ -351,7 +351,7 @@ export const StudyUI = {
 
         const wordObj = this.quizWords[this.quizIndex];
         const vData = this.initVocabData();
-        const allWords = this.defaultWords.concat(vData.customWords);
+        const allWords = this.gaokaoWords.concat(vData.customWords);
 
         // 生成 4 个选项（1对3错）
         let options = [wordObj.m];
@@ -578,7 +578,7 @@ export const StudyUI = {
     // ================= 艾宾浩斯背单词模块 =================
     async startLearnVocab() {
         const vData = this.initVocabData();
-        const allWords = this.defaultWords.concat(vData.customWords);
+        const allWords = this.gaokaoWords.concat(vData.customWords);
         const unlearned = allWords.filter(w => !vData.records[w.w]);
         
         if (unlearned.length === 0) {
@@ -608,7 +608,7 @@ export const StudyUI = {
         }
         
         const wordStr = needReviewKeys[Math.floor(Math.random() * needReviewKeys.length)];
-        const allWords = this.defaultWords.concat(vData.customWords);
+        const allWords = this.gaokaoWords.concat(vData.customWords);
         this.currentWord = allWords.find(w => w.w === wordStr) || {w: wordStr, m: '未知词意'};
         this.renderVocabCard('review', isSurprise);
     },
@@ -618,7 +618,7 @@ export const StudyUI = {
         if (!area || !this.currentWord) return;
 
         const vData = this.initVocabData();
-        const allWords = this.defaultWords.concat(vData.customWords);
+        const allWords = this.gaokaoWords.concat(vData.customWords);
         const prefix = this.currentWord.w.substring(0, 4); 
         let similarWordsHtml = '';
         

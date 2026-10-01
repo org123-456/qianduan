@@ -11,6 +11,21 @@ export const events = {
     effects: {
       chapter: 1
     }
+  },
+
+  first_talk: {
+    id: 'first_talk',
+    title: '第一次聊天',
+    condition: {
+      firstMeeting: true
+    },
+    memory: {
+      title: '第一次聊天',
+      text: '第一次真正聊起彼此的故事。'
+    },
+    effects: {
+      chapter: 2
+    }
   }
 };
 

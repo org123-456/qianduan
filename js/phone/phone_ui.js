@@ -769,6 +769,27 @@ export const PhoneUI = {
         }
     },
 
+    async renderStorageInfo() {
+        const el = document.getElementById('storage-info-panel');
+        if (!el) return;
+        el.innerHTML = '<div style="color:var(--text-sub);font-size:12px;">正在检测浏览器存储空间…</div>';
+        try {
+            const info = await window.PhoneAPI?.getStorageEstimate?.();
+            let localBytes = 0;
+            try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i) || ''; const v = localStorage.getItem(k) || ''; localBytes += (k.length + v.length) * 2; } } catch (e) {}
+            const used = info?.usage || 0, quota = info?.quota || 0, pct = quota ? Math.min(100, used / quota * 100) : 0;
+            const fmt = bytes => !bytes ? '0 KB' : bytes < 1048576 ? (bytes / 1024).toFixed(1) + ' KB' : bytes < 1073741824 ? (bytes / 1048576).toFixed(1) + ' MB' : (bytes / 1073741824).toFixed(2) + ' GB';
+            const persistent = info?.persistent ? '🟢 已启用' : '🟡 普通存储';
+            el.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><span style="font-weight:bold;color:var(--text-main);">💾 浏览器存储空间</span><button onclick="window.PhoneUI.renderStorageInfo()" style="border:1px solid var(--border-color);background:transparent;color:var(--text-sub);border-radius:8px;padding:4px 9px;font-size:11px;cursor:pointer;">刷新</button></div>'
+NaN
+NaN
+NaN
+NaN
+NaN
+NaN
+NaN
+        } catch (e) { el.innerHTML = '<div style="font-size:12px;color:var(--danger-color);">暂时无法读取浏览器存储配额。</div>'; }
+    },
     renderSettings() {
         const contentEl = document.getElementById('app-window-content');
         if (!contentEl) return;
@@ -993,6 +1014,10 @@ export const PhoneUI = {
             </div>
 
             <div class="card" style="padding: 16px;">
+                <div id="storage-info-panel"></div>
+            </div>
+
+            <div class="card" style="padding: 16px;">
                 <h3 style="color:var(--danger-color);margin-bottom:15px; font-size: 15px;"><i class="ph-fill ph-warning-circle"></i> 系统维护</h3>
                 <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.forceUpdate()" style="background:#f4a261;margin-top:0;margin-bottom:10px;"><i class="ph ph-arrows-clockwise"></i> 强制更新系统</button>
                 <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.clearChat()" style="background:var(--danger-color);margin-top:0;"><i class="ph ph-trash"></i> 清空记录</button>
@@ -1002,6 +1027,7 @@ export const PhoneUI = {
 
         setTimeout(async () => {
             this.switchSetTab('basic');
+            this.renderStorageInfo();
 
             if (window.PhoneAPI && window.PhoneAPI.loadSettings) {
                 window.PhoneAPI.loadSettings();

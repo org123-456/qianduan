@@ -148,117 +148,6 @@ export const PhoneUI = {
         numEl.innerText = Math.abs(diff);
     },
 
-    openCdSheet() {
-        const cfg = JSON.parse(localStorage.getItem('cc_countdown') || '{"title":"见到你","date":"2025-05-09","pre":"还有","suf":"天"}');
-        document.getElementById('cd-in-title').value = cfg.title;
-        document.getElementById('cd-in-date').value = cfg.date;
-        document.getElementById('cd-in-pre').value = cfg.pre;
-        document.getElementById('cd-in-suf').value = cfg.suf;
-        document.getElementById('cd-modal-bg').classList.add('show');
-        document.getElementById('cd-modal').classList.add('show');
-    },
-
-    closeCdSheet() {
-        document.getElementById('cd-modal-bg').classList.remove('show');
-        document.getElementById('cd-modal').classList.remove('show');
-    },
-
-    saveCdSheet() {
-        const date = document.getElementById('cd-in-date').value;
-        if (!date) return;
-        localStorage.setItem('cc_countdown', JSON.stringify({
-            title: document.getElementById('cd-in-title').value.trim(),
-            date: date,
-            pre: document.getElementById('cd-in-pre').value.trim(),
-            suf: document.getElementById('cd-in-suf').value.trim()
-        }));
-        this.renderCountdown();
-        this.closeCdSheet();
-    },
-
-    openNoteModal() {
-        document.getElementById('note-modal-bg').classList.add('show');
-        document.getElementById('note-modal').classList.add('show');
-        const input = document.getElementById('note-input');
-        if (input) { input.value = ''; setTimeout(() => input.focus(), 100); }
-    },
-
-    closeNoteModal() {
-        document.getElementById('note-modal-bg').classList.remove('show');
-        document.getElementById('note-modal').classList.remove('show');
-    },
-
-    async sendNote() {
-        const input = document.getElementById('note-input');
-        if (!input || !input.value.trim()) return;
-        const text = input.value.trim();
-        this.closeNoteModal();
-        localStorage.setItem('home_note_content', `“${text}”`);
-        this.updateHomeWidget();
-        if (window.PhoneAPI) window.PhoneAPI.showToast('纸条已递出...');
-
-        try {
-            const persona = localStorage.getItem('char_persona') || '';
-            const reply = await window.PhoneAPI.chatWithAI([
-                { role: 'system', content: `你扮演角色。${persona}\n请给用户写一张20字以内的极短纸条回信。直接输出内容，不要描写。` },
-                { role: 'user', content: text }
-            ]);
-            if (reply) {
-                localStorage.setItem('home_note_content', `“${reply}”`);
-                this.updateHomeWidget();
-            }
-        } catch (e) {}
-    },
-
-    switchTogetherMode(mode) {
-        const musicView = document.getElementById('together-music-view');
-        const cinemaView = document.getElementById('together-cinema-view');
-        const btnMusic = document.getElementById('btn-toggle-music');
-        const btnCinema = document.getElementById('btn-toggle-cinema');
-        if (!musicView || !cinemaView) return;
-
-        if (mode === 'music') {
-            musicView.style.display = 'flex';
-            cinemaView.style.display = 'none';
-            if (btnMusic) {
-                btnMusic.style.background = '#fff';
-                btnMusic.style.color = 'var(--primary-color)';
-            }
-            if (btnCinema) {
-                btnCinema.style.background = 'transparent';
-                btnCinema.style.color = 'var(--text-sub)';
-            }
-        } else {
-            musicView.style.display = 'none';
-            cinemaView.style.display = 'flex';
-            if (btnCinema) {
-                btnCinema.style.background = '#fff';
-                btnCinema.style.color = 'var(--primary-color)';
-            }
-            if (btnMusic) {
-                btnMusic.style.background = 'transparent';
-                btnMusic.style.color = 'var(--text-sub)';
-            }
-            const avatar = localStorage.getItem('ta_avatar') || '';
-            const avatarEl = document.getElementById('cinema-companion-avatar');
-            if (avatarEl && avatar) avatarEl.src = avatar;
-        }
-    },
-
-    playBilibiliPrompt() {
-        const inputEl = document.getElementById('cinema-bili-input');
-        if (!inputEl || !inputEl.value.trim()) return;
-        const val = inputEl.value.trim();
-        const title = prompt("给视频起个名字（如：高数讲解）", "高数课");
-        if (title !== null && window.PhoneEngine && window.PhoneEngine.loadBilibiliVideo) {
-            const ok = window.PhoneEngine.loadBilibiliVideo(val, title);
-            if (ok) {
-                document.getElementById('cinema-current-title-label').innerText = `当前: ${title}`;
-                inputEl.value = '';
-            }
-        }
-    },
-
     openApp(appId, appName) {
         if (window.Config) window.Config.currentAppId = appId;
         const titleEl = document.getElementById('app-window-title');
@@ -274,189 +163,19 @@ export const PhoneUI = {
         contentEl.style.display = 'block';
         contentEl.style.overflow = 'auto';
 
-        if (appId === 'diary') { 
-            winEl.classList.add('fullscreen-mode'); 
-            const diaryTitle = localStorage.getItem('diary_title') || 'His Diary';
-            contentEl.innerHTML = `<div id="diary-cover-view" class="diary-cover-view"><div class="diary-book-cover long-pressable" data-img="bg_diary_cover" id="diary-book-cover" onclick="window.PhoneUI.unlockDiary()"><div class="diary-title">${this.escapeHtml(diaryTitle)}</div><div class="diary-hint">点击翻开日记</div></div><div class="diary-back-btn" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div></div><div id="diary-inside-view" class="diary-inside-view"><div class="diary-back-btn" onclick="window.PhoneUI.closeApp()" style="top:20px;left:15px;background:rgba(0,0,0,0.1);color:#333;z-index:50;"><i class="ph ph-caret-left"></i></div><div id="diary-content-area" style="display:flex;flex-direction:column;height:100%;"></div></div>`;
-            this.renderDiaryPage();
-            this.bindLongPresses();
-        } else { 
-            winEl.classList.remove('fullscreen-mode'); 
-        }
-
-        if (appId === 'memory_vault') {
-            if (window.Config) window.Config.memoryVaultTab = 'daily';
-            contentEl.innerHTML = `
-                <div class="vault-tabs">
-                    <div class="vault-tab active" id="tab-daily" onclick="window.PhoneUI.switchVaultTab('daily')">日常 (Daily)</div>
-                    <div class="vault-tab" id="tab-permanent" onclick="window.PhoneUI.switchVaultTab('permanent')">锚点 (Permanent)</div>
-                </div>
-                <button class="btn-refresh" onclick="window.PhoneUI.remindEchoVault()" style="margin-top: 0; margin-bottom: 15px; background: linear-gradient(135deg, #a78bfa, #8b5cf6); border-radius: 16px; box-shadow: 0 4px 15px rgba(167, 139, 250, 0.4);"><i class="ph-fill ph-bottle"></i> 捞一个漂流瓶</button>
-                <div id="vault-content-area" style="padding-bottom: 80px;"></div>
-            `;
+        if (appId === 'settings') {
+            this.renderSettings();
+        } else if (appId === 'memory_vault') {
+            contentEl.innerHTML = `<div id="vault-content-area" style="padding-bottom: 80px;"></div>`;
             this.renderMemoryVault();
         } else if (appId === 'favorites') {
             this.renderFavorites();
-        } else if (appId === 'settings') {
-            this.renderSettings();
-        } else if (appId === 'schedule') {
-            contentEl.innerHTML = `
-                <div class="vault-tabs" id="schedule-tabs" style="margin-bottom: 15px; overflow-x: auto; display: flex; white-space: nowrap;"></div>
-                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                    <button class="btn-refresh" onclick="window.PhoneUI.importScheduleAI()" style="flex: 1; margin: 0; background: linear-gradient(135deg, #a78bfa, #8b5cf6);"><i class="ph-fill ph-sparkle"></i> AI 智能排课</button>
-                    <button class="btn-refresh" onclick="window.PhoneUI.openScheduleModal(-1)" style="flex: 1; margin: 0; background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color);"><i class="ph ph-plus"></i> 添加课程</button>
-                </div>
-                <div id="schedule-list-area" style="padding-bottom: 80px; display: flex; flex-direction: column; gap: 10px;"></div>
-            `;
-            this.currentScheduleDay = new Date().getDay() === 0 ? 7 : new Date().getDay();
-            this.renderSchedule();
-        } else if (appId === 'study') {
-            this.renderStudyRoom();
         }
     },
 
     closeApp() {
         const winEl = document.getElementById('app-window');
-        if (winEl) { winEl.classList.remove('open'); winEl.classList.remove('fullscreen-mode'); }
-    },
-
-    toggleTheme() {
-        const current = document.documentElement.getAttribute('data-theme');
-        const next = current === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', next);
-        localStorage.setItem('theme', next);
-    },
-
-    togglePlaylist() {
-        const modal = document.getElementById('playlist-modal');
-        const bg = document.getElementById('playlist-modal-bg');
-        if (modal && bg) {
-            modal.classList.toggle('show');
-            bg.classList.toggle('show');
-        }
-    },
-
-    showCustomPrompt(title, defaultValue = '') {
-        return new Promise(resolve => {
-            const bg = document.getElementById('custom-prompt-bg');
-            const modal = document.getElementById('custom-prompt-modal');
-            document.getElementById('custom-prompt-title').innerText = title;
-            const input = document.getElementById('custom-prompt-input');
-            input.value = defaultValue;
-            bg.classList.add('show'); modal.classList.add('show');
-            document.getElementById('custom-prompt-confirm').onclick = () => { bg.classList.remove('show'); modal.classList.remove('show'); resolve(input.value); };
-            document.getElementById('custom-prompt-cancel').onclick = () => { bg.classList.remove('show'); modal.classList.remove('show'); resolve(null); };
-        });
-    },
-
-    bindLongPresses() {
-        const elements = document.querySelectorAll('.long-pressable');
-        const fileInput = document.getElementById('global-file-input');
-        let holdTimer = null, pendingKey = null;
-
-        elements.forEach(el => {
-            const key = el.dataset.img;
-            if (el.dataset.bound) return;
-            el.dataset.bound = "true";
-
-            const start = () => {
-                el.classList.add('holding');
-                clearTimeout(holdTimer);
-                holdTimer = setTimeout(() => {
-                    el.classList.remove('holding');
-                    pendingKey = key;
-                    if (fileInput) fileInput.click();
-                }, 500);
-            };
-            const cancel = () => { clearTimeout(holdTimer); el.classList.remove('holding'); };
-
-            el.addEventListener('touchstart', start, { passive: true });
-            el.addEventListener('touchend', cancel);
-            el.addEventListener('touchmove', cancel, { passive: true });
-            el.addEventListener('mousedown', start);
-            el.addEventListener('mouseup', cancel);
-            el.addEventListener('mouseleave', cancel);
-            el.addEventListener('contextmenu', e => e.preventDefault());
-        });
-
-        if (fileInput && !fileInput.dataset.bound) {
-            fileInput.dataset.bound = "true";
-            fileInput.addEventListener('change', async e => {
-                const f = e.target.files && e.target.files[0];
-                e.target.value = '';
-                if (!f || !pendingKey) return;
-                try {
-                    const blob = await window.PhoneAPI.LocalDB.shrink(f, 800);
-                    await window.PhoneAPI.LocalDB.set(pendingKey, blob);
-                    const url = window.PhoneAPI.LocalDB.urlOf(pendingKey, blob);
-                    document.querySelectorAll(`[data-img="${pendingKey}"]`).forEach(targetEl => {
-                        if (targetEl.tagName.toLowerCase() === 'img') targetEl.src = url;
-                        else {
-                            const imgChild = targetEl.querySelector('img');
-                            if (imgChild) imgChild.src = url;
-                        }
-                    });
-                    if (window.PhoneAPI) window.PhoneAPI.showToast('✨ 换图成功！已保存在本地。');
-                } catch (err) {}
-                pendingKey = null;
-            });
-        }
-    },
-
-    triggerAvatarUpload(key) {
-        let fileInput = document.getElementById('settings-avatar-input');
-        if (!fileInput) {
-            fileInput = document.createElement('input');
-            fileInput.type = 'file';
-            fileInput.id = 'settings-avatar-input';
-            fileInput.accept = 'image/*';
-            fileInput.style.display = 'none';
-            document.body.appendChild(fileInput);
-        }
-        fileInput.onchange = (e) => {
-            const f = e.target.files && e.target.files[0];
-            fileInput.value = '';
-            if (!f) return;
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                localStorage.setItem(key, event.target.result);
-                document.querySelectorAll(`[data-img="${key}"]`).forEach(el => {
-                    if (el.tagName.toLowerCase() === 'img') el.src = event.target.result;
-                });
-                if (window.PhoneAPI) window.PhoneAPI.showToast("头像更换成功！");
-            };
-            reader.readAsDataURL(f);
-        };
-        fileInput.click();
-    },
-
-    triggerWallpaperUpload(key) {
-        let fileInput = document.getElementById('settings-wallpaper-input');
-        if (!fileInput) {
-            fileInput = document.createElement('input');
-            fileInput.type = 'file';
-            fileInput.id = 'settings-wallpaper-input';
-            fileInput.accept = 'image/*';
-            fileInput.style.display = 'none';
-            document.body.appendChild(fileInput);
-        }
-        fileInput.onchange = (e) => {
-            const f = e.target.files && e.target.files[0];
-            fileInput.value = '';
-            if (!f) return;
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const el = document.getElementById(key.replace(/_/g, '-'));
-                if (el) el.value = event.target.result;
-                localStorage.setItem(key, event.target.result);
-                if (window.PhoneAPI && window.PhoneAPI.applyUITheme) {
-                    window.PhoneAPI.applyUITheme();
-                }
-                if (window.PhoneAPI) window.PhoneAPI.showToast("壁纸设置成功！");
-            };
-            reader.readAsDataURL(f);
-        };
-        fileInput.click();
+        if (winEl) winEl.classList.remove('open');
     },
 
     switchSetTab(tabId) {
@@ -478,46 +197,113 @@ export const PhoneUI = {
                 }
             }
         });
+        if (tabId === 'sys') {
+            this.renderDebugLogs();
+        }
     },
 
-    // 🌟 核心：直接写入 IndexedDB 与 LocalStorage 双保险，永不丢失
-    async savePromptAndPersona() {
-        const sysEl = document.getElementById('system-prompt');
-        const charEl = document.getElementById('char-persona');
-        
-        const sysVal = sysEl ? sysEl.value : '';
-        const charVal = charEl ? charEl.value : '';
+    // 🌟 计算 localStorage 已占用真实大小
+    getStorageUsage() {
+        let total = 0;
+        for (let x in localStorage) {
+            if (localStorage.hasOwnProperty(x)) {
+                total += (localStorage[x].length + x.length) * 2;
+            }
+        }
+        const kb = (total / 1024).toFixed(1);
+        const mb = (total / 1024 / 1024).toFixed(2);
+        const percent = Math.min(100, Math.round((total / (5 * 1024 * 1024)) * 100));
+        return { kb, mb, percent };
+    },
 
-        // 1. 无条件存入高容量 IndexedDB（容量无上限）
+    // 🌟 渲染系统日志与内存看板
+    renderDebugLogs() {
+        const container = document.getElementById('debug-log-container');
+        if (!container) return;
+
+        const { kb, mb, percent } = this.getStorageUsage();
+        const logs = window.PhoneAPI?.logger ? window.PhoneAPI.logger.getLogs() : [];
+
+        let statusColor = percent > 85 ? '#e63946' : (percent > 60 ? '#f4a261' : '#2a9d8f');
+
+        let html = `
+            <div style="background: var(--icon-bg); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <span style="font-size:12px; font-weight:bold; color:var(--text-main);">本地存储 (5MB配额):</span>
+                    <span style="font-size:12px; font-weight:bold; color:${statusColor};">${mb} MB / 5.0 MB (${percent}%)</span>
+                </div>
+                <div style="width:100%; height:6px; background:rgba(0,0,0,0.08); border-radius:3px; overflow:hidden;">
+                    <div style="width:${percent}%; height:100%; background:${statusColor}; transition:0.3s;"></div>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-size:12px; font-weight:bold; color:var(--text-main);"><i class="ph-bold ph-terminal"></i> 运行追踪 (${logs.length}条)</span>
+                <div style="display:flex; gap:6px;">
+                    <button onclick="navigator.clipboard.writeText(localStorage.getItem('sys_error_logs') || '无日志'); alert('✅ 日志已复制到剪贴板！');" style="font-size:10px; padding:3px 8px; border-radius:6px; background:var(--primary-color); color:#fff; border:none; cursor:pointer;">复制日志</button>
+                    <button onclick="if(window.PhoneAPI){window.PhoneAPI.logger.clear(); window.PhoneUI.renderDebugLogs();}" style="font-size:10px; padding:3px 8px; border-radius:6px; background:transparent; color:var(--text-sub); border:1px solid var(--border-color); cursor:pointer;">清空</button>
+                </div>
+            </div>
+
+            <div style="background:#1e1e24; color:#d4d4d4; font-family:monospace; font-size:11px; padding:10px; border-radius:10px; max-height:180px; overflow-y:auto; line-height:1.5;">
+        `;
+
+        if (logs.length === 0) {
+            html += `<div style="color:#6c757d;">暂无任何异常，系统运行顺畅 ✨</div>`;
+        } else {
+            logs.forEach(l => {
+                let badge = l.type === 'ERROR' ? 'color:#ff6b6b' : (l.type === 'CRASH' ? 'color:#ff4757;font-weight:bold;' : 'color:#1dd1a1');
+                html += `<div style="margin-bottom:6px; border-bottom:1px dashed #333; padding-bottom:4px;">
+                    <span style="color:#888;">[${l.time}]</span> <span style="${badge}">[${l.type}]</span> <b>${this.escapeHtml(l.msg)}</b>
+                    ${l.detail ? `<div style="color:#aaa; font-size:10px; word-break:break-all;">${this.escapeHtml(l.detail)}</div>` : ''}
+                </div>`;
+            });
+        }
+
+        html += `</div>`;
+        container.innerHTML = html;
+    },
+
+    // 🌟 提示词与超长人设双保险保存（纯字符串写入 IndexedDB）
+    async savePromptAndPersona() {
+        const sysVal = document.getElementById('system-prompt')?.value || '';
+        const charVal = document.getElementById('char-persona')?.value || '';
+        
+        let report = [];
+
+        // 1. 无条件写入大容量 IndexedDB
         if (window.PhoneAPI && window.PhoneAPI.LocalDB) {
             try {
-                await window.PhoneAPI.LocalDB.set('saved_system_prompt', new Blob([sysVal], {type: 'text/plain'}));
-                await window.PhoneAPI.LocalDB.set('saved_char_persona', new Blob([charVal], {type: 'text/plain'}));
+                await window.PhoneAPI.LocalDB.set('direct_sys_text', sysVal);
+                await window.PhoneAPI.LocalDB.set('direct_char_text', charVal);
+                report.push("大容量数据库: 成功 ✔");
             } catch(e) {
-                console.error("LocalDB 写入失败:", e);
+                report.push("大容量数据库: 失败 ✖ (" + e.message + ")");
+                window.PhoneAPI.logger.log('ERROR', 'LocalDB写入失败', e.message);
             }
         }
 
-        // 2. 尝试同步写入 localStorage
+        // 2. 尝试写入 localStorage
         try {
             localStorage.setItem('system_prompt', sysVal);
             localStorage.setItem('char_persona', charVal);
+            report.push("localStorage: 成功 ✔");
         } catch(e) {
-            console.warn("localStorage 容量受限，已完全存入大容量 LocalDB！");
+            report.push("localStorage: 配额已满 ⚠ (已由大容量库接管)");
+            window.PhoneAPI.logger.log('WARN', 'localStorage超限，已转存LocalDB', `人设字数: ${charVal.length}`);
         }
+
+        // 实时弹窗展示
+        alert(`【保存状态诊断】\n\n` + report.join('\n') + `\n\n人设总字数: ${charVal.length} 字\n已安全落地！`);
 
         const btn = document.getElementById('btn-save-prompts');
         if (btn) {
-            btn.innerHTML = `<i class="ph-bold ph-check"></i> 已永久保存！`;
+            btn.innerHTML = `<i class="ph-bold ph-check"></i> 保存完毕！`;
             btn.style.background = '#2a9d8f';
             setTimeout(() => {
                 btn.innerHTML = `<i class="ph-bold ph-floppy-disk"></i> 💾 保存提示词与角色人设`;
                 btn.style.background = 'var(--primary-color)';
             }, 1200);
-        }
-
-        if (window.PhoneAPI && window.PhoneAPI.showToast) {
-            window.PhoneAPI.showToast('✅ 核心指令与人设已稳固保存！');
         }
     },
 
@@ -580,7 +366,6 @@ export const PhoneUI = {
         }
 
         localStorage.setItem('ai_api_presets', JSON.stringify(presets));
-        
         localStorage.setItem('main_engine_id', target.id);
         localStorage.setItem('api_url', target.url);
         localStorage.setItem('api_key', target.key);
@@ -591,99 +376,6 @@ export const PhoneUI = {
         }
 
         alert(`✅ 保存成功！当前主引擎已切换为：\n${name} (${model})`);
-    },
-
-    openApiModal() {
-        const bg = document.getElementById('api-modal-bg');
-        const modal = document.getElementById('api-modal');
-        if (!bg || !modal) return;
-        if (window.PhoneAPI && window.PhoneAPI.refreshPresetDropdowns) {
-            window.PhoneAPI.refreshPresetDropdowns();
-        }
-        bg.classList.add('show');
-        modal.classList.add('show');
-        this.renderApiModalContent();
-    },
-
-    closeApiModal() {
-        const bg = document.getElementById('api-modal-bg');
-        const modal = document.getElementById('api-modal');
-        if (bg) bg.classList.remove('show');
-        if (modal) modal.classList.remove('show');
-    },
-
-    async renderApiModalContent() {
-        const modal = document.getElementById('api-modal');
-        if (!modal) return;
-
-        let tokenBoard = document.getElementById('api-token-board');
-        if (!tokenBoard) {
-            tokenBoard = document.createElement('div');
-            tokenBoard.id = 'api-token-board';
-            tokenBoard.style.cssText = 'margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 12px;';
-            modal.appendChild(tokenBoard);
-        }
-
-        const stats = window.PhoneAPI ? window.PhoneAPI.getTokenStats() : { totalCount: 0, totalCost: '0.0000', lastUsage: null, lastCost: '0.0000', pricePerM: 2.0 };
-        let lastInfo = stats.lastUsage ? `入: ${stats.lastUsage.prompt} | 出: ${stats.lastUsage.completion} | 总: <b>${stats.lastUsage.total}</b> (约 ￥${stats.lastCost})` : '暂无调用记录';
-
-        tokenBoard.innerHTML = `
-            <div style="font-size: 13px; font-weight: bold; color: var(--primary-color); display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                <span><i class="ph-fill ph-wallet"></i> 实时账户与用量</span>
-                <span style="font-size: 10px; color: var(--text-sub); cursor: pointer;" onclick="window.PhoneUI.editTokenPrice()">单价: ￥${stats.pricePerM}/1M ✎</span>
-            </div>
-            
-            <div style="background: linear-gradient(135deg, rgba(167, 139, 250, 0.12), rgba(111, 168, 220, 0.12)); border: 1px solid var(--border-color); padding: 12px; border-radius: 12px; margin-bottom: 8px;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div style="flex: 1;">
-                        <div style="font-size: 11px; color: var(--text-sub);">中转站令牌状态</div>
-                        <div id="remote-api-balance" style="font-size: 17px; font-weight: bold; color: var(--primary-color); font-family: monospace; margin-top: 3px;">
-                            <span style="font-size: 12px; font-weight: normal; opacity: 0.7;"><i class="ph ph-spinner spin-anim"></i> 查询中...</span>
-                        </div>
-                    </div>
-                    <button onclick="window.PhoneUI.renderApiModalContent()" style="background: var(--icon-bg); border: 1px solid var(--border-color); color: var(--text-main); font-size: 11px; padding: 4px 10px; border-radius: 8px; cursor: pointer;">
-                        <i class="ph ph-arrows-clockwise"></i> 刷新
-                    </button>
-                </div>
-            </div>
-
-            <div style="background: var(--icon-bg); padding: 10px; border-radius: 10px; font-size: 11px; display: flex; flex-direction: column; gap: 5px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="color: var(--text-sub);">本次累计消耗：</span>
-                    <span style="font-weight: bold; color: var(--text-main); font-family: monospace;">${stats.totalCount.toLocaleString()} Tokens (约 ￥${stats.totalCost})</span>
-                </div>
-                <div style="border-top: 1px dashed var(--border-color); margin: 2px 0;"></div>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="color: var(--text-sub);">最近一次对话：</span>
-                    <span style="color: var(--text-main); font-size: 10px;">${lastInfo}</span>
-                </div>
-            </div>
-            
-            <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
-                <button onclick="if(window.PhoneAPI){window.PhoneAPI.resetTokenStats(); window.PhoneUI.renderApiModalContent();}" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-sub); font-size: 10px; padding: 3px 8px; border-radius: 6px; cursor: pointer;">清零本地统计</button>
-            </div>
-        `;
-
-        if (window.PhoneAPI && window.PhoneAPI.queryRemoteBalance) {
-            const res = await window.PhoneAPI.queryRemoteBalance();
-            const balanceEl = document.getElementById('remote-api-balance');
-            if (balanceEl) {
-                if (res) {
-                    balanceEl.innerHTML = res.isUnlimited ? `无限额度 <span style="font-size: 11px; color: var(--text-sub); font-weight: normal;">(已用 ￥${res.used})</span>` : `剩余 ￥${res.remaining} <span style="font-size: 11px; color: var(--text-sub); font-weight: normal;">(总 ￥${res.total})</span>`;
-                } else {
-                    balanceEl.innerHTML = `<span style="font-size: 11px; color: var(--text-sub); font-weight: normal;">未开放远程余额接口</span>`;
-                }
-            }
-        }
-    },
-
-    async editTokenPrice() {
-        const cur = localStorage.getItem('token_price_per_m') || '2.0';
-        const price = await this.showCustomPrompt('每 100 万 Token 的综合估算价格(元)：', cur);
-        if (price !== null && !isNaN(parseFloat(price))) {
-            localStorage.setItem('token_price_per_m', parseFloat(price).toString());
-            this.renderApiModalContent();
-        }
     },
 
     renderSettings() {
@@ -746,40 +438,6 @@ export const PhoneUI = {
                 <div class="engine-title" style="margin-bottom: 6px; font-size: 12px; font-weight: bold; color: var(--text-main);"><i class="ph-fill ph-heart" style="color:var(--danger-color);"></i> 恋爱纪念日</div>
                 <div style="margin-bottom:15px;"><input type="date" id="love-start-date" value="${localStorage.getItem('love_start_date') || defaultDate}" onchange="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:10px;border-radius:8px;border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main);"></div>
             </div>
-
-            <div class="card" style="padding: 16px;">
-                <h3 style="color:var(--primary-color);margin-bottom:12px; font-size: 15px;"><i class="ph-fill ph-image-square"></i> 自定义背景壁纸</h3>
-                <div style="display:flex; flex-direction:column; gap:12px;">
-                    <div>
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                            <label style="font-size:12px; font-weight:bold; color:var(--text-main);">全局背景壁纸</label>
-                            <button onclick="window.PhoneUI.triggerWallpaperUpload('bg_global')" style="font-size:11px; background:var(--primary-color); color:#fff; border:none; padding:4px 10px; border-radius:6px; cursor:pointer;">本地上传</button>
-                        </div>
-                        <input type="text" id="bg-global" placeholder="外链图片 URL 或点击上传" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border-color);background:var(--window-bg);color:var(--text-main);font-size:12px;">
-                    </div>
-                    <div>
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                            <label style="font-size:12px; font-weight:bold; color:var(--text-main);">聊天窗口壁纸</label>
-                            <button onclick="window.PhoneUI.triggerWallpaperUpload('bg_chat')" style="font-size:11px; background:var(--primary-color); color:#fff; border:none; padding:4px 10px; border-radius:6px; cursor:pointer;">本地上传</button>
-                        </div>
-                        <input type="text" id="bg-chat" placeholder="外链图片 URL 或点击上传" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border-color);background:var(--window-bg);color:var(--text-main);font-size:12px;">
-                    </div>
-                    <div>
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                            <label style="font-size:12px; font-weight:bold; color:var(--text-main);">日记封面壁纸</label>
-                            <button onclick="window.PhoneUI.triggerWallpaperUpload('bg_diary_cover')" style="font-size:11px; background:var(--primary-color); color:#fff; border:none; padding:4px 10px; border-radius:6px; cursor:pointer;">本地上传</button>
-                        </div>
-                        <input type="text" id="bg-diary-cover" placeholder="外链图片 URL 或点击上传" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border-color);background:var(--window-bg);color:var(--text-main);font-size:12px;">
-                    </div>
-                    <div>
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                            <label style="font-size:12px; font-weight:bold; color:var(--text-main);">日记内页壁纸</label>
-                            <button onclick="window.PhoneUI.triggerWallpaperUpload('bg_diary_page')" style="font-size:11px; background:var(--primary-color); color:#fff; border:none; padding:4px 10px; border-radius:6px; cursor:pointer;">本地上传</button>
-                        </div>
-                        <input type="text" id="bg-diary-page" placeholder="外链图片 URL 或点击上传" oninput="if(window.PhoneAPI) window.PhoneAPI.autoSave()" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border-color);background:var(--window-bg);color:var(--text-main);font-size:12px;">
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- 2. 大模型与记忆设置 -->
@@ -792,7 +450,7 @@ export const PhoneUI = {
                 </div>
                 <div style="margin-bottom:15px;">
                     <label style="font-size:13px;color:var(--text-main);font-weight:bold; display: block; margin-bottom: 6px;">2. 角色完整人设 (性格/口吻/设定)</label>
-                    <textarea id="char-persona" rows="7" style="width:100%;padding:10px;border-radius:10px;resize:vertical;font-size:13px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main); line-height: 1.5;"></textarea>
+                    <textarea id="char-persona" rows="8" style="width:100%;padding:10px;border-radius:10px;resize:vertical;font-size:13px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main); line-height: 1.5;"></textarea>
                 </div>
 
                 <button type="button" 
@@ -804,113 +462,45 @@ export const PhoneUI = {
             </div>
 
             <div class="card" style="padding: 16px; border: 1px solid var(--border-color);">
-                <h3 style="color:var(--primary-color);margin-bottom:12px; font-size: 15px;"><i class="ph-fill ph-brain"></i> 记忆管理与上下文提取</h3>
-                
-                <div style="background: var(--icon-bg); padding: 14px; border-radius: 12px; margin-bottom: 16px; border: 1px dashed var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-size: 12px; font-weight: bold; color: var(--text-main);">未总结的历史聊天账目</div>
-                        <div style="font-size: 20px; font-weight: 800; color: var(--primary-color); margin-top: 2px;">
-                            ${unsummarizedCount} <span style="font-size: 12px; font-weight: normal; color: var(--text-sub);">条</span>
-                        </div>
-                    </div>
-                    <div style="display: flex; gap: 8px;">
-                        <button onclick="if(window.PhoneEngine){window.PhoneEngine.extractMemory('wechat'); PhoneUI.renderSettings(); PhoneUI.switchSetTab('ai');}" style="padding: 8px 14px; font-size: 12px; font-weight: bold; border-radius: 10px; background: var(--primary-color); color: #fff; border: none; cursor: pointer;">
-                            <i class="ph-fill ph-sparkle"></i> 立即提取
-                        </button>
-                        <button onclick="localStorage.setItem('memory_last_summary_index', cleanItems.length.toString()); PhoneUI.renderSettings(); PhoneUI.switchSetTab('ai'); PhoneAPI.showToast('✅ 历史旧账已全部清零！');" style="padding: 8px 10px; font-size: 12px; border-radius: 10px; background: transparent; color: var(--text-sub); border: 1px solid var(--border-color); cursor: pointer;">
-                            清零旧账
-                        </button>
-                    </div>
-                </div>
-
-                <div style="margin-bottom: 16px;">
-                    <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
-                        <span style="font-weight: bold; color: var(--text-main);">聊天上下文携带条数</span>
-                        <span id="label-chat-limit" style="color: var(--primary-color); font-weight: bold;">${curChatLimit} 条</span>
-                    </div>
-                    <input type="range" min="10" max="200" step="5" value="${curChatLimit}" oninput="document.getElementById('label-chat-limit').innerText = this.value + ' 条'; localStorage.setItem('context_chat_limit', this.value);" style="width: 100%; accent-color: var(--primary-color);">
-                </div>
-
-                <div>
-                    <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
-                        <span style="font-weight: bold; color: var(--text-main);">长期记忆库加载数量</span>
-                        <span id="label-vault-limit" style="color: var(--primary-color); font-weight: bold;">${curVaultLimit} 条</span>
-                    </div>
-                    <input type="range" min="5" max="60" step="1" value="${curVaultLimit}" oninput="document.getElementById('label-vault-limit').innerText = this.value + ' 条'; localStorage.setItem('context_vault_limit', this.value);" style="width: 100%; accent-color: var(--primary-color);">
-                </div>
-            </div>
-
-            <div class="card" style="padding: 16px; border: 1px solid var(--border-color);">
                 <h3 style="color:var(--primary-color);margin-bottom:12px; font-size: 15px;"><i class="ph-fill ph-database"></i> 语言引擎预设配置</h3>
-                
                 <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 15px;">
                     <select id="preset-delete-select" onchange="window.PhoneUI.fillPresetData()" style="flex: 1; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--primary-color); background: var(--icon-bg); color: var(--text-main); font-size: 13px;">
                         <option value="">-- 点击选择预设切换 --</option>
                     </select>
-                    <button onclick="if(window.PhoneAPI) window.PhoneAPI.deletePreset()" style="background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); padding: 10px 14px; border-radius: 10px; cursor: pointer;">
-                        <i class="ph ph-trash"></i>
-                    </button>
                 </div>
-
-                <div style="margin-bottom:10px;">
-                    <label style="font-size:12px;color:var(--text-main); font-weight: bold; display: block; margin-bottom: 4px;">预设名称 (别名)</label>
-                    <input type="text" id="preset-name" placeholder="起个名字 (如: 空悲切-Sonnet)" style="width:100%;padding:10px;border-radius:8px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main);">
-                </div>
-                <div style="margin-bottom:10px;">
-                    <label style="font-size:12px;color:var(--text-main); font-weight: bold; display: block; margin-bottom: 4px;">接口地址 (Base URL)</label>
-                    <input type="text" id="preset-url" placeholder="如: https://api.blanka.cc" style="width:100%;padding:10px;border-radius:8px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main);">
-                </div>
-                <div style="margin-bottom:10px;">
-                    <label style="font-size:12px;color:var(--text-main); font-weight: bold; display: block; margin-bottom: 4px;">API Key (密钥)</label>
-                    <input type="password" id="preset-key" placeholder="sk-..." style="width:100%;padding:10px;border-radius:8px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main);">
-                </div>
-                <div style="margin-bottom:18px;">
-                    <label style="font-size:12px;color:var(--text-main); font-weight: bold; display: block; margin-bottom: 4px;">模型名称 (Model)</label>
-                    <input type="text" id="preset-model" placeholder="如: claude-3-5-sonnet-20241022" style="width:100%;padding:10px;border-radius:8px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main);">
-                </div>
-                
-                <button type="button" 
-                        id="btn-direct-save-preset"
-                        style="width: 100%; padding: 14px; border-radius: 12px; font-weight: bold; background: var(--primary-color); color: #fff; border: none; cursor: pointer; font-size: 14px; display: flex; justify-content: center; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-                    <i class="ph ph-floppy-disk"></i> 保存 / 更新并立即使用当前预设
-                </button>
+                <div style="margin-bottom:10px;"><input type="text" id="preset-name" placeholder="起个名字 (如: Sonnet)" style="width:100%;padding:10px;border-radius:8px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main);"></div>
+                <div style="margin-bottom:10px;"><input type="text" id="preset-url" placeholder="Base URL (如: https://api.xxx.com)" style="width:100%;padding:10px;border-radius:8px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main);"></div>
+                <div style="margin-bottom:10px;"><input type="password" id="preset-key" placeholder="API Key" style="width:100%;padding:10px;border-radius:8px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main);"></div>
+                <div style="margin-bottom:15px;"><input type="text" id="preset-model" placeholder="Model Name" style="width:100%;padding:10px;border-radius:8px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main);"></div>
+                <button type="button" id="btn-direct-save-preset" style="width: 100%; padding: 12px; border-radius: 10px; font-weight: bold; background: var(--primary-color); color: #fff; border: none; cursor: pointer;">保存预设</button>
             </div>
         </div>
 
         <!-- 3. 绘画引擎 -->
         <div id="set-sec-draw" class="set-section" style="flex-direction: column; gap: 15px; padding-bottom: 100px;">
             <div class="card" style="padding: 16px;">
-                <h3 style="color:var(--primary-color);margin-bottom:10px; font-size: 15px;"><i class="ph-fill ph-image"></i> 绘画引擎配置 (DALL-E 格式)</h3>
-                <div style="margin-bottom:10px;"><input type="text" id="img-api-url" placeholder="接口地址 (例如: https://dangao.iisbo.com/v1)" style="width:100%;padding:10px;border-radius:8px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main);"></div>
-                <div style="margin-bottom:10px;"><input type="password" id="img-api-key" placeholder="API Key (密钥)" style="width:100%;padding:10px;border-radius:8px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main);"></div>
-                <div style="margin-bottom:15px;"><input type="text" id="img-api-model" placeholder="模型名称 (例如: GPT-Image-2 或 dall-e-3)" style="width:100%;padding:10px;border-radius:8px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main);"></div>
-                <div style="display:flex; gap:10px;">
-                    <button class="btn-refresh" onclick="window.PhoneUI.saveDrawSettings()" style="flex:1; margin-top:0; background:var(--primary-color);"><i class="ph-fill ph-floppy-disk"></i> 💾 保存配置</button>
-                    <button class="btn-refresh" onclick="if(window.PhoneEngine && window.PhoneEngine.testDrawImage) window.PhoneEngine.testDrawImage()" style="flex:1; margin-top:0; background:var(--icon-bg); color:var(--text-main); border:1px solid var(--border-color);"><i class="ph-fill ph-sparkle"></i> 🧪 测试连接</button>
-                </div>
+                <h3 style="color:var(--primary-color);margin-bottom:10px; font-size: 15px;"><i class="ph-fill ph-image"></i> 绘画引擎配置</h3>
+                <div style="margin-bottom:10px;"><input type="text" id="img-api-url" placeholder="接口地址" style="width:100%;padding:10px;border-radius:8px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main);"></div>
+                <div style="margin-bottom:10px;"><input type="password" id="img-api-key" placeholder="API Key" style="width:100%;padding:10px;border-radius:8px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main);"></div>
+                <div style="margin-bottom:15px;"><input type="text" id="img-api-model" placeholder="模型名称" style="width:100%;padding:10px;border-radius:8px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main);"></div>
+                <button class="btn-refresh" onclick="window.PhoneUI.saveDrawSettings()" style="width:100%; background:var(--primary-color);"><i class="ph-fill ph-floppy-disk"></i> 保存配置</button>
             </div>
         </div>
 
-        <!-- 4. 系统维护 -->
+        <!-- 4. 系统维护与报错追踪 -->
         <div id="set-sec-sys" class="set-section" style="flex-direction: column; gap: 15px; padding-bottom: 100px;">
-            <div class="card" style="border: 1px solid var(--primary-color); padding: 16px;">
-                <h3 style="color:var(--primary-color);margin-bottom:10px; font-size: 15px;"><i class="ph-fill ph-cloud-check"></i> Cloudflare 云端同步</h3>
-                <div style="display:flex;gap:10px;"><button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.syncToCloud()" style="flex:1;margin-top:0;background:linear-gradient(135deg, var(--primary-color), var(--secondary-color));"><i class="ph-fill ph-cloud-arrow-up"></i> 备份到云端</button><button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.restoreFromCloud()" style="flex:1;margin-top:0;background:var(--icon-bg);color:var(--text-main);border:1px solid var(--border-color);"><i class="ph-fill ph-cloud-arrow-down"></i> 从云端拉取</button></div>
-            </div>
-            
-            <div class="card" style="padding: 16px;">
-                <h3 style="color:var(--primary-color);margin-bottom:15px; font-size: 15px;"><i class="ph-fill ph-floppy-disk-back"></i> 本地文件备份 (JSON)</h3>
-                <div style="display:flex;gap:10px;">
-                    <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.exportData()" style="flex:1;margin-top:0;background:var(--secondary-color);"><i class="ph ph-export"></i> 导出文件</button>
-                    <button class="btn-refresh" onclick="document.getElementById('import-file').click()" style="flex:1;margin-top:0;background:#2a9d8f;"><i class="ph ph-import"></i> 导入文件</button>
-                    <input type="file" id="import-file" style="display:none" accept=".json" onchange="if(window.PhoneAPI) window.PhoneAPI.importData(event)">
+            <!-- 🌟 核心：报错诊断与运行日志看板 -->
+            <div class="card" style="padding: 16px; border: 1.5px solid var(--primary-color);">
+                <h3 style="color:var(--primary-color);margin-bottom:12px; font-size: 15px;"><i class="ph-fill ph-activity"></i> 运行状态与报错追踪</h3>
+                <div id="debug-log-container">
+                    <div style="text-align:center; padding:15px; color:var(--text-sub);"><i class="ph ph-spinner spin-anim"></i> 正在读取系统运行状况...</div>
                 </div>
             </div>
 
             <div class="card" style="padding: 16px;">
                 <h3 style="color:var(--danger-color);margin-bottom:15px; font-size: 15px;"><i class="ph-fill ph-warning-circle"></i> 系统维护</h3>
-                <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.forceUpdate()" style="background:#f4a261;margin-top:0;margin-bottom:10px;"><i class="ph ph-arrows-clockwise"></i> 强制更新系统</button>
-                <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.clearChat()" style="background:var(--danger-color);margin-top:0;"><i class="ph ph-trash"></i> 清空记录</button>
+                <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.forceUpdate()" style="background:#f4a261;margin-top:0;margin-bottom:10px;"><i class="ph ph-arrows-clockwise"></i> 强制更新系统并清缓存</button>
+                <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.clearChat()" style="background:var(--danger-color);margin-top:0;"><i class="ph ph-trash"></i> 清空记录 (释放内存)</button>
             </div>
         </div>
         `;
@@ -918,27 +508,25 @@ export const PhoneUI = {
         setTimeout(async () => {
             this.switchSetTab('basic');
 
-            // 1. 先跑系统基础设置（绝不影响人设框）
             if (window.PhoneAPI && window.PhoneAPI.loadSettings) {
                 window.PhoneAPI.loadSettings();
             }
 
-            // 2. 核心：从 LocalDB / localStorage 最终取值回显在文本框里
-            const sysPromptEl = document.getElementById('system-prompt');
-            const charPersonaEl = document.getElementById('char-persona');
-            
+            // 🌟 终极读取：优先读取 IndexedDB 中的超长纯文本！
             let finalSys = localStorage.getItem('system_prompt') || '';
             let finalChar = localStorage.getItem('char_persona') || '';
 
             if (window.PhoneAPI?.LocalDB) {
                 try {
-                    const sysBlob = await window.PhoneAPI.LocalDB.get('saved_system_prompt');
-                    const charBlob = await window.PhoneAPI.LocalDB.get('saved_char_persona');
-                    if (sysBlob) finalSys = await sysBlob.text();
-                    if (charBlob) finalChar = await charBlob.text();
+                    const dbSys = await window.PhoneAPI.LocalDB.get('direct_sys_text');
+                    const dbChar = await window.PhoneAPI.LocalDB.get('direct_char_text');
+                    if (dbSys && typeof dbSys === 'string') finalSys = dbSys;
+                    if (dbChar && typeof dbChar === 'string') finalChar = dbChar;
                 } catch(e) {}
             }
 
+            const sysPromptEl = document.getElementById('system-prompt');
+            const charPersonaEl = document.getElementById('char-persona');
             if (sysPromptEl) sysPromptEl.value = finalSys;
             if (charPersonaEl) charPersonaEl.value = finalChar;
 
@@ -950,7 +538,6 @@ export const PhoneUI = {
                 });
             }
 
-            if (this.bindLongPresses) this.bindLongPresses();
             if (window.PhoneAPI && window.PhoneAPI.refreshPresetDropdowns) {
                 window.PhoneAPI.refreshPresetDropdowns();
             }

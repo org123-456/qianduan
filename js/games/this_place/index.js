@@ -3,6 +3,7 @@
 
 import { renderGameUI } from './ui.js';
 import { initGameState, getGameState } from './systems/game_state.js';
+import { saveGame, loadGame } from './systems/save_system.js';
 import { onEvent } from './events.js';
 import { gameData, addMemory, increaseAffection, setCompanion } from './data.js';
 
@@ -25,6 +26,7 @@ function initFirstMeeting() {
     });
 
     increaseAffection(1);
+    saveGame(gameData);
   });
 }
 
@@ -34,10 +36,11 @@ const ThisPlaceGame = {
   icon: '🏡',
   description: '一个关于陪伴、成长与记忆的养成游戏。',
   status: '开发中',
-  version: '0.3.1',
+  version: '0.3.2',
 
   init(container) {
     this.container = container;
+    loadGame(gameData);
     initGameState();
     initFirstMeeting();
   },
@@ -47,6 +50,7 @@ const ThisPlaceGame = {
   },
 
   destroy() {
+    saveGame(gameData);
     this.container = null;
   }
 };

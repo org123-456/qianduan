@@ -93,6 +93,35 @@ export const DiaryUI = {
     },
 
     // 🌟 双人书架：放在封面页，选择一本后再进入对应日记。
+    showDiaryShelfInline() {
+        const area = document.getElementById('moments-diary-inline');
+        if (!area) return;
+        area.innerHTML = this.renderDiaryShelfInline();
+        if (window.PhoneUI?.bindLongPresses) window.PhoneUI.bindLongPresses();
+    },
+
+    async openDiaryInline(type = 'ta') {
+        const area = document.getElementById('moments-diary-inline');
+        if (!area) return;
+
+        this.currentDiaryBook = type;
+        area.innerHTML = `
+            <div id="diary-inline-content" class="diary-inline-content" style="margin-top:15px;">
+                <div id="diary-content-area" style="display:flex;flex-direction:column;"></div>
+            </div>
+        `;
+
+        if (type === 'mine') {
+            this.renderMyDiary();
+        } else {
+            if (window.Config) window.Config.diaryPageIndex = -1;
+            this.renderDiaryPage();
+            await this.autoGenerateTodayDiary();
+        }
+
+        this.applyDiaryBackgrounds();
+    },
+
     renderDiaryShelfInline() {
         const taName = localStorage.getItem('char_name') || 'TA';
         return `
@@ -101,12 +130,12 @@ export const DiaryUI = {
                     📖 双人日记架 · 选择一本打开
                 </div>
                 <div style="display: flex; justify-content: center; gap: 15px;">
-                    <div onclick="window.PhoneUI.openDiaryBook('ta')" 
+                    <div onclick="window.PhoneUI.openDiaryInline('ta')" 
                          style="flex: 1; max-width: 150px; background: linear-gradient(145deg, #789bbc, #354f70); border-radius: 8px 14px 14px 8px; padding: 18px 10px; color: #fff; text-align: center; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.15); transition: 0.2s;">
                         <div style="font-family: 'Long Cang', cursive; font-size: 19px; font-weight: bold;">${this.escapeHtml(taName)}的日记</div>
                         <div style="font-size: 9px; opacity: 0.8; margin-top: 6px; letter-spacing: 1px;">HIS DIARY</div>
                     </div>
-                    <div onclick="window.PhoneUI.openDiaryBook('mine')" 
+                    <div onclick="window.PhoneUI.openDiaryInline('mine')" 
                          style="flex: 1; max-width: 150px; background: linear-gradient(145deg, #d69aaa, #754d68); border-radius: 8px 14px 14px 8px; padding: 18px 10px; color: #fff; text-align: center; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.15); transition: 0.2s;">
                         <div style="font-family: 'Long Cang', cursive; font-size: 19px; font-weight: bold;">我的日记</div>
                         <div style="font-size: 9px; opacity: 0.8; margin-top: 6px; letter-spacing: 1px;">MY DIARY</div>

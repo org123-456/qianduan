@@ -1,9 +1,21 @@
 import { registerGame } from './game_engine.js';
 import { GameUI } from './game_ui.js';
-import fishing from './games/fishing.js';
-import dailyLottery from './games/daily_lottery.js';
-import cat from './games/cat.js';
 
-[fishing, dailyLottery, cat].forEach(registerGame);
+const gameLoaders = [
+    ['fishing', () => import('./games/fishing.js')],
+    ['daily-lottery', () => import('./games/daily_lottery.js')],
+    ['cat', () => import('./games/cat.js')]
+];
+
+export const gamesReady = Promise.allSettled(gameLoaders.map(async ([id, loader]) => {
+    try {
+        const mod = await loader();
+        registerGame(mod.default || mod);
+    } catch (error) {
+        console.error('Game module ' + id + ' failed to load:', error);
+    }
+})).then(() => true);
+
+if (typeof window !== 'undefined') window.GameGamesReady = gamesReady;
 
 export { GameUI };

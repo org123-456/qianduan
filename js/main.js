@@ -5,7 +5,7 @@ import { PhoneEngine } from './phone/phone_engine.js';
 import { WechatApp } from './apps/wechat.js';
 import { MemoryEngine } from './phone/engine/memory_engine.js';
 
-const APP_BUILD = '2026.10.01-pwa10';
+const APP_BUILD = '2026.10.01-pwa9';
 
 async function checkPwaBuild() {
     try {

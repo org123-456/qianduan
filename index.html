@@ -8,9 +8,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#dff1ff">
 <meta name="color-scheme" content="light dark">
-<meta name="app-build" content="auto">
+<meta name="app-build" content="2026.10.01-pwa9">
 <meta name="supported-color-schemes" content="light dark">
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="manifest.json?v=2026.10.01-pwa9">
 
 <title>Claire & Claude</title>
 
@@ -637,48 +637,21 @@ function togglePlayUI(forceState) {
 </script>
 
 <script>
-    // 启动急救：先彻底退出旧 Service Worker，避免旧缓存与新版模块混装。
-    // 只清 Cache Storage，不碰 localStorage / IndexedDB，因此聊天、日记、书籍数据都会保留。
+    // 回到之前稳定的启动方式：不再注册新的 Service Worker。
+    // 如果浏览器里还留着旧 SW，只解除它，不触碰 localStorage / IndexedDB。
     (async () => {
         try {
-            const key = 'cc_boot_recovered_20261001';
             if ('serviceWorker' in navigator) {
                 const regs = await navigator.serviceWorker.getRegistrations();
-                if (regs.length && !sessionStorage.getItem(key)) {
-                    sessionStorage.setItem(key, '1');
+                if (regs.length) {
                     await Promise.all(regs.map(r => r.unregister()));
-                    if ('caches' in window) {
-                        const names = await caches.keys();
-                        await Promise.all(names.map(n => caches.delete(n)));
-                    }
-                    location.reload();
-                    return;
                 }
             }
         } catch (e) {
-            console.warn('启动清理失败:', e);
+            console.warn('旧 Service Worker 清理跳过:', e);
         }
-        window.addEventListener('error', e => {
-            const msg = e?.error?.stack || e?.message || String(e);
-            console.error('Boot error:', msg);
-            const box = document.createElement('pre');
-            box.id = 'boot-error';
-            box.textContent = '应用启动失败：\n' + msg;
-            box.style.cssText = 'position:fixed;inset:10px;z-index:999999;background:#fff;color:#b91c1c;padding:16px;border-radius:12px;white-space:pre-wrap;overflow:auto;font:12px/1.5 monospace;';
-            document.body.appendChild(box);
-        });
-        window.addEventListener('unhandledrejection', e => {
-            const msg = e?.reason?.stack || e?.reason?.message || String(e?.reason);
-            console.error('Boot rejection:', msg);
-        });
-        import('./js/main.js?boot=20261001-1').catch(err => {
-            console.error('main.js import failed:', err);
-            const box = document.createElement('pre');
-            box.textContent = '主程序加载失败：\n' + (err?.stack || err);
-            box.style.cssText = 'position:fixed;inset:10px;z-index:999999;background:#fff;color:#b91c1c;padding:16px;border-radius:12px;white-space:pre-wrap;overflow:auto;font:12px/1.5 monospace;';
-            document.body.appendChild(box);
-        });
     })();
 </script>
+<script type="module" src="js/main.js"></script>
 </body>
 </html>

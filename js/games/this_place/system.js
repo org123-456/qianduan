@@ -1,16 +1,8 @@
 // 此间归处 - 核心系统
 
-import { gameData, addMemory } from './data.js';
+import { gameData, addMemory, setCompanion } from './data.js';
 
 const listeners = new Map();
-
-const stages = [
-  { name: '陌生', min: 0 },
-  { name: '相遇', min: 10 },
-  { name: '熟悉', min: 30 },
-  { name: '信任', min: 60 },
-  { name: '重要陪伴', min: 100 }
-];
 
 export function onEvent(eventName, callback) {
   if (!listeners.has(eventName)) listeners.set(eventName, []);
@@ -18,57 +10,96 @@ export function onEvent(eventName, callback) {
 }
 
 export function triggerEvent(eventName, payload = {}) {
-  const event = {
-    eventName,
-    payload,
-    time: Date.now()
-  };
-
-  const callbacks = listeners.get(eventName) || [];
-  callbacks.forEach(callback => callback(event));
+  const event = { eventName, payload, time: Date.now() };
+  (listeners.get(eventName) || []).forEach(callback => callback(event));
   markEventTriggered(eventName);
-
   return event;
+}
+
+export function clearEvents(eventName) {
+  if (eventName) listeners.delete(eventName);
+  else listeners.clear();
+}
+
+export function createCharacter(config = {}) {
+  return {
+    id: config.id || null,
+    name: config.name || '未知角色',
+    personality: config.personality || [],
+    preferences: config.preferences || [],
+    state: {
+      mood: 'normal',
+      energy: 100,
+      ...config.state
+    }
+  };
+}
+
+export class Companion {
+  constructor(data = {}) {
+    Object.assign(this, createCharacter(data));
+    this.role = 'companion';
+    this.relationship = { affection: 0, trust: 0 };
+  }
+
+  interact(type = 'talk') {
+    return { type, mood: this.state.mood, responseReady: true };
+  }
+}
+
+export function createCompanion(data = {}) {
+  const companion = new Companion(data);
+  setCompanion(companion);
+  return companion;
+}
+
+export function initializeCompanion() {
+  return createCompanion({
+    id: 'default_companion',
+    name: '未命名的陪伴者',
+    personality: ['温和', '好奇']
+  });
+}
+
+export function addAffection(value = 1) {
+  gameData.relationship.affection += value;
+}
+
+export function changeRelationship(change = {}) {
+  const relation = gameData.relationship;
+  relation.affection = Math.max(0, relation.affection + (change.affection || 0));
+  relation.trust = Math.max(0, relation.trust + (change.trust || 0));
+  return relation;
 }
 
 export function updateRelationshipStage() {
   const value = gameData.relationship.affection || 0;
-  const stage = [...stages].reverse().find(item => value >= item.min);
-  if (stage) gameData.relationship.level = stage.name;
+  if (value >= 100) gameData.relationship.level = '深刻羁绊';
+  else if (value >= 50) gameData.relationship.level = '熟悉相伴';
+  else if (value >= 10) gameData.relationship.level = '逐渐了解';
+  else gameData.relationship.level = '初次相遇';
   return gameData.relationship.level;
+}
+
+export function updateCompanionState(changes = {}) {
+  gameData.companion.state = { ...(gameData.companion.state || {}), ...changes };
+}
+
+export function changeMood(value) {
+  updateCompanionState({ mood: value });
+}
+
+export function changeEnergy(amount) {
+  const energy = gameData.companion.state?.energy || 100;
+  updateCompanionState({ energy: Math.max(0, Math.min(100, energy + amount)) });
 }
 
 export function createMemory(type, title, text, extra = {}) {
   addMemory({ type, title, text, ...extra });
 }
 
-export function getMemoriesByType(type) {
-  return (gameData.memories || []).filter(memory => memory.type === type);
-}
-
 export function getLatestMemory() {
   return gameData.memories?.at(-1) || null;
-}
-
-const dailyEvents = ['daily_chat', 'quiet_afternoon', 'share_memory'];
-
-export function getAvailableDailyEvents() {
-  return dailyEvents.filter(id => !hasTriggeredEvent(id));
-}
-
-export function triggerRandomDailyEvent() {
-  const available = getAvailableDailyEvents();
-  if (!available.length) return null;
-  const id = available[Math.floor(Math.random() * available.length)];
-  triggerEvent(id);
-  return id;
-}
-
-export function getActionFeedback(action) {
-  const personality = gameData.companion.personality || [];
-  if (action === 'talk' && personality.includes('内向')) return '虽然有些害羞，但还是回应了你的话。';
-  if (action === 'rest' && personality.includes('温柔')) return '陪伴让对方感到安心。';
-  return '对方回应了你的互动。';
 }
 
 export function hasTriggeredEvent(id) {
@@ -78,9 +109,4 @@ export function hasTriggeredEvent(id) {
 export function markEventTriggered(id) {
   if (!gameData.progress.events) gameData.progress.events = [];
   if (!gameData.progress.events.includes(id)) gameData.progress.events.push(id);
-}
-
-export function clearEvents(eventName) {
-  if (eventName) listeners.delete(eventName);
-  else listeners.clear();
 }

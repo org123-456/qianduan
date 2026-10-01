@@ -296,11 +296,7 @@ export const DiaryUI = {
 
         if (content) {
             content = String(content)
-                .replace(/
-
-<think>
-
-[\s\S]*?<\/think>/gi, '')
+                .replace(/<think>[\s\S]*?<\/think>/gi, '')
                 .replace(/<思维链>[\s\S]*?<\/思维链>/gi, '')
                 .trim();
 

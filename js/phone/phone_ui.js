@@ -20,6 +20,14 @@ export const PhoneUI = {
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     },
 
+    showDiaryShelf() {
+        const coverView = document.getElementById('diary-cover-view');
+        const insideView = document.getElementById('diary-inside-view');
+        if (insideView) insideView.classList.remove('opened');
+        if (coverView) coverView.classList.remove('opened');
+        if (window.Config) window.Config.diaryPageIndex = -1;
+    },
+
     changeAppColor(color) {
         document.documentElement.setAttribute('data-color', color);
         localStorage.setItem('app_color', color);
@@ -280,14 +288,15 @@ export const PhoneUI = {
             const diaryTitle = localStorage.getItem('diary_title') || 'His Diary';
             contentEl.innerHTML = `
                 <div id="diary-cover-view" class="diary-cover-view">
-                    <div class="diary-book-cover long-pressable" data-img="bg_diary_cover" id="diary-book-cover" onclick="window.PhoneUI.unlockDiary()">
+                    <div class="diary-book-cover long-pressable" data-img="bg_diary_cover" id="diary-book-cover" style="cursor:default;">
                         <div class="diary-title">${this.escapeHtml(diaryTitle)}</div>
-                        <div class="diary-hint">点击翻开日记</div>
+                        <div class="diary-hint" style="margin-bottom:24px;">选择一本，进入属于你们的日记</div>
+                        ${this.renderDiaryShelfInline()}
                     </div>
                     <div class="diary-back-btn" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div>
                 </div>
                 <div id="diary-inside-view" class="diary-inside-view">
-                    <div class="diary-back-btn" onclick="window.PhoneUI.closeApp()" style="top:20px;left:15px;background:rgba(0,0,0,0.18);color:#fff;z-index:50;"><i class="ph ph-caret-left"></i></div>
+                    <div class="diary-back-btn" onclick="window.PhoneUI.showDiaryShelf()" style="top:20px;left:15px;background:rgba(0,0,0,0.18);color:#fff;z-index:50;"><i class="ph ph-caret-left"></i></div>
                     <div id="diary-content-area" style="display:flex;flex-direction:column;min-height:100%;"></div>
                 </div>
             `;

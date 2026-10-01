@@ -274,13 +274,28 @@ export const PhoneUI = {
         contentEl.style.display = 'block';
         contentEl.style.overflow = 'auto';
 
-        // 🌟 满足你的修改：使用双人书架入口并立即 return
-        if (appId === 'diary') {
-            winEl.classList.add('fullscreen-mode');
-            this.renderDiaryShelf();
-            return;
-        } else {
-            winEl.classList.remove('fullscreen-mode');
+        // 🌟 按照文档意图：直接在当前窗口展现日记页面，无缝支持翻页与背景
+        if (appId === 'diary') { 
+            winEl.classList.add('fullscreen-mode'); 
+            const diaryTitle = localStorage.getItem('diary_title') || 'His Diary';
+            contentEl.innerHTML = `
+                <div id="diary-cover-view" class="diary-cover-view">
+                    <div class="diary-book-cover long-pressable" data-img="bg_diary_cover" id="diary-book-cover" onclick="window.PhoneUI.unlockDiary()">
+                        <div class="diary-title">${this.escapeHtml(diaryTitle)}</div>
+                        <div class="diary-hint">点击翻开日记</div>
+                    </div>
+                    <div class="diary-back-btn" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div>
+                </div>
+                <div id="diary-inside-view" class="diary-inside-view">
+                    <div class="diary-back-btn" onclick="window.PhoneUI.closeApp()" style="top:20px;left:15px;background:rgba(0,0,0,0.1);color:#333;z-index:50;"><i class="ph ph-caret-left"></i></div>
+                    <div id="diary-content-area" style="display:flex;flex-direction:column;height:100%;"></div>
+                </div>
+            `;
+            this.renderDiaryPage();
+            this.bindLongPresses();
+            if (this.applyDiaryBackgrounds) this.applyDiaryBackgrounds();
+        } else { 
+            winEl.classList.remove('fullscreen-mode'); 
         }
 
         if (appId === 'memory_vault') {
@@ -644,6 +659,7 @@ export const PhoneUI = {
         }
     },
 
+    // 🌟 纯字符串双轨安全保存（绝不破坏人设）
     async savePromptAndPersona() {
         const sysVal = document.getElementById('system-prompt')?.value || '';
         const charVal = document.getElementById('char-persona')?.value || '';
@@ -675,6 +691,7 @@ export const PhoneUI = {
         }
     },
 
+    // 🌟 100% 完整保留的设置 UI 面板
     renderSettings() {
         const contentEl = document.getElementById('app-window-content');
         if (!contentEl) return;
@@ -702,7 +719,7 @@ export const PhoneUI = {
             <div class="settings-tab" id="stab-sys" onclick="window.PhoneUI.switchSetTab('sys')">系统维护</div>
         </div>
 
-        <!-- 1. 基础设置 -->
+        <!-- 1. 基础设置（完整保留名字、头像、主题色、恋爱日、壁纸） -->
         <div id="set-sec-basic" class="set-section active" style="flex-direction: column; gap: 15px; padding-bottom: 100px;">
             <div class="card" style="padding: 16px;">
                 <h3 style="color:var(--primary-color);margin-bottom:15px; font-size: 15px;"><i class="ph-fill ph-user-circle"></i> 基础设定 (头像与名字)</h3>
@@ -886,10 +903,7 @@ export const PhoneUI = {
         <div id="set-sec-sys" class="set-section" style="flex-direction: column; gap: 15px; padding-bottom: 100px;">
             <div class="card" style="border: 1px solid var(--primary-color); padding: 16px;">
                 <h3 style="color:var(--primary-color);margin-bottom:10px; font-size: 15px;"><i class="ph-fill ph-cloud-check"></i> Cloudflare 云端同步</h3>
-                <div style="display:flex;gap:10px;">
-                    <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.syncToCloud()" style="flex:1;margin-top:0;background:linear-gradient(135deg, var(--primary-color), var(--secondary-color));"><i class="ph-fill ph-cloud-arrow-up"></i> 备份到云端</button>
-                    <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.restoreFromCloud()" style="flex:1;margin-top:0;background:var(--icon-bg);color:var(--text-main);border:1px solid var(--border-color);"><i class="ph-fill ph-cloud-arrow-down"></i> 从云端拉取</button>
-                </div>
+                <div style="display:flex;gap:10px;"><button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.syncToCloud()" style="flex:1;margin-top:0;background:linear-gradient(135deg, var(--primary-color), var(--secondary-color));"><i class="ph-fill ph-cloud-arrow-up"></i> 备份到云端</button><button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.restoreFromCloud()" style="flex:1;margin-top:0;background:var(--icon-bg);color:var(--text-main);border:1px solid var(--border-color);"><i class="ph-fill ph-cloud-arrow-down"></i> 从云端拉取</button></div>
             </div>
             
             <div class="card" style="padding: 16px;">

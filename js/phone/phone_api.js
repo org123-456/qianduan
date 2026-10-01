@@ -238,10 +238,14 @@ export const PhoneAPI = {
     },
     
     async _applyIndexedDBThemes() {
-        if (!this.LocalDB || !this.LocalDB._db) return;
+        if (!this.LocalDB) return;
         try {
+            // 启动时 LocalDB 可能还没初始化；这里主动打开数据库，避免
+            // “数据还在 IndexedDB，但页面刚加载时 _db 为空，所以背景永远不恢复”。
+            if (!this.LocalDB._db) await this.LocalDB.init();
+
             const keys = ['bg_global', 'bg_chat', 'bg_diary_cover', 'bg_diary_page'];
-            for (let key of keys) {
+            for (const key of keys) {
                 const urlSetting = localStorage.getItem(key);
                 if (!urlSetting || urlSetting.trim() === '') {
                     const blob = await this.LocalDB.get(key);
@@ -253,7 +257,9 @@ export const PhoneAPI = {
                     }
                 }
             }
-        } catch(e) {}
+        } catch (e) {
+            console.warn('⚠️ IndexedDB 背景资源恢复失败:', e);
+        }
     },
     
     getPresets() { return JSON.parse(localStorage.getItem('ai_api_presets') || '[]'); },

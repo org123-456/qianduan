@@ -27,16 +27,18 @@ export const ChatEngine = {
         if (!Config?.phoneData) return;
         for (const roleId in Config.phoneData) {
             const target = Config.phoneData[roleId]?.wechat;
-            if (target && Array.isArray(target.items) && target.items.length > 0 && target.items[target.items.length - 1].sender === 'typing') {
-                target.items.pop();
-                changed = true;
+            if (target && Array.isArray(target.items)) {
+                // 彻底清除所有 typing 项
+                const initLen = target.items.length;
+                target.items = target.items.filter(i => i.sender !== 'typing');
+                if (target.items.length !== initLen) changed = true;
             }
         }
 
         if (changed) {
             this._safeSaveData();
             if (PhoneUI) PhoneUI.renderAppContent?.('wechat');
-            PhoneAPI?.showToast?.('✅ 已强制清除卡死的 AI 状态！');
+            PhoneAPI?.showToast?.('✅ 已强制解除卡死状态！');
             return;
         }
         PhoneAPI?.showToast?.('当前没有卡死的状态。');
@@ -93,12 +95,16 @@ export const ChatEngine = {
 
         if (!isRegen && !hasNewUserMsg && chatItems.length === 0) return;
 
+        // 🌟 先确保清理之前的残留 typing
+        for (let i = chatItems.length - 1; i >= 0; i--) {
+            if (chatItems[i].sender === 'typing') chatItems.splice(i, 1);
+        }
+
         chatItems.push({ sender: 'typing' });
         PhoneUI.renderAppContent('wechat');
         this._safeSaveData();
 
         try {
-            // 🌟 核心：从 LocalDB 优先取出超长人设
             let systemPrompt = localStorage.getItem('system_prompt') || '';
             let charPersona = localStorage.getItem('char_persona') || '';
 
@@ -128,7 +134,7 @@ export const ChatEngine = {
             stablePrompt += "【最高禁令】：直接输出台词！\n【微信连发机制】：根据换行切分气泡。\n【读心术机制】：回复前必须用 <inner> 和 </inner> 包裹内心独白。\n";
 
             let messages = [{ role: 'system', content: stablePrompt }];
-            const MAX_CONTEXT = parseInt(localStorage.getItem('context_chat_limit') || '40', 10);
+            const MAX_CONTEXT = parseInt(localStorage.getItem('context_chat_limit') || '30', 10);
             const recentItems = chatItems.slice(-MAX_CONTEXT);
             
             recentItems.forEach((item) => {
@@ -144,7 +150,10 @@ export const ChatEngine = {
             let finalReply = rawReply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<inner>[\s\S]*?<\/inner>/gi, '').trim();
             if (!finalReply) finalReply = rawReply.trim();
             
-            chatItems.pop(); // 移除 typing
+            // 🌟 移除 typing
+            for (let i = chatItems.length - 1; i >= 0; i--) {
+                if (chatItems[i].sender === 'typing') chatItems.splice(i, 1);
+            }
 
             const replyParts = finalReply.split('\n').map(s => s.trim()).filter(Boolean);
             for (let idx = 0; idx < replyParts.length; idx++) {
@@ -161,13 +170,18 @@ export const ChatEngine = {
             this._safeSaveData();
 
         } catch (error) {
-            PhoneAPI.logger?.log('ERROR', '发送消息流程崩溃', error.message);
+            PhoneAPI.logger?.log('ERROR', '对话请求失败', error.message);
             PhoneAPI.showToast(error.message || '请求遇到异常');
-            if (chatItems.length > 0 && chatItems[chatItems.length - 1].sender === 'typing') {
-                chatItems.pop();
+            
+            // 🌟 铁壁熔断：只要报错，强制移除所有 typing，绝不卡顿挂起！
+            for (let i = chatItems.length - 1; i >= 0; i--) {
+                if (chatItems[i].sender === 'typing') chatItems.splice(i, 1);
             }
+            
             PhoneUI.renderAppContent('wechat');
             this._safeSaveData();
         }
     }
 };
+
+if (typeof window !== 'undefined') { window.ChatEngine = ChatEngine; }

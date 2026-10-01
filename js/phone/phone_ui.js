@@ -28,6 +28,85 @@ export const PhoneUI = {
         if (window.Config) window.Config.diaryPageIndex = -1;
     },
 
+    async openReaderApp() {
+        const reader = document.getElementById('app-reader');
+        if (!reader) return;
+        const shelf = document.getElementById('reader-bookshelf-view');
+        const reading = document.getElementById('reader-reading-view');
+        const footer = document.getElementById('reader-footer');
+        const settings = document.getElementById('btn-reader-settings');
+        const addBook = document.getElementById('btn-add-book');
+        const title = document.getElementById('reader-header-title');
+
+        reader.classList.add('open');
+        reader.classList.remove('fullscreen-mode');
+        if (shelf) shelf.style.display = 'block';
+        if (reading) reading.style.display = 'none';
+        if (footer) footer.style.display = 'none';
+        if (settings) settings.style.display = 'none';
+        if (addBook) addBook.style.display = '';
+        if (title) title.innerText = '共读书架';
+
+        try {
+            await window.PhoneEngine?.renderBookshelf?.();
+        } catch (e) {
+            console.error('书架恢复失败：', e);
+            PhoneAPI?.showToast?.('⚠️ 书架读取失败');
+        }
+    },
+
+    showReadingView(title = '阅读') {
+        const reader = document.getElementById('app-reader');
+        const shelf = document.getElementById('reader-bookshelf-view');
+        const reading = document.getElementById('reader-reading-view');
+        const footer = document.getElementById('reader-footer');
+        const settings = document.getElementById('btn-reader-settings');
+        const addBook = document.getElementById('btn-add-book');
+        const titleEl = document.getElementById('reader-header-title');
+
+        if (!reader || !shelf || !reading) return;
+        reader.classList.add('open');
+        reader.classList.remove('fullscreen-mode');
+        shelf.style.display = 'none';
+        reading.style.display = 'block';
+        if (footer) footer.style.display = 'flex';
+        if (settings) settings.style.display = '';
+        if (addBook) addBook.style.display = 'none';
+        if (titleEl) titleEl.innerText = title;
+    },
+
+    async handleReaderBack() {
+        const reader = document.getElementById('app-reader');
+        const shelf = document.getElementById('reader-bookshelf-view');
+        const reading = document.getElementById('reader-reading-view');
+        const footer = document.getElementById('reader-footer');
+        const settings = document.getElementById('btn-reader-settings');
+        const addBook = document.getElementById('btn-add-book');
+        const title = document.getElementById('reader-header-title');
+
+        if (!reader) return;
+
+        // 在书内/摘录本：先退回书架；再次点击才退出共读时光。
+        if (reading && reading.style.display !== 'none') {
+            if (window.PhoneEngine) {
+                window.PhoneEngine.closeReaderSettings?.();
+                window.PhoneEngine._activeThreadCommentId = null;
+            }
+            reader.classList.remove('fullscreen-mode');
+            if (shelf) shelf.style.display = 'block';
+            reading.style.display = 'none';
+            if (footer) footer.style.display = 'none';
+            if (settings) settings.style.display = 'none';
+            if (addBook) addBook.style.display = '';
+            if (title) title.innerText = '共读书架';
+            try { await window.PhoneEngine?.renderBookshelf?.(); } catch (e) {}
+            return;
+        }
+
+        reader.classList.remove('open', 'fullscreen-mode');
+        if (window.Config) window.Config.readerConfig = null;
+    },
+
     changeAppColor(color) {
         document.documentElement.setAttribute('data-color', color);
         localStorage.setItem('app_color', color);
@@ -281,6 +360,12 @@ export const PhoneUI = {
         contentEl.style.background = 'transparent';
         contentEl.style.display = 'block';
         contentEl.style.overflow = 'auto';
+
+        // 共读时光使用独立阅读器窗口，不走通用 app-window，避免返回层级错乱。
+        if (appId === 'reader' || appId === 'reading' || appId === 'bookshelf') {
+            this.openReaderApp();
+            return;
+        }
 
         // 🌟 日记入口统一走沉浸式全屏阅读；Space 里的书架只负责选书。
         if (appId === 'diary') {

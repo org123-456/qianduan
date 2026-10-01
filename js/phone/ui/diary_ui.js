@@ -7,7 +7,7 @@ export const DiaryUI = {
         this.openDiaryBook('ta');
     },
 
-    openDiaryBook(type = 'ta') {
+    async openDiaryBook(type = 'ta') {
         this.currentDiaryBook = type;
 
         const coverView = document.getElementById('diary-cover-view');
@@ -25,6 +25,8 @@ export const DiaryUI = {
             this.renderMyDiary();
         } else {
             this.renderDiaryPage();
+            // 进入 TA 的日记时自动检查今天有没有生成；忘记点“偷偷写日记”也没关系。
+            this.autoGenerateTodayDiary();
         }
 
         this.bindDiarySwipe();
@@ -216,9 +218,101 @@ export const DiaryUI = {
         contentAreaEl.innerHTML = html;
     },
 
-    generateDiary(dateStr) {
-        if (window.PhoneEngine && typeof window.PhoneEngine.generateDiary === 'function') {
-            window.PhoneEngine.generateDiary(dateStr);
+    getDiaries() {
+        try {
+            return JSON.parse(localStorage.getItem('diary_entries') || '{}');
+        } catch (error) {
+            return {};
+        }
+    },
+
+    saveDiaries(diaries) {
+        try {
+            localStorage.setItem('diary_entries', JSON.stringify(diaries));
+        } catch (error) {
+            console.error('保存 TA 日记失败:', error);
+        }
+    },
+
+    getTodayDate() {
+        const today = new Date();
+        return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    },
+
+    async generateDiary(dateStr, { silent = false } = {}) {
+        const diaries = this.getDiaries();
+        if (diaries[dateStr]) return diaries[dateStr];
+
+        if (!window.PhoneAPI?.chatWithAI) {
+            if (!silent) window.PhoneAPI?.showToast?.('请先配置 AI 引擎');
+            return null;
+        }
+
+        const roleId = window.Config?.currentContactId || 'role_001';
+        const roleData = window.Config?.externalData?.[roleId] || {};
+        const phoneData = window.Config?.phoneData?.[roleId] || {};
+        const chatItems = phoneData?.wechat?.items || [];
+        const recentChat = chatItems
+            .filter(item => item && item.sender !== 'typing')
+            .slice(-30)
+            .map(item => `${item.sender === 'me' ? '我' : (roleData.name || 'TA')}: ${item.content || ''}`)
+            .join('\\n');
+
+        const prompt = `你正在写自己的私人日记。你就是角色“${roleData.name || 'TA'}”，不是在给用户写总结。
+
+【角色设定】
+${roleData.persona || '保持角色原本的性格和说话方式。'}
+
+【长期记忆】
+${roleData.memory || '暂无。'}
+
+【最近发生的聊天】
+${recentChat || '今天还没有聊天记录。'}
+
+【日期】
+${dateStr}
+
+请写一篇今天的私人日记：
+1. 只写角色自己真实会记下来的事情、感受和小心思。
+2. 可以写今天和“我”的互动，也可以写自己的学习、生活、烦恼、期待。
+3. 不要提“AI、模型、提示词、系统、日记生成”等幕后概念。
+4. 不要编造明显违背角色设定的重大事件。
+5. 使用第一人称，像真的写给自己看的日记。
+6. 不要加标题，不要解释，直接输出日记正文，约 200～500 字。`;
+
+        try {
+            if (!silent) window.PhoneAPI?.showToast?.('🌙 TA 正在偷偷写今天的日记…');
+            const content = await window.PhoneAPI.chatWithAI([{ role: 'system', content: prompt }]);
+            const clean = String(content || '').trim();
+            if (!clean) return null;
+
+            diaries[dateStr] = clean;
+            this.saveDiaries(diaries);
+            return clean;
+        } catch (error) {
+            console.error('自动生成 TA 日记失败:', error);
+            if (!silent) window.PhoneAPI?.showToast?.(error.message || '日记生成失败');
+            return null;
+        }
+    },
+
+    async autoGenerateTodayDiary() {
+        const dateStr = this.getTodayDate();
+        const diaries = this.getDiaries();
+        if (diaries[dateStr]) return;
+
+        const content = await this.generateDiary(dateStr, { silent: true });
+        if (content) {
+            // 如果用户当前正停在今天这一页，生成完成后立即刷新。
+            const startDateStr = localStorage.getItem('diary_start_date') || dateStr;
+            const target = new Date(startDateStr);
+            const today = new Date(dateStr);
+            const diff = Math.floor((today - target) / 86400000);
+            if (diff >= -1 && window.Config) {
+                window.Config.diaryPageIndex = diff;
+                this.renderDiaryPage();
+            }
+            window.PhoneAPI?.showToast?.('📖 TA 今天的日记已经偷偷写好了');
         }
     },
 

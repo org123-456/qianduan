@@ -1,4 +1,7 @@
 export const ChatUI = {
+    _chatVisibleCount: 1000,
+    _chatRenderStartIndex: 0,
+
     renderAppContent(appId) {
         const roleId = window.Config?.currentContactId;
         if (!roleId) return;
@@ -6,10 +9,15 @@ export const ChatUI = {
         let data = window.Config?.phoneData?.[roleId]?.[appId];
         if (!data && appId !== 'gallery' && appId !== 'memory_vault' && appId !== 'moments' && appId !== 'favorites') return;
 
-        // 允许翻看全部历史记录，放宽到 1000 条
+        // 聊天记录很多时不要一次把几千条 DOM 全塞进手机页面。
+        // 先显示最近一批；滚到顶部时可以继续加载更早的记录。
         let renderItems = data?.items || [];
-        if (appId === 'wechat' && renderItems.length > 1000) {
-            renderItems = renderItems.slice(-1000);
+        let chatStartIndex = 0;
+        if (appId === 'wechat') {
+            const visibleCount = Math.max(100, Math.min(this._chatVisibleCount || 1000, renderItems.length || 1000));
+            chatStartIndex = Math.max(0, renderItems.length - visibleCount);
+            renderItems = renderItems.slice(chatStartIndex);
+            this._chatRenderStartIndex = chatStartIndex;
         }
 
         const listEl = document.getElementById('app-content-list');
@@ -36,10 +44,22 @@ export const ChatUI = {
                     }
                 });
             }
-            listEl.innerHTML = window.Apps[appId].renderList(renderData);
+            let renderedHtml = window.Apps[appId].renderList(renderData);
 
-            setTimeout(() => { 
-                if (listEl) listEl.scrollTop = listEl.scrollHeight; 
+            if (appId === 'wechat' && chatStartIndex > 0) {
+                renderedHtml = `
+                    <div id="chat-load-older" style="padding:10px 12px;text-align:center;">
+                        <button type="button" onclick="window.PhoneUI.loadOlderChats()" style="border:1px solid var(--border-color);background:var(--icon-bg);color:var(--primary-color);border-radius:14px;padding:9px 16px;font-size:12px;cursor:pointer;">
+                            ↑ 加载更早的聊天记录（当前 ${renderItems.length} 条）
+                        </button>
+                    </div>
+                ` + renderedHtml;
+            }
+
+            listEl.innerHTML = renderedHtml;
+
+            setTimeout(() => {
+                if (listEl) listEl.scrollTop = listEl.scrollHeight;
             }, 100);
 
             if (appId === 'wechat') {
@@ -58,6 +78,33 @@ export const ChatUI = {
                 if (this.renderMoments) this.renderMoments();
             }
         }
+    },
+
+    loadOlderChats() {
+        const roleId = window.Config?.currentContactId;
+        const items = window.Config?.phoneData?.[roleId]?.wechat?.items || [];
+        if (!items.length) return;
+
+        const currentCount = Math.min(this._chatVisibleCount || 1000, items.length);
+        if (currentCount >= items.length) {
+            window.PhoneAPI?.showToast?.('已经到最早的聊天记录了。');
+            return;
+        }
+
+        const listEl = document.getElementById('app-content-list');
+        const oldHeight = listEl?.scrollHeight || 0;
+        const oldTop = listEl?.scrollTop || 0;
+
+        this._chatVisibleCount = Math.min(items.length, currentCount + 500);
+        this.renderAppContent('wechat');
+
+        setTimeout(() => {
+            if (!listEl) return;
+            const newHeight = listEl.scrollHeight || 0;
+            listEl.scrollTop = Math.max(0, oldTop + (newHeight - oldHeight));
+        }, 120);
+
+        window.PhoneAPI?.showToast?.(`已加载更早的聊天记录：当前显示 ${this._chatVisibleCount} 条`);
     },
 
     toggleChatMenu() {

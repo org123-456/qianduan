@@ -101,38 +101,63 @@ export const DiaryUI = {
     },
 
     async openDiaryInline(type = 'ta') {
-        const area = document.getElementById('moments-diary-inline');
-        if (!area) return;
+        // 书架留在 Space；点进某一本后，进入原本的沉浸式全屏日记。
+        this.openDiaryFullscreen(type);
+    },
 
+    openDiaryFullscreen(type = 'ta') {
         this.currentDiaryBook = type;
+
+        const titleEl = document.getElementById('app-window-title');
+        const winEl = document.getElementById('app-window');
+        const contentEl = document.getElementById('app-window-content');
+        if (!winEl || !contentEl) return;
+
         const taName = localStorage.getItem('char_name') || 'TA';
         const isMine = type === 'mine';
         const title = isMine ? '我的日记' : `${taName}的日记`;
         const subtitle = isMine ? 'MY DIARY' : 'HIS DIARY';
-        const cover = localStorage.getItem('bg_diary_cover') || '';
-        
-        area.innerHTML = `
-            <div class="diary-inline-reader">
-                <button class="diary-inline-back" onclick="window.PhoneUI.showDiaryShelfInline()">
-                    <i class="ph ph-caret-left"></i><span>日记架</span>
-                </button>
 
-                <div class="diary-book-cover-screen" onclick="window.PhoneUI.openDiaryInnerInline()">
-                    <div class="diary-cover-book ${isMine ? 'mine-cover' : 'ta-cover'}" ${cover ? `style="background-image:url('${this.escapeAttribute(cover)}')"` : ''}>
-                        <div class="diary-cover-glow"></div>
-                        <div class="diary-cover-ribbon"></div>
-                        <div class="diary-cover-content">
-                            <div class="diary-cover-small">OUR PRIVATE NOTES</div>
-                            <div class="diary-cover-title">${this.escapeHtml(title)}</div>
-                            <div class="diary-cover-subtitle">${subtitle}</div>
-                            <div class="diary-cover-line"></div>
-                            <div class="diary-cover-hint"><i class="ph ph-hand-tap"></i> 轻触封面，翻开这一页</div>
-                        </div>
-                    </div>
+        if (window.Config) window.Config.currentAppId = 'diary';
+        if (titleEl) titleEl.innerText = title;
+
+        winEl.classList.add('open', 'fullscreen-mode');
+        contentEl.style.padding = '0';
+        contentEl.style.background = 'transparent';
+        contentEl.style.display = 'block';
+        contentEl.style.overflow = 'hidden';
+
+        contentEl.innerHTML = `
+            <div id="diary-cover-view" class="diary-cover-view">
+                <div class="diary-book-cover long-pressable" data-img="bg_diary_cover" id="diary-book-cover" onclick="window.PhoneUI.openDiaryBook('${type}')">
+                    <div class="diary-title">${this.escapeHtml(title)}</div>
+                    <div style="font-size:11px;letter-spacing:4px;opacity:.72;margin-bottom:28px;">${subtitle}</div>
+                    <div class="diary-hint">轻触封面，翻开这一页</div>
+                </div>
+                <div class="diary-back-btn" onclick="window.PhoneUI.closeApp()" aria-label="返回日记架">
+                    <i class="ph ph-caret-left"></i>
                 </div>
             </div>
+
+            <div id="diary-inside-view" class="diary-inside-view">
+                <div class="diary-back-btn" onclick="window.PhoneUI.showDiaryCover()" aria-label="返回封面">
+                    <i class="ph ph-caret-left"></i>
+                </div>
+                <div id="diary-content-area" style="display:flex;flex-direction:column;min-height:100%;"></div>
+            </div>
         `;
+
+        this.showDiaryCover();
+        this.bindDiarySwipe();
         this.applyDiaryBackgrounds();
+    },
+
+    showDiaryCover() {
+        const coverView = document.getElementById('diary-cover-view');
+        const insideView = document.getElementById('diary-inside-view');
+        if (insideView) insideView.classList.remove('opened');
+        if (coverView) coverView.classList.remove('opened');
+        if (window.Config) window.Config.diaryPageIndex = -1;
     },
 
     async openDiaryInnerInline() {

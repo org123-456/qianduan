@@ -1,4 +1,4 @@
-// 此间归处 - 崩铁·不死途 沉浸式全屏 + 实时接入大模型（LLM动态台词与日记）
+// 此间归处 - 崩铁·不死途 沉浸式全屏小窝 + 身体触碰差分交互（修复版）
 
 const BASE_URL = 'https://cdn.jsdelivr.net/gh/org123-456/qianduan@main/js/games/this_place/';
 
@@ -11,9 +11,9 @@ const ASSETS = {
     winter: BASE_URL + 'room_winter.png'
   },
   characters: {
-    idle: BASE_URL + 'ashveil_idle.png',
-    shy: BASE_URL + 'ashveil_shy.png',
-    hand: BASE_URL + 'ashveil_hand.png'
+    idle: BASE_URL + 'ashveil_idle.png',     // 待机沉稳
+    shy: BASE_URL + 'ashveil_shy.png',       // 扶帽微笑（摸头/害羞）
+    hand: BASE_URL + 'ashveil_hand.png'      // 抬手邀请（给钱/投喂）
   },
   photos: {
     forest: BASE_URL + 'photo_forest.png',
@@ -32,8 +32,35 @@ const PLACES = [
   { id: 'coast', name: '潮汐小镇', travelTime: 20000, souvenirs: ['潮纹贝壳', '海盐晶袋'], photoKey: 'coast' }
 ];
 
-const SAVE_KEY = 'this_place_ai_save_v1';
-const AI_CONFIG_KEY = 'this_place_ai_config';
+const LETTER_DATABASE = {
+  forest: [
+    "晨雾比想象中要浓，捡到这枚松果的时候，忽然觉得你握在手心里刚刚好。",
+    "林间木屋后有一条没被踩过的小径。折了一支药草夹在信里，回去记得闻闻，有冷杉的香味。",
+    "阳光穿透树林的那一瞬间很漂亮。可惜你不在身边，只能用镜头替你留下来。"
+  ],
+  hill: [
+    "这里的风铃响了一整个下午，声音很像你平时在耳边哼歌。找村民换了香草束，今晚放在你枕边吧。",
+    "山坡上的野花开得很盛，风一吹全是草木香气。等下次有空，我牵着你从山脚慢慢走上来。",
+    "在木栈道上喝了一杯粗茶。阳光照在身上暖洋洋的，忽然很想看你晒着太阳打瞌睡的样子。"
+  ],
+  station: [
+    "列车进站时卷起了一地的银杏叶，金灿灿的，像落在地上的碎金。买了下一次同行的双人车票，不许弄丢。",
+    "旧长椅上的落叶厚得可以陷进去。在站台等车的时候，满脑子都是你在小窝里等我回家的模样。",
+    "买了站台现烤的便当，趁热用保温盒装好了。回去如果凉了，我热给你吃。"
+  ],
+  lake: [
+    "夜里的月湖安静得能听见自己的心跳。湖面上落满了银河，我在浅滩捞起这块发光的石头，第一眼就想送给你。",
+    "坐在栈道边缘吹了很久的夜风。湖水倒映着满天星斗，那一刻只希望你也在我怀里看着。",
+    "夜里的木屋点起了灯，隔着湖水看像一团小小的火苗。那一瞬间，忽然特别想快点回到有你的小窝。"
+  ],
+  coast: [
+    "海浪退下去的时候，在沙滩上捡到了这枚被冲刷得极温润的贝壳。贴在耳边听，海风很喧嚣，我很想你。",
+    "灯塔下的风很大，帽子差点被吹走。海天一色的蓝很纯粹，回头带你去踩水。",
+    "沙滩上留下的两行脚印被海水冲平了。带了一小袋粗海盐晶体回去，放在窗台当小摆件吧。"
+  ]
+};
+
+const SAVE_KEY = 'this_place_fullscreen_save_v2';
 
 let state = {
   money: 500,
@@ -51,62 +78,16 @@ let state = {
   polaroids: []
 };
 
-// 大模型默认配置（支持自定义）
-let aiConfig = {
-  endpoint: 'https://api.deepseek.com/v1/chat/completions',
-  apiKey: '',
-  model: 'deepseek-chat'
-};
-
 function loadSave() {
   const raw = localStorage.getItem(SAVE_KEY);
   if (raw) {
     try { Object.assign(state, JSON.parse(raw)); } catch (e) {}
-  }
-  const rawAi = localStorage.getItem(AI_CONFIG_KEY);
-  if (rawAi) {
-    try { Object.assign(aiConfig, JSON.parse(rawAi)); } catch (e) {}
   }
 }
 
 function saveState() {
   localStorage.setItem(SAVE_KEY, JSON.stringify(state));
 }
-
-function saveAiConfig() {
-  localStorage.setItem(AI_CONFIG_KEY, JSON.stringify(aiConfig));
-}
-
-// 🐺 调用大模型生成不死途的实时台词/日记
-async function askAshveil(systemPrompt, userPrompt, fallbackText) {
-  if (!aiConfig.apiKey) return fallbackText;
-
-  try {
-    const res = await fetch(aiConfig.endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${aiConfig.apiKey.trim()}`
-      },
-      body: JSON.stringify({
-        model: aiConfig.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.8,
-        max_tokens: 150
-      })
-    });
-    const data = await res.json();
-    return data.choices?.[0]?.message?.content?.trim() || fallbackText;
-  } catch (err) {
-    console.warn('AI生成失败，使用本地兜底:', err);
-    return fallbackText;
-  }
-}
-
-const ASHVEIL_SYSTEM = `你是《崩坏：星穹铁道》的不死途（Ashveil）。成熟从容、沉稳、略带慵懒与宠溺气质的领头狼。你与玩家同居在温馨小屋里，你照料TA、给TA零花钱、做饭。你不是装腔作势的霸总，而是极具生活感、靠谱、偶尔会无奈纵容但心疼TA的同居伴侣。请用简短一两句话（不超过35字）回应，语气低沉温柔、带浅浅笑意，包含适当的动作描写。`;
 
 function addJournal(text) {
   const now = new Date();
@@ -120,6 +101,7 @@ function getAutoRoom() {
   const now = new Date();
   const month = now.getMonth() + 1;
   const hour = now.getHours();
+
   if (month === 12 || month === 1 || month === 2) return ASSETS.rooms.winter;
   if (month >= 9 && month <= 11) return ASSETS.rooms.autumn;
   if (hour >= 17 && hour < 19) return ASSETS.rooms.dusk;
@@ -130,43 +112,26 @@ function getAutoRoom() {
 export function renderGame(container) {
   loadSave();
 
-  // 结算旅行返回
   if (state.travelState.status === 'traveling' && Date.now() >= state.travelState.returnTime) {
     const place = state.travelState.targetPlace;
     const souvenir = place.souvenirs[Math.floor(Math.random() * place.souvenirs.length)];
+    const letterPool = LETTER_DATABASE[place.id] || LETTER_DATABASE.forest;
+    const letter = letterPool[Math.floor(Math.random() * letterPool.length)];
     
-    // 异步生成情书
-    (async () => {
-      const fallbackLetter = `从${place.name}给你带了${souvenir}。林风很轻，想带你一起来看。`;
-      const letter = await askAshveil(
-        `你是崩铁的不死途。你刚从旅行地【${place.name}】采风归来，给留在家里的伴侣带回了特产【${souvenir}】。请为拍立得背面写一段简短的手写随笔情书（40字左右），浪漫、生活化、字迹温存。`,
-        `请写一段给TA的手写留言。`,
-        fallbackLetter
-      );
+    state.polaroids.unshift({
+      id: Date.now(),
+      placeName: place.name,
+      photoUrl: ASSETS.photos[place.photoKey],
+      souvenir: souvenir,
+      letter: letter,
+      date: new Date().toLocaleDateString()
+    });
 
-      state.polaroids.unshift({
-        id: Date.now(),
-        placeName: place.name,
-        photoUrl: ASSETS.photos[place.photoKey],
-        souvenir: souvenir,
-        letter: letter,
-        date: new Date().toLocaleDateString()
-      });
-
-      state.travelState.status = 'idle';
-      state.travelState.targetPlace = null;
-      state.dialogue = `“我回来了。特产【${souvenir}】给你带到了，拍立得也挂在风铃上了，翻过来看看？”`;
-      saveState();
-
-      // AI 写回来的日记
-      const journalText = await askAshveil(
-        `你是崩铁的不死途。请用私人观察日记口吻记录：你从【${place.name}】出游回家，伴侣看到你和特产时的反应（30字左右，宠溺、生活化）。`,
-        `记录这篇日记。`,
-        `从${place.name}回来，把照片夹在风铃上。某人凑过来看手写字的样子，可爱得要命。`
-      );
-      addJournal(journalText);
-      renderGame(container);
-    })();
+    state.travelState.status = 'idle';
+    state.travelState.targetPlace = null;
+    state.dialogue = `“我回来了。特产【${souvenir}】给你带到了，拍立得也挂在风铃上了，翻过来看看？”`;
+    addJournal(`从${place.name}回来，把照片夹在风铃上。某人凑过来看手写字的样子，可爱得要命。`);
+    saveState();
   }
 
   const isTraveling = state.travelState.status === 'traveling';
@@ -185,6 +150,9 @@ export function renderGame(container) {
       .ashveil-char-wrap {
         animation: gentleBreath 4s ease-in-out infinite;
         transition: transform 0.15s ease;
+      }
+      .ashveil-char-wrap:active {
+        transform: scale(0.98);
       }
       .windchime-line {
         animation: chimeSway 5s ease-in-out infinite;
@@ -236,43 +204,36 @@ export function renderGame(container) {
       }
     </style>
 
-    <!-- 真正全屏固定容器 -->
-    <div id="true-fullscreen-box" style="position: fixed; inset: 0; width: 100vw; height: 100vh; background: #000; overflow: hidden; user-select: none; font-family: -apple-system, sans-serif; z-index: 9999;">
+    <div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; background: #000; overflow: hidden; user-select: none; font-family: -apple-system, sans-serif;">
       
       <!-- 房间背景 -->
       <div style="position: absolute; inset: 0; background-image: url('${currentRoom}'); background-size: cover; background-position: center;">
-        <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.25) 0%, transparent 40%, rgba(0,0,0,0.2) 100%);"></div>
+        <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.25) 0%, transparent 40%, rgba(0,0,0,0.15) 100%);"></div>
       </div>
 
-      <!-- 顶栏左侧：退出按钮 + 日记 + 风铃 -->
-      <div style="position: absolute; top: calc(env(safe-area-inset-top, 16px) + 12px); left: 16px; display: flex; align-items: center; gap: 8px; z-index: 30;">
-        <button id="btn-back-home" style="background: rgba(0,0,0,0.45); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.2); width: 34px; height: 34px; border-radius: 50%; color: white; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-          ✕
+      <!-- 顶栏左侧：日记与风铃 -->
+      <div style="position: absolute; top: 14px; left: 16px; display: flex; gap: 8px; z-index: 30;">
+        <button id="btn-open-journal" style="background: rgba(255,255,255,0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6); padding: 6px 12px; border-radius: 18px; font-size: 11px; font-weight: bold; color: #2d3436; box-shadow: 0 4px 12px rgba(0,0,0,0.08); cursor: pointer;">
+          📖 饲养日记
         </button>
-        <button id="btn-open-journal" style="background: rgba(255,255,255,0.82); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6); padding: 7px 12px; border-radius: 18px; font-size: 11px; font-weight: bold; color: #2d3436; box-shadow: 0 4px 12px rgba(0,0,0,0.08); cursor: pointer;">
-          📖 日记
-        </button>
-        <button id="btn-open-gallery" style="background: rgba(255,255,255,0.82); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6); padding: 7px 12px; border-radius: 18px; font-size: 11px; font-weight: bold; color: #2d3436; box-shadow: 0 4px 12px rgba(0,0,0,0.08); cursor: pointer;">
-          🎐 风铃 (${state.polaroids.length})
+        <button id="btn-open-gallery" style="background: rgba(255,255,255,0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6); padding: 6px 12px; border-radius: 18px; font-size: 11px; font-weight: bold; color: #2d3436; box-shadow: 0 4px 12px rgba(0,0,0,0.08); cursor: pointer;">
+          🎐 记忆风铃 (${state.polaroids.length})
         </button>
       </div>
 
-      <!-- 顶栏右侧：状态胶囊 + ⚙️ 模型设置 -->
-      <div style="position: absolute; top: calc(env(safe-area-inset-top, 16px) + 12px); right: 16px; display: flex; gap: 6px; z-index: 30;">
-        <div style="background: rgba(255,255,255,0.82); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6); padding: 6px 10px; border-radius: 16px; font-size: 11px; color: #2d3436; font-weight: 500;">
+      <!-- 顶栏右侧：状态胶囊 -->
+      <div style="position: absolute; top: 14px; right: 16px; display: flex; gap: 6px; z-index: 30;">
+        <div style="background: rgba(255,255,255,0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6); padding: 5px 10px; border-radius: 16px; font-size: 11px; color: #2d3436; font-weight: 500;">
           💰 <b style="color: #d63031;">￥<span id="tp-money">${state.money}</span></b>
         </div>
-        <div style="background: rgba(255,255,255,0.82); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6); padding: 6px 10px; border-radius: 16px; font-size: 11px; color: #2d3436; font-weight: 500;">
+        <div style="background: rgba(255,255,255,0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6); padding: 5px 10px; border-radius: 16px; font-size: 11px; color: #2d3436; font-weight: 500;">
           ❤️ <b style="color: #ff4757;"><span id="tp-aff">${state.affection}</span></b>
         </div>
-        <button id="btn-open-ai-settings" style="background: rgba(255,255,255,0.82); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6); width: 30px; height: 30px; border-radius: 50%; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-          ⚙️
-        </button>
       </div>
 
       <!-- 落地窗顶：微风拍立得悬挂风铃 -->
       ${state.polaroids.length > 0 ? `
-        <div class="windchime-line" style="position: absolute; top: calc(env(safe-area-inset-top, 16px) + 54px); left: 0; right: 0; display: flex; gap: 12px; padding: 0 20px; overflow-x: auto; z-index: 25; scrollbar-width: none;">
+        <div class="windchime-line" style="position: absolute; top: 50px; left: 0; right: 0; display: flex; gap: 12px; padding: 0 20px; overflow-x: auto; z-index: 25; scrollbar-width: none;">
           ${state.polaroids.slice(0, 6).map((item, idx) => `
             <div class="polaroid-clip" data-id="${item.id}" style="display: flex; flex-direction: column; align-items: center; cursor: pointer; flex-shrink: 0;">
               <div style="width: 5px; height: 12px; background: #dfe6e9; border-radius: 2px; margin-bottom: -3px; z-index: 2; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>
@@ -286,10 +247,10 @@ export function renderGame(container) {
 
       <!-- 台词气泡 -->
       <div id="tp-bubble" style="
-        position: absolute; top: calc(env(safe-area-inset-top, 16px) + ${state.polaroids.length > 0 ? '146px' : '62px'}); left: 50%; transform: translateX(-50%);
-        background: rgba(255,255,255,0.92); backdrop-filter: blur(14px); padding: 12px 20px; border-radius: 22px;
-        box-shadow: 0 6px 22px rgba(0,0,0,0.14); font-size: 13px; color: #2d3436;
-        width: 82%; text-align: center; z-index: 22; transition: all 0.25s ease; border: 1px solid rgba(255,255,255,0.85); line-height: 1.5;
+        position: absolute; top: ${state.polaroids.length > 0 ? '136px' : '56px'}; left: 50%; transform: translateX(-50%);
+        background: rgba(255,255,255,0.92); backdrop-filter: blur(14px); padding: 10px 18px; border-radius: 20px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.12); font-size: 13px; color: #2d3436;
+        width: 80%; text-align: center; z-index: 22; transition: all 0.25s ease; border: 1px solid rgba(255,255,255,0.85); line-height: 1.5;
       ">${isTraveling ? `“去【${state.travelState.targetPlace.name}】看看，不用跟来，乖乖等我。”` : state.dialogue}</div>
 
       <!-- 不死途立绘容器 -->
@@ -301,6 +262,7 @@ export function renderGame(container) {
             <div style="font-size: 12px; color: #d63031; margin-top: 4px;">前往：${state.travelState.targetPlace.name}</div>
           </div>
         ` : `
+          <!-- 角色图片本体：直接绑定点击事件！ -->
           <div class="ashveil-char-wrap" style="height: 82%; width: 100%; display: flex; align-items: flex-end; justify-content: center; cursor: pointer;">
             <img id="char-img" src="${ASSETS.characters.idle}" style="
               height: 100%; max-width: 96vw; object-fit: contain; object-position: center bottom;
@@ -311,12 +273,12 @@ export function renderGame(container) {
         `}
       </div>
 
-      <!-- 安排采风小按钮 -->
+      <!-- 左下角：安排采风小按钮 -->
       <button id="btn-travel" ${isTraveling ? 'disabled style="opacity:0.4"' : ''} style="
-        position: absolute; bottom: calc(env(safe-area-inset-bottom, 20px) + 14px); left: 20px; z-index: 30;
-        background: rgba(255,255,255,0.88); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.7);
-        padding: 10px 20px; border-radius: 24px; display: flex; align-items: center; gap: 6px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.14); cursor: pointer; color: #2d3436; font-size: 13px; font-weight: bold;
+        position: absolute; bottom: 24px; left: 20px; z-index: 30;
+        background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.7);
+        padding: 10px 18px; border-radius: 24px; display: flex; align-items: center; gap: 6px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12); cursor: pointer; color: #2d3436; font-size: 13px; font-weight: bold;
       ">
         <span>🎒</span> 安排采风
       </button>
@@ -349,7 +311,7 @@ export function renderGame(container) {
         <button id="btn-close-photo" style="margin-top: 14px; background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 7px 22px; border-radius: 20px; font-size: 12px; cursor: pointer;">收起</button>
       </div>
 
-      <!-- 通用文字弹窗 -->
+      <!-- 饲养日记与采风弹窗 -->
       <div id="tp-modal" style="display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); z-index: 90; justify-content: center; align-items: flex-end;">
         <div style="background: rgba(255,255,255,0.98); width: 100%; max-height: 75vh; border-top-left-radius: 26px; border-top-right-radius: 26px; padding: 22px; overflow-y: auto; display: flex; flex-direction: column; box-shadow: 0 -10px 40px rgba(0,0,0,0.2);">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
@@ -363,16 +325,7 @@ export function renderGame(container) {
     </div>
   `;
 
-  // 退出全屏
-  container.querySelector('#btn-back-home').onclick = () => {
-    const fullBox = container.querySelector('#true-fullscreen-box');
-    if (fullBox) fullBox.style.display = 'none';
-    const defaultBack = document.querySelector('.game-back-btn, #btn-exit-game, [data-action="exit"]');
-    if (defaultBack) defaultBack.click();
-    else window.history.back();
-  };
-
-  // 拍立得 3D 翻转弹窗
+  // 绑定拍立得大图
   const photoModal = container.querySelector('#tp-photo-modal');
   const photoCard = container.querySelector('#photo-card');
   const modalPhotoImg = container.querySelector('#modal-photo-img');
@@ -406,20 +359,22 @@ export function renderGame(container) {
   const modalContent = container.querySelector('#modal-content');
   container.querySelector('#btn-close-modal').onclick = () => { modal.style.display = 'none'; };
 
-  // 差分切换
+  // 🎯 核心切换函数：直接切换立绘图片
   let resetTimer = null;
   const switchStance = (stanceKey) => {
     const charImg = container.querySelector('#char-img');
     if (!charImg || !ASSETS.characters[stanceKey]) return;
 
+    // 直接换图
     charImg.src = ASSETS.characters[stanceKey];
 
+    // 清理之前的定时器，重新计时 2.8 秒后回退到待机
     if (resetTimer) clearTimeout(resetTimer);
     if (stanceKey !== 'idle') {
       resetTimer = setTimeout(() => {
         const liveImg = container.querySelector('#char-img');
         if (liveImg) liveImg.src = ASSETS.characters.idle;
-      }, 3000);
+      }, 2800);
     }
   };
 
@@ -436,61 +391,34 @@ export function renderGame(container) {
     saveState();
   };
 
-  // 🎯 核心触碰：实时通过大模型动态生成不死途的回答！
+  // 🎯 点击角色交互：根据手指点的高低智能触发差分！
   if (!isTraveling) {
     const charImg = container.querySelector('#char-img');
     if (charImg) {
-      charImg.onclick = async (e) => {
+      charImg.onclick = (e) => {
         const rect = charImg.getBoundingClientRect();
+        // 计算点击位置相对于角色图片高度的比例 (0 为头顶，1 为底部)
         const clickRatio = (e.clientY - rect.top) / rect.height;
 
         if (clickRatio < 0.42) {
-          // 👉 碰帽子/摸头
+          // 👉 点在头顶 / 帽子 / 脸部：触发【害羞扶帽】
           switchStance('shy');
           state.affection += 4;
-          update("“（眼神微敛，耳尖泛红）……在想台词呢……”");
-
-          const reply = await askAshveil(
-            ASHVEIL_SYSTEM,
-            `玩家刚刚踮起脚尖摸了你的帽子和头顶，眼神亮晶晶地看着你。请你低声回应TA一句，带点耳根微红的无奈与宠溺。`,
-            "“（压低了帽檐，耳尖微红）……手怎么这么凉？别乱动，握着暖暖。”"
-          );
-          update(reply);
-
-          // 偷偷写日记
-          const journal = await askAshveil(
-            `你是崩铁的不死途。请用私人观察日记口吻记录：伴侣刚刚伸手摸你的帽子，你心里其实很受用但表面压低帽子的心情（25字左右）。`,
-            `记录这笔日记。`,
-            `忽然伸手摸我的帽子。这只小宠物真是越来越得寸进尺了，不过……挺舒服的。`
-          );
-          addJournal(journal);
-
+          update("“（压低了帽檐，耳尖微红）……手怎么这么凉？别乱动，握着暖暖。”");
+          addJournal('忽然伸手摸我的帽子。这只小宠物真是越来越得寸进尺了，不过……挺舒服的。');
         } else {
-          // 👉 戳胸口/要零花钱
+          // 👉 点在胸膛 / 衣服 / 腰部：触发【抬手递卡塞钱】
           switchStance('hand');
           const get = Math.floor(Math.random() * 100) + 150;
           state.money += get;
           state.affection += 2;
-          update(`“（递过卡片）……又伸手了？”`);
-
-          const reply = await askAshveil(
-            ASHVEIL_SYSTEM,
-            `玩家戳了戳你的胸口外套，眼巴巴伸手朝你要零花钱。你拿出了生活费¥${get}递给TA，请你说一句宠溺、生活化的话叮嘱TA。`,
-            `“（朝你递出手掌，眼底含笑）……拿去吧，省着点花，别总吃凉的。”`
-          );
-          update(reply);
-
-          // 偷偷写日记
-          const journal = await askAshveil(
-            `你是崩铁的不死途。请用私人观察日记口吻记录：伴侣刚刚戳你胸口要走了¥${get}零花钱，你对TA花钱和被依赖的心情（25字左右）。`,
-            `记录这笔日记。`,
-            `戳着我的外套理直气壮要零钱。塞了钱过去眼尾都在笑，真拿TA没办法。`
-          );
-          addJournal(journal);
+          update(`“（递过卡片）戳我胸口是要零花钱？拿去吧，喜欢什么别亏待自己。”`);
+          addJournal(`戳着我的外套理直气壮要零钱。直接塞了 ¥${get} 过去，眼尾都在笑，真拿TA没办法。`);
         }
       };
     }
 
+    // 安排旅行
     container.querySelector('#btn-travel').onclick = () => {
       modalTitle.innerText = "安排不死途的外出采风 🎒";
       modalContent.innerHTML = `
@@ -524,43 +452,6 @@ export function renderGame(container) {
       });
     };
   }
-
-  // ⚙️ 大模型 API 设置弹窗
-  container.querySelector('#btn-open-ai-settings').onclick = () => {
-    modalTitle.innerText = "大模型接入设置 ⚙️ (接入后每次回答都不重复)";
-    modalContent.innerHTML = `
-      <div style="display: flex; flex-direction: column; gap: 12px;">
-        <div style="font-size: 11px; color: #888;">
-          推荐使用 <b>DeepSeek API</b> 或 <b>硅基流动 SiliconFlow</b>（极其便宜，几分钱可用很久）。不填则使用本地预设台词。
-        </div>
-        <div>
-          <label style="font-size: 12px; font-weight: bold; color: #333;">API Endpoint (接口地址):</label>
-          <input id="ai-endpoint" type="text" value="${aiConfig.endpoint}" style="width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 12px; margin-top: 4px; box-sizing: border-box;" />
-        </div>
-        <div>
-          <label style="font-size: 12px; font-weight: bold; color: #333;">API Key (秘钥):</label>
-          <input id="ai-key" type="password" value="${aiConfig.apiKey}" placeholder="sk-..." style="width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 12px; margin-top: 4px; box-sizing: border-box;" />
-        </div>
-        <div>
-          <label style="font-size: 12px; font-weight: bold; color: #333;">Model (模型代号):</label>
-          <input id="ai-model" type="text" value="${aiConfig.model}" style="width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 12px; margin-top: 4px; box-sizing: border-box;" />
-        </div>
-        <button id="btn-save-ai" style="padding: 10px; border: none; border-radius: 12px; background: #d63031; color: white; font-weight: bold; font-size: 13px; cursor: pointer; margin-top: 6px;">
-          保存配置
-        </button>
-      </div>
-    `;
-    modal.style.display = 'flex';
-
-    modalContent.querySelector('#btn-save-ai').onclick = () => {
-      aiConfig.endpoint = modalContent.querySelector('#ai-endpoint').value.trim();
-      aiConfig.apiKey = modalContent.querySelector('#ai-key').value.trim();
-      aiConfig.model = modalContent.querySelector('#ai-model').value.trim();
-      saveAiConfig();
-      modal.style.display = 'none';
-      update("“设置好了？从现在起，我的每一句话都只属于你。”");
-    };
-  };
 
   // 饲养日记
   container.querySelector('#btn-open-journal').onclick = () => {

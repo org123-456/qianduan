@@ -608,8 +608,9 @@ ${dateStr}
 
         const entries = this.getMyDiaryEntries();
         delete entries[date];
-
-        localStorage.setItem('my_diary_entries', JSON.stringify(entries));
+        this._myDiariesCache = entries;
+        try { await window.PhoneAPI?.LocalDB?.set('my_diary_entries', JSON.stringify(entries)); } catch (e) {}
+        try { localStorage.setItem('my_diary_entries', JSON.stringify(entries)); } catch (e) {}
         if (window.PhoneAPI?.showToast) {
             window.PhoneAPI.showToast('今天的日记已清空');
         }

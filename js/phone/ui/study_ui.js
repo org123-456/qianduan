@@ -15,10 +15,17 @@ export const StudyUI = {
     quizScore: 0,
     quizOptions: [],
     
-    gaokaoWords: [
-        {w: 'abandon', m: 'v. 放弃，抛弃'}, {w: 'abnormal', m: 'a. 反常的'},
-        {w: 'abundant', m: 'a. 丰富的'}, {w: 'academy', m: 'n. 专科学院'},
-        {w: 'accelerate', m: 'v. 加速'}, {w: 'accent', m: 'n. 口音'}
+    defaultWords: [
+        {w: 'adapt', m: 'v. 适应'}, {w: 'balance', m: 'n. 平衡；v. 保持平衡'},
+        {w: 'benefit', m: 'n. 好处；v. 受益'}, {w: 'curious', m: 'a. 好奇的'},
+        {w: 'discover', m: 'v. 发现'}, {w: 'effort', m: 'n. 努力'},
+        {w: 'gentle', m: 'a. 温柔的'}, {w: 'habit', m: 'n. 习惯'},
+        {w: 'improve', m: 'v. 改善，提高'}, {w: 'journey', m: 'n. 旅程'},
+        {w: 'notice', m: 'v. 注意到；n. 注意'}, {w: 'ordinary', m: 'a. 普通的'},
+        {w: 'patient', m: 'a. 耐心的'}, {w: 'prepare', m: 'v. 准备'},
+        {w: 'relax', m: 'v. 放松'}, {w: 'simple', m: 'a. 简单的'},
+        {w: 'support', m: 'v. 支持；n. 支持'}, {w: 'useful', m: 'a. 有用的'},
+        {w: 'wonder', m: 'v. 想知道；n. 惊奇'}, {w: 'bright', m: 'a. 明亮的；聪明的'}
     ],
     currentWord: null,
     ebbinghausIntervals: [1, 2, 4, 7, 15, 30],
@@ -58,7 +65,7 @@ export const StudyUI = {
             const today = new Date().toLocaleDateString('zh-CN'); 
             if (!vData.checkinDates.includes(today) && window.Config?.currentAppId !== 'study') {
                 if (Math.random() < 0.1) {
-                    this.showGlobalNotification("喂，今天的单词还没背！高三了还敢摸鱼？");
+                    this.showGlobalNotification("喂，今天的单词还没复习呢，别忘啦。");
                 }
             }
         }, 60000); 
@@ -81,7 +88,7 @@ export const StudyUI = {
                 <div style="font-size: 13px; color: var(--text-sub); line-height: 1.4;">${this.escapeHtml(msg)}</div>
             </div>
             <button style="background: var(--primary-color); color: #fff; border: none; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: bold; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-                一键去背书
+                一键去学习
             </button>
         `;
         
@@ -185,7 +192,7 @@ export const StudyUI = {
         if (!modal) return;
 
         const vData = this.initVocabData();
-        const allWords = this.gaokaoWords.concat(vData.customWords);
+        const allWords = this.defaultWords.concat(vData.customWords);
         const now = Date.now();
 
         let reviewList = [], learningList = [], masteredList = [];
@@ -244,7 +251,7 @@ export const StudyUI = {
                 <div style="display: flex; flex-direction: column; align-items: center; margin-top: 20px;">
                     <img src="${taAvatar}" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid var(--primary-color); box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 15px;">
                     <div id="study-ai-bubble" style="background: var(--icon-bg); padding: 15px 20px; border-radius: 20px; border: 1px solid var(--border-color); font-size: 14px; color: var(--text-main); max-width: 90%; text-align: center; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-                        “高三了，还不快去背书？我会一直在这里盯着你的。”
+                        “今天的学习计划完成了吗？我会在这里陪着你。”
                         <div style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); border-width: 0 10px 10px 10px; border-style: solid; border-color: transparent transparent var(--border-color) transparent;"></div>
                     </div>
                     <div style="position: relative; width: 200px; height: 200px; border-radius: 50%; background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end)); display: flex; justify-content: center; align-items: center; box-shadow: inset 0 0 20px rgba(0,0,0,0.05), 0 10px 30px rgba(0,0,0,0.1); border: 8px solid #fff; margin: 30px 0 20px 0;">
@@ -253,10 +260,10 @@ export const StudyUI = {
                     <div style="margin-bottom: 25px; display: flex; align-items: center; gap: 10px;">
                         <label style="font-size: 13px; color: var(--text-sub); font-weight: bold;">设定时长:</label>
                         <select onchange="window.PhoneUI.changeStudyTime(this.value)" style="background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 12px; padding: 6px 12px; outline: none; font-size: 13px; font-weight: bold;">
-                            <option value="5" ${this.selectedTime === 5 ? 'selected' : ''}>5 分钟 (摸鱼专用)</option>
-                            <option value="15" ${this.selectedTime === 15 ? 'selected' : ''}>15 分钟 (小憩背词)</option>
+                            <option value="5" ${this.selectedTime === 5 ? 'selected' : ''}>5 分钟 (快速专注)</option>
+                            <option value="15" ${this.selectedTime === 15 ? 'selected' : ''}>15 分钟 (轻量学习)</option>
                             <option value="25" ${this.selectedTime === 25 ? 'selected' : ''}>25 分钟 (标准番茄)</option>
-                            <option value="45" ${this.selectedTime === 45 ? 'selected' : ''}>45 分钟 (一节课)</option>
+                            <option value="45" ${this.selectedTime === 45 ? 'selected' : ''}>45 分钟 (深度学习)</option>
                             <option value="60" ${this.selectedTime === 60 ? 'selected' : ''}>60 分钟 (深度沉浸)</option>
                         </select>
                     </div>
@@ -267,7 +274,7 @@ export const StudyUI = {
             `;
         } else {
             const vData = this.initVocabData();
-            const totalWords = this.gaokaoWords.length + vData.customWords.length;
+            const totalWords = this.defaultWords.length + vData.customWords.length;
             const learnedCount = Object.keys(vData.records).length;
             const now = Date.now();
             const needReviewCount = Object.values(vData.records).filter(r => r.nextReview <= now).length;
@@ -321,7 +328,7 @@ export const StudyUI = {
     // ================= 随堂测验模块 =================
     startQuiz() {
         const vData = this.initVocabData();
-        const allWords = this.gaokaoWords.concat(vData.customWords);
+        const allWords = this.defaultWords.concat(vData.customWords);
         const learnedKeys = Object.keys(vData.records);
         
         if (learnedKeys.length < 10) {
@@ -344,7 +351,7 @@ export const StudyUI = {
 
         const wordObj = this.quizWords[this.quizIndex];
         const vData = this.initVocabData();
-        const allWords = this.gaokaoWords.concat(vData.customWords);
+        const allWords = this.defaultWords.concat(vData.customWords);
 
         // 生成 4 个选项（1对3错）
         let options = [wordObj.m];
@@ -430,7 +437,7 @@ export const StudyUI = {
                 <div style="display: flex; gap: 10px; align-items: flex-start; text-align: left; background: var(--icon-bg); padding: 15px; border-radius: 12px; margin-bottom: 25px;">
                     <img src="${taAvatar}" style="width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;">
                     <div id="quiz-ai-comment" style="font-size: 14px; color: var(--text-main); line-height: 1.5;">
-                        <i class="ph ph-spinner ph-spin"></i> TA 正在批改你的试卷...
+                        <i class="ph ph-spinner ph-spin"></i> TA 正在看看你的学习结果...
                     </div>
                 </div>
 
@@ -441,7 +448,7 @@ export const StudyUI = {
         try {
             const persona = localStorage.getItem('char_persona') || '';
             const taName = localStorage.getItem('char_name') || 'TA';
-            let sysPrompt = `你扮演${taName}。${persona}\n【场景】：用户刚完成了一次10道题的高考单词测验，考了 ${this.quizScore} 分（满分10分）。\n【任务】：根据分数给出评价。满分就狠狠夸，不及格（低于6分）就严厉批评，及格就勉励。语气符合人设，字数50字以内。`;
+            let sysPrompt = `你扮演${taName}。${persona}\n【场景】：用户刚完成了一次10道题的常用英语词汇测验，考了 ${this.quizScore} 分（满分10分）。\n【任务】：根据分数给出评价。满分就狠狠夸，不及格（低于6分）就严厉批评，及格就勉励。语气符合人设，字数50字以内。`;
             const reply = await window.PhoneAPI.chatWithAI([{ role: 'system', content: sysPrompt }]);
             document.getElementById('quiz-ai-comment').innerHTML = window.PhoneUI.escapeHtml(reply.replace(/“|”|"/g, ''));
         } catch (e) {
@@ -510,7 +517,7 @@ export const StudyUI = {
             const persona = localStorage.getItem('char_persona') || '';
             const myName = localStorage.getItem('my_name') || '我';
             const taName = localStorage.getItem('char_name') || 'TA';
-            let sysPrompt = `你扮演${taName}，用户是${myName}。${persona}\n【场景】：用户正在被你“强制锁机”背书，但TA不好好学，偷偷用手戳了戳你的脸颊。\n【任务】：请用一句话（15字以内）警告TA老实点，语气要符合人设。不要动作描写。`;
+            let sysPrompt = `你扮演${taName}，用户是${myName}。${persona}\n【场景】：用户正在进行一段专注学习，但TA不好好学习，偷偷用手戳了戳你的脸颊。\n【任务】：请用一句话（15字以内）警告TA老实点，语气要符合人设。不要动作描写。`;
             const reply = await window.PhoneAPI.chatWithAI([{ role: 'system', content: sysPrompt }, { role: 'user', content: "(戳了戳你的脸颊)" }]);
             document.getElementById(loadingId).remove();
             chatBox.innerHTML += `<div style="align-self: flex-start; background: rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 12px; font-size: 14px; max-width: 85%;">${window.PhoneUI.escapeHtml(reply.replace(/“|”|"/g, ''))}</div>`;
@@ -537,7 +544,7 @@ export const StudyUI = {
             const persona = localStorage.getItem('char_persona') || '';
             const myName = localStorage.getItem('my_name') || '我';
             const taName = localStorage.getItem('char_name') || 'TA';
-            let sysPrompt = `你扮演${taName}，用户是${myName}。${persona}\n【场景】：用户正在被你“强制锁机”背书，向你撒娇求饶。\n【任务】：根据用户的语气，决定是否心软放过TA。如果不放过，严厉驳回；如果放过，傲娇或温柔地同意。\n【输出】：必须返回严格JSON：{"unlock": true/false, "reply": "你的回复"}\n`;
+            let sysPrompt = `你扮演${taName}，用户是${myName}。${persona}\n【场景】：用户正在专注学习，向你撒娇求饶想提前结束专注。\n【任务】：根据用户的语气，决定是否心软放过TA。如果不放过，严厉驳回；如果放过，傲娇或温柔地同意。\n【输出】：必须返回严格JSON：{"unlock": true/false, "reply": "你的回复"}\n`;
             const reply = await window.PhoneAPI.chatWithAI([{ role: 'system', content: sysPrompt }, { role: 'user', content: userText }]);
             const result = JSON.parse(reply.replace(/```json/g, '').replace(/```/g, '').trim());
             document.getElementById(loadingId).remove();
@@ -547,7 +554,7 @@ export const StudyUI = {
                 setTimeout(() => { this.unlockScreen(); if (window.PhoneAPI) window.PhoneAPI.showToast("TA 心软了，放过了你~"); }, 2000);
             }
         } catch (e) {
-            document.getElementById(loadingId).innerText = "网络有点卡，继续背书！";
+            document.getElementById(loadingId).innerText = "网络有点卡，再专注一会儿吧！";
         }
     },
 
@@ -571,7 +578,7 @@ export const StudyUI = {
     // ================= 艾宾浩斯背单词模块 =================
     async startLearnVocab() {
         const vData = this.initVocabData();
-        const allWords = this.gaokaoWords.concat(vData.customWords);
+        const allWords = this.defaultWords.concat(vData.customWords);
         const unlearned = allWords.filter(w => !vData.records[w.w]);
         
         if (unlearned.length === 0) {
@@ -601,7 +608,7 @@ export const StudyUI = {
         }
         
         const wordStr = needReviewKeys[Math.floor(Math.random() * needReviewKeys.length)];
-        const allWords = this.gaokaoWords.concat(vData.customWords);
+        const allWords = this.defaultWords.concat(vData.customWords);
         this.currentWord = allWords.find(w => w.w === wordStr) || {w: wordStr, m: '未知词意'};
         this.renderVocabCard('review', isSurprise);
     },
@@ -611,7 +618,7 @@ export const StudyUI = {
         if (!area || !this.currentWord) return;
 
         const vData = this.initVocabData();
-        const allWords = this.gaokaoWords.concat(vData.customWords);
+        const allWords = this.defaultWords.concat(vData.customWords);
         const prefix = this.currentWord.w.substring(0, 4); 
         let similarWordsHtml = '';
         
@@ -658,7 +665,7 @@ export const StudyUI = {
         try {
             const persona = localStorage.getItem('char_persona') || '';
             const taName = localStorage.getItem('char_name') || 'TA';
-            let sysPrompt = `你扮演${taName}。${persona}\n【任务】：用户正在背高考单词【${this.currentWord.w}】（${this.currentWord.m}），记不住。\n【要求】：用符合你人设的语气，给出一段简短、搞笑、容易记住的记忆法。字数80字以内。`;
+            let sysPrompt = `你扮演${taName}。${persona}\n【任务】：用户正在背常用英语词汇【${this.currentWord.w}】（${this.currentWord.m}），记不住。\n【要求】：用符合你人设的语气，给出一段简短、搞笑、容易记住的记忆法。字数80字以内。`;
             const reply = await window.PhoneAPI.chatWithAI([{ role: 'system', content: sysPrompt }]);
             document.getElementById('vocab-ai-explain-text').innerHTML = window.PhoneUI.escapeHtml(reply);
         } catch (e) {
@@ -674,7 +681,7 @@ export const StudyUI = {
         const today = new Date().toLocaleDateString('zh-CN');
         if (!vData.checkinDates.includes(today)) {
             vData.checkinDates.push(today);
-            if (window.PhoneAPI) window.PhoneAPI.showToast("🎉 每日背词打卡成功！");
+            if (window.PhoneAPI) window.PhoneAPI.showToast("🎉 每日学习打卡成功！");
         }
 
         if (!vData.records[word]) {
@@ -697,7 +704,7 @@ export const StudyUI = {
         if (this.sessionWordCount % 5 === 0) {
             const msgs = [
                 `背了 ${this.sessionWordCount} 个了！不愧是我看上的人，继续保持！`,
-                `${this.sessionWordCount} 个单词拿下！今天的高考状元非你莫属！`,
+                `${this.sessionWordCount} 个单词拿下！今天的英语词汇小达人非你莫属！`,
                 `已经搞定 ${this.sessionWordCount} 个啦，累了的话...也不准休息！快背！`,
                 `哇哦，${this.sessionWordCount} 个了！再背几个我就奖励你一个摸头杀~`
             ];

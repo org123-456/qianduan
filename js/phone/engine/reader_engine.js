@@ -506,7 +506,7 @@ export const ReaderEngine = {
         });
     },
 
-    saveHighlight() {
+    async saveHighlight() {
         const selection = window.getSelection();
         let text = selection.toString().trim();
         if (!text) return;

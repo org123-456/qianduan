@@ -480,23 +480,30 @@ export const PhoneUI = {
         });
     },
 
-    // 🌟 手动保存提示词与人设（带触感与明确反馈）
+    // 🌟 手动保存提示词与人设（绝对安全逻辑）
     savePromptAndPersona() {
-        const sysVal = document.getElementById('system-prompt')?.value ?? '';
-        const charVal = document.getElementById('char-persona')?.value ?? '';
+        const sysEl = document.getElementById('system-prompt');
+        const charEl = document.getElementById('char-persona');
         
-        localStorage.setItem('system_prompt', sysVal);
-        localStorage.setItem('char_persona', charVal);
+        const sysVal = sysEl ? sysEl.value : '';
+        const charVal = charEl ? charEl.value : '';
+        
+        try {
+            localStorage.setItem('system_prompt', sysVal);
+            localStorage.setItem('char_persona', charVal);
+        } catch(e) {
+            alert('本地存储空间不足，保存失败');
+            return;
+        }
 
         const btn = document.getElementById('btn-save-prompts');
         if (btn) {
-            const origHtml = btn.innerHTML;
             btn.innerHTML = `<i class="ph-bold ph-check"></i> 已保存至本地！`;
             btn.style.background = '#2a9d8f';
             setTimeout(() => {
-                btn.innerHTML = origHtml;
+                btn.innerHTML = `<i class="ph-bold ph-floppy-disk"></i> 💾 保存提示词与角色人设`;
                 btn.style.background = 'var(--primary-color)';
-            }, 1500);
+            }, 1200);
         }
 
         if (window.PhoneAPI && window.PhoneAPI.showToast) {
@@ -688,6 +695,7 @@ export const PhoneUI = {
         const curChatLimit = localStorage.getItem('context_chat_limit') || '60';
         const curVaultLimit = localStorage.getItem('context_vault_limit') || '15';
 
+        // 🌟 纯净 HTML 结构：不塞入易炸碎的字符串，杜绝语法穿透
         contentEl.innerHTML = `
         <div class="settings-tabs" style="display: flex; gap: 6px; margin-bottom: 20px;">
             <div class="settings-tab active" id="stab-basic" onclick="window.PhoneUI.switchSetTab('basic')">基础/UI</div>
@@ -767,23 +775,17 @@ export const PhoneUI = {
 
         <!-- 2. 大模型与记忆设置 -->
         <div id="set-sec-ai" class="set-section" style="flex-direction: column; gap: 18px; padding-bottom: 100px;">
-            <!-- 🌟 提示词与人设卡片（已加上专用保存按钮！） -->
             <div class="card" style="padding: 16px; border: 1px solid var(--border-color);">
                 <h3 style="color:var(--primary-color);margin-bottom:12px; font-size: 15px;"><i class="ph-fill ph-scroll"></i> 提示词与人设</h3>
                 <div style="margin-bottom:15px;">
                     <label style="font-size:13px;color:var(--text-main);font-weight:bold; display: block; margin-bottom: 6px;">1. 系统核心指令 (规则/防八股)</label>
-                    <textarea id="system-prompt" rows="3" 
-                        oninput="localStorage.setItem('system_prompt', this.value)" 
-                        style="width:100%;padding:10px;border-radius:10px;resize:vertical;font-size:13px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main); line-height: 1.5;"></textarea>
+                    <textarea id="system-prompt" rows="4" style="width:100%;padding:10px;border-radius:10px;resize:vertical;font-size:13px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main); line-height: 1.5;"></textarea>
                 </div>
                 <div style="margin-bottom:15px;">
                     <label style="font-size:13px;color:var(--text-main);font-weight:bold; display: block; margin-bottom: 6px;">2. 角色完整人设 (性格/口吻/设定)</label>
-                    <textarea id="char-persona" rows="6" 
-                        oninput="localStorage.setItem('char_persona', this.value)" 
-                        style="width:100%;padding:10px;border-radius:10px;resize:vertical;font-size:13px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main); line-height: 1.5;"></textarea>
+                    <textarea id="char-persona" rows="7" style="width:100%;padding:10px;border-radius:10px;resize:vertical;font-size:13px; border: 1px solid var(--border-color); background: var(--window-bg); color: var(--text-main); line-height: 1.5;"></textarea>
                 </div>
 
-                <!-- 🌟 实体保存按钮，点击直接保存并弹提示 -->
                 <button type="button" 
                         id="btn-save-prompts"
                         onclick="window.PhoneUI.savePromptAndPersona()"
@@ -904,8 +906,27 @@ export const PhoneUI = {
         </div>
         `;
 
+        // 🌟 核心：使用纯 JavaScript 对输入框赋值并挂载监听器，100% 免疫 HTML 字符炸裂
         setTimeout(() => {
             this.switchSetTab('basic');
+
+            // 1. 物理写入当前保存的内容（回显）
+            const sysPromptEl = document.getElementById('system-prompt');
+            const charPersonaEl = document.getElementById('char-persona');
+            if (sysPromptEl) {
+                sysPromptEl.value = localStorage.getItem('system_prompt') || '';
+                sysPromptEl.addEventListener('input', () => {
+                    localStorage.setItem('system_prompt', sysPromptEl.value);
+                });
+            }
+            if (charPersonaEl) {
+                charPersonaEl.value = localStorage.getItem('char_persona') || '';
+                charPersonaEl.addEventListener('input', () => {
+                    localStorage.setItem('char_persona', charPersonaEl.value);
+                });
+            }
+
+            // 2. 绑定预设保存按钮
             const saveBtn = document.getElementById('btn-direct-save-preset');
             if (saveBtn) {
                 saveBtn.addEventListener('click', (e) => {
@@ -919,7 +940,7 @@ export const PhoneUI = {
                 if (window.PhoneAPI.loadSettings) window.PhoneAPI.loadSettings();
                 if (window.PhoneAPI.refreshPresetDropdowns) window.PhoneAPI.refreshPresetDropdowns();
             }
-        }, 50);
+        }, 30);
     }
 };
 

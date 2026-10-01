@@ -174,7 +174,7 @@ export const ReaderEngine = {
                     let recoveredTitle = '导入的书籍 ' + (i + 1);
                     try {
                         const sample = await blob.slice(0, 300).text();
-                        const firstLine = sample.split(/\\r?\\n/).map(line => line.trim()).find(Boolean);
+                        const firstLine = sample.split(/\r?\n/).map(line => line.trim()).find(Boolean);
                         if (firstLine && firstLine.length <= 40) recoveredTitle = firstLine;
                     } catch (e) {}
 

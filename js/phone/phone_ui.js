@@ -274,7 +274,7 @@ export const PhoneUI = {
         contentEl.style.display = 'block';
         contentEl.style.overflow = 'auto';
 
-        // 🌟 按照文档意图：直接在当前窗口展现日记页面，无缝支持翻页与背景
+        // 🌟 打开日记：在主视图直接打开日记，底部直挂两本书
         if (appId === 'diary') { 
             winEl.classList.add('fullscreen-mode'); 
             const diaryTitle = localStorage.getItem('diary_title') || 'His Diary';
@@ -287,8 +287,8 @@ export const PhoneUI = {
                     <div class="diary-back-btn" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div>
                 </div>
                 <div id="diary-inside-view" class="diary-inside-view">
-                    <div class="diary-back-btn" onclick="window.PhoneUI.closeApp()" style="top:20px;left:15px;background:rgba(0,0,0,0.1);color:#333;z-index:50;"><i class="ph ph-caret-left"></i></div>
-                    <div id="diary-content-area" style="display:flex;flex-direction:column;height:100%;"></div>
+                    <div class="diary-back-btn" onclick="window.PhoneUI.closeApp()" style="top:20px;left:15px;background:rgba(0,0,0,0.18);color:#fff;z-index:50;"><i class="ph ph-caret-left"></i></div>
+                    <div id="diary-content-area" style="display:flex;flex-direction:column;min-height:100%;"></div>
                 </div>
             `;
             this.renderDiaryPage();
@@ -659,7 +659,7 @@ export const PhoneUI = {
         }
     },
 
-    // 🌟 纯字符串双轨安全保存（绝不破坏人设）
+    // 🌟 纯字符串双轨安全保存
     async savePromptAndPersona() {
         const sysVal = document.getElementById('system-prompt')?.value || '';
         const charVal = document.getElementById('char-persona')?.value || '';
@@ -691,7 +691,6 @@ export const PhoneUI = {
         }
     },
 
-    // 🌟 100% 完整保留的设置 UI 面板
     renderSettings() {
         const contentEl = document.getElementById('app-window-content');
         if (!contentEl) return;
@@ -719,7 +718,7 @@ export const PhoneUI = {
             <div class="settings-tab" id="stab-sys" onclick="window.PhoneUI.switchSetTab('sys')">系统维护</div>
         </div>
 
-        <!-- 1. 基础设置（完整保留名字、头像、主题色、恋爱日、壁纸） -->
+        <!-- 1. 基础设置 -->
         <div id="set-sec-basic" class="set-section active" style="flex-direction: column; gap: 15px; padding-bottom: 100px;">
             <div class="card" style="padding: 16px;">
                 <h3 style="color:var(--primary-color);margin-bottom:15px; font-size: 15px;"><i class="ph-fill ph-user-circle"></i> 基础设定 (头像与名字)</h3>

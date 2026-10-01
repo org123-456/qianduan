@@ -274,14 +274,13 @@ export const PhoneUI = {
         contentEl.style.display = 'block';
         contentEl.style.overflow = 'auto';
 
-        if (appId === 'diary') { 
-            winEl.classList.add('fullscreen-mode'); 
-            const diaryTitle = localStorage.getItem('diary_title') || 'His Diary';
-            contentEl.innerHTML = `<div id="diary-cover-view" class="diary-cover-view"><div class="diary-book-cover long-pressable" data-img="bg_diary_cover" id="diary-book-cover" onclick="window.PhoneUI.unlockDiary()"><div class="diary-title">${this.escapeHtml(diaryTitle)}</div><div class="diary-hint">点击翻开日记</div></div><div class="diary-back-btn" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div></div><div id="diary-inside-view" class="diary-inside-view"><div class="diary-back-btn" onclick="window.PhoneUI.closeApp()" style="top:20px;left:15px;background:rgba(0,0,0,0.1);color:#333;z-index:50;"><i class="ph ph-caret-left"></i></div><div id="diary-content-area" style="display:flex;flex-direction:column;height:100%;"></div></div>`;
-            this.renderDiaryPage();
-            this.bindLongPresses();
-        } else { 
-            winEl.classList.remove('fullscreen-mode'); 
+        // 🌟 按你的要求修改为 renderDiaryShelf 并直接 return
+        if (appId === 'diary') {
+            winEl.classList.add('fullscreen-mode');
+            this.renderDiaryShelf();
+            return;
+        } else {
+            winEl.classList.remove('fullscreen-mode');
         }
 
         if (appId === 'memory_vault') {
@@ -774,7 +773,7 @@ export const PhoneUI = {
             </div>
         </div>
 
-        <!-- 2. 大模型与记忆设置（完整保留人设、保存按钮、记忆管理与双滑块、预设管理与删除） -->
+        <!-- 2. 大模型与记忆设置 -->
         <div id="set-sec-ai" class="set-section" style="flex-direction: column; gap: 18px; padding-bottom: 100px;">
             <div class="card" style="padding: 16px; border: 1px solid var(--border-color);">
                 <h3 style="color:var(--primary-color);margin-bottom:12px; font-size: 15px;"><i class="ph-fill ph-scroll"></i> 提示词与人设</h3>
@@ -795,7 +794,7 @@ export const PhoneUI = {
                 </button>
             </div>
 
-            <!-- 记忆抽取卡片（包含提取按钮、清零按钮、双滑块） -->
+            <!-- 记忆抽取卡片 -->
             <div class="card" style="padding: 16px; border: 1px solid var(--border-color);">
                 <h3 style="color:var(--primary-color);margin-bottom:12px; font-size: 15px;"><i class="ph-fill ph-brain"></i> 记忆管理与上下文提取</h3>
                 
@@ -833,7 +832,7 @@ export const PhoneUI = {
                 </div>
             </div>
 
-            <!-- 预设配置卡片（完整保留选择器、删除按钮、4项输入框、保存按钮） -->
+            <!-- 预设配置卡片 -->
             <div class="card" style="padding: 16px; border: 1px solid var(--border-color);">
                 <h3 style="color:var(--primary-color);margin-bottom:12px; font-size: 15px;"><i class="ph-fill ph-database"></i> 语言引擎预设配置</h3>
                 
@@ -871,7 +870,7 @@ export const PhoneUI = {
             </div>
         </div>
 
-        <!-- 3. 绘画引擎（完整保留保存配置与测试连接两个按钮） -->
+        <!-- 3. 绘画引擎 -->
         <div id="set-sec-draw" class="set-section" style="flex-direction: column; gap: 15px; padding-bottom: 100px;">
             <div class="card" style="padding: 16px;">
                 <h3 style="color:var(--primary-color);margin-bottom:10px; font-size: 15px;"><i class="ph-fill ph-image"></i> 绘画引擎配置 (DALL-E 格式)</h3>
@@ -885,7 +884,7 @@ export const PhoneUI = {
             </div>
         </div>
 
-        <!-- 4. 系统维护（完整保留 Supabase/Cloudflare同步、JSON导出导入、强制更新、清空记录） -->
+        <!-- 4. 系统维护 -->
         <div id="set-sec-sys" class="set-section" style="flex-direction: column; gap: 15px; padding-bottom: 100px;">
             <div class="card" style="border: 1px solid var(--primary-color); padding: 16px;">
                 <h3 style="color:var(--primary-color);margin-bottom:10px; font-size: 15px;"><i class="ph-fill ph-cloud-check"></i> Cloudflare 云端同步</h3>
@@ -907,7 +906,7 @@ export const PhoneUI = {
             <div class="card" style="padding: 16px;">
                 <h3 style="color:var(--danger-color);margin-bottom:15px; font-size: 15px;"><i class="ph-fill ph-warning-circle"></i> 系统维护</h3>
                 <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.forceUpdate()" style="background:#f4a261;margin-top:0;margin-bottom:10px;"><i class="ph ph-arrows-clockwise"></i> 强制更新系统</button>
-                <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.clearChat()" style="background:var(--danger-color);margin-top:0;"><i class="ph ph-trash"></i> 清空记录 (释放内存)</button>
+                <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.clearChat()" style="background:var(--danger-color);margin-top:0;"><i class="ph ph-trash"></i> 清空记录</button>
             </div>
         </div>
         `;

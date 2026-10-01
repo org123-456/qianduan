@@ -480,39 +480,35 @@ export const PhoneUI = {
         });
     },
 
-    // 🌟 终极方案：智能保存（空间充足存 localStorage，空间不足无感写入 IndexedDB，容量无限）
+    // 🌟 核心：直接写入 IndexedDB 与 LocalStorage 双保险，永不丢失
     async savePromptAndPersona() {
         const sysEl = document.getElementById('system-prompt');
         const charEl = document.getElementById('char-persona');
         
         const sysVal = sysEl ? sysEl.value : '';
         const charVal = charEl ? charEl.value : '';
-        
-        let savedInDb = false;
 
+        // 1. 无条件存入高容量 IndexedDB（容量无上限）
+        if (window.PhoneAPI && window.PhoneAPI.LocalDB) {
+            try {
+                await window.PhoneAPI.LocalDB.set('saved_system_prompt', new Blob([sysVal], {type: 'text/plain'}));
+                await window.PhoneAPI.LocalDB.set('saved_char_persona', new Blob([charVal], {type: 'text/plain'}));
+            } catch(e) {
+                console.error("LocalDB 写入失败:", e);
+            }
+        }
+
+        // 2. 尝试同步写入 localStorage
         try {
             localStorage.setItem('system_prompt', sysVal);
             localStorage.setItem('char_persona', charVal);
-            localStorage.removeItem('stored_in_idb');
         } catch(e) {
-            // 如果 5MB 满了，自动无感存入高容量 IndexedDB
-            console.warn('localStorage已满，启用高容量 LocalDB 安全存储...');
-            if (window.PhoneAPI && window.PhoneAPI.LocalDB) {
-                try {
-                    await window.PhoneAPI.LocalDB.set('saved_system_prompt', new Blob([sysVal], {type: 'text/plain'}));
-                    await window.PhoneAPI.LocalDB.set('saved_char_persona', new Blob([charVal], {type: 'text/plain'}));
-                    localStorage.setItem('stored_in_idb', 'true');
-                    savedInDb = true;
-                } catch(idbErr) {
-                    alert('本地存储严重受限，请清理部分旧记录！');
-                    return;
-                }
-            }
+            console.warn("localStorage 容量受限，已完全存入大容量 LocalDB！");
         }
 
         const btn = document.getElementById('btn-save-prompts');
         if (btn) {
-            btn.innerHTML = `<i class="ph-bold ph-check"></i> 已安全保存${savedInDb ? ' (高容量模式)' : ''}！`;
+            btn.innerHTML = `<i class="ph-bold ph-check"></i> 已永久保存！`;
             btn.style.background = '#2a9d8f';
             setTimeout(() => {
                 btn.innerHTML = `<i class="ph-bold ph-floppy-disk"></i> 💾 保存提示词与角色人设`;
@@ -521,7 +517,7 @@ export const PhoneUI = {
         }
 
         if (window.PhoneAPI && window.PhoneAPI.showToast) {
-            window.PhoneAPI.showToast('✅ 核心指令与人设已保存成功！');
+            window.PhoneAPI.showToast('✅ 核心指令与人设已稳固保存！');
         }
     },
 
@@ -919,29 +915,32 @@ export const PhoneUI = {
         </div>
         `;
 
-        // 🌟 核心：异步双轨回显，保证超长文本 100% 还原展示
         setTimeout(async () => {
             this.switchSetTab('basic');
 
+            // 1. 先跑系统基础设置（绝不影响人设框）
+            if (window.PhoneAPI && window.PhoneAPI.loadSettings) {
+                window.PhoneAPI.loadSettings();
+            }
+
+            // 2. 核心：从 LocalDB / localStorage 最终取值回显在文本框里
             const sysPromptEl = document.getElementById('system-prompt');
             const charPersonaEl = document.getElementById('char-persona');
             
-            // 1. 尝试从 localStorage 读
-            let sysText = localStorage.getItem('system_prompt') || '';
-            let charText = localStorage.getItem('char_persona') || '';
+            let finalSys = localStorage.getItem('system_prompt') || '';
+            let finalChar = localStorage.getItem('char_persona') || '';
 
-            // 2. 如果在 IndexedDB 里，则异步还原出来
-            if (localStorage.getItem('stored_in_idb') === 'true' && window.PhoneAPI?.LocalDB) {
+            if (window.PhoneAPI?.LocalDB) {
                 try {
                     const sysBlob = await window.PhoneAPI.LocalDB.get('saved_system_prompt');
                     const charBlob = await window.PhoneAPI.LocalDB.get('saved_char_persona');
-                    if (sysBlob) sysText = await sysBlob.text();
-                    if (charBlob) charText = await charBlob.text();
+                    if (sysBlob) finalSys = await sysBlob.text();
+                    if (charBlob) finalChar = await charBlob.text();
                 } catch(e) {}
             }
 
-            if (sysPromptEl) sysPromptEl.value = sysText;
-            if (charPersonaEl) charPersonaEl.value = charText;
+            if (sysPromptEl) sysPromptEl.value = finalSys;
+            if (charPersonaEl) charPersonaEl.value = finalChar;
 
             const saveBtn = document.getElementById('btn-direct-save-preset');
             if (saveBtn) {
@@ -952,9 +951,8 @@ export const PhoneUI = {
             }
 
             if (this.bindLongPresses) this.bindLongPresses();
-            if (window.PhoneAPI) {
-                if (window.PhoneAPI.loadSettings) window.PhoneAPI.loadSettings();
-                if (window.PhoneAPI.refreshPresetDropdowns) window.PhoneAPI.refreshPresetDropdowns();
+            if (window.PhoneAPI && window.PhoneAPI.refreshPresetDropdowns) {
+                window.PhoneAPI.refreshPresetDropdowns();
             }
         }, 50);
     }

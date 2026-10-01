@@ -1,7 +1,10 @@
-// 此间归处 - 核心系统
+// 此间归处 - 核心系统（已合并 characters 与 systems 完整功能）
 
 import { gameData, addMemory, setCompanion } from './data.js';
 
+// ==========================================
+// 1. 事件订阅与派发系统
+// ==========================================
 const listeners = new Map();
 
 export function onEvent(eventName, callback) {
@@ -21,6 +24,9 @@ export function clearEvents(eventName) {
   else listeners.clear();
 }
 
+// ==========================================
+// 2. 伴侣角色定义与管理
+// ==========================================
 export function createCharacter(config = {}) {
   return {
     id: config.id || null,
@@ -47,10 +53,16 @@ export class Companion {
   }
 }
 
+let activeCompanion = null;
+
 export function createCompanion(data = {}) {
-  const companion = new Companion(data);
-  setCompanion(companion);
-  return companion;
+  activeCompanion = new Companion(data);
+  setCompanion(activeCompanion);
+  return activeCompanion;
+}
+
+export function getCompanion() {
+  return activeCompanion;
 }
 
 export function initializeCompanion() {
@@ -61,26 +73,9 @@ export function initializeCompanion() {
   });
 }
 
-export function addAffection(value = 1) {
-  gameData.relationship.affection += value;
-}
-
-export function changeRelationship(change = {}) {
-  const relation = gameData.relationship;
-  relation.affection = Math.max(0, relation.affection + (change.affection || 0));
-  relation.trust = Math.max(0, relation.trust + (change.trust || 0));
-  return relation;
-}
-
-export function updateRelationshipStage() {
-  const value = gameData.relationship.affection || 0;
-  if (value >= 100) gameData.relationship.level = '深刻羁绊';
-  else if (value >= 50) gameData.relationship.level = '熟悉相伴';
-  else if (value >= 10) gameData.relationship.level = '逐渐了解';
-  else gameData.relationship.level = '初次相遇';
-  return gameData.relationship.level;
-}
-
+// ==========================================
+// 3. 伴侣状态管理系统
+// ==========================================
 export function updateCompanionState(changes = {}) {
   gameData.companion.state = { ...(gameData.companion.state || {}), ...changes };
 }
@@ -94,6 +89,48 @@ export function changeEnergy(amount) {
   updateCompanionState({ energy: Math.max(0, Math.min(100, energy + amount)) });
 }
 
+// ==========================================
+// 4. 关系与羁绊系统
+// ==========================================
+export function addAffection(value = 1) {
+  gameData.relationship.affection = (gameData.relationship.affection || 0) + value;
+  updateRelationshipStage();
+}
+
+export function changeRelationship(change = {}) {
+  const relation = gameData.relationship;
+  relation.affection = Math.max(0, (relation.affection || 0) + (change.affection || 0));
+  relation.trust = Math.max(0, (relation.trust || 0) + (change.trust || 0));
+  updateRelationshipStage();
+  return relation;
+}
+
+export function updateRelationshipStage() {
+  const value = gameData.relationship.affection || 0;
+  if (value >= 100) gameData.relationship.level = '深刻羁绊';
+  else if (value >= 50) gameData.relationship.level = '熟悉相伴';
+  else if (value >= 10) gameData.relationship.level = '逐渐了解';
+  else gameData.relationship.level = '初次相遇';
+  return gameData.relationship.level;
+}
+
+export function getAffectionLevel() {
+  return updateRelationshipStage();
+}
+
+// 互动结果结算与数值联动桥接
+export function applyInteractionResult(result = {}) {
+  if (result.affection || result.trust) {
+    changeRelationship({ affection: result.affection, trust: result.trust });
+  }
+  if (result.state) {
+    updateCompanionState(result.state);
+  }
+}
+
+// ==========================================
+// 5. 记忆与剧情进度系统
+// ==========================================
 export function createMemory(type, title, text, extra = {}) {
   addMemory({ type, title, text, ...extra });
 }

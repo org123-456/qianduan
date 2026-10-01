@@ -84,7 +84,7 @@ export const GameUI = {
         const { window } = getElements();
         if (!window) return;
         window.classList.add('open');
-        const ready = window.GameGamesReady;
+        const ready = globalThis.GameGamesReady;
         if (ready && typeof ready.then === 'function') {
             contentLoading();
             ready.then(() => renderHall()).catch(error => {

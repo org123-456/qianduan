@@ -27,7 +27,7 @@ export const ChatUI = {
                                 item.content = `<img src="${safeUrl}" class="chat-sticker" onclick="window.PhoneUI.previewImage(this.src)">`;
                             }
                         }
-                        // 🌟 核心：普通图片气泡点击也能直接全屏查看 + 保存到本地
+                        // 普通图片气泡点击也能直接全屏查看 + 保存到本地
                         else if (item.content.includes('![图片](') || item.content.includes('![](')) {
                             item.content = item.content.replace(/!\[(.*?)\]\((https?:\/\/[^\s\)]+|data:image\/[^\s\)]+)\)/g, (match, alt, url) => {
                                 return `<img src="${url}" style="max-width:100%; border-radius:10px; cursor:pointer;" onclick="window.PhoneUI.previewImage(this.src)" title="点击放大与保存">`;
@@ -43,17 +43,17 @@ export const ChatUI = {
             }, 100);
 
             if (appId === 'wechat') {
-                this.updateHomeWidget();
+                this.updateHomeWidget?.();
             }
         } else if (appId === 'gallery') {
-            this.renderGallery();
+            this.renderGallery?.();
         } else if (appId === 'settings') {
-            this.renderSettings();
+            this.renderSettings?.();
         } else if (appId === 'moments') {
-            this.renderMoments();
+            this.renderMoments?.();
         } else if (appId === 'favorites') {
             if (this.currentMomentsTab === 'favorites') {
-                this.renderMoments();
+                this.renderMoments?.();
             }
         }
     },
@@ -162,7 +162,6 @@ export const ChatUI = {
         if (modalEl) modal.classList.remove('show');
     },
 
-    // 🌟 全屏沉浸预览大图 + 保存到本地
     previewImage(imgUrl) {
         let viewer = document.getElementById('image-viewer-modal');
         if (!viewer) {
@@ -197,7 +196,6 @@ export const ChatUI = {
         }
     },
 
-    // 🌟 下载/保存图片到本地相册
     async downloadCurrentImage() {
         const viewer = document.getElementById('image-viewer-modal');
         if (!viewer || !viewer._currentImgUrl) return;
@@ -206,7 +204,6 @@ export const ChatUI = {
         try {
             if (window.PhoneAPI) window.PhoneAPI.showToast("⏳ 正在保存图片...");
 
-            // Base64 或同源图片直接下载
             if (url.startsWith('data:')) {
                 const a = document.createElement('a');
                 a.href = url;
@@ -218,7 +215,6 @@ export const ChatUI = {
                 return;
             }
 
-            // 网络外链转 Blob 触发下载，绕过跨域拦截
             const res = await fetch(url);
             const blob = await res.blob();
             const blobUrl = URL.createObjectURL(blob);
@@ -233,7 +229,6 @@ export const ChatUI = {
 
             if (window.PhoneAPI) window.PhoneAPI.showToast("✅ 图片已成功保存到手机！");
         } catch (e) {
-            // 兜底保底方案：新标签打开
             const a = document.createElement('a');
             a.href = url;
             a.target = '_blank';
@@ -243,3 +238,37 @@ export const ChatUI = {
         }
     }
 };
+
+// 🌟 全局绝对生效：输入框回车 / 软键盘发送键监听
+if (typeof document !== 'undefined') {
+    // 1. 监听 PC 回车与手机物理键盘
+    document.addEventListener('keydown', (e) => {
+        const active = document.activeElement;
+        if (active && (active.id === 'chat-input' || active.classList.contains('chat-input-box'))) {
+            // 如果按下了回车且没有按 Shift
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault(); // 阻止默认换行
+                if (window.ChatEngine && window.ChatEngine.sendChatMessage) {
+                    window.ChatEngine.sendChatMessage();
+                } else if (window.PhoneEngine && window.PhoneEngine.sendChatMessage) {
+                    window.PhoneEngine.sendChatMessage();
+                }
+            }
+        }
+    }, true);
+
+    // 2. 监听手机端输入法点击【发送/前往】的提交
+    document.addEventListener('keypress', (e) => {
+        const active = document.activeElement;
+        if (active && (active.id === 'chat-input' || active.classList.contains('chat-input-box'))) {
+            if (e.keyCode === 13 && !e.shiftKey) {
+                e.preventDefault();
+                if (window.ChatEngine && window.ChatEngine.sendChatMessage) {
+                    window.ChatEngine.sendChatMessage();
+                } else if (window.PhoneEngine && window.PhoneEngine.sendChatMessage) {
+                    window.PhoneEngine.sendChatMessage();
+                }
+            }
+        }
+    }, true);
+}

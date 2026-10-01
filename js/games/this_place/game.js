@@ -1,29 +1,32 @@
 // 此间归处 - 崩铁·不死途专属 2D 温馨小窝 + 风铃拍立得手账系统
 
+// 🌟 核心魔法：自动锁定当前 this_place 文件夹的真实路径，彻底解决找不到图片的问题！
+const BASE_URL = new URL('.', import.meta.url).href;
+
 const ASSETS = {
-  // 小窝背景池（根据手机时间自动匹配）
+  // 小窝背景池（自动拼接正确路径）
   rooms: {
-    day: './room_day.png',
-    dusk: './room_dusk.png',
-    night: './room_night.png',
-    autumn: './room_autumn.png',
-    winter: './room_winter.png'
+    day: BASE_URL + 'room_day.png',
+    dusk: BASE_URL + 'room_dusk.png',
+    night: BASE_URL + 'room_night.png',
+    autumn: BASE_URL + 'room_autumn.png',
+    winter: BASE_URL + 'room_winter.png'
   },
   
   // 不死途三套差分立绘
   characters: {
-    idle: './ashveil_idle.png',     // 待机沉稳
-    shy: './ashveil_shy.png',       // 扶帽微笑（摸头）
-    hand: './ashveil_hand.png'      // 抬手邀请（给钱/投喂）
+    idle: BASE_URL + 'ashveil_idle.png',     // 待机沉稳
+    shy: BASE_URL + 'ashveil_shy.png',       // 扶帽微笑（摸头）
+    hand: BASE_URL + 'ashveil_hand.png'      // 抬手邀请（给钱/投喂）
   },
 
   // 5 个旅行地点的专属拍立得大图
   photos: {
-    forest: './photo_forest.png',
-    hill: './photo_hill.png',
-    coast: './photo_coast.png',
-    lake: './photo_lake.png',
-    station: './photo_station.png'
+    forest: BASE_URL + 'photo_forest.png',
+    hill: BASE_URL + 'photo_hill.png',
+    coast: BASE_URL + 'photo_coast.png',
+    lake: BASE_URL + 'photo_lake.png',
+    station: BASE_URL + 'photo_station.png'
   }
 };
 
@@ -35,7 +38,6 @@ const PLACES = [
   { id: 'coast', name: '潮汐小镇', travelTime: 20000, souvenirs: ['潮纹贝壳', '海盐晶袋'], photoKey: 'coast' }
 ];
 
-// 动态亲笔信生成引擎
 const LETTER_DATABASE = {
   forest: [
     "晨雾比想象中要浓，踩在湿青苔上时差点滑了一下。捡到这枚松果的时候，忽然觉得你握在手心里刚刚好。",
@@ -79,7 +81,6 @@ let state = {
   caretakerJournal: [
     { time: '初始', text: '把这只小家伙接进来了。看起来毫无防备心，得看紧点，别让人欺负了去。' }
   ],
-  // 收集的所有拍立得记忆卡片
   polaroids: []
 };
 
@@ -102,10 +103,9 @@ function addJournal(text) {
   saveState();
 }
 
-// 自动根据真实手机时间选择背景图
 function getAutoRoom() {
   const now = new Date();
-  const month = now.getMonth() + 1; // 1-12
+  const month = now.getMonth() + 1;
   const hour = now.getHours();
 
   if (month === 12 || month === 1 || month === 2) return ASSETS.rooms.winter;
@@ -118,14 +118,12 @@ function getAutoRoom() {
 export function renderGame(container) {
   loadSave();
 
-  // 结算旅行返回
   if (state.travelState.status === 'traveling' && Date.now() >= state.travelState.returnTime) {
     const place = state.travelState.targetPlace;
     const souvenir = place.souvenirs[Math.floor(Math.random() * place.souvenirs.length)];
     const letterPool = LETTER_DATABASE[place.id] || LETTER_DATABASE.forest;
     const letter = letterPool[Math.floor(Math.random() * letterPool.length)];
     
-    // 生成一张新的风铃拍立得
     state.polaroids.unshift({
       id: Date.now(),
       placeName: place.name,
@@ -163,7 +161,6 @@ export function renderGame(container) {
         animation: chimeSway 5s ease-in-out infinite;
         transform-origin: top center;
       }
-      /* 3D 拍立得翻转卡片样式 */
       .flip-card {
         background-color: transparent;
         width: 290px;
@@ -222,14 +219,12 @@ export function renderGame(container) {
         </button>
       </div>
 
-      <!-- 落地窗顶：微风拍立得悬挂栏 (横向可滑动的风铃挂件) -->
+      <!-- 落地窗顶：微风拍立得悬挂栏 -->
       ${state.polaroids.length > 0 ? `
         <div class="windchime-line" style="position: absolute; top: 50px; left: 0; right: 0; display: flex; gap: 12px; padding: 0 20px; overflow-x: auto; z-index: 20; scrollbar-width: none;">
           ${state.polaroids.slice(0, 6).map((item, idx) => `
             <div class="polaroid-clip" data-id="${item.id}" style="display: flex; flex-direction: column; align-items: center; cursor: pointer; flex-shrink: 0;">
-              <!-- 悬挂小木夹 -->
               <div style="width: 6px; height: 14px; background: #c8d6e5; border-radius: 2px; margin-bottom: -3px; z-index: 2; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>
-              <!-- 拍立得迷你卡片 -->
               <div style="background: #ffffff; padding: 4px 4px 10px; border-radius: 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); transform: rotate(${idx % 2 === 0 ? '-2deg' : '2deg'});">
                 <img src="${item.photoUrl}" style="width: 50px; height: 64px; object-fit: cover; border-radius: 2px; display: block;" />
               </div>
@@ -285,15 +280,12 @@ export function renderGame(container) {
 
       <!-- 拍立得 3D 翻转弹窗 -->
       <div id="tp-photo-modal" style="display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); z-index: 100; justify-content: center; align-items: center; flex-direction: column;">
-        
         <div id="photo-card" class="flip-card">
           <div class="flip-card-inner">
-            <!-- 正面：风景大图 -->
             <div class="flip-card-front">
               <img id="modal-photo-img" src="" style="width: 100%; height: 350px; object-fit: cover; border-radius: 6px;" />
               <div id="modal-photo-place" style="margin-top: 10px; font-weight: bold; color: #555; font-size: 13px;">地点名</div>
             </div>
-            <!-- 背面：不死途手写字 -->
             <div class="flip-card-back">
               <div>
                 <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #dcdde1; padding-bottom: 8px; margin-bottom: 16px;">
@@ -310,7 +302,6 @@ export function renderGame(container) {
             </div>
           </div>
         </div>
-
         <div style="color: white; font-size: 12px; margin-top: 20px; opacity: 0.8;">💡 轻点卡片可翻转到背面查看手写字</div>
         <button id="btn-close-photo" style="margin-top: 14px; background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 8px 24px; border-radius: 20px; font-size: 13px; cursor: pointer;">收起</button>
       </div>
@@ -329,7 +320,6 @@ export function renderGame(container) {
     </div>
   `;
 
-  // 绑定拍立得大图与 3D 翻转交互
   const photoModal = container.querySelector('#tp-photo-modal');
   const photoCard = container.querySelector('#photo-card');
   const modalPhotoImg = container.querySelector('#modal-photo-img');
@@ -356,7 +346,6 @@ export function renderGame(container) {
     photoModal.style.display = 'none';
   };
 
-  // 挂件点击直达
   container.querySelectorAll('.polaroid-clip').forEach(clip => {
     clip.onclick = () => {
       const p = state.polaroids.find(item => item.id == clip.dataset.id);
@@ -369,7 +358,6 @@ export function renderGame(container) {
   const modalContent = container.querySelector('#modal-content');
   container.querySelector('#btn-close-modal').onclick = () => { modal.style.display = 'none'; };
 
-  // 差分切换逻辑
   let resetTimer = null;
   const switchStance = (stanceKey) => {
     const charImg = container.querySelector('#char-img');
@@ -410,7 +398,6 @@ export function renderGame(container) {
   };
 
   if (!isTraveling) {
-    // 1. 要零花钱 ➔ 伸手立绘
     container.querySelector('#btn-money').onclick = () => {
       switchStance('hand');
       const get = Math.floor(Math.random() * 100) + 150;
@@ -420,7 +407,6 @@ export function renderGame(container) {
       addJournal(`找我要零钱时伸手伸得理直气壮。塞了 ¥${get} 过去，眼尾都在笑，真是拿TA没办法。`);
     };
 
-    // 2. 投喂 ➔ 伸手立绘
     container.querySelector('#btn-feed').onclick = () => {
       switchStance('hand');
       if (state.hunger >= 100) return update("“肚子都圆了还吃？小心半夜积食睡不着。”");
@@ -430,7 +416,6 @@ export function renderGame(container) {
       addJournal('喂了点心，唇角沾了糖霜，顺手帮TA抹掉了。乖乖仰着头的样子很招人疼。');
     };
 
-    // 3. 摸摸 ➔ 扶帽微笑立绘
     container.querySelector('#btn-touch').onclick = () => {
       switchStance('shy');
       state.affection += 5;
@@ -438,7 +423,6 @@ export function renderGame(container) {
       addJournal('忽然伸手碰我的脸。这只小宠物好像根本不知道我的底线在哪里，越来越黏人了。');
     };
 
-    // 4. 出门采风
     container.querySelector('#btn-travel').onclick = () => {
       modalTitle.innerText = "安排不死途的外出采风";
       modalContent.innerHTML = `
@@ -473,7 +457,6 @@ export function renderGame(container) {
     };
   }
 
-  // 查看日记
   container.querySelector('#btn-open-journal').onclick = () => {
     modalTitle.innerText = "不死途的私人饲养日记 📖 (仅他可见)";
     modalContent.innerHTML = state.caretakerJournal.length === 0 ? '<p>还没有日记记录。</p>' : `
@@ -489,7 +472,6 @@ export function renderGame(container) {
     modal.style.display = 'flex';
   };
 
-  // 查看所有风铃照片
   container.querySelector('#btn-open-gallery').onclick = () => {
     modalTitle.innerText = "风铃上的拍立得相册 🎐";
     modalContent.innerHTML = state.polaroids.length === 0 ? '<p style="text-align: center; color: #999; padding: 20px 0;">风铃上还没有挂照片呢，快催他出门吧！</p>' : `

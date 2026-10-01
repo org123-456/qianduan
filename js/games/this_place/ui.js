@@ -12,8 +12,10 @@ export function renderGameUI(container) {
       <div class="this-place-subtitle">一个关于陪伴、成长与记忆的地方。</div>
       <div class="this-place-panel">
         <div>陪伴对象：${gameData.companion.name || '尚未遇见'}</div>
+        <div>关系状态：${gameData.relationship.level}</div>
+        <div>羁绊：${gameData.relationship.affection}</div>
+        <div>信任：${gameData.relationship.trust}</div>
         <div>记忆：${gameData.memories.length} 条</div>
-        <div>羁绊：${gameData.affection}</div>
         <div>章节：${gameData.progress.chapter}</div>
       </div>
       <button class="this-place-start" type="button">开始相遇</button>

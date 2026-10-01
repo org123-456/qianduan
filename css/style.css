@@ -505,6 +505,69 @@ input, textarea, select { background: var(--input-bg); border: 1px solid var(--b
 
 .book-cover-3d { width: 100%; aspect-ratio: 3/4; border-radius: 4px 12px 12px 4px; box-shadow: inset 4px 0 10px rgba(0,0,0,0.1), 3px 5px 15px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; padding: 10px; position: relative; background: linear-gradient(135deg, #5b86e5, #36d1dc); color: white; text-align: center; font-weight: bold; font-size: 15px; writing-mode: vertical-rl; letter-spacing: 2px; text-shadow: 0 2px 4px rgba(0,0,0,0.3); overflow: hidden; }
 .book-cover-3d::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 12px; background: linear-gradient(90deg, rgba(255,255,255,0.25), rgba(0,0,0,0.15)); border-radius: 4px 0 0 4px; }
+.book-cover-3d.imported-book-cover {
+    writing-mode: horizontal-tb;
+    overflow: hidden;
+    isolation: isolate;
+    background:
+        radial-gradient(circle at 72% 18%, rgba(255,255,255,.28), transparent 28%),
+        linear-gradient(145deg, #7897bd 0%, #4d6889 48%, #293f5e 100%);
+    border: 1px solid rgba(255,255,255,.18);
+    color: #fff;
+}
+.book-cover-3d.imported-book-cover::before {
+    z-index: 2;
+    width: 13px;
+}
+.book-cover-shine {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+        linear-gradient(135deg, rgba(255,255,255,.16), transparent 34%, rgba(0,0,0,.2)),
+        linear-gradient(90deg, transparent 0 88%, rgba(255,255,255,.08) 88% 92%, transparent 92%);
+}
+.book-cover-content {
+    position: relative;
+    z-index: 3;
+    width: 86%;
+    height: 88%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 10px 8px;
+}
+.book-cover-icon {
+    font-size: 25px;
+    margin-bottom: 9px;
+    opacity: .9;
+}
+.book-cover-label {
+    font-size: 8px;
+    letter-spacing: 2px;
+    opacity: .72;
+    margin-bottom: 13px;
+}
+.book-cover-name {
+    width: 100%;
+    max-height: 78px;
+    overflow: hidden;
+    font-size: 16px;
+    line-height: 1.45;
+    font-weight: 800;
+    word-break: break-word;
+    text-shadow: 0 2px 5px rgba(0,0,0,.32);
+}
+.book-cover-line {
+    width: 42px;
+    height: 1px;
+    margin-top: 15px;
+    background: rgba(255,255,255,.5);
+}
+
 .notebook-special { background: linear-gradient(135deg, #ff9a9e, #fecfef); color: #d6336c; text-shadow: none; }
 
 .book-title-ui { font-size: 12px; font-weight: bold; text-align: center; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--text-main); line-height: 1.4; }

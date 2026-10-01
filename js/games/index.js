@@ -1,1 +1,21 @@
+import { registerGame } from './game_engine.js';
+import { GameUI } from './game_ui.js';
+
+// 只加载唯一的《此间归处》
+const gameLoaders = [
+    ['this-place', () => import('./this_place/index.js')]
+];
+
+export const gamesReady = Promise.allSettled(gameLoaders.map(async ([id, loader]) => {
+    try {
+        const mod = await loader();
+        registerGame(mod.default || mod);
+    } catch (error) {
+        console.error('Game module ' + id + ' failed to load:', error);
+    }
+})).then(() => true);
+
+if (typeof window !== 'undefined') window.GameGamesReady = gamesReady;
+
+export { GameUI };
 

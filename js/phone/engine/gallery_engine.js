@@ -3,6 +3,14 @@ import { PhoneAPI } from '../phone_api.js';
 import { PhoneUI } from '../phone_ui.js';
 
 export const GalleryEngine = {
+    async _saveGalleryData() {
+        try {
+            const payload = JSON.stringify(Config.phoneData);
+            if (window.PhoneAPI?.LocalDB) await window.PhoneAPI.LocalDB.set('full_phone_data', payload);
+            try { localStorage.setItem('phone_data', payload); } catch (e) {}
+            return true;
+        } catch (e) { console.warn('相册数据保存失败:', e); return false; }
+    },
     uploadFaceLock() {
         const input = document.createElement('input');
         input.type = 'file';
@@ -72,13 +80,13 @@ export const GalleryEngine = {
             const now = new Date();
             const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
             Config.phoneData[roleId].gallery.items.push({ id: 'img_' + Date.now(), content: finalB64, date: dateStr });
-            localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
+            await this._saveGalleryData();
             PhoneUI.renderAppContent('gallery');
             PhoneAPI.showToast('📸 新照片已保存在回忆相册！');
         } catch (e) { alert(e.message); }
     },
 
-    deleteGalleryImage(id) {
+    async deleteGalleryImage(id) {
         if (!confirm('确定要销毁这张照片吗？')) return;
         const roleId = Config?.currentContactId;
         const items = Config?.phoneData?.[roleId]?.gallery?.items || [];

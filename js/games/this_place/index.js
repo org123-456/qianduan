@@ -7,6 +7,14 @@ import { saveGame, loadGame } from './systems/save_system.js';
 import { onEvent } from './events.js';
 import { gameData, addMemory, increaseAffection, setCompanion } from './data.js';
 
+function restoreGameData() {
+  const saved = loadGame();
+
+  if (!saved || !saved.data) return;
+
+  Object.assign(gameData, saved.data);
+}
+
 function initFirstMeeting() {
   onEvent('first_meeting', () => {
     if (gameData.progress.firstMeeting) return;
@@ -36,11 +44,11 @@ const ThisPlaceGame = {
   icon: '🏡',
   description: '一个关于陪伴、成长与记忆的养成游戏。',
   status: '开发中',
-  version: '0.3.2',
+  version: '0.3.3',
 
   init(container) {
     this.container = container;
-    loadGame(gameData);
+    restoreGameData();
     initGameState();
     initFirstMeeting();
   },

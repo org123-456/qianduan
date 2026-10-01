@@ -3,7 +3,7 @@ import { PhoneAPI } from './phone/phone_api.js';
 import { PhoneUI } from './phone/phone_ui.js';
 import { PhoneEngine } from './phone/phone_engine.js'; 
 import { WechatApp } from './apps/wechat.js';
-import { MemoryEngine } from './phone/engine/memory_engine.js';
+let MemoryEngine = null;
 
 // 版本更新交给 Service Worker 的网络优先策略，不再依赖手工 build 号。
 let msgCounter = 0;
@@ -55,6 +55,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('聊天记录恢复失败:', e);
     }
     console.log('✅ 核心引擎已挂载，路径加载成功！');
+
+    // 记忆星海依赖 Three.js 等外部模块。不要让它阻塞整个 App 启动；
+    // 先让 UI 完整启动，再后台加载记忆引擎。
+    import('./phone/engine/memory_engine.js')
+        .then(mod => {
+            MemoryEngine = mod.MemoryEngine;
+            window.MemoryEngine = MemoryEngine;
+            console.log('✅ 记忆引擎后台加载完成');
+        })
+        .catch(err => {
+            console.warn('⚠️ 记忆引擎暂时无法加载，主界面不受影响：', err);
+        });
 
     // 🌙 日记每天凌晨 03:00 结算前一天；若 App 之后才打开，则启动时补结算。
     if (window.PhoneUI?.scheduleDiaryGeneration) {

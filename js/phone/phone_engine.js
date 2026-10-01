@@ -3,6 +3,7 @@ import { ReaderEngine } from './engine/reader_engine.js?v=2';
 import { GalleryEngine } from './engine/gallery_engine.js?v=2';
 import { DrawEngine } from './engine/draw_engine.js';
 import { CinemaEngine } from './engine/cinema_engine.js'; // 🌟 引入放映室引擎
+import { GameEngine } from '../games/game_engine.js'; // 🎮 游戏引擎
 
 export const PhoneEngine = {
   ...ChatEngine,

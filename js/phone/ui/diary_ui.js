@@ -1,5 +1,9 @@
 export const DiaryUI = {
     currentDiaryBook: 'ta',
+    _diariesCache: null,
+    _myDiariesCache: null,
+    _diaryScheduleTimer: null,
+    DIARY_GENERATE_HOUR: 3,
     touchStartX: 0,
     touchStartY: 0,
 
@@ -326,7 +330,32 @@ export const DiaryUI = {
         contentAreaEl.innerHTML = html;
     },
 
+    async hydrateDiaries() {
+        if (this._diariesCache) return this._diariesCache;
+        let diaries = null;
+        try {
+            diaries = await window.PhoneAPI?.LocalDB?.get('diary_entries');
+            if (typeof diaries === 'string') diaries = JSON.parse(diaries);
+        } catch (e) {}
+        if (!diaries || typeof diaries !== 'object') {
+            try {
+                diaries = JSON.parse(localStorage.getItem('diary_entries') || '{}');
+            } catch (e) {
+                diaries = {};
+            }
+            // 第一次升级：把旧日记迁进 IndexedDB。
+            try {
+                if (Object.keys(diaries).length && window.PhoneAPI?.LocalDB) {
+                    await window.PhoneAPI.LocalDB.set('diary_entries', JSON.stringify(diaries));
+                }
+            } catch (e) {}
+        }
+        this._diariesCache = diaries || {};
+        return this._diariesCache;
+    },
+
     getDiaries() {
+        if (this._diariesCache) return this._diariesCache;
         try {
             return JSON.parse(localStorage.getItem('diary_entries') || '{}');
         } catch (error) {
@@ -334,12 +363,19 @@ export const DiaryUI = {
         }
     },
 
-    saveDiaries(diaries) {
+    async saveDiaries(diaries) {
+        this._diariesCache = diaries || {};
         try {
-            localStorage.setItem('diary_entries', JSON.stringify(diaries));
+            if (window.PhoneAPI?.LocalDB) {
+                await window.PhoneAPI.LocalDB.set('diary_entries', JSON.stringify(this._diariesCache));
+            }
         } catch (error) {
-            console.error('保存 TA 日记失败:', error);
+            console.error('IndexedDB 保存 TA 日记失败:', error);
         }
+        // 兼容旧版本；空间允许时仍保留一份小副本。
+        try {
+            localStorage.setItem('diary_entries', JSON.stringify(this._diariesCache));
+        } catch (error) {}
     },
 
     getTodayDate() {
@@ -395,7 +431,7 @@ ${dateStr}
             if (!clean) return null;
 
             diaries[dateStr] = clean;
-            this.saveDiaries(diaries);
+            await this.saveDiaries(diaries);
             return clean;
         } catch (error) {
             console.error('自动生成 TA 日记失败:', error);
@@ -404,23 +440,58 @@ ${dateStr}
         }
     },
 
-    async autoGenerateTodayDiary() {
-        const dateStr = this.getTodayDate();
-        const diaries = this.getDiaries();
-        if (diaries[dateStr]) return;
+    getScheduledDiaryDate(now = new Date()) {
+        // 每天凌晨 03:00 结算“昨天”，白天不会自动生成今天的日记。
+        const cutoff = new Date(now);
+        cutoff.setHours(this.DIARY_GENERATE_HOUR, 0, 0, 0);
+        if (now < cutoff) {
+            now = new Date(now);
+            now.setDate(now.getDate() - 1);
+        }
+        const target = new Date(now);
+        target.setDate(target.getDate() - 1);
+        return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`;
+    },
+
+    async generateScheduledDiary() {
+        const dateStr = this.getScheduledDiaryDate();
+        const diaries = await this.hydrateDiaries();
+        if (diaries[dateStr]) return diaries[dateStr];
 
         const content = await this.generateDiary(dateStr, { silent: true });
         if (content) {
-            // 如果用户当前正停在今天这一页，生成完成后立即刷新。
-            const startDateStr = localStorage.getItem('diary_start_date') || dateStr;
-            const target = new Date(startDateStr);
-            const today = new Date(dateStr);
-            const diff = Math.floor((today - target) / 86400000);
-            if (diff >= -1 && window.Config) {
-                window.Config.diaryPageIndex = diff;
-                this.renderDiaryPage();
+            window.PhoneAPI?.showToast?.(`📖 TA ${dateStr} 的日记已经写好了`);
+            if (this.currentDiaryBook === 'ta' && document.getElementById('diary-content-area')) {
+                const startDateStr = localStorage.getItem('diary_start_date') || dateStr;
+                const target = new Date(startDateStr);
+                const current = new Date(dateStr);
+                const diff = Math.floor((current - target) / 86400000);
+                if (window.Config && diff >= -1) {
+                    window.Config.diaryPageIndex = diff;
+                    this.renderDiaryPage();
+                }
             }
-            window.PhoneAPI?.showToast?.('📖 TA 今天的日记已经偷偷写好了');
+        }
+        return content;
+    },
+
+    scheduleDiaryGeneration() {
+        if (this._diaryScheduleTimer) clearTimeout(this._diaryScheduleTimer);
+
+        const now = new Date();
+        const next = new Date(now);
+        next.setHours(this.DIARY_GENERATE_HOUR, 0, 0, 0);
+        if (next <= now) next.setDate(next.getDate() + 1);
+
+        const delay = next.getTime() - now.getTime();
+        this._diaryScheduleTimer = setTimeout(async () => {
+            try { await this.generateScheduledDiary(); } catch (e) { console.error('定时生成 TA 日记失败:', e); }
+            this.scheduleDiaryGeneration();
+        }, delay);
+
+        // 如果 App 是在凌晨 03:00 之后才打开，立即补结算昨天。
+        if (now.getHours() >= this.DIARY_GENERATE_HOUR) {
+            this.generateScheduledDiary().catch(e => console.error('补结算 TA 日记失败:', e));
         }
     },
 
@@ -428,7 +499,7 @@ ${dateStr}
         if (!confirm('确定要让大侦探重写这页日记吗？')) return;
         const diaries = this.getDiaries();
         delete diaries[dateStr];
-        this.saveDiaries(diaries);
+        await this.saveDiaries(diaries);
         const content = await this.generateDiary(dateStr);
         if (content) this.renderDiaryPage();
     },
@@ -468,7 +539,28 @@ ${dateStr}
         this.applyDiaryBackgrounds();
     },
 
+    async hydrateMyDiaries() {
+        if (this._myDiariesCache) return this._myDiariesCache;
+        let entries = null;
+        try {
+            entries = await window.PhoneAPI?.LocalDB?.get('my_diary_entries');
+            if (typeof entries === 'string') entries = JSON.parse(entries);
+        } catch (e) {}
+        if (!entries || typeof entries !== 'object') {
+            try { entries = JSON.parse(localStorage.getItem('my_diary_entries') || '{}'); }
+            catch (e) { entries = {}; }
+            try {
+                if (Object.keys(entries).length && window.PhoneAPI?.LocalDB) {
+                    await window.PhoneAPI.LocalDB.set('my_diary_entries', JSON.stringify(entries));
+                }
+            } catch (e) {}
+        }
+        this._myDiariesCache = entries || {};
+        return this._myDiariesCache;
+    },
+
     getMyDiaryEntries() {
+        if (this._myDiariesCache) return this._myDiariesCache;
         try {
             return JSON.parse(localStorage.getItem('my_diary_entries') || '{}');
         } catch (error) {
@@ -476,7 +568,7 @@ ${dateStr}
         }
     },
 
-    saveMyDiary() {
+    async saveMyDiary() {
         const titleEl = document.getElementById('my-diary-title');
         const contentEl = document.getElementById('my-diary-content');
         if (!titleEl || !contentEl) return;
@@ -494,13 +586,15 @@ ${dateStr}
             updatedAt: Date.now()
         };
 
-        localStorage.setItem('my_diary_entries', JSON.stringify(entries));
+        this._myDiariesCache = entries;
+        try { await window.PhoneAPI?.LocalDB?.set('my_diary_entries', JSON.stringify(entries)); } catch (e) {}
+        try { localStorage.setItem('my_diary_entries', JSON.stringify(entries)); } catch (e) {}
         if (window.PhoneAPI?.showToast) {
             window.PhoneAPI.showToast('我的日记已保存');
         }
     },
 
-    clearMyDiary() {
+    async clearMyDiary() {
         const titleEl = document.getElementById('my-diary-title');
         const contentEl = document.getElementById('my-diary-content');
         if (titleEl) titleEl.value = '';

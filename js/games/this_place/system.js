@@ -1,12 +1,39 @@
 // 此间归处 - 系统集合
 
-import { gameData } from './data.js';
+import { gameData, addMemory } from './data.js';
 import { runEvent } from './event_engine.js';
+
+const stages = [
+  { name: '陌生', min: 0 },
+  { name: '相遇', min: 10 },
+  { name: '熟悉', min: 30 },
+  { name: '信任', min: 60 },
+  { name: '重要陪伴', min: 100 }
+];
+
+export function updateRelationshipStage() {
+  const value = gameData.relationship.affection || 0;
+  const stage = [...stages].reverse().find(item => value >= item.min);
+  if (stage) gameData.relationship.level = stage.name;
+  return gameData.relationship.level;
+}
+
+export function createMemory(type, title, text, extra = {}) {
+  addMemory({ type, title, text, ...extra });
+}
+
+export function getMemoriesByType(type) {
+  return (gameData.memories || []).filter(memory => memory.type === type);
+}
+
+export function getLatestMemory() {
+  return gameData.memories?.at(-1) || null;
+}
 
 const dailyEvents = ['daily_chat', 'quiet_afternoon', 'share_memory'];
 
 export function getAvailableDailyEvents() {
-  return dailyEvents.filter((id) => !gameData.eventHistory?.includes(id));
+  return dailyEvents.filter(id => !gameData.progress.events?.includes(id));
 }
 
 export function triggerRandomDailyEvent() {
@@ -17,24 +44,11 @@ export function triggerRandomDailyEvent() {
   return id;
 }
 
-export function updateRelationshipStage() {
-  const value = gameData.relationship.affection || 0;
-  if (value >= 50) gameData.relationship.level = '重要陪伴';
-  else if (value >= 30) gameData.relationship.level = '信任';
-  else if (value >= 10) gameData.relationship.level = '熟悉';
-  else gameData.relationship.level = '相遇';
-}
-
 export function getActionFeedback(action) {
   const personality = gameData.companion.personality || [];
   if (action === 'talk' && personality.includes('内向')) return '虽然有些害羞，但还是回应了你的话。';
   if (action === 'rest' && personality.includes('温柔')) return '陪伴让对方感到安心。';
   return '对方回应了你的互动。';
-}
-
-export function addSystemMemory(memory) {
-  if (!gameData.memories) gameData.memories = [];
-  gameData.memories.push({ type: 'daily', ...memory });
 }
 
 export function hasTriggeredEvent(id) {

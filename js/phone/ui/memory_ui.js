@@ -133,6 +133,67 @@ export const MemoryUI = {
         this.updateVaultList();
     },
 
+    renderChatCleanupPanel() {
+        const roleId = window.Config?.currentContactId;
+        const items = window.Config?.phoneData?.[roleId]?.wechat?.items || [];
+        const cleanItems = items.filter(i => i && i.sender !== 'typing' && i.content);
+        const summaryIndex = Math.max(0, Math.min(parseInt(localStorage.getItem('memory_last_summary_index') || '0', 10), cleanItems.length));
+        const keepRecent = Math.min(50, cleanItems.length);
+        const deletable = Math.max(0, summaryIndex - Math.min(keepRecent, summaryIndex));
+        const data = window.PhoneAPI?.EchoVault?.getData?.() || { daily: {}, permanent: {} };
+        const memories = Object.entries(data.daily || {})
+            .sort((a,b) => b[0].localeCompare(a[0]))
+            .slice(0, 8);
+
+        const el = document.getElementById('chat-cleanup-panel');
+        if (!el) return;
+        const memoryList = memories.length ? memories.map(([key, item]) => `
+            <div style="padding:8px 10px;border-radius:10px;background:var(--icon-bg);margin-top:6px;">
+                <div style="font-size:11px;color:var(--text-sub);">🧠 ${this.escapeHtml(key)}</div>
+                <div style="font-size:12px;color:var(--text-main);margin-top:3px;line-height:1.45;">${this.escapeHtml(item?.content || '')}</div>
+            </div>`).join('') : '<div style="color:var(--text-sub);font-size:12px;">还没有已归档的记忆。</div>';
+
+        el.innerHTML = `
+            <div style="border:1px solid var(--border-color);border-radius:16px;padding:14px;background:var(--icon-bg);margin-bottom:15px;">
+                <div style="font-weight:700;color:var(--text-main);">🧹 聊天记录整理</div>
+                <div style="font-size:12px;color:var(--text-sub);line-height:1.5;margin-top:6px;">
+                    已总结指针：${summaryIndex} 条聊天 · 默认保留最近 ${keepRecent} 条。
+                    <br>下面这些记忆已经进入记忆库，确认后可以清掉较早的原始聊天。
+                </div>
+                <div style="margin-top:10px;font-size:12px;color:var(--text-main);font-weight:600;">最近归档的记忆</div>
+                ${memoryList}
+                <button class="btn-refresh" onclick="window.PhoneUI.cleanArchivedChats()" style="width:100%;margin-top:12px;background:linear-gradient(135deg,#f59eac,#ec6f91);border-radius:14px;">
+                    🗑️ 清理已总结的旧聊天 ${deletable > 0 ? '(' + deletable + '条)' : ''}
+                </button>
+                <div style="font-size:11px;color:var(--text-sub);margin-top:7px;text-align:center;">不会删除记忆库；只清理已总结范围内、且超过最近保留区的聊天。</div>
+            </div>`;
+    },
+
+    cleanArchivedChats() {
+        const roleId = window.Config?.currentContactId;
+        const items = window.Config?.phoneData?.[roleId]?.wechat?.items || [];
+        const cleanItems = items.filter(i => i && i.sender !== 'typing' && i.content);
+        const summaryIndex = Math.max(0, Math.min(parseInt(localStorage.getItem('memory_last_summary_index') || '0', 10), cleanItems.length));
+        const keepCount = Math.min(50, cleanItems.length);
+        const safeCutoff = Math.max(0, Math.min(summaryIndex, cleanItems.length - keepCount));
+        if (safeCutoff <= 0) {
+            window.PhoneAPI?.showToast?.('目前没有可以安全清理的旧聊天。');
+            return;
+        }
+        const memories = Object.values(window.PhoneAPI?.EchoVault?.getData?.().daily || {}).length;
+        const ok = confirm(`这些较早的聊天已经被记忆整理流程标记为已总结。\\n\\n将删除 ${safeCutoff} 条旧聊天，并保留最近 ${keepCount} 条。\\n记忆库中的 ${memories} 条记忆不会删除。\\n\\n确定继续吗？`);
+        if (!ok) return;
+
+        let seen = 0;
+        const target = items.filter(i => i && i.sender !== 'typing' && i.content).slice(0, safeCutoff);
+        const targetSet = new Set(target);
+        window.Config.phoneData[roleId].wechat.items = items.filter(i => !targetSet.has(i));
+        window.PhoneEngine?._safeSaveData?.();
+        window.PhoneUI.renderAppContent?.('wechat');
+        this.renderChatCleanupPanel();
+        window.PhoneAPI?.showToast?.(`🧹 已清理 ${safeCutoff} 条旧聊天，记忆库保留不变。`);
+    },
+
     renderMemoryVault() {
         const container = document.getElementById('vault-content-area');
         if (!container) return;
@@ -152,6 +213,7 @@ export const MemoryUI = {
         }
         
         this.updateVaultList();
+        this.renderChatCleanupPanel();
     },
 
     // 🌟 核心修复：绝对可靠的日期降序排序（避免 new Date 解析 NaN 导致最新记忆沉底）

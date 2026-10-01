@@ -772,24 +772,76 @@ export const PhoneUI = {
     async renderStorageInfo() {
         const el = document.getElementById('storage-info-panel');
         if (!el) return;
-        el.innerHTML = '<div style="color:var(--text-sub);font-size:12px;">正在检测浏览器存储空间…</div>';
+
+        const fmt = (bytes) => {
+            const n = Number(bytes) || 0;
+            if (n < 1024) return n + ' B';
+            if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+            if (n < 1024 * 1024 * 1024) return (n / 1024 / 1024).toFixed(1) + ' MB';
+            return (n / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+        };
+
+        el.innerHTML = '<div style="color:var(--text-sub);font-size:12px;">正在读取当前存储状态…</div>';
+
         try {
             const info = await window.PhoneAPI?.getStorageEstimate?.();
-            let localBytes = 0;
-            try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i) || ''; const v = localStorage.getItem(k) || ''; localBytes += (k.length + v.length) * 2; } } catch (e) {}
-            const used = info?.usage || 0, quota = info?.quota || 0, pct = quota ? Math.min(100, used / quota * 100) : 0;
-            const fmt = bytes => !bytes ? '0 KB' : bytes < 1048576 ? (bytes / 1024).toFixed(1) + ' KB' : bytes < 1073741824 ? (bytes / 1048576).toFixed(1) + ' MB' : (bytes / 1073741824).toFixed(2) + ' GB';
+            const used = Number(info?.usage) || 0;
+            const quota = Number(info?.quota) || 0;
+            const pct = quota > 0 ? Math.min(100, used / quota * 100) : 0;
             const persistent = info?.persistent ? '🟢 已启用' : '🟡 普通存储';
-            el.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><span style="font-weight:bold;color:var(--text-main);">💾 浏览器存储空间</span><button onclick="window.PhoneUI.renderStorageInfo()" style="border:1px solid var(--border-color);background:transparent;color:var(--text-sub);border-radius:8px;padding:4px 9px;font-size:11px;cursor:pointer;">刷新</button></div>'
-NaN
-NaN
-NaN
-NaN
-NaN
-NaN
-NaN
-        } catch (e) { el.innerHTML = '<div style="font-size:12px;color:var(--danger-color);">暂时无法读取浏览器存储配额。</div>'; }
+
+            let localBytes = 0;
+            try {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i) || '';
+                    const value = localStorage.getItem(key) || '';
+                    localBytes += (key.length + value.length) * 2;
+                }
+            } catch (e) {}
+
+            const roleId = window.Config?.currentContactId;
+            const chatItems = window.Config?.phoneData?.[roleId]?.wechat?.items || [];
+            const chatCount = chatItems.filter(item => item && item.sender !== 'typing' && item.content).length;
+            const summaryIndex = Math.max(0, Math.min(
+                parseInt(localStorage.getItem('memory_last_summary_index') || '0', 10),
+                chatCount
+            ));
+            const keepRecent = Math.min(120, chatCount);
+            const deletable = Math.max(0, summaryIndex - Math.min(summaryIndex, keepRecent));
+
+            const bar = quota > 0
+                ? '<div style="height:8px;border-radius:99px;background:var(--border-color);overflow:hidden;margin:9px 0 4px;"><div style="height:100%;width:' + pct.toFixed(1) + '%;background:var(--primary-color);border-radius:99px;"></div></div>'
+                : '';
+
+            el.innerHTML =
+                '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+                    '<span style="font-weight:700;color:var(--text-main);">💾 当前浏览器存储</span>' +
+                    '<button onclick="window.PhoneUI.renderStorageInfo()" style="border:1px solid var(--border-color);background:transparent;color:var(--text-sub);border-radius:8px;padding:4px 9px;font-size:11px;">刷新</button>' +
+                '</div>' +
+                '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+                    '<div style="padding:10px;border-radius:10px;background:var(--window-bg);"><div style="font-size:11px;color:var(--text-sub);">网站已使用</div><div style="font-size:18px;font-weight:800;color:var(--primary-color);">' + fmt(used) + '</div></div>' +
+                    '<div style="padding:10px;border-radius:10px;background:var(--window-bg);"><div style="font-size:11px;color:var(--text-sub);">浏览器配额</div><div style="font-size:18px;font-weight:800;color:var(--primary-color);">' + (quota ? fmt(quota) : '暂不可用') + '</div></div>' +
+                '</div>' +
+                bar +
+                '<div style="font-size:11px;color:var(--text-sub);line-height:1.65;margin-top:7px;">' +
+                    '<div>使用率：' + (quota ? pct.toFixed(1) + '%' : '暂不可用') + '</div>' +
+                    '<div>LocalStorage：' + fmt(localBytes) + '</div>' +
+                    '<div>持久化存储：' + persistent + '</div>' +
+                '</div>' +
+                '<div style="margin-top:10px;padding:10px;border-radius:10px;background:var(--window-bg);font-size:11px;line-height:1.7;">' +
+                    '<div style="font-weight:700;color:var(--text-main);margin-bottom:3px;">💬 当前聊天存储</div>' +
+                    '<div style="color:var(--text-sub);">当前角色：' + this.escapeHtml(roleId || '未选择') + '</div>' +
+                    '<div style="color:var(--text-sub);">现在还剩：<b style="color:var(--primary-color);">' + chatCount + '</b> 条正常聊天</div>' +
+                    '<div style="color:var(--text-sub);">已总结指针：' + summaryIndex + ' 条</div>' +
+                    '<div style="color:var(--text-sub);">按 120 条保留规则，目前可清理：<b style="color:var(--primary-color);">' + deletable + '</b> 条</div>' +
+                '</div>' +
+                '<div style="font-size:10px;color:var(--text-sub);margin-top:7px;line-height:1.45;">“网站已使用”是浏览器对本网站 IndexedDB、LocalStorage、缓存等整体存储的估算，不等于聊天记录大小。</div>';
+        } catch (e) {
+            console.warn('读取浏览器存储信息失败:', e);
+            el.innerHTML = '<div style="font-size:12px;color:var(--danger-color);">暂时无法读取浏览器存储配额，但聊天数据本身不受影响。</div>';
+        }
     },
+
     renderSettings() {
         const contentEl = document.getElementById('app-window-content');
         if (!contentEl) return;

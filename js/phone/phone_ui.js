@@ -383,6 +383,7 @@ export const PhoneUI = {
                     <div class="vault-tab" id="tab-permanent" onclick="window.PhoneUI.switchVaultTab('permanent')">锚点 (Permanent)</div>
                 </div>
                 <button class="btn-refresh" onclick="window.PhoneUI.remindEchoVault()" style="margin-top: 0; margin-bottom: 15px; background: linear-gradient(135deg, #a78bfa, #8b5cf6); border-radius: 16px; box-shadow: 0 4px 15px rgba(167, 139, 250, 0.4);"><i class="ph-fill ph-bottle"></i> 捞一个漂流瓶</button>
+                <div id="chat-cleanup-panel"></div>
                 <div id="vault-content-area" style="padding-bottom: 80px;"></div>
             `;
             this.renderMemoryVault();

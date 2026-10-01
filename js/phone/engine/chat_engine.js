@@ -1,274 +1,187 @@
-export const ChatUI = {
-    renderAppContent(appId) {
-        const roleId = window.Config?.currentContactId;
-        if (!roleId) return;
+import { Config } from '../phone_config.js';
+import { PhoneAPI } from '../phone_api.js';
+import { PhoneUI } from '../phone_ui.js';
 
-        let data = window.Config?.phoneData?.[roleId]?.[appId];
-        if (!data && appId !== 'gallery' && appId !== 'memory_vault' && appId !== 'moments' && appId !== 'favorites') return;
+export const ChatEngine = {
+    currentMsgIndex: -1,
 
-        // 允许往上翻看更多历史，放宽到 300 条
-        let renderItems = data?.items || [];
-        if (appId === 'wechat' && renderItems.length > 300) {
-            renderItems = renderItems.slice(-300);
-        }
-
-        const listEl = document.getElementById('app-content-list');
-
-        if (listEl && window.Apps && window.Apps[appId]) {
-            let renderData = { ...data, items: JSON.parse(JSON.stringify(renderItems)) };
-            if (Array.isArray(renderData.items)) {
-                renderData.items.forEach(item => {
-                    if (item && typeof item.content === 'string') {
-                        // 表情包转换
-                        if (item.content.includes('[发送了表情包：')) {
-                            const urlMatch = item.content.match(/(https?:\/\/[^\s\)]+)/);
-                            if (urlMatch) {
-                                const safeUrl = this.escapeHtml(urlMatch[1]);
-                                item.content = `<img src="${safeUrl}" class="chat-sticker" onclick="window.PhoneUI.previewImage(this.src)">`;
-                            }
-                        }
-                        // 普通图片气泡点击也能直接全屏查看 + 保存到本地
-                        else if (item.content.includes('![图片](') || item.content.includes('![](')) {
-                            item.content = item.content.replace(/!\[(.*?)\]\((https?:\/\/[^\s\)]+|data:image\/[^\s\)]+)\)/g, (match, alt, url) => {
-                                return `<img src="${url}" style="max-width:100%; border-radius:10px; cursor:pointer;" onclick="window.PhoneUI.previewImage(this.src)" title="点击放大与保存">`;
-                            });
-                        }
-                    }
-                });
+    _safeSaveData() {
+        try {
+            if (Config?.phoneData) {
+                localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
             }
-            listEl.innerHTML = window.Apps[appId].renderList(renderData);
-
-            setTimeout(() => { 
-                if (listEl) listEl.scrollTop = listEl.scrollHeight; 
-            }, 100);
-
-            if (appId === 'wechat') {
-                this.updateHomeWidget?.();
-            }
-        } else if (appId === 'gallery') {
-            this.renderGallery?.();
-        } else if (appId === 'settings') {
-            this.renderSettings?.();
-        } else if (appId === 'moments') {
-            this.renderMoments?.();
-        } else if (appId === 'favorites') {
-            if (this.currentMomentsTab === 'favorites') {
-                this.renderMoments?.();
-            }
+        } catch (e) {
+            PhoneAPI?.logger?.log('WARN', '消息持久化写入超限', e.message);
         }
     },
 
-    toggleChatMenu() {
-        const menu = document.getElementById('chat-plus-menu');
-        const btn = document.getElementById('btn-plus');
-        if (!menu) return;
-        if (menu.classList.contains('show')) { 
-            this.closeChatMenu(); 
-        } else { 
-            menu.classList.add('show'); 
-            if (btn) btn.style.transform = 'rotate(45deg)'; 
+    getRealIndex(index) {
+        const roleId = Config?.currentContactId;
+        const items = Config?.phoneData?.[roleId]?.wechat?.items || [];
+        if (items.length > 50 && index < 50) return items.length - 50 + index;
+        return index;
+    },
+
+    cleanStuckTyping() {
+        let changed = false;
+        if (!Config?.phoneData) return;
+        for (const roleId in Config.phoneData) {
+            const target = Config.phoneData[roleId]?.wechat;
+            if (target && Array.isArray(target.items)) {
+                // 彻底清除所有 typing 项
+                const initLen = target.items.length;
+                target.items = target.items.filter(i => i.sender !== 'typing');
+                if (target.items.length !== initLen) changed = true;
+            }
         }
-    },
 
-    closeChatMenu() {
-        const menu = document.getElementById('chat-plus-menu');
-        const btn = document.getElementById('btn-plus');
-        if (menu) menu.classList.remove('show');
-        if (btn) btn.style.transform = 'rotate(0deg)';
-    },
-
-    toggleStickerPanel() {
-        const panel = document.getElementById('sticker-panel');
-        if (!panel) return;
-        if (panel.classList.contains('show')) { this.closeStickerPanel(); } else { this.closeChatMenu(); this.renderStickers(); panel.classList.add('show'); }
-    },
-
-    closeStickerPanel() {
-        const panel = document.getElementById('sticker-panel');
-        if (panel) panel.classList.remove('show');
-    },
-
-    async importStickers() {
-        const text = await this.showCustomPrompt("📦 批量导入表情包", "请直接粘贴你的文档内容，格式如：\n让我摸摸:\nhttps://...gif\n害羞了:\nhttps://...gif\n（清空所有表情包请输入：CLEAR）");
-        if (!text) return;
-        if (text.trim() === 'CLEAR') {
-            if (confirm("确定要清空所有表情包吗？")) { localStorage.removeItem('custom_stickers'); this.renderStickers(); if (window.PhoneAPI) window.PhoneAPI.showToast("🗑️ 表情包已清空"); }
+        if (changed) {
+            this._safeSaveData();
+            if (PhoneUI) PhoneUI.renderAppContent?.('wechat');
+            PhoneAPI?.showToast?.('✅ 已强制解除卡死状态！');
             return;
         }
-        const lines = text.split('\n'); let newStickers = []; let currentName = "未命名表情"; const urlRegex = /(https?:\/\/[^\s]+)/;
-        lines.forEach(line => {
-            const str = line.trim(); if (!str) return;
-            const urlMatch = str.match(urlRegex);
-            if (urlMatch) {
-                const url = urlMatch[1]; let name = str.replace(url, '').replace(/[:：]/g, '').trim();
-                if (!name && currentName !== "未命名表情") { name = currentName; currentName = "未命名表情"; } else if (!name) { name = "表情" + Math.floor(Math.random() * 1000); }
-                newStickers.push({ name, url });
-            } else { currentName = str.replace(/[:：]/g, '').trim(); }
-        });
-        if (newStickers.length > 0) {
-            let existing = JSON.parse(localStorage.getItem('custom_stickers') || '[]'); existing = [...existing, ...newStickers];
-            localStorage.setItem('custom_stickers', JSON.stringify(existing)); this.renderStickers(); if (window.PhoneAPI) window.PhoneAPI.showToast(`✅ 成功解析并导入 ${newStickers.length} 个表情包！`);
-        } else { if (window.PhoneAPI) window.PhoneAPI.showToast(`❌ 未识别到任何有效链接`); }
+        PhoneAPI?.showToast?.('当前没有卡死的状态。');
     },
 
-    renderStickers() {
-        const panel = document.getElementById('sticker-panel');
-        if (!panel) return;
-        const stickers = JSON.parse(localStorage.getItem('custom_stickers') || '[]');
-        let html = `<div class="sticker-add-btn" onclick="window.PhoneUI.importStickers()"><i class="ph ph-plus" style="font-size:24px;"></i><span style="font-size:10px;margin-top:4px;">导入</span></div>`;
-        stickers.forEach(st => {
-            const safeName = this.escapeHtml(st.name); const safeUrl = this.escapeHtml(st.url);
-            html += `<div class="sticker-item" onclick="if(window.PhoneEngine) window.PhoneEngine.sendSticker('${safeName}','${safeUrl}')" title="${safeName}"><img src="${safeUrl}" alt="${safeName}"></div>`;
-        });
-        panel.innerHTML = html;
+    openMsgMenu(index, sender) {
+        this.currentMsgIndex = index;
+        const bg = document.getElementById('action-bg');
+        const sheet = document.getElementById('action-sheet');
+        if (bg) bg.classList.add('show');
+        if (sheet) sheet.classList.add('show');
+        const btnRegen = document.getElementById('btn-regen');
+        if (btnRegen) btnRegen.style.display = sender === 'other' ? 'flex' : 'none';
     },
 
-    showThought(index) {
-        const roleId = window.Config?.currentContactId;
-        if (!roleId) return;
-        const appData = window.Config?.phoneData?.[roleId]?.wechat;
-        if (!appData || !Array.isArray(appData.items)) return;
-        const realIndex = Number(index);
-        if (!Number.isInteger(realIndex) || realIndex < 0 || realIndex >= appData.items.length) return;
-        let item = appData.items[realIndex];
-        if (!item) return;
+    closeMsgMenu() {
+        const bg = document.getElementById('action-bg');
+        const sheet = document.getElementById('action-sheet');
+        if (bg) bg.classList.remove('show');
+        if (sheet) sheet.classList.remove('show');
+    },
 
-        let thought = item.innerThought;
-        if (thought && typeof thought === 'string' && thought.includes('连发消息')) {
-            for (let i = realIndex - 1; i >= 0; i--) {
-                const prevItem = appData.items[i]; if (!prevItem) continue;
-                if (prevItem.sender === 'other' && prevItem.time === item.time && prevItem.innerThought && typeof prevItem.innerThought === 'string' && !prevItem.innerThought.includes('连发消息')) { thought = prevItem.innerThought; break; }
+    async sendChatMessage(isRegen = false) {
+        const roleId = Config?.currentContactId;
+        if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
+        if (!Config.phoneData[roleId].wechat) Config.phoneData[roleId].wechat = { items: [] };
+        const chatItems = Config.phoneData[roleId].wechat.items;
+        let hasNewUserMsg = false; 
+        let latestUserText = '';
+        const now = new Date();
+        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+        if (!isRegen) {
+            const inputEl = document.getElementById('chat-input');
+            if (inputEl) {
+                const text = inputEl.value.trim();
+                if (text) {
+                    chatItems.push({ sender: 'me', content: text, time: timeStr, date: dateStr });
+                    inputEl.value = '';
+                    hasNewUserMsg = true;
+                    latestUserText = text;
+                } else {
+                    for (let i = chatItems.length - 1; i >= 0; i--) {
+                        if (chatItems[i].sender === 'me' && !chatItems[i].content.includes('![图片]')) {
+                            latestUserText = chatItems[i].content;
+                            hasNewUserMsg = true; 
+                            break;
+                        }
+                    }
+                }
             }
         }
-        if (!thought || !String(thought).trim()) {
-            for (let i = realIndex; i >= 0; i--) {
-                const prevItem = appData.items[i]; if (!prevItem) continue;
-                if (prevItem.sender === 'other' && prevItem.innerThought && typeof prevItem.innerThought === 'string' && prevItem.innerThought.trim()) { thought = prevItem.innerThought; break; }
-            }
+
+        if (!isRegen && !hasNewUserMsg && chatItems.length === 0) return;
+
+        // 🌟 先确保清理之前的残留 typing
+        for (let i = chatItems.length - 1; i >= 0; i--) {
+            if (chatItems[i].sender === 'typing') chatItems.splice(i, 1);
         }
 
-        const contentEl = document.getElementById('thought-content');
-        const bgEl = document.getElementById('thought-bg');
-        const modalEl = document.getElementById('thought-modal');
-        if (!contentEl || !bgEl || !modalEl) return;
-        contentEl.innerText = thought && String(thought).trim() ? String(thought) : '（TA的心思藏得很深，什么也没看出来...）';
-        bgEl.classList.add('show'); modalEl.classList.add('show');
-    },
-
-    closeThought() {
-        const bgEl = document.getElementById('thought-bg');
-        const modalEl = document.getElementById('thought-modal');
-        if (bgEl) bgEl.classList.remove('show');
-        if (modalEl) modal.classList.remove('show');
-    },
-
-    previewImage(imgUrl) {
-        let viewer = document.getElementById('image-viewer-modal');
-        if (!viewer) {
-            viewer = document.createElement('div');
-            viewer.id = 'image-viewer-modal';
-            viewer.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px); transition: 0.3s; opacity: 0; visibility: hidden;';
-            viewer.innerHTML = `
-                <div style="position: absolute; top: 30px; right: 20px; font-size: 28px; color: #fff; cursor: pointer; padding: 10px;" onclick="window.PhoneUI.closeImageViewer()"><i class="ph ph-x"></i></div>
-                <img id="viewer-img" src="" style="max-width: 92%; max-height: 75vh; border-radius: 12px; object-fit: contain; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
-                <div style="display: flex; gap: 15px; margin-top: 25px;">
-                    <button id="btn-save-image" onclick="window.PhoneUI.downloadCurrentImage()" style="background: var(--primary-color); color: #fff; border: none; padding: 10px 24px; border-radius: 25px; font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-                        <i class="ph-bold ph-download-simple" style="font-size: 18px;"></i> 保存到本地
-                    </button>
-                </div>
-            `;
-            document.body.appendChild(viewer);
-        }
-
-        const imgEl = document.getElementById('viewer-img');
-        imgEl.src = imgUrl;
-        viewer._currentImgUrl = imgUrl;
-
-        viewer.style.visibility = 'visible';
-        viewer.style.opacity = '1';
-    },
-
-    closeImageViewer() {
-        const viewer = document.getElementById('image-viewer-modal');
-        if (viewer) {
-            viewer.style.opacity = '0';
-            viewer.style.visibility = 'hidden';
-        }
-    },
-
-    async downloadCurrentImage() {
-        const viewer = document.getElementById('image-viewer-modal');
-        if (!viewer || !viewer._currentImgUrl) return;
-        const url = viewer._currentImgUrl;
+        chatItems.push({ sender: 'typing' });
+        PhoneUI.renderAppContent('wechat');
+        this._safeSaveData();
 
         try {
-            if (window.PhoneAPI) window.PhoneAPI.showToast("⏳ 正在保存图片...");
+            let systemPrompt = localStorage.getItem('system_prompt') || '';
+            let charPersona = localStorage.getItem('char_persona') || '';
 
-            if (url.startsWith('data:')) {
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `Photo_${Date.now()}.png`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                if (window.PhoneAPI) window.PhoneAPI.showToast("✅ 图片已成功保存到手机！");
-                return;
+            if (window.PhoneAPI?.LocalDB) {
+                try {
+                    const dbSys = await window.PhoneAPI.LocalDB.get('direct_sys_text');
+                    const dbChar = await window.PhoneAPI.LocalDB.get('direct_char_text');
+                    if (dbSys && typeof dbSys === 'string') systemPrompt = dbSys;
+                    if (dbChar && typeof dbChar === 'string') charPersona = dbChar;
+                } catch(e) {}
+            }
+            
+            const currentNow = new Date();
+            const curYear = currentNow.getFullYear();
+            const curMonth = currentNow.getMonth() + 1;
+            const curDate = currentNow.getDate();
+            const curHour = currentNow.getHours(); 
+            const curMin = currentNow.getMinutes();
+            const daysArr = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            const curWeek = daysArr[currentNow.getDay()];
+            const timeStrStandard = `${String(curHour).padStart(2, '0')}:${String(curMin).padStart(2, '0')}`;
+
+            let stablePrompt = `【⚠️当前现实唯一准确时间锚点】：此时此刻是 ${curYear}年${curMonth}月${curDate}日 ${curWeek} ${timeStrStandard}。\n\n`;
+            if (systemPrompt) stablePrompt += `【系统核心指令】：\n${systemPrompt}\n\n`;
+            if (charPersona) stablePrompt += `【角色设定】：\n${charPersona}\n\n`;
+
+            stablePrompt += "【最高禁令】：直接输出台词！\n【微信连发机制】：根据换行切分气泡。\n【读心术机制】：回复前必须用 <inner> 和 </inner> 包裹内心独白。\n";
+
+            let messages = [{ role: 'system', content: stablePrompt }];
+            const MAX_CONTEXT = parseInt(localStorage.getItem('context_chat_limit') || '30', 10);
+            const recentItems = chatItems.slice(-MAX_CONTEXT);
+            
+            recentItems.forEach((item) => {
+                if (item && item.sender !== 'typing') {
+                    messages.push({ role: item.sender === 'me' ? 'user' : 'assistant', content: item.content || "" });
+                }
+            });
+
+            const rawReply = await PhoneAPI.chatWithAI(messages);
+            
+            const innerMatch = rawReply.match(/<inner>([\s\S]*?)<\/inner>/i);
+            const innerThought = innerMatch ? innerMatch[1].trim() : '（TA的心思藏得很深...）';
+            let finalReply = rawReply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<inner>[\s\S]*?<\/inner>/gi, '').trim();
+            if (!finalReply) finalReply = rawReply.trim();
+            
+            // 🌟 移除 typing
+            for (let i = chatItems.length - 1; i >= 0; i--) {
+                if (chatItems[i].sender === 'typing') chatItems.splice(i, 1);
             }
 
-            const res = await fetch(url);
-            const blob = await res.blob();
-            const blobUrl = URL.createObjectURL(blob);
+            const replyParts = finalReply.split('\n').map(s => s.trim()).filter(Boolean);
+            for (let idx = 0; idx < replyParts.length; idx++) {
+                chatItems.push({ 
+                    sender: 'other', 
+                    content: replyParts[idx], 
+                    time: timeStr, 
+                    date: dateStr, 
+                    innerThought: idx === 0 ? innerThought : '（连发消息，心声已在上一条显示）' 
+                });
+            }
+            
+            PhoneUI.renderAppContent('wechat');
+            this._safeSaveData();
 
-            const a = document.createElement('a');
-            a.href = blobUrl;
-            a.download = `Photo_${Date.now()}.jpg`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(blobUrl);
-
-            if (window.PhoneAPI) window.PhoneAPI.showToast("✅ 图片已成功保存到手机！");
-        } catch (e) {
-            const a = document.createElement('a');
-            a.href = url;
-            a.target = '_blank';
-            a.download = `Photo_${Date.now()}.jpg`;
-            a.click();
-            if (window.PhoneAPI) window.PhoneAPI.showToast("✅ 请长按图片保存到本地！");
+        } catch (error) {
+            PhoneAPI.logger?.log('ERROR', '对话请求失败', error.message);
+            PhoneAPI.showToast(error.message || '请求遇到异常');
+            
+            // 🌟 铁壁熔断：只要报错，强制移除所有 typing，绝不卡顿挂起！
+            for (let i = chatItems.length - 1; i >= 0; i--) {
+                if (chatItems[i].sender === 'typing') chatItems.splice(i, 1);
+            }
+            
+            PhoneUI.renderAppContent('wechat');
+            this._safeSaveData();
         }
     }
 };
 
-// 🌟 全局绝对生效：输入框回车 / 软键盘发送键监听
-if (typeof document !== 'undefined') {
-    // 1. 监听 PC 回车与手机物理键盘
-    document.addEventListener('keydown', (e) => {
-        const active = document.activeElement;
-        if (active && (active.id === 'chat-input' || active.classList.contains('chat-input-box'))) {
-            // 如果按下了回车且没有按 Shift
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault(); // 阻止默认换行
-                if (window.ChatEngine && window.ChatEngine.sendChatMessage) {
-                    window.ChatEngine.sendChatMessage();
-                } else if (window.PhoneEngine && window.PhoneEngine.sendChatMessage) {
-                    window.PhoneEngine.sendChatMessage();
-                }
-            }
-        }
-    }, true);
-
-    // 2. 监听手机端输入法点击【发送/前往】的提交
-    document.addEventListener('keypress', (e) => {
-        const active = document.activeElement;
-        if (active && (active.id === 'chat-input' || active.classList.contains('chat-input-box'))) {
-            if (e.keyCode === 13 && !e.shiftKey) {
-                e.preventDefault();
-                if (window.ChatEngine && window.ChatEngine.sendChatMessage) {
-                    window.ChatEngine.sendChatMessage();
-                } else if (window.PhoneEngine && window.PhoneEngine.sendChatMessage) {
-                    window.PhoneEngine.sendChatMessage();
-                }
-            }
-        }
-    }, true);
-}
+if (typeof window !== 'undefined') { window.ChatEngine = ChatEngine; }

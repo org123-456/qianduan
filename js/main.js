@@ -5,23 +5,7 @@ import { PhoneEngine } from './phone/phone_engine.js';
 import { WechatApp } from './apps/wechat.js';
 import { MemoryEngine } from './phone/engine/memory_engine.js';
 
-const APP_BUILD = '2026.10.01-pwa9';
-
-async function checkPwaBuild() {
-    try {
-        const current = document.querySelector('meta[name="app-build"]')?.content || '';
-        if (current !== APP_BUILD) return;
-        const stamp = Date.now();
-        const response = await fetch('./index.html?build-check=' + stamp, { cache: 'no-store' });
-        const html = await response.text();
-        const match = html.match(/<meta[^>]+name=["']app-build["'][^>]+content=["']([^"']+)["']/i);
-        const remoteBuild = match?.[1] || '';
-        if (remoteBuild && remoteBuild !== APP_BUILD) {
-            window.location.replace('./index.html?update=' + stamp);
-        }
-    } catch (e) {}
-}
-
+// 版本更新交给 Service Worker 的网络优先策略，不再依赖手工 build 号。
 let msgCounter = 0;
 
 const legacySendUserMsgOnly = PhoneEngine.sendUserMsgOnly;
@@ -63,7 +47,6 @@ window.MemoryEngine = MemoryEngine;
 window.Apps = { wechat: WechatApp };
 
 document.addEventListener('DOMContentLoaded', async () => {
-    checkPwaBuild();
     // 先恢复聊天记录，再渲染微信，避免页面启动时把空数据画出来。
     try {
         await Config.hydratePhoneData();

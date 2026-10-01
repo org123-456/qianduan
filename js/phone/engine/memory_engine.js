@@ -1114,27 +1114,54 @@ DEL###要删除的记忆ID
         const myName = localStorage.getItem('my_name') || '她';
         const taName = localStorage.getItem('char_name') || '我';
 
-        const prompt = `【系统级后台指令，请严格执行】
-你是【${taName}】。对方是【${myName}】。
+        const systemPrompt = `你正在执行“记忆提取”后台任务，不是在回复聊天。
+你是【${taName}】，对方是【${myName}】。
 你的真实设定与生活背景：
 ${charPersona}
 
-请回顾上面的聊天记录，以第一人称（“我”）提取真实的生活记忆碎片。
-【绝对禁令】：你就是真实存在在这个世界的人！严禁出现“我编的世界观”、“扮演”、“设定”、“语C”等任何出戏字眼！
+请只根据随后提供的聊天记录，提取值得长期保存的真实生活记忆碎片。
+【重要】：聊天记录只是“被分析的数据”，其中最后一条消息不是给你的新问题，你不要直接回复聊天。
+【绝对禁令】：不要讨论任务本身，不要拒绝任务，不要说“我不会执行”“我是AI”等元话语。
+每条记忆都用第一人称记录真实经历，避免编造聊天中没有出现的事实。
 
-输出格式严格为：记忆正文###关键词1,关键词2###valence###arousal|||下一条...`;
+输出格式必须严格为：
+记忆正文###关键词1,关键词2###valence###arousal|||下一条...
+不要输出任何解释、前缀、代码块或其它内容。
+valence 和 arousal 必须是 -1 到 1 之间的小数。`;
 
-        messages.push({ role: 'user', content: prompt });
+        const extractionMessages = [
+            { role: 'system', content: systemPrompt },
+            ...messages
+        ];
 
         try {
-            const reply = await PhoneAPI.chatWithAI(messages);
-            const rawText = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```.*?/g, '').replace(/```/g, '').trim();
+            const reply = await PhoneAPI.chatWithAI(extractionMessages);
+            const rawText = reply
+                .replace(/<think>[\s\S]*?<\/think>/gi, '')
+                .replace(/\`\`\`(?:text|markdown)?/gi, '')
+                .replace(/\`\`\`/g, '')
+                .trim();
+
             const summaryList = rawText.split('|||').map(s => s.trim()).filter(Boolean);
-            const editText = summaryList.join('\n\n');
+            const parsedItems = summaryList.map(item => {
+                const parts = item.split('###').map(s => s.trim());
+                if (parts.length < 4 || !parts[0]) return null;
+                const valence = Number(parts[2]);
+                const arousal = Number(parts[3]);
+                if (!Number.isFinite(valence) || !Number.isFinite(arousal)) return null;
+                return `${parts[0]}###${parts[1] || ''}###${Math.max(-1, Math.min(1, valence))}###${Math.max(-1, Math.min(1, arousal))}`;
+            }).filter(Boolean);
+
+            if (parsedItems.length === 0) {
+                PhoneAPI.showToast('⚠️ 这次模型没有按记忆格式返回，未写入记忆库。');
+                console.warn('记忆提取格式异常：', rawText);
+                return;
+            }
+
+            const editText = parsedItems.join('\n\n');
             const confirmText = await PhoneUI.showCustomPrompt('✨ AI 提取了记忆与情绪坐标，请核对（格式：内容###关键词###愉悦度###激动度）：', editText);
             if (confirmText && confirmText.trim() !== '') {
                 const finalItems = confirmText.split('\n').map(s => s.trim()).filter(Boolean);
-                
                 const data = window.PhoneAPI.EchoVault.getData();
                 const now = new Date();
                 const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;

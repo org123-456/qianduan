@@ -8,9 +8,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#dff1ff">
 <meta name="color-scheme" content="light dark">
-<meta name="app-build" content="2026.10.01-pwa9">
+<meta name="app-build" content="auto">
 <meta name="supported-color-schemes" content="light dark">
-<link rel="manifest" href="manifest.json?v=2026.10.01-pwa9">
+<link rel="manifest" href="manifest.json">
 
 <title>Claire & Claude</title>
 
@@ -636,6 +636,14 @@ function togglePlayUI(forceState) {
 }
 </script>
 
-<script type="module" src="js/main.js?v=2026.10.01-pwa9"></script>
+<script>
+    // 不再依赖手工 PWA 版本号：Service Worker 负责网络优先，代码更新自动生效。
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js').catch(err => console.warn('SW 注册失败:', err));
+        });
+    }
+</script>
+<script type="module" src="js/main.js"></script>
 </body>
 </html>

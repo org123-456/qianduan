@@ -320,6 +320,12 @@ ${recentDialogue}
                 });
             }
             bottomHtml += '</div>';
+        } else if (currentTab === 'diary') {
+            bottomHtml = `
+                <div id="moments-diary-inline" style="padding: 0 10px 80px;">
+                    ${this.renderDiaryShelfInline()}
+                </div>
+            `;
         } else if (currentTab === 'reader') {
             const books = JSON.parse(localStorage.getItem('reader_books') || '[]');
             let booksHtml = '';
@@ -379,7 +385,7 @@ ${recentDialogue}
                 <div class="moments-menu-item ${currentTab === 'feed' ? 'active' : ''}" onclick="window.PhoneUI.switchMomentsTab('feed')"><i class="${currentTab === 'feed' ? 'ph-fill' : 'ph'} ph-camera"></i> 朋友圈</div>
                 <div class="moments-menu-item ${currentTab === 'favorites' ? 'active' : ''}" onclick="window.PhoneUI.switchMomentsTab('favorites')"><i class="${currentTab === 'favorites' ? 'ph-fill' : 'ph'} ph-star"></i> 收藏夹</div>
                 <div class="moments-menu-item ${currentTab === 'reader' ? 'active' : ''}" onclick="window.PhoneUI.switchMomentsTab('reader')"><i class="${currentTab === 'reader' ? 'ph-fill' : 'ph'} ph-book-open-text"></i> 书架</div>
-                <div class="moments-menu-item" onclick="if(window.PhoneUI) window.PhoneUI.openApp('diary', '我们的日记')"><i class="ph-fill ph-book-bookmark"></i> 日记</div>
+                <div class="moments-menu-item ${currentTab === 'diary' ? 'active' : ''}" onclick="window.PhoneUI.switchMomentsTab('diary')"><i class="${currentTab === 'diary' ? 'ph-fill' : 'ph'} ph-book-bookmark"></i> 日记</div>
             </div>
 
             <div style="padding-bottom: 80px;">

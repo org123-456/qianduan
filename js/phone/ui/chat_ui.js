@@ -6,10 +6,10 @@ export const ChatUI = {
         let data = window.Config?.phoneData?.[roleId]?.[appId];
         if (!data && appId !== 'gallery' && appId !== 'memory_vault' && appId !== 'moments' && appId !== 'favorites') return;
 
-        // 允许往上翻看更多历史，放宽到 300 条
+        // 允许翻看全部历史记录，放宽到 1000 条
         let renderItems = data?.items || [];
-        if (appId === 'wechat' && renderItems.length > 300) {
-            renderItems = renderItems.slice(-300);
+        if (appId === 'wechat' && renderItems.length > 1000) {
+            renderItems = renderItems.slice(-1000);
         }
 
         const listEl = document.getElementById('app-content-list');
@@ -43,17 +43,19 @@ export const ChatUI = {
             }, 100);
 
             if (appId === 'wechat') {
-                this.updateHomeWidget?.();
+                if (window.PhoneUI && window.PhoneUI.updateHomeWidget) {
+                    window.PhoneUI.updateHomeWidget();
+                }
             }
         } else if (appId === 'gallery') {
-            this.renderGallery?.();
+            if (this.renderGallery) this.renderGallery();
         } else if (appId === 'settings') {
-            this.renderSettings?.();
+            if (this.renderSettings) this.renderSettings();
         } else if (appId === 'moments') {
-            this.renderMoments?.();
+            if (this.renderMoments) this.renderMoments();
         } else if (appId === 'favorites') {
             if (this.currentMomentsTab === 'favorites') {
-                this.renderMoments?.();
+                if (this.renderMoments) this.renderMoments();
             }
         }
     },
@@ -239,34 +241,18 @@ export const ChatUI = {
     }
 };
 
-// 🌟 全局绝对生效：输入框回车 / 软键盘发送键监听
+// 🌟 核心：回车键只连发用户气泡，不惊动 AI；AI 唯有点击屏幕右下角的发送按钮才回复！
 if (typeof document !== 'undefined') {
-    // 1. 监听 PC 回车与手机物理键盘
     document.addEventListener('keydown', (e) => {
         const active = document.activeElement;
         if (active && (active.id === 'chat-input' || active.classList.contains('chat-input-box'))) {
-            // 如果按下了回车且没有按 Shift
             if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault(); // 阻止默认换行
-                if (window.ChatEngine && window.ChatEngine.sendChatMessage) {
-                    window.ChatEngine.sendChatMessage();
-                } else if (window.PhoneEngine && window.PhoneEngine.sendChatMessage) {
-                    window.PhoneEngine.sendChatMessage();
-                }
-            }
-        }
-    }, true);
-
-    // 2. 监听手机端输入法点击【发送/前往】的提交
-    document.addEventListener('keypress', (e) => {
-        const active = document.activeElement;
-        if (active && (active.id === 'chat-input' || active.classList.contains('chat-input-box'))) {
-            if (e.keyCode === 13 && !e.shiftKey) {
                 e.preventDefault();
-                if (window.ChatEngine && window.ChatEngine.sendChatMessage) {
-                    window.ChatEngine.sendChatMessage();
-                } else if (window.PhoneEngine && window.PhoneEngine.sendChatMessage) {
-                    window.PhoneEngine.sendChatMessage();
+                // 仅上屏用户消息，绝对不触发模型！
+                if (window.PhoneEngine && window.PhoneEngine.sendUserMsgOnly) {
+                    window.PhoneEngine.sendUserMsgOnly();
+                } else if (window.ChatEngine && window.ChatEngine.sendUserMsgOnly) {
+                    window.ChatEngine.sendUserMsgOnly();
                 }
             }
         }

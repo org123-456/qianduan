@@ -5,19 +5,28 @@ import { PhoneUI } from '../phone_ui.js';
 export const ChatEngine = {
     currentMsgIndex: -1,
 
-    // 🌟 核心安全持久化：保全所有记录，一条都不删！
+    // 🌟 聊天记录以 IndexedDB 为主，不再把完整 phoneData 塞进 localStorage。
     async _safeSaveData() {
-        if (!Config?.phoneData) return;
+        if (!Config?.phoneData) return false;
+        const payload = JSON.stringify(Config.phoneData);
+
         try {
-            localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-        } catch (e) {
-            // 空间超出 5MB 时，自动无损转存到无上限的 IndexedDB 数据库！一条不丢！
             if (window.PhoneAPI?.LocalDB) {
-                try {
-                    await window.PhoneAPI.LocalDB.set('full_phone_data', JSON.stringify(Config.phoneData));
-                    localStorage.setItem('use_idb_chat_data', 'true');
-                } catch(idbErr) {}
+                await window.PhoneAPI.LocalDB.set('full_phone_data', payload);
+                try { localStorage.removeItem('phone_data'); } catch {}
+                return true;
             }
+        } catch (idbErr) {
+            console.error('IndexedDB 保存聊天记录失败：', idbErr);
+        }
+
+        // IndexedDB 不可用时才回退到旧 localStorage。
+        try {
+            localStorage.setItem('phone_data', payload);
+            return true;
+        } catch (localErr) {
+            console.error('聊天记录保存失败：', localErr);
+            return false;
         }
     },
 

@@ -4,8 +4,7 @@ import { GameUI } from './game_ui.js';
 const gameLoaders = [
     ['fishing', () => import('./games/fishing.js')],
     ['daily-lottery', () => import('./games/daily_lottery.js')],
-    ['cat', () => import('./games/cat.js')],
-    ['this-place', () => import('./games/this_place.js')]
+    ['cat', () => import('./games/cat.js')]
 ];
 
 export const gamesReady = Promise.allSettled(gameLoaders.map(async ([id, loader]) => {

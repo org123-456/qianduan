@@ -60,6 +60,18 @@ export const PhoneAPI = {
                 t.onerror = () => rej(t.error);
             });
         },
+        async listKeys() {
+            try {
+                if (!this._db) await this.init();
+                return new Promise((res, rej) => {
+                    const request = this._db.transaction(this.storeName, 'readonly').objectStore(this.storeName).getAllKeys();
+                    request.onsuccess = () => res(Array.from(request.result || []));
+                    request.onerror = () => rej(request.error);
+                });
+            } catch (e) {
+                return [];
+            }
+        },
         shrink(file, maxW) {
             return new Promise((res, rej) => {
                 const url = URL.createObjectURL(file);

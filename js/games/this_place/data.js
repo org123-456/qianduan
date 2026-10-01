@@ -13,16 +13,21 @@ export const gameData = {
     name: null,
     unlocked: false,
     personality: [],
+    likes: [],
+    dislikes: [],
+    growthStage: '初识',
     state: {
       mood: '平静',
-      energy: 100
+      energy: 100,
+      spirit: 100
     }
   },
 
   relationship: {
     affection: 0,
-    level: '初次相遇',
-    trust: 0
+    level: '陌生',
+    trust: 0,
+    familiarity: 0
   },
 
   memories: [],

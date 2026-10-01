@@ -11,6 +11,7 @@ export const Config = {
         }
     },
     phoneData: {},
+    _storageDiagnostics: null,
     _phoneDataReady: false,
 
     async hydratePhoneData() {
@@ -62,6 +63,13 @@ export const Config = {
         try {
             const db = await openDB();
             const saved = parseLegacy(await get(db, 'full_phone_data'));
+            const storageKeys = await new Promise((resolve) => {
+                try {
+                    const req = db.transaction('img', 'readonly').objectStore('img').getAllKeys();
+                    req.onsuccess = () => resolve(Array.from(req.result || []));
+                    req.onerror = () => resolve([]);
+                } catch { resolve([]); }
+            });
             const legacy = parseLegacy(localStorage.getItem('phone_data'));
 
             // 恢复优先级：有实际聊天记录的数据 > 空壳数据。
@@ -96,6 +104,17 @@ export const Config = {
             };
 
             this.phoneData = mergeData(saved, legacy);
+
+            // 如果旧数据使用了不同的联系人 ID，自动把最有内容的角色映射到当前联系人。
+            const current = this.phoneData[this.currentContactId];
+            const currentItems = current?.wechat?.items?.length || 0;
+            if (!currentItems) {
+                const candidate = Object.entries(this.phoneData)
+                    .filter(([, v]) => Array.isArray(v?.wechat?.items) && v.wechat.items.length > 0)
+                    .sort((a, b) => b[1].wechat.items.length - a[1].wechat.items.length)[0];
+                if (candidate) this.currentContactId = candidate[0];
+            }
+            this._storageDiagnostics = { keys: storageKeys, hasIdbChat: !!saved, hasLegacyChat: !!legacy, currentContactId: this.currentContactId };
             if (!isUsablePhoneData(this.phoneData)) {
                 this.phoneData = mergeData(legacy, saved);
             }

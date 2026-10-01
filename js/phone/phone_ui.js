@@ -1013,8 +1013,11 @@ NaN
                 </div>
             </div>
 
-            <div class="card" style="padding: 16px;">
-                <div id="storage-info-panel"></div>
+            <div class="card" style="padding: 16px; border: 1px solid var(--primary-color);">
+                <h3 style="color:var(--primary-color);margin-bottom:10px; font-size: 15px;"><i class="ph-fill ph-database"></i> 浏览器存储</h3>
+                <div id="storage-info-panel">
+                    <div style="color:var(--text-sub);font-size:12px;">正在检测浏览器存储空间…</div>
+                </div>
             </div>
 
             <div class="card" style="padding: 16px;">

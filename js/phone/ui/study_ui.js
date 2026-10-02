@@ -1,3 +1,5 @@
+import { HIGH_FREQUENCY_WORDS, HIGH_FREQUENCY_BOOK } from './high_frequency_words.js';
+
 export const StudyUI = {
     studyTimer: null,
     selectedTime: 25, 
@@ -42,6 +44,68 @@ export const StudyUI = {
 
     saveVocabData(data) {
         localStorage.setItem('vocab_data', JSON.stringify(data));
+    },
+
+    getHighFrequencyWords() {
+        const canonical3500 = new Map(this.gaokaoWords.map(w => [w.w.toLowerCase(), w]));
+        return HIGH_FREQUENCY_WORDS.map(word => {
+            const linked = canonical3500.get(word.toLowerCase());
+            return linked ? { ...linked, bookSource: '3500', highFrequency: true } : {
+                w: word, m: '高频核心词 · 可让 TA 解释', bookSource: 'high_frequency', highFrequency: true
+            };
+        });
+    },
+
+    getBookWords(book = '3500') {
+        if (book === 'high_frequency') return this.getHighFrequencyWords();
+        const vData = this.initVocabData();
+        return this.gaokaoWords.concat(vData.customWords);
+    },
+
+    getSharedWordRecord(word) {
+        return this.initVocabData().records[word] || null;
+    },
+
+    renderBookSelector() {
+        const highWords = this.getHighFrequencyWords();
+        const learnedHigh = highWords.filter(w => this.getSharedWordRecord(w.w)).length;
+        return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px;">' +
+            '<button class="btn-refresh" onclick="window.PhoneUI.showVocabBookHome(\'3500\')" style="margin:0;text-align:left;background:var(--icon-bg);color:var(--text-main);border:1px solid var(--border-color);border-radius:14px;padding:12px;"><div style="font-weight:bold;font-size:14px;">📘 3500词书</div><div style="font-size:11px;color:var(--text-sub);margin-top:4px;">现有词书 · '+this.gaokaoWords.length+' 词</div></button>' +
+            '<button class="btn-refresh" onclick="window.PhoneUI.showVocabBookHome(\'high_frequency\')" style="margin:0;text-align:left;background:linear-gradient(135deg,var(--primary-color),var(--secondary-color));color:#fff;border:none;border-radius:14px;padding:12px;"><div style="font-weight:bold;font-size:14px;">⚡ '+HIGH_FREQUENCY_BOOK.shortName+'</div><div style="font-size:11px;opacity:.85;margin-top:4px;">独立词书 · 已学 '+learnedHigh+'/'+highWords.length+'</div></button></div>';
+    },
+
+    showVocabBookHome(book = '3500') {
+        this.currentVocabSource = book;
+        if (book === 'high_frequency') this.startHighFrequencyLearn();
+        else this.openVocabBook();
+    },
+
+    startHighFrequencyLearn() {
+        const vData = this.initVocabData();
+        const words = this.getHighFrequencyWords();
+        const unlearned = words.filter(w => !vData.records[w.w]);
+        if (!unlearned.length) {
+            if (window.PhoneAPI) window.PhoneAPI.showToast('高频词书已经全部学过了，接下来进入复习。');
+            return this.startHighFrequencyReview();
+        }
+        this.currentVocabSource = 'high_frequency';
+        this.currentWord = unlearned[Math.floor(Math.random() * unlearned.length)];
+        this.renderVocabCard('high_frequency');
+    },
+
+    startHighFrequencyReview() {
+        const vData = this.initVocabData();
+        const now = Date.now();
+        const words = this.getHighFrequencyWords();
+        let due = words.filter(w => vData.records[w.w] && vData.records[w.w].nextReview <= now);
+        if (!due.length) due = words.filter(w => vData.records[w.w]);
+        if (!due.length) {
+            if (window.PhoneAPI) window.PhoneAPI.showToast('高频词书还没有学习记录，先开始学习新词吧。');
+            return;
+        }
+        this.currentVocabSource = 'high_frequency';
+        this.currentWord = due[Math.floor(Math.random() * due.length)];
+        this.renderVocabCard('high_frequency');
     },
 
     switchStudyTab(tab) {
@@ -281,6 +345,7 @@ export const StudyUI = {
 
             innerHtml = `
                 <div style="padding: 10px;">
+                    ${this.renderBookSelector()}
                     <div class="card" style="margin-bottom: 20px;">
                         <div style="font-size: 14px; font-weight: bold; color: var(--primary-color); margin-bottom: 15px; display: flex; justify-content: space-between;">
                             <span><i class="ph-fill ph-calendar-check"></i> 本月打卡</span>
@@ -297,6 +362,11 @@ export const StudyUI = {
                         <div style="display: flex; gap: 15px; width: 100%;">
                             <button class="btn-refresh" onclick="window.PhoneUI.startLearnVocab()" style="flex: 1; background: var(--primary-color); color: #fff; border-radius: 12px;"><i class="ph-fill ph-book-open"></i> 学习新词</button>
                             <button class="btn-refresh" onclick="window.PhoneUI.startReviewVocab()" style="flex: 1; background: #f4a261; color: #fff; border-radius: 12px;"><i class="ph-fill ph-arrows-clockwise"></i> 艾宾浩斯复习</button>
+                        </div>
+                        
+                        <div style="display:flex;gap:15px;width:100%;margin-top:5px;">
+                            <button class="btn-refresh" onclick="window.PhoneUI.startHighFrequencyLearn()" style="flex:1;background:var(--icon-bg);color:var(--primary-color);border:1px solid var(--primary-color);border-radius:12px;"><i class="ph-fill ph-lightning"></i> 背高频词</button>
+                            <button class="btn-refresh" onclick="window.PhoneUI.startHighFrequencyReview()" style="flex:1;background:var(--icon-bg);color:var(--text-main);border:1px solid var(--border-color);border-radius:12px;"><i class="ph-fill ph-arrows-clockwise"></i> 高频复习</button>
                         </div>
                         
                         <!-- 🌟 新增：随堂测验按钮 -->
@@ -618,9 +688,13 @@ export const StudyUI = {
         if (!area || !this.currentWord) return;
 
         const vData = this.initVocabData();
-        const allWords = this.gaokaoWords.concat(vData.customWords);
+        const allWords = this.gaokaoWords.concat(vData.customWords, this.getHighFrequencyWords());
+        const linked3500 = this.gaokaoWords.find(w => w.w.toLowerCase() === this.currentWord.w.toLowerCase());
         const prefix = this.currentWord.w.substring(0, 4); 
         let similarWordsHtml = '';
+        if (linked3500 && this.currentVocabSource === 'high_frequency') {
+            similarWordsHtml += '<div style="background:rgba(74,222,128,.08);border-radius:12px;padding:12px;margin-bottom:12px;text-align:left;border:1px solid rgba(74,222,128,.35);"><div style="font-size:12px;color:#16a34a;font-weight:bold;margin-bottom:5px;">🔗 3500词书联动</div><div style="font-size:13px;color:var(--text-main);"><b>' + this.escapeHtml(linked3500.w) + '</b> 已存在于3500词书，两边共用同一学习进度。</div></div>';
+        }
         
         if (prefix.length >= 3) {
             const similars = allWords.filter(w => w.w !== this.currentWord.w && w.w.startsWith(prefix)).slice(0, 3);
@@ -630,7 +704,7 @@ export const StudyUI = {
             }
         }
 
-        let stepText = mode === 'learn' ? '新词学习' : `艾宾浩斯 第 ${vData.records[this.currentWord.w].step} 阶段`;
+        let stepText = mode === 'high_frequency' ? '⚡ 高频词书' : (mode === 'learn' ? '新词学习' : `艾宾浩斯 第 ${vData.records[this.currentWord.w].step} 阶段`);
         if (isSurprise) stepText = '⚠️ 突击抽查';
 
         area.innerHTML = `
@@ -712,7 +786,8 @@ export const StudyUI = {
             if (window.PhoneAPI) window.PhoneAPI.showToast("✨ TA说：" + msg);
         }
         
-        if (mode === 'learn') this.startLearnVocab();
+        if (mode === 'high_frequency') this.startHighFrequencyLearn();
+        else if (mode === 'learn') this.startLearnVocab();
         else this.startReviewVocab();
     },
 

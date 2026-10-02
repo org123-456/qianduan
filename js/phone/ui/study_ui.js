@@ -1,5 +1,3 @@
-import { HIGH_FREQUENCY_WORDS, HIGH_FREQUENCY_BOOK } from './high_frequency_words.js';
-
 export const StudyUI = {
     studyTimer: null,
     selectedTime: 25, 
@@ -37,7 +35,23 @@ export const StudyUI = {
         let parsed = data ? JSON.parse(data) : {};
         if (!parsed.checkinDates) parsed.checkinDates = [];
         if (!parsed.customWords) parsed.customWords = [];
-        if (!parsed.records) parsed.records = {}; 
+        if (!parsed.records) parsed.records = {};
+        if (!parsed.books) parsed.books = { high_frequency: [] };
+        if (!Array.isArray(parsed.books.high_frequency)) parsed.books.high_frequency = [];
+        if (!parsed.wordLinks) parsed.wordLinks = {};
+        if (!parsed.morphemes) parsed.morphemes = this.getDefaultMorphemes();
+        const seedLinks = {
+            inspect: { roots: ['spect'], affixes: ['in-'] }, respect: { roots: ['spect'] }, expect: { roots: ['spect'] },
+            prepare: { affixes: ['pre-'] }, support: { roots: ['port'] }, transport: { roots: ['port'] },
+            import: { roots: ['port'], affixes: ['in-'] }, export: { roots: ['port'] },
+            construct: { roots: ['struct'], affixes: ['con-'] }, structure: { roots: ['struct'] },
+            action: { affixes: ['-tion'] }, decision: { affixes: ['-tion'] }, education: { affixes: ['-tion'] },
+            development: { affixes: ['-ment'] }, management: { affixes: ['-ment'] },
+            activity: { affixes: ['-ity'] }, ability: { affixes: ['-ity', '-able'] }
+        };
+        Object.entries(seedLinks).forEach(([word, links]) => {
+            if (!parsed.wordLinks[word]) parsed.wordLinks[word] = links;
+        });
         localStorage.setItem('vocab_data', JSON.stringify(parsed));
         return parsed;
     },
@@ -46,24 +60,70 @@ export const StudyUI = {
         localStorage.setItem('vocab_data', JSON.stringify(data));
     },
 
+    getDefaultMorphemes() {
+        return {
+            roots: {
+                spect: { text: 'spect', meaning: '看、观察', words: ['inspect', 'respect', 'expect'] },
+                port: { text: 'port', meaning: '携带、运送', words: ['transport', 'import', 'export'] },
+                struct: { text: 'struct', meaning: '建造、构造', words: ['construct', 'structure', 'instruct'] },
+                vis: { text: 'vis/vid', meaning: '看、观察', words: ['vision', 'visible', 'provide'] },
+                dict: { text: 'dict', meaning: '说、讲', words: ['predict', 'dictionary', 'contradict'] },
+                scrib: { text: 'scrib/script', meaning: '写', words: ['describe', 'prescribe', 'script'] },
+                tract: { text: 'tract', meaning: '拉、拖', words: ['attract', 'contract', 'distract'] },
+                ject: { text: 'ject', meaning: '投、掷', words: ['project', 'reject', 'inject'] },
+                mit: { text: 'mit/miss', meaning: '送、放出', words: ['submit', 'permit', 'dismiss'] }
+            },
+            affixes: {
+                're-': { text: 're-', type: 'prefix', meaning: '再次、回', words: ['review', 'return', 'rewrite'] },
+                'un-': { text: 'un-', type: 'prefix', meaning: '不、相反', words: ['unable', 'unhappy', 'unusual'] },
+                'pre-': { text: 'pre-', type: 'prefix', meaning: '在……之前', words: ['prepare', 'preview', 'predict'] },
+                'in-': { text: 'in-', type: 'prefix', meaning: '进入、向内；不', words: ['inspect', 'include', 'incorrect'] },
+                'con-': { text: 'con-', type: 'prefix', meaning: '共同、一起', words: ['connect', 'construct', 'contain'] },
+                'de-': { text: 'de-', type: 'prefix', meaning: '向下、去除、相反', words: ['describe', 'decrease', 'depend'] },
+                '-tion': { text: '-tion', type: 'suffix', meaning: '行为、结果', words: ['action', 'decision', 'education'] },
+                '-ment': { text: '-ment', type: 'suffix', meaning: '行为、结果或状态', words: ['development', 'management', 'movement'] },
+                '-able': { text: '-able', type: 'suffix', meaning: '能够……的', words: ['available', 'comfortable', 'useful'] },
+                '-ity': { text: '-ity', type: 'suffix', meaning: '性质、状态', words: ['activity', 'ability', 'majority'] }
+            }
+        };
+    },
+
     getHighFrequencyWords() {
-        const canonical3500 = new Map(this.gaokaoWords.map(w => [w.w.toLowerCase(), w]));
-        return HIGH_FREQUENCY_WORDS.map(word => {
-            const linked = canonical3500.get(word.toLowerCase());
-            return linked ? { ...linked, bookSource: '3500', highFrequency: true } : {
-                w: word, m: '高频核心词 · 可让 TA 解释', bookSource: 'high_frequency', highFrequency: true
-            };
-        });
+        const vData = this.initVocabData();
+        return (vData.books.high_frequency || []).map(item => typeof item === 'string' ? { w: item, m: '待补充词义' } : item);
     },
 
     getBookWords(book = '3500') {
-        if (book === 'high_frequency') return this.getHighFrequencyWords();
         const vData = this.initVocabData();
+        if (book === 'high_frequency') return this.getHighFrequencyWords();
         return this.gaokaoWords.concat(vData.customWords);
     },
 
     getSharedWordRecord(word) {
-        return this.initVocabData().records[word] || null;
+        const vData = this.initVocabData();
+        return vData.records[String(word).toLowerCase()] || vData.records[word] || null;
+    },
+
+    getWordMorphology(word) {
+        const vData = this.initVocabData();
+        const explicit = vData.wordLinks[word.w.toLowerCase()] || {};
+        return {
+            roots: (explicit.roots || []).filter(id => vData.morphemes.roots[id]),
+            affixes: (explicit.affixes || []).filter(id => vData.morphemes.affixes[id])
+        };
+    },
+
+    getRelatedWords(word, limit = 6) {
+        const current = this.getWordMorphology(word);
+        const ids = new Set([...current.roots.map(id => 'r:' + id), ...current.affixes.map(id => 'a:' + id)]);
+        if (!ids.size) return [];
+        const vData = this.initVocabData();
+        const allWords = this.gaokaoWords.concat(vData.customWords, this.getHighFrequencyWords());
+        return allWords.filter(item => item.w.toLowerCase() !== word.w.toLowerCase())
+            .filter(item => {
+                const meta = this.getWordMorphology(item);
+                return [...meta.roots.map(id => 'r:' + id), ...meta.affixes.map(id => 'a:' + id)].some(id => ids.has(id));
+            }).slice(0, limit);
     },
 
     renderBookSelector() {
@@ -71,7 +131,11 @@ export const StudyUI = {
         const learnedHigh = highWords.filter(w => this.getSharedWordRecord(w.w)).length;
         return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px;">' +
             '<button class="btn-refresh" onclick="window.PhoneUI.showVocabBookHome(\'3500\')" style="margin:0;text-align:left;background:var(--icon-bg);color:var(--text-main);border:1px solid var(--border-color);border-radius:14px;padding:12px;"><div style="font-weight:bold;font-size:14px;">📘 3500词书</div><div style="font-size:11px;color:var(--text-sub);margin-top:4px;">现有词书 · '+this.gaokaoWords.length+' 词</div></button>' +
-            '<button class="btn-refresh" onclick="window.PhoneUI.showVocabBookHome(\'high_frequency\')" style="margin:0;text-align:left;background:linear-gradient(135deg,var(--primary-color),var(--secondary-color));color:#fff;border:none;border-radius:14px;padding:12px;"><div style="font-weight:bold;font-size:14px;">⚡ '+HIGH_FREQUENCY_BOOK.shortName+'</div><div style="font-size:11px;opacity:.85;margin-top:4px;">独立词书 · 已学 '+learnedHigh+'/'+highWords.length+'</div></button></div>';
+            '<button class="btn-refresh" onclick="window.PhoneUI.showVocabBookHome(\'high_frequency\')" style="margin:0;text-align:left;background:linear-gradient(135deg,var(--primary-color),var(--secondary-color));color:#fff;border:none;border-radius:14px;padding:12px;"><div style="font-weight:bold;font-size:14px;">⚡ 高频词书</div><div style="font-size:11px;opacity:.85;margin-top:4px;">用户导入 · '+highWords.length+' 词 · 已学 '+learnedHigh+'</div></button></div>' +
+            '<div style="display:flex;gap:8px;margin-bottom:15px;">' +
+            '<label for="high-frequency-upload" class="btn-refresh" style="flex:1;text-align:center;cursor:pointer;"><i class="ph-fill ph-upload-simple"></i> 导入高频词书</label>' +
+            '<input type="file" id="high-frequency-upload" accept=".txt,.csv,.json" style="display:none" onchange="window.PhoneUI.importVocabBook(event, \'high_frequency\')">' +
+            '</div>';
     },
 
     showVocabBookHome(book = '3500') {
@@ -83,11 +147,12 @@ export const StudyUI = {
     startHighFrequencyLearn() {
         const vData = this.initVocabData();
         const words = this.getHighFrequencyWords();
-        const unlearned = words.filter(w => !vData.records[w.w]);
-        if (!unlearned.length) {
-            if (window.PhoneAPI) window.PhoneAPI.showToast('高频词书已经全部学过了，接下来进入复习。');
-            return this.startHighFrequencyReview();
+        if (!words.length) {
+            if (window.PhoneAPI) window.PhoneAPI.showToast('高频词书还没有导入内容，请先导入你的词表。');
+            return;
         }
+        const unlearned = words.filter(w => !vData.records[w.w]);
+        if (!unlearned.length) return this.startHighFrequencyReview();
         this.currentVocabSource = 'high_frequency';
         this.currentWord = unlearned[Math.floor(Math.random() * unlearned.length)];
         this.renderVocabCard('high_frequency');
@@ -97,6 +162,10 @@ export const StudyUI = {
         const vData = this.initVocabData();
         const now = Date.now();
         const words = this.getHighFrequencyWords();
+        if (!words.length) {
+            if (window.PhoneAPI) window.PhoneAPI.showToast('高频词书还没有导入内容。');
+            return;
+        }
         let due = words.filter(w => vData.records[w.w] && vData.records[w.w].nextReview <= now);
         if (!due.length) due = words.filter(w => vData.records[w.w]);
         if (!due.length) {

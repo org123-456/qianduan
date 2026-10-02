@@ -258,33 +258,60 @@ export const StudyUI = {
         return html;
     },
 
-    importCustomVocab(event) {
+    importVocabBook(event, book = 'high_frequency') {
         const file = event.target.files[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = (e) => {
             const text = e.target.result;
-            const lines = text.split('\n');
             let newWords = [];
-            lines.forEach(line => {
-                const parts = line.trim().split(/[\s\-，,]+/);
-                if (parts.length >= 2) {
-                    const w = parts[0];
-                    const m = parts.slice(1).join(' ');
-                    newWords.push({ w, m });
+            try {
+                if (file.name.toLowerCase().endsWith('.json')) {
+                    const parsed = JSON.parse(text);
+                    const list = Array.isArray(parsed) ? parsed : (parsed.words || []);
+                    newWords = list.map(item => typeof item === 'string'
+                        ? { w: item.trim(), m: '待补充词义' }
+                        : { w: item.w || item.word, m: item.m || item.meaning || '待补充词义', roots: item.roots, affixes: item.affixes }
+                    ).filter(item => item.w);
+                } else {
+                    text.split(/\r?\n/).forEach(line => {
+                        const parts = line.trim().split(/[\t\s，,]+/);
+                        if (parts[0]) newWords.push({ w: parts[0], m: parts.slice(1).join(' ') || '待补充词义' });
+                    });
                 }
-            });
-            if (newWords.length > 0) {
-                let vData = this.initVocabData();
-                vData.customWords = vData.customWords.concat(newWords);
-                this.saveVocabData(vData);
-                if (window.PhoneAPI) window.PhoneAPI.showToast(`✅ 成功导入 ${newWords.length} 个单词！`);
-                this.renderStudyRoom();
-            } else {
-                if (window.PhoneAPI) window.PhoneAPI.showToast(`❌ 解析失败，请检查 txt 格式`);
+            } catch (err) {
+                if (window.PhoneAPI) window.PhoneAPI.showToast('❌ 词表解析失败，请检查 TXT/CSV/JSON 格式');
+                return;
             }
+            const vData = this.initVocabData();
+            if (book === 'high_frequency') {
+                const old = vData.books.high_frequency || [];
+                const map = new Map(old.map(item => [item.w.toLowerCase(), item]));
+                newWords.forEach(item => {
+                    const key = item.w.toLowerCase();
+                    const existing3500 = this.gaokaoWords.find(w => w.w.toLowerCase() === key);
+                    const existing = map.get(key);
+                    map.set(key, { ...(existing || existing3500 || {}), ...item, w: key });
+                    if (item.roots || item.affixes) {
+                        vData.wordLinks[key] = { roots: item.roots || [], affixes: item.affixes || [] };
+                    }
+                });
+                vData.books.high_frequency = [...map.values()];
+            } else {
+                const map = new Map(vData.customWords.map(item => [item.w.toLowerCase(), item]));
+                newWords.forEach(item => map.set(item.w.toLowerCase(), item));
+                vData.customWords = [...map.values()];
+            }
+            this.saveVocabData(vData);
+            if (window.PhoneAPI) window.PhoneAPI.showToast('✅ 已导入 ' + newWords.length + ' 个词到' + (book === 'high_frequency' ? '高频词书' : '3500扩展词库'));
+            this.renderStudyRoom();
         };
         reader.readAsText(file);
+        event.target.value = '';
+    },
+
+    importCustomVocab(event) {
+        return this.importVocabBook(event, '3500');
     },
 
     openVocabBook() {
@@ -757,20 +784,20 @@ export const StudyUI = {
         if (!area || !this.currentWord) return;
 
         const vData = this.initVocabData();
-        const allWords = this.gaokaoWords.concat(vData.customWords, this.getHighFrequencyWords());
         const linked3500 = this.gaokaoWords.find(w => w.w.toLowerCase() === this.currentWord.w.toLowerCase());
-        const prefix = this.currentWord.w.substring(0, 4); 
+        const morphology = this.getWordMorphology(this.currentWord);
+        const relatedWords = this.getRelatedWords(this.currentWord);
         let similarWordsHtml = '';
         if (linked3500 && this.currentVocabSource === 'high_frequency') {
             similarWordsHtml += '<div style="background:rgba(74,222,128,.08);border-radius:12px;padding:12px;margin-bottom:12px;text-align:left;border:1px solid rgba(74,222,128,.35);"><div style="font-size:12px;color:#16a34a;font-weight:bold;margin-bottom:5px;">🔗 3500词书联动</div><div style="font-size:13px;color:var(--text-main);"><b>' + this.escapeHtml(linked3500.w) + '</b> 已存在于3500词书，两边共用同一学习进度。</div></div>';
         }
-        
-        if (prefix.length >= 3) {
-            const similars = allWords.filter(w => w.w !== this.currentWord.w && w.w.startsWith(prefix)).slice(0, 3);
-            if (similars.length > 0) {
-                let listHtml = similars.map(s => `<div style="font-size: 13px; color: var(--text-main);"><b>${s.w}</b>: <span style="color: var(--text-sub);">${s.m}</span></div>`).join('');
-                similarWordsHtml = `<div style="background: rgba(0,0,0,0.03); border-radius: 12px; padding: 12px; margin-bottom: 20px; text-align: left; border: 1px dashed var(--border-color);"><div style="font-size: 12px; color: var(--primary-color); font-weight: bold; margin-bottom: 8px;"><i class="ph-fill ph-link"></i> 形近/同根词拓展</div>${listHtml}</div>`;
-            }
+        const morphologyParts = [
+            ...morphology.roots.map(id => ({label:'词根', data:vData.morphemes.roots[id]})),
+            ...morphology.affixes.map(id => ({label:'词缀', data:vData.morphemes.affixes[id]}))
+        ];
+        if (morphologyParts.length) {
+            const morphHtml = morphologyParts.map(item => '<span style="display:inline-block;background:var(--icon-bg);border:1px solid var(--border-color);border-radius:10px;padding:5px 8px;margin:3px;font-size:12px;"><b>' + this.escapeHtml(item.data.text) + '</b> · ' + this.escapeHtml(item.data.meaning) + '</span>').join('');
+            similarWordsHtml += '<div style="background:rgba(99,102,241,.06);border-radius:12px;padding:12px;margin-bottom:12px;text-align:left;border:1px solid rgba(99,102,241,.2);"><div style="font-size:12px;color:var(--primary-color);font-weight:bold;margin-bottom:8px;">🧩 词根 / 词缀联动</div>' + morphHtml + (relatedWords.length ? '<div style="font-size:12px;color:var(--text-sub);margin:8px 0 5px;">同一知识节点关联词：</div>' + relatedWords.map(s => '<div style="font-size:13px;color:var(--text-main);"><b>' + this.escapeHtml(s.w) + '</b>：<span style="color:var(--text-sub);">' + this.escapeHtml(s.m) + '</span></div>').join('') : '<div style="font-size:12px;color:var(--text-sub);margin-top:8px;">暂时没有其他关联词。</div>') + '</div>';
         }
 
         let stepText = mode === 'high_frequency' ? '⚡ 高频词书' : (mode === 'learn' ? '新词学习' : `艾宾浩斯 第 ${vData.records[this.currentWord.w].step} 阶段`);

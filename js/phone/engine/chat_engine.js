@@ -258,7 +258,7 @@ export const ChatEngine = {
         this._safeSaveData();
     },
 
-    // 🌟 点击右侧粉色发送按钮时调用：把输入框剩余的话和上面连发的所有话打包，召唤 AI 回复！
+    // 🌟 召唤 AI 回复（核心交互引擎）
     async sendChatMessage(isRegen = false) {
         const roleId = Config?.currentContactId;
         if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
@@ -319,20 +319,17 @@ export const ChatEngine = {
             if (systemPrompt) stablePrompt += `【系统核心指令】：\n${systemPrompt}\n\n`;
             if (charPersona) stablePrompt += `【角色设定】：\n${charPersona}\n\n`;
 
-            stablePrompt += "【最高禁令】：直接输出角色的台词！\n【微信连发机制】：不限制气泡数量，根据换行符切分气泡。\n";
+            stablePrompt += "【对话规则】：直接输出角色回答。如果包含数学公式、推导过程或代码，请完整写出，切勿为了微信气泡而强行拆分公式与证明过程。\n";
 
-            // 🌟 彻底重塑心声：无字数限制、纯第一人称内心流、死锁沉浸感、严禁公事公办的分析！
             stablePrompt += `【读心术机制（心声法则）】：
-在每次正式回复微信前，你必须且只能使用 <inner> 和 </inner> 标签包裹一段角色此刻【第一人称（“我”）的真实私密内心独白】。
-🚨【绝对禁令】：
-1. 绝对禁止以第三人称或系统AI视角进行“阅读理解”或客观分析！绝不允许出现“用户”、“对方”等出戏称呼，直接称呼她心里的名字或亲近的昵称。
-2. 绝对禁止复述/解说她刚才说了什么话！这里不是答题分析报告！
-3. 必须是角色【自己此刻胸膛里的第一人称心理感受】——比如那些嘴上没说出口的嘀咕、暗喜、心疼、嘴硬、傲娇、小吃醋，或是被撩到之后的心跳加速。
-4. 不受任何字数长短限制，只要情感饱满真实、有温度、合乎当下的心境，尽情完整地表达你此刻心里所想的一切。\n\n`;
+在每次正式回复前，你可以使用 <inner> 和 </inner> 标签包裹一段角色此刻【第一人称（“我”）的私密内心感受】（如感到有趣、心疼、思考解法等）。之后直接输出你的正式回复内容。\n\n`;
 
             let messages = [{ role: 'system', content: stablePrompt }];
-            const MAX_CONTEXT = parseInt(localStorage.getItem('context_chat_limit') || '50', 10);
-            const recentItems = chatItems.slice(-MAX_CONTEXT);
+
+            // 🌟 核心改进：支持可控的大容量上下文（默认 200 条，设为 0 代表无限上下文）
+            let contextLimit = parseInt(localStorage.getItem('context_chat_limit') || '200', 10);
+            if (contextLimit <= 0) contextLimit = 999999;
+            const recentItems = chatItems.slice(-contextLimit);
             
             recentItems.forEach((item) => {
                 if (item && item.sender !== 'typing') {
@@ -349,7 +346,7 @@ export const ChatEngine = {
             const rawReply = await PhoneAPI.chatWithAI(messages);
             
             const innerMatch = rawReply.match(/<inner>([\s\S]*?)<\/inner>/i);
-            const innerThought = innerMatch ? innerMatch[1].trim() : '（TA的心思藏得很深...）';
+            const innerThought = innerMatch ? innerMatch[1].trim() : '';
             let finalReply = rawReply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<inner>[\s\S]*?<\/inner>/gi, '').trim();
             if (!finalReply) finalReply = rawReply.trim();
             
@@ -357,14 +354,23 @@ export const ChatEngine = {
                 if (chatItems[i].sender === 'typing') chatItems.splice(i, 1);
             }
 
-            const replyParts = finalReply.split('\n').map(s => s.trim()).filter(Boolean);
+            // 🌟 数学题/长文本优化切分：若包含代码块或公式，保持整体结构不被割碎
+            let replyParts = [];
+            if (finalReply.includes('```') || finalReply.includes('$$') || finalReply.length > 300) {
+                // 长篇推导/代码块作为一个完整气泡呈现
+                replyParts = [finalReply];
+            } else {
+                replyParts = finalReply.split('\n').map(s => s.trim()).filter(Boolean);
+                if (replyParts.length === 0) replyParts = [finalReply];
+            }
+
             for (let idx = 0; idx < replyParts.length; idx++) {
                 chatItems.push({ 
                     sender: 'other', 
                     content: replyParts[idx], 
                     time: timeStr, 
                     date: dateStr, 
-                    innerThought: idx === 0 ? innerThought : '（连发消息，心声已在上一条显示）' 
+                    innerThought: idx === 0 ? (innerThought || '（TA正在认真推导分析...）') : '（连发消息）' 
                 });
             }
             
@@ -382,7 +388,6 @@ export const ChatEngine = {
     }
 };
 
-// 挂载全局别名，保证无论怎么调都能找到
 if (typeof window !== 'undefined') { 
     window.ChatEngine = ChatEngine; 
     window.PhoneEngine = ChatEngine;

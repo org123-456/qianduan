@@ -87,7 +87,6 @@ export const PhoneUI = {
 
         if (!reader) return;
 
-        // 在书内/摘录本：先退回书架；再次点击才退出共读时光。
         if (reading && reading.style.display !== 'none') {
             if (window.PhoneEngine) {
                 window.PhoneEngine.closeReaderSettings?.();
@@ -362,19 +361,16 @@ export const PhoneUI = {
         contentEl.style.display = 'block';
         contentEl.style.overflow = 'auto';
 
-        // 游戏大厅由独立 GameUI 管理，PhoneUI 只负责把它挂载到通用 App 窗口。
         if (appId === 'games') {
             GameUI.open();
             return;
         }
 
-        // 共读时光使用独立阅读器窗口，不走通用 app-window，避免返回层级错乱。
         if (appId === 'reader' || appId === 'reading' || appId === 'bookshelf') {
             this.openReaderApp();
             return;
         }
 
-        // 🌟 日记入口统一走沉浸式全屏阅读；Space 里的书架只负责选书。
         if (appId === 'diary') {
             this.openDiaryFullscreen(this.currentDiaryBook || 'ta');
             return;
@@ -389,8 +385,6 @@ export const PhoneUI = {
                     <div class="vault-tab active" id="tab-daily" onclick="window.PhoneUI.switchVaultTab('daily')">日常 (Daily)</div>
                     <div class="vault-tab" id="tab-permanent" onclick="window.PhoneUI.switchVaultTab('permanent')">锚点 (Permanent)</div>
                 </div>
-                <button class="btn-refresh" onclick="window.PhoneUI.remindEchoVault()" style="margin-top: 0; margin-bottom: 15px; background: linear-gradient(135deg, #a78bfa, #8b5cf6); border-radius: 16px; box-shadow: 0 4px 15px rgba(167, 139, 250, 0.4);"><i class="ph-fill ph-bottle"></i> 捞一个漂流瓶</button>
-                <div id="chat-cleanup-panel"></div>
                 <div id="vault-content-area" style="padding-bottom: 80px;"></div>
             `;
             this.renderMemoryVault();
@@ -748,7 +742,6 @@ export const PhoneUI = {
         }
     },
 
-    // 🌟 纯字符串双轨安全保存
     async savePromptAndPersona() {
         const sysVal = document.getElementById('system-prompt')?.value || '';
         const charVal = document.getElementById('char-persona')?.value || '';
@@ -869,8 +862,11 @@ export const PhoneUI = {
         const lastIdx = parseInt(localStorage.getItem('memory_last_summary_index') || '0', 10);
         const unsummarizedCount = Math.max(0, cleanItems.length - lastIdx);
 
-        const curChatLimit = localStorage.getItem('context_chat_limit') || '60';
+        // 🌟 读取上下文设置与自动总结参数
+        const curChatLimit = localStorage.getItem('context_chat_limit') || '200';
         const curVaultLimit = localStorage.getItem('context_vault_limit') || '15';
+        const autoMemoryEnabled = localStorage.getItem('memory_auto_mode') !== 'false';
+        const autoMemoryThreshold = localStorage.getItem('memory_auto_threshold') || '15';
 
         contentEl.innerHTML = `
         <div class="settings-tabs" style="display: flex; gap: 6px; margin-bottom: 20px;">
@@ -970,9 +966,9 @@ export const PhoneUI = {
                 </button>
             </div>
 
-            <!-- 记忆抽取卡片 -->
+            <!-- 🌟 核心：记忆管理、上下文条数与自动总结门槛 -->
             <div class="card" style="padding: 16px; border: 1px solid var(--border-color);">
-                <h3 style="color:var(--primary-color);margin-bottom:12px; font-size: 15px;"><i class="ph-fill ph-brain"></i> 记忆管理与上下文提取</h3>
+                <h3 style="color:var(--primary-color);margin-bottom:12px; font-size: 15px;"><i class="ph-fill ph-brain"></i> 记忆管理与上下文调控</h3>
                 
                 <div style="background: var(--icon-bg); padding: 14px; border-radius: 12px; margin-bottom: 16px; border: 1px dashed var(--border-color); display: flex; justify-content: space-between; align-items: center;">
                     <div>
@@ -982,7 +978,7 @@ export const PhoneUI = {
                         </div>
                     </div>
                     <div style="display: flex; gap: 8px;">
-                        <button onclick="if(window.PhoneEngine){window.PhoneEngine.extractMemory('wechat'); PhoneUI.renderSettings(); PhoneUI.switchSetTab('ai');}" style="padding: 8px 14px; font-size: 12px; font-weight: bold; border-radius: 10px; background: var(--primary-color); color: #fff; border: none; cursor: pointer;">
+                        <button onclick="if(window.PhoneEngine){window.PhoneEngine.manualManageMemory(); PhoneUI.renderSettings(); PhoneUI.switchSetTab('ai');}" style="padding: 8px 14px; font-size: 12px; font-weight: bold; border-radius: 10px; background: var(--primary-color); color: #fff; border: none; cursor: pointer;">
                             <i class="ph-fill ph-sparkle"></i> 立即提取
                         </button>
                         <button onclick="localStorage.setItem('memory_last_summary_index', cleanItems.length.toString()); PhoneUI.renderSettings(); PhoneUI.switchSetTab('ai'); PhoneAPI.showToast('✅ 历史旧账已全部清零！');" style="padding: 8px 10px; font-size: 12px; border-radius: 10px; background: transparent; color: var(--text-sub); border: 1px solid var(--border-color); cursor: pointer;">
@@ -991,12 +987,26 @@ export const PhoneUI = {
                     </div>
                 </div>
 
+                <!-- 自动归档控制 -->
+                <div style="background: var(--icon-bg); padding: 12px; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--border-color);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-weight: bold; font-size: 13px; color: var(--text-main);">✨ 满额自动归档进星海</span>
+                        <input type="checkbox" id="toggle-auto-memory" ${autoMemoryEnabled ? 'checked' : ''} onchange="localStorage.setItem('memory_auto_mode', this.checked ? 'true' : 'false'); window.PhoneAPI?.showToast?.(this.checked ? '🟢 已开启自动记忆总结' : '⚪ 已关闭自动记忆总结');" style="width: 18px; height: 18px; accent-color: var(--primary-color); cursor: pointer;">
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-sub); margin-bottom: 6px;">
+                        <span>自动触发门槛（新聊满多少条触发）：</span>
+                        <b id="label-auto-threshold" style="color: var(--primary-color);">${autoMemoryThreshold} 条</b>
+                    </div>
+                    <input type="range" min="6" max="60" step="2" value="${autoMemoryThreshold}" oninput="document.getElementById('label-auto-threshold').innerText = this.value + ' 条'; localStorage.setItem('memory_auto_threshold', this.value);" style="width: 100%; accent-color: var(--primary-color);">
+                </div>
+
+                <!-- 上下文携带条数 -->
                 <div style="margin-bottom: 16px;">
                     <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
                         <span style="font-weight: bold; color: var(--text-main);">聊天上下文携带条数</span>
-                        <span id="label-chat-limit" style="color: var(--primary-color); font-weight: bold;">${curChatLimit} 条</span>
+                        <span id="label-chat-limit" style="color: var(--primary-color); font-weight: bold;">${curChatLimit === '0' ? '全量（无限记忆）' : curChatLimit + ' 条'}</span>
                     </div>
-                    <input type="range" min="10" max="200" step="5" value="${curChatLimit}" oninput="document.getElementById('label-chat-limit').innerText = this.value + ' 条'; localStorage.setItem('context_chat_limit', this.value);" style="width: 100%; accent-color: var(--primary-color);">
+                    <input type="range" min="20" max="500" step="10" value="${curChatLimit === '0' ? 500 : curChatLimit}" oninput="const val = this.value >= 500 ? '0' : this.value; document.getElementById('label-chat-limit').innerText = val === '0' ? '全量（无限记忆）' : val + ' 条'; localStorage.setItem('context_chat_limit', val);" style="width: 100%; accent-color: var(--primary-color);">
                 </div>
 
                 <div>

@@ -166,11 +166,7 @@ function nodeFinish(n) { return FINISH[(+n.arousal >= 0.5 ? "hi" : "lo") + (+n.v
 const BLUE = [200, 214, 251]; const R5 = 10, STEP = 0.7;
 function impRadius(i) { return R5 * Math.pow(STEP, 5 - Math.max(1, Math.min(5, i))); }
 const SIZE = { core: R5 * 2, baseline: R5 * 1.05, wiki: impRadius(4) };
-function lerp(a, b, t) { return a + (b - a) * t; }
-function mix(c1, c2, t) { return [lerp(c1[0], c2[0], t), lerp(c1[1], c2[1], t), lerp(c1[2], c2[2], t)]; }
-function cssRgb(c) { return "rgb(" + (c[0] | 0) + "," + (c[1] | 0) + "," + (c[2] | 0) + ")"; }
-function cssA(c, a) { return "rgba(" + (c[0] | 0) + "," + (c[1] | 0) + "," + (c[2] | 0) + "," + a + ")"; }
-function hexInt(c) { return (c[0] | 0) << 16 | (c[1] | 0) << 8 | (c[2] | 0); }
+
 function emotionColor(v, a) {
   const vv = Number.isFinite(+v) ? +v : 0; const aa = Number.isFinite(+a) ? +a : 0;
   if (aa >= 0.5) return (vv >= 0 ? Q.hiPos : Q.hiNeg).slice();
@@ -228,28 +224,21 @@ function bodyTexture(col) {
   if (_bodyCache[key]) return _bodyCache[key];
   const S = 512, cv = document.createElement("canvas"); cv.width = cv.height = S;
   const x = cv.getContext("2d"), c = S / 2, g = x.createRadialGradient(c, c, 0, c, c, c);
-  const solid = cssRgb(col), rim = cssRgb(mix(col, [255, 255, 255], 0.72));
-  g.addColorStop(0, solid); g.addColorStop(0.91, solid); g.addColorStop(0.945, rim); g.addColorStop(0.978, cssA(col, 1)); g.addColorStop(1, cssA(col, 0));
+  const solid = "rgb(" + (col[0]|0) + "," + (col[1]|0) + "," + (col[2]|0) + ")";
+  g.addColorStop(0, solid); g.addColorStop(0.91, solid); g.addColorStop(0.945, "#fff"); g.addColorStop(0.978, solid); g.addColorStop(1, "rgba(0,0,0,0)");
   x.fillStyle = g; x.fillRect(0, 0, S, S);
-  const img = x.getImageData(0, 0, S, S), d = img.data;
-  for (let i = 0; i < d.length; i += 4) {
-    if (d[i + 3] < 250) { d[i] = col[0]; d[i + 1] = col[1]; d[i + 2] = col[2]; }
-    if (d[i + 3] < 1) d[i + 3] = 1;
-  }
-  x.putImageData(img, 0, 0);
   const t = new THREE.CanvasTexture(cv); t.generateMipmaps = false; t.minFilter = THREE.LinearFilter; _bodyCache[key] = t; return t;
 }
 const _NOISE_GLSL = [
   "vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}", "vec4 mod289(vec4 x){return x-floor(x*(1.0/289.0))*289.0;}", "vec4 permute(vec4 x){return mod289(((x*34.0)+1.0)*x);}", "vec4 taylorInvSqrt(vec4 r){return 1.79284291400159-0.85373472095314*r;}",
-  "float snoise(vec3 v){ const vec2 C=vec2(1.0/6.0,1.0/3.0); const vec4 D=vec4(0.0,0.5,1.0,2.0); vec3 i=floor(v+dot(v,C.yyy)); vec3 x0=v-i+dot(i,C.xxx); vec3 g=step(x0.yzx,x0.xyz); vec3 l=1.0-g; vec3 i1=min(g.xyz,l.zxy); vec3 i2=max(g.xyz,l.zxy); vec3 x1=x0-i1+C.xxx; vec3 x2=x0-i2+C.yyy; vec3 x3=x0-D.yyy; i=mod289(i); vec4 p=permute(permute(permute(i.z+vec4(0.0,i1.z,i2.z,1.0))+i.y+vec4(0.0,i1.y,i2.y,1.0))+i.x+vec4(0.0,i1.x,i2.x,1.0)); float n_=0.142857142857; vec3 ns=n_*D.wyz-D.xzx; vec4 j=p-49.0*floor(p*ns.z*ns.z); vec4 x_=floor(j*ns.z); vec4 y_=floor(j-7.0*x_); vec4 x=x_*ns.x+ns.yyyy; vec4 y=y_*ns.x+ns.yyyy; vec4 h=1.0-abs(x)-abs(y); vec4 b0=vec4(x.xy,y.xy); vec4 b1=vec4(x.zw,y.zw); vec4 s0=floor(b0)*2.0+1.0; vec4 s1=floor(b1)*2.0+1.0; vec4 sh=-step(h,vec4(0.0)); vec4 a0=b0.xzyw+s0.xzyw*sh.xxyy; vec4 a1=b1.xzyw+s1.xzyw*sh.zzww; vec3 p0=vec3(a0.xy,h.x); vec3 p1=vec3(a0.zw,h.y); vec3 p2=vec3(a1.xy,h.z); vec3 p3=vec3(a1.zw,h.w); vec4 norm=taylorInvSqrt(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3))); p0*=norm.x; p1*=norm.y; p2*=norm.z; p3*=norm.w; vec4 m=max(0.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.0); m=m*m; return 42.0*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3))); }",
-  "float fbm(vec3 p){ float f=0.0,a=0.5; for(int i=0;i<4;i++){ f+=a*snoise(p); p*=2.03; a*=0.55; } return f; }"
+  "float snoise(vec3 v){ const vec2 C=vec2(1.0/6.0,1.0/3.0); const vec4 D=vec4(0.0,0.5,1.0,2.0); vec3 i=floor(v+dot(v,C.yyy)); vec3 x0=v-i+dot(i,C.xxx); vec3 g=step(x0.yzx,x0.xyz); vec3 l=1.0-g; vec3 i1=min(g.xyz,l.zxy); vec3 i2=max(g.xyz,l.zxy); vec3 x1=x0-i1+C.xxx; vec3 x2=x0-i2+C.yyy; vec3 x3=x0-D.yyy; i=mod289(i); vec4 p=permute(permute(permute(i.z+vec4(0.0,i1.z,i2.z,1.0))+i.y+vec4(0.0,i1.y,i2.y,1.0))+i.x+vec4(0.0,i1.x,i2.x,1.0)); float n_=0.142857142857; vec3 ns=n_*D.wyz-D.xzx; vec4 j=p-49.0*floor(p*ns.z*ns.z); vec4 x_=floor(j*ns.z); vec4 y_=floor(j-7.0*x_); vec4 x=x_*ns.x+ns.yyyy; vec4 y=y_*ns.x+ns.yyyy; vec4 h=1.0-abs(x)-abs(y); vec4 b0=vec4(x.xy,y.xy); vec4 b1=vec4(x.zw,y.zw); vec4 s0=floor(b0)*2.0+1.0; vec4 s1=floor(b1)*2.0+1.0; vec4 sh=-step(h,vec4(0.0)); vec4 a0=b0.xzyw+s0.xzyw*sh.xxyy; vec4 a1=b1.xzyw+s1.xzyw*sh.zzww; vec3 p0=vec3(a0.xy,h.x); vec3 p1=vec3(a0.zw,h.y); vec3 p2=vec3(a1.xy,h.z); vec3 p3=vec3(a1.zw,h.w); vec4 norm=taylorInvSqrt(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3))); p0*=norm.x; p1*=norm.y; p2*=norm.z; p3*=norm.w; vec4 m=max(0.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.0); m=m*m; return 42.0*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3))); }"
 ].join("\n");
 function coreBodyMaterial(T) {
   return new T.ShaderMaterial({
     transparent: true, depthWrite: false, depthTest: false,
     uniforms: { uTime: { value: 0 }, uOpacity: { value: 1 }, uStudy: { value: 1 } },
     vertexShader: "varying vec3 vN; varying vec3 vV; varying vec3 vP;\nvoid main(){ vP=normalize(position); vec4 mv=modelViewMatrix*vec4(position,1.0);\n  vN=normalize(normalMatrix*normal); vV=-mv.xyz; gl_Position=projectionMatrix*mv; }",
-    fragmentShader: _NOISE_GLSL + "\nuniform float uTime; uniform float uOpacity; uniform float uStudy;\nvarying vec3 vN; varying vec3 vV; varying vec3 vP;\nvoid main(){\n  vec3 col = vec3(0.784,0.839,0.984);\n  float rim = pow(1.0-max(0.0,dot(normalize(vN),normalize(vV))),3.2);\n  float flow = 0.5+0.5*sin(vP.y*5.0+vP.x*3.0-uTime*0.35);\n  col = mix(col,vec3(0.88,0.93,1.0),uStudy*rim*(0.20+0.12*flow));\n  gl_FragColor = vec4(col, uOpacity);\n}"
+    fragmentShader: _NOISE_GLSL + "\nuniform float uTime; uniform float uOpacity; uniform float uStudy;\nvarying vec3 vN; varying vec3 vV; varying vec3 vP;\nvoid main(){\n  vec3 col = vec3(0.784,0.839,0.984);\n  float rim = pow(1.0-max(0.0,dot(normalize(vN),normalize(vV))),3.2);\n  gl_FragColor = vec4(col, uOpacity);\n}"
   });
 }
 function coreAuraMaterial(T, o) {
@@ -258,39 +247,30 @@ function coreAuraMaterial(T, o) {
   return new T.ShaderMaterial({
     transparent: true, depthWrite: false, depthTest: false,
     uniforms: { uTime: { value: 0 }, uOpacity: { value: 1 }, uStudy: { value: 1 }, uAmp: { value: o.amp }, uFreq: { value: o.freq }, uSpeed: { value: o.speed }, uAlpha: { value: o.alpha }, uBase: { value: o.base }, uPhase: { value: o.phase }, uUp: { value: o.up }, uTip: { value: o.tip }, uSat: { value: o.sat == null ? 0.8 : o.sat }, uRim: { value: o.rim == null ? 0 : o.rim }, uRimPow: { value: o.rimPow == null ? 1.6 : o.rimPow }, uCol: { value: new T.Vector3(c.r, c.g, c.b) }, uColTip: { value: new T.Vector3(cT.r, cT.g, cT.b) } },
-    vertexShader: "precision highp float;\n" + _NOISE_GLSL + "\nuniform float uTime,uAmp,uFreq,uSpeed,uBase,uPhase,uUp,uStudy;\nvarying float vLobe; varying float vRim;\nvoid main(){\n  vec3 vP = normalize(position);\n  vRim = 1.0 - abs(normalize(normalMatrix * vP).z);\n  float n1 = snoise(vP*uFreq + vec3(0.0, -uTime*uSpeed, uPhase));\n  float n2 = snoise(vP*(uFreq*2.1) + vec3(uTime*uSpeed*0.5, -uTime*uSpeed*1.25, uPhase*1.7+3.0));\n  float shared = snoise(vP*1.55 + vec3(0.0,-uTime*0.13,2.4));\n  float detail = snoise(vP*3.2 + vec3(uTime*0.035,-uTime*0.17,1.2));\n  float oldField=0.72*n1+0.28*n2;\n  float lobe = 0.5 + 0.5*mix(oldField,0.82*shared+0.18*detail,uStudy);\n  lobe = pow(clamp(lobe,0.0,1.0), 2.55);\n  float upB = 1.0 + uUp*max(vP.y, 0.0);\n  vLobe = clamp(lobe*upB, 0.0, 1.4);\n  vec3 p = position * (uBase + uAmp*lobe*upB*mix(1.0,0.82,uStudy));\n  gl_Position = projectionMatrix * modelViewMatrix * vec4(p,1.0);\n}",
-    fragmentShader: "precision highp float;\nuniform float uAlpha,uOpacity,uTip,uSat,uRim,uRimPow,uStudy; uniform vec3 uCol,uColTip;\nvarying float vLobe; varying float vRim;\nvoid main(){\n  float fade = 1.0 - uTip*smoothstep(0.15, 1.1, vLobe);\n  fade *= mix(1.0, pow(clamp(vRim,0.0,1.0), uRimPow), uRim);\n  vec3 col = mix(uCol, uColTip, uSat*smoothstep(0.20, 1.00, vLobe));\n  fade *= mix(1.0,1.0-smoothstep(0.72,1.0,vRim),uStudy*0.94);\n  gl_FragColor = vec4(col, uAlpha*fade*uOpacity);\n}"
+    vertexShader: "precision highp float;\n" + _NOISE_GLSL + "\nuniform float uTime,uAmp,uFreq,uSpeed,uBase,uPhase,uUp,uStudy;\nvarying float vLobe; varying float vRim;\nvoid main(){\n  vec3 vP = normalize(position);\n  vRim = 1.0 - abs(normalize(normalMatrix * vP).z);\n  float lobe = 0.5 + 0.5*snoise(vP*uFreq + vec3(0.0, -uTime*uSpeed, uPhase));\n  vLobe = clamp(lobe*(1.0 + uUp*max(vP.y, 0.0)), 0.0, 1.4);\n  vec3 p = position * (uBase + uAmp*vLobe);\n  gl_Position = projectionMatrix * modelViewMatrix * vec4(p,1.0);\n}",
+    fragmentShader: "precision highp float;\nuniform float uAlpha,uOpacity,uTip,uSat,uRim,uRimPow,uStudy; uniform vec3 uCol,uColTip;\nvarying float vLobe; varying float vRim;\nvoid main(){\n  float fade = 1.0 - uTip*smoothstep(0.15, 1.1, vLobe);\n  vec3 col = mix(uCol, uColTip, uSat*smoothstep(0.20, 1.00, vLobe));\n  gl_FragColor = vec4(col, uAlpha*fade*uOpacity);\n}"
   });
 }
 var CORE_AURA = [
   { amp: 0.4, freq: 0.55, speed: 0.16, alpha: 0.38, base: 1.012, col: "#b0c6fb", up: 0.45, tip: 0.95, phase: 7.3, swirl: 0.04, sat: 0.85, rim: 0.75, rimPow: 1.35 },
-  { amp: 0.13, freq: 0.85, speed: 0.26, alpha: 0.95, base: 1, col: "#d4e0fd", up: 0.25, tip: 0.55, phase: 1.1, swirl: -0.07, sat: 0.45, rim: 1, rimPow: 1.5 },
-  { amp: 0.15, freq: 2.4, speed: 0.42, alpha: 0.62, base: 1.028, col: "#b8cfff", up: 0.78, tip: 0.8, phase: 4.7, swirl: 0.13, sat: 1, rim: 1, rimPow: 2.1 }
+  { amp: 0.13, freq: 0.85, speed: 0.26, alpha: 0.95, base: 1, col: "#d4e0fd", up: 0.25, tip: 0.55, phase: 1.1, swirl: -0.07, sat: 0.45, rim: 1, rimPow: 1.5 }
 ];
 const _haloTex = {};
 function haloTexture(kind) {
   if (_haloTex[kind]) return _haloTex[kind];
   const S = 512, cv = document.createElement("canvas"); cv.width = cv.height = S;
   const x = cv.getContext("2d"), c = S / 2, g = x.createRadialGradient(c, c, 0, c, c, c);
-  if (kind === "core") {
-    g.addColorStop(0, "rgba(255,255,255,0.00)"); g.addColorStop(0.3, "rgba(255,255,255,0.26)"); g.addColorStop(0.41, "rgba(255,255,255,0.44)"); g.addColorStop(0.49, "rgba(255,255,255,0.36)"); g.addColorStop(0.58, "rgba(255,255,255,0.24)"); g.addColorStop(0.7, "rgba(255,255,255,0.155)"); g.addColorStop(0.85, "rgba(255,255,255,0.072)");
-  } else {
-    g.addColorStop(0, "rgba(255,255,255,0.00)"); g.addColorStop(0.48, "rgba(255,255,255,0.22)"); g.addColorStop(0.58, "rgba(255,255,255,0.34)"); g.addColorStop(0.76, "rgba(255,255,255,0.18)");
-  }
-  g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(0, 0, S, S);
-  const img = x.getImageData(0, 0, S, S), d = img.data;
-  for (let i = 0; i < d.length; i += 4) { d[i] = 255; d[i + 1] = 255; d[i + 2] = 255; if (d[i + 3] < 1) d[i + 3] = 1; }
-  x.putImageData(img, 0, 0);
+  g.addColorStop(0, "rgba(255,255,255,0.00)"); g.addColorStop(0.5, "rgba(255,255,255,0.3)"); g.addColorStop(1, "rgba(255,255,255,0)");
+  x.fillStyle = g; x.fillRect(0, 0, S, S);
   const t = new THREE.CanvasTexture(cv); t.generateMipmaps = false; t.minFilter = THREE.LinearFilter; _haloTex[kind] = t; return _haloTex[kind];
 }
-const SM_OFF = new Set();
+
 function createRenderer(container, opts) {
   opts = opts || {};
   const T = THREE;
-  let study = opts.study !== false;
-  let familyIds = null, familyEpoch = 0;
+  let study = true;
+  let familyIds = null;
   let shape = "free", chosenShape = "free", shapeMix = 0, ringMix = 0, spiralAngle = 0, spiralPaused = false;
-  
   let W = window.innerWidth, H = window.innerHeight;
   
   const scene = new T.Scene();
@@ -299,7 +279,6 @@ function createRenderer(container, opts) {
   const DEF_POS = new T.Vector3(0, 0, 230);
   const EXP_POS = new T.Vector3(149, 62, 620);
   const CORE_POS = new T.Vector3(0, 0, 0);
-  const overviewPosition = () => expanded ? shape !== "free" ? new T.Vector3(0,0,700) : EXP_POS : DEF_POS;
   camera.position.copy(opts.expanded ? EXP_POS : DEF_POS);
   const renderer = new T.WebGLRenderer({ antialias: true, alpha: true });
   renderer.outputColorSpace = T.LinearSRGBColorSpace;
@@ -309,60 +288,20 @@ function createRenderer(container, opts) {
   renderer.domElement.style.cssText = "display:block;width:100%;height:100%;position:absolute;top:0;left:0;z-index:0;";
   container.appendChild(renderer.domElement);
   
-  let idleSpin = true, _spinLastT = 0, _tNow = 0;
-  const _nowSec = () => _tNow;
-  const _spinAxis = new T.Vector3(), _spinOff = new T.Vector3(), _spinH = new T.Vector3();
   const controls = new T.OrbitControls(camera, renderer.domElement);
   controls.staticMoving = false; controls.dynamicDampingFactor = 0.12; controls.rotateSpeed = 2; controls.noPan = true; controls.minDistance = 40; controls.maxDistance = 820; controls.enablePan = false; controls.enabled = !!opts.expanded;
-  let interacting = false, _spinResumeAt = 0;
+  let interacting = false, flying = false, flightRate = 0.08, maxAct = 1, raf = 0, alive = true, t0 = performance.now ? null : 0, _tAcc = 0, _rawLast = 0;
   controls.addEventListener("start", () => { flying = false; interacting = true; });
-  controls.addEventListener("end", () => { interacting = false; _spinResumeAt = _nowSec() + 0.8; });
+  controls.addEventListener("end", () => { interacting = false; });
   
-  const haloView = new T.Vector3();
-  const edgeA = new T.Vector3(), edgeB = new T.Vector3(), edgeDir = new T.Vector3();
   const raycaster = new T.Raycaster();
   const mouse = new T.Vector2();
   let nodes = [], links = [], softlinks = [], sprites = [], dustLayers = [], dustPoints = null, lineSeg = null, softSeg = null, hlLines = null, adj = Object.create(null), focusedNeighbors = null;
   const dustScale = () => renderer.domElement.height * 0.5 / Math.tan(camera.fov * Math.PI / 360);
-  let expanded = !!opts.expanded, focused = null, flying = false, flightRate = 0.08, maxAct = 1, raf = 0, alive = true, t0 = performance.now ? null : 0, _tAcc = 0, _rawLast = 0;
-  const target = DEF_POS.clone(), look = new T.Vector3(0, 0, 0), tLook = new T.Vector3(0, 0, 0);
-  const spiralView = new T.Vector3(), ringView=new T.Vector3();
-  const ORBIT_PATHS = 6;
-  let orbitLines = null;
-  
-  function arrangeSpiral() {
-    const members = sprites.filter((s) => !familyIds || familyIds.has(s.n.id));
-    const rings=new Map(ringLayout(members.map(s=>({id:s.n.id,radius:s.r,core:s.n.kind==="core"})),hash).map(p=>[p.id,p]));
-    sprites.forEach((s) => {
-      const rp=rings.get(s.n.id);s.ring=new T.Vector3(rp?.x||0,rp?.y||0,rp?.z||0);
-      s.orbit = orbitFor({id:s.n.id,core:s.n.kind === "core"},hash);
-    });
-    if (orbitLines) { scene.remove(orbitLines); orbitLines.geometry.dispose(); orbitLines.material.dispose(); }
-    const points = [], point = new T.Vector3();
-    const drawn = members.filter((s) => s.orbit.radius && s.r >= impRadius(5)).sort((a, b) => b.r - a.r || a.n.id.localeCompare(b.n.id)).slice(0, ORBIT_PATHS);
-    for (const s of drawn) {
-      for (let i = 0; i < 128; i++) {
-        for (const step of [i, i + 1]) {
-          orbitPosition({...s.orbit, phase: 0, rate: 1}, step / 128 * Math.PI * 2, point);
-          points.push(point.x, point.y, point.z);
-        }
-      }
-    }
-    const geometry = new T.BufferGeometry();
-    geometry.setAttribute("position", new T.Float32BufferAttribute(points, 3));
-    orbitLines = new T.LineSegments(geometry, threadMaterial(15129798, 0, .5));
-    orbitLines.visible = false;
-    scene.add(orbitLines);
-  }
-  
-  const foreground = lensDust(T);
-  if (foreground) scene.add(foreground);
-  const accents = starAccents(T, scene);
-  
-  function flyTo(pos, center, rate) { target.copy(pos); tLook.copy(center || CORE_POS); flightRate = rate || 0.08; flying = true; }
+  let expanded = !!opts.expanded, focused = null;
+  const target = DEF_POS.clone(), tLook = new T.Vector3(0, 0, 0);
   
   function clear() {
-    accents.clear();
     sprites.forEach((s) => { scene.remove(s.body); scene.remove(s.glow); if (s.shells) s.shells.forEach((sh) => scene.remove(sh.mesh)); });
     sprites = [];
     dustLayers.forEach((d) => { scene.remove(d); d.geometry.dispose(); d.material.dispose(); });
@@ -393,281 +332,61 @@ function createRenderer(container, opts) {
         body = new T.Sprite(bMat); body.position.set(n.x, n.y, n.z);
         const bScale = r * 2.05; body.scale.set(bScale, bScale, 1); body.renderOrder = 2; body.userData = n;
       }
-      const gCol = isCore ? 10466536 : hexInt(col);
-      const gMat = new T.SpriteMaterial({ map: haloTexture(isCore ? "core" : "normal"), color: new T.Color(gCol), transparent: true, depthWrite: false, depthTest: false, blending: T.NormalBlending, opacity: 0 });
+      const gMat = new T.SpriteMaterial({ map: haloTexture(isCore ? "core" : "normal"), color: new T.Color(isCore ? 0x9fb4e8 : 0xffffff), transparent: true, depthWrite: false, depthTest: false, blending: T.NormalBlending, opacity: 0 });
       const glow = new T.Sprite(gMat); glow.position.set(n.x, n.y, n.z); glow.renderOrder = 1;
       scene.add(glow); scene.add(body);
       
-      const oldBody = body.material, oldGlow = glow.material;
-      const finish = n.kind === "event" ? nodeFinish(n) : null;
-      const nextBody = isCore ? oldBody : lightMaterial(col, { stroke: finish?.stroke });
-      const nextGlow = lightMaterial(isCore ? [159, 180, 232] : col, { halo: true, core: isCore });
-      body.material = study ? nextBody : oldBody; glow.material = study ? nextGlow : oldGlow;
-      if (coreMat) coreMat.uniforms.uStudy.value = study ? 1 : 0;
-      if (shells) shells.forEach((sh) => sh.mat.uniforms.uStudy.value = study ? 1 : 0);
-      const sp = { oldBody, oldGlow, nextBody, nextGlow, n, body, glow, r, coreMat, shells, base: new T.Vector3(n.x, n.y, n.z), ph: hash(n.id, 9) * 6.28, ph2: hash(n.id, 11) * 6.28 };
+      const sp = { n, body, glow, r, coreMat, shells, base: new T.Vector3(n.x, n.y, n.z), ph: hash(n.id, 9) * 6.28 };
       sprites.push(sp);
     });
-    const pos = Object.create(null); sprites.forEach((s) => pos[s.n.id] = s.body.position);
-    adj = Object.create(null);
-    function addAdj(a, b) { (adj[a] || (adj[a] = new Set())).add(b); (adj[b] || (adj[b] = new Set())).add(a); }
-    (links || []).forEach(([a, b]) => addAdj(a, b)); (softlinks || []).forEach(([a, b]) => addAdj(a, b));
-    function seg(list, color, op) {
-      const pts = [];
-      (list || []).forEach(([a, b]) => { const A = pos[a], B = pos[b]; if (A && B) { pts.push(A.x, A.y, A.z, B.x, B.y, B.z); } });
-      if (!pts.length) return null;
-      const geo = new T.BufferGeometry(); geo.setAttribute("position", new T.Float32BufferAttribute(pts, 3));
-      const m = threadMaterial(color, op); const ls = new T.LineSegments(geo, m);
-      ls.userData.edges = list.filter(([a, b]) => pos[a] && pos[b]); scene.add(ls); return ls;
-    }
-    softSeg = seg(softlinks, 10985410, 0.07); lineSeg = seg(links, 15129798, 0.5);
-    dustPoints = makeDust(1600, 2200); scene.add(dustPoints); dustLayers.push(dustPoints);
   }
-  
-  const DUST_PALETTE = [[245, 228, 198], [190, 194, 236]]; const DUST_QUOTA = [297, 58, 35, 24, 9]; const DUST_BANDS = [[0.8, 1.4], [1.4, 2.2], [2.2, 3.5], [3.5, 5], [5, 7]]; const DUST_SCALE_REF = 246.4, DUST_DISTANCE_REF = 1250;
-  function makeDust(count, radius) {
-    const pos = new Float32Array(count * 3), col = new Float32Array(count * 3), mag = new Float32Array(count), rnd = new Float32Array(count * 4);
-    const qSum = DUST_QUOTA.reduce((a, b) => a + b, 0); let acc = 0; const cut = DUST_QUOTA.map((q) => (acc += q) / qSum);
-    for (let i = 0; i < count; i++) {
-      const ct = 2 * hash("d" + i, 3) - 1, st = Math.sqrt(1 - ct * ct), ph = 6.283185 * hash("d" + i, 5);
-      const r = radius * Math.cbrt(0.02 + 0.98 * hash("d" + i, 7));
-      let X = r * st * Math.cos(ph), Y = r * st * Math.sin(ph), Z = r * ct;
-      if (hash("band" + i, 2) < 0.63) {
-        const angle = ph + 0.32 * Math.sin(ph * 3); const radial = radius * (0.5 + 0.5 * hash("band" + i, 4)); const thickness = (hash("band" + i, 6) + hash("band" + i, 8) - 1) * 180;
-        X = radial * Math.cos(angle); Z = radial * Math.sin(angle); Y = 0.52 * X + 0.16 * Z + 90 * Math.sin(angle * 3) + thickness;
-      }
-      pos[i * 3] = X; pos[i * 3 + 1] = Y; pos[i * 3 + 2] = Z;
-      const P = DUST_PALETTE[Math.floor(hash("d" + i, 13) * DUST_PALETTE.length) % DUST_PALETTE.length];
-      col[i * 3] = P[0] / 255; col[i * 3 + 1] = P[1] / 255; col[i * 3 + 2] = P[2] / 255;
-      for (let k = 0; k < 4; k++) rnd[i * 4 + k] = hash("r" + i, 17 + k);
-      const u = hash("m" + i, 23); let b = 0; while (b < 4 && u > cut[b]) b++;
-      const e = DUST_BANDS[b], tgt = e[0] + (e[1] - e[0]) * hash("m" + i, 29); mag[i] = tgt * DUST_DISTANCE_REF / DUST_SCALE_REF;
-    }
-    const g = new T.BufferGeometry(); g.setAttribute("position", new T.BufferAttribute(pos, 3)); g.setAttribute("color", new T.BufferAttribute(col, 3)); g.setAttribute("aRnd", new T.BufferAttribute(rnd, 4)); g.setAttribute("aMag", new T.BufferAttribute(mag, 1));
-    const m = new T.ShaderMaterial({
-      vertexColors: true, transparent: true, depthWrite: false, blending: T.NormalBlending,
-      uniforms: { uTime: { value: 0 }, uScale: { value: dustScale() }, uMaxPx: { value: 7 }, uTwSmall: { value: 1.8 }, uTwBig: { value: 5 }, uTwUp: { value: 0.85 }, uTwDn: { value: 0.22 }, uGateLo: { value: 0.55 }, uGateHi: { value: 0.92 }, uDpr: { value: renderer.getPixelRatio() } },
-      vertexShader: `attribute vec4 aRnd; attribute float aMag; uniform float uTime, uScale, uMaxPx; uniform float uTwSmall, uTwBig, uTwUp, uTwDn, uGateLo, uGateHi, uDpr; varying vec3 vCol; varying float vTw; void main(){ vCol = color; vec3 pos = position; float wave = dot(position, vec3(.0021, -.0013, .0017)); float drift = uTime * .024; vec3 flow = vec3(cos(wave + drift), sin(wave * .7 - drift), cos(wave * .4 + drift * .6)); pos += flow * (3.0 + 6.0 * aRnd.x); vec4 mv = modelViewMatrix * vec4(pos, 1.0); float ps = aMag * (uScale / max(1.0, -mv.z)); gl_PointSize = min(ps, uMaxPx*uDpr); float t = uTime; float amt = 1.0 - smoothstep(uTwSmall*uDpr, uTwBig*uDpr, ps); float rate = 4.0 + 10.0*aRnd.z; float gs = 0.09 + 0.20*aRnd.w; float gate = smoothstep(uGateLo, uGateHi, sin(t*gs*6.2832 + 6.2832*aRnd.x)); float fast = 0.5 + 0.5*sin(t*rate + 6.2832*aRnd.y); float s = gate * (fast*2.0 - 1.0); vTw = 1.0 + amt * (s > 0.0 ? s*uTwUp : s*uTwDn); gl_Position = projectionMatrix * mv; }`,
-      fragmentShader: `precision highp float; varying vec3 vCol; varying float vTw; void main(){ float d = length(gl_PointCoord - vec2(0.5)); gl_FragColor = vec4(vCol * vTw, 1.0-smoothstep(0.40,0.5,d)); }`
-    });
-    const pts = new T.Points(g, m); pts.frustumCulled = false; return pts;
-  }
-  
+
   function animate(ts) {
     if (!alive) return;
     if (t0 == null) { t0 = ts; _rawLast = 0; }
-    const _raw = (ts - t0) / 1e3; const frameDt = Math.min(0.05, Math.max(0, _raw - _rawLast)); _tAcc += frameDt; _rawLast = _raw; const t = _tAcc; _tNow = t;
-    shapeMix = T.MathUtils.lerp(shapeMix, shape !== "free" ? 1 : 0, 1 - Math.exp(-frameDt / 0.65));
-    ringMix=T.MathUtils.lerp(ringMix,shape==="ring"?1:0,1-Math.exp(-frameDt/.65));
-    if (shape !== "free" && !spiralPaused && expanded && !focused && !interacting) spiralAngle += frameDt * 0.035;
-    if (foreground) { foreground.visible = expanded; foreground.material.uniforms.uTime.value = t; foreground.material.uniforms.uDpr.value = renderer.getPixelRatio(); }
-    if (dustPoints) {
-      const u = dustPoints.material.uniforms; u.uTime.value = t; u.uScale.value = dustScale(); u.uDpr.value = renderer.getPixelRatio();
-      dustPoints.rotation.x = Math.sin(t * 0.021) * 0.045; dustPoints.rotation.y = Math.cos(t * 0.037) * 0.07; dustPoints.rotation.z = t * 0.012;
-    }
+    const _raw = (ts - t0) / 1e3; const frameDt = Math.min(0.05, Math.max(0, _raw - _rawLast)); _tAcc += frameDt; _rawLast = _raw; const t = _tAcc;
 
     sprites.forEach((s) => {
-      const n = s.n, heat = Math.min(1, (n.activation || 0) / maxAct);
-      let op, sizeMul; const isCore = n.kind === "core";
-      if (isCore) { op = 1; sizeMul = 0.82; } else if (n.kind === "wiki" || n.kind === "baseline") { op = 0.68; sizeMul = 0.82; } else { op = 0.7 + 0.1 * heat; sizeMul = 0.78 + 0.12 * heat; }
-      
-      const br = 0.5 + 0.5 * Math.sin(t * (isCore ? 0.95 : (1.1 + s.ph * 0.15)) + s.ph);
-      const floatSpeed = isCore ? 0.35 : 0.65;
-      const driftX = Math.sin(t * floatSpeed + s.ph) * (isCore ? 2.5 : 8.5) + Math.cos(t * floatSpeed * 0.5 + s.ph2) * 3.5;
-      const driftY = Math.cos(t * floatSpeed * 0.85 + s.ph2) * (isCore ? 2.5 : 9.5) + Math.sin(t * floatSpeed * 0.4 + s.ph) * 3.0;
-      const driftZ = Math.sin(t * floatSpeed * 0.7 + s.ph + s.ph2) * (isCore ? 1.5 : 6.0);
-
-      s.body.position.set(
-        s.base.x + driftX * (1 - shapeMix),
-        s.base.y + driftY * (1 - shapeMix),
-        s.base.z + driftZ * (1 - shapeMix)
-      );
-
-      if (s.orbit && shapeMix > 1e-4) {
-        const c = Math.cos(spiralAngle), sn = Math.sin(spiralAngle);
-        orbitPosition(s.orbit, spiralAngle, spiralView);
-        const rx=s.ring.x*c-s.ring.y*sn,ry=s.ring.x*sn+s.ring.y*c;
-        const tiltedY=ry*.46-s.ring.z*.888;
-        ringView.set(rx*.976-tiltedY*.218,rx*.218+tiltedY*.976,ry*.888+s.ring.z*.46);
-        spiralView.lerp(ringView,ringMix);
-        s.body.position.lerp(spiralView, shapeMix);
-      }
-
-      const shapeScale=T.MathUtils.lerp(1,isCore?3:.6,shapeMix); s.displayRadius=s.r*shapeScale; s.glow.position.copy(s.body.position);
-      const bScale = (0.92 + 0.12 * br); 
-      const gs = s.displayRadius * 2.05 * (1.64 + 0.18 * sizeMul) * bScale * (isCore ? 1.39 : 1);
-      haloView.copy(s.body.position).applyMatrix4(camera.matrixWorldInverse);
-      const haloScale = gs; s.glow.scale.set(haloScale, haloScale, 1);
-      s.nextGlow.uniforms.uInner.value = s.displayRadius * 2 / haloScale; s.nextGlow.uniforms.uGain.value = 1;
-      if (!isCore) s.nextBody.uniforms.uTime.value = t + s.ph;
-      const bright = !focused || s === focused || focusedNeighbors && focusedNeighbors.has(n.id);
-      const opBreath = isCore ? 0.78 + 0.22 * br : 0.72 + 0.36 * br;
-      s.glow.material.opacity = Math.min(1, (bright ? op : op * 0.08) * opBreath);
-      
-      if (s.coreMat) {
-        s.coreMat.uniforms.uTime.value = t; s.coreMat.uniforms.uOpacity.value = bright ? 1 : 0.12;
-        const pulse = 1 + 0.035 * Math.sin(t * 0.9); s.body.scale.setScalar(pulse*shapeScale); s.body.rotation.y = t * 0.07; s.body.rotation.z = Math.sin(t * 0.11) * 0.12;
-        if (s.shells) s.shells.forEach((sh) => { sh.mesh.position.copy(s.body.position); sh.mesh.scale.setScalar(pulse*shapeScale); sh.mesh.rotation.z = t * sh.swirl * (study ? 0.18 : 1); sh.mat.uniforms.uTime.value = t; sh.mat.uniforms.uOpacity.value = bright ? 1 : 0.1; });
-      } else {
-        const pulse = 1 + 0.05 * Math.sin(t * 1.5 + s.ph);
-        s.body.scale.set(s.r*2.05*shapeScale*pulse, s.r*2.05*shapeScale*pulse, 1); 
-        s.body.material.opacity = bright ? 1 : 0.12;
-      }
+      const isCore = s.n.kind === "core";
+      const driftX = Math.sin(t * 0.5 + s.ph) * (isCore ? 2 : 6);
+      const driftY = Math.cos(t * 0.4 + s.ph) * (isCore ? 2 : 6);
+      s.body.position.set(s.base.x + driftX, s.base.y + driftY, s.base.z);
+      s.glow.position.copy(s.body.position);
+      const gs = s.r * 2.5;
+      s.glow.scale.set(gs, gs, 1);
+      s.glow.material.opacity = 0.6 + 0.2 * Math.sin(t * 1.5 + s.ph);
     });
 
-    const byId = new Map(sprites.map((s) => [s.n.id, s]));
-    const fadeStep = 1 - Math.exp(-frameDt / 0.18);
-    if (orbitLines) {
-      const opacity = (focused ? .22 : .4) * T.MathUtils.smoothstep(shapeMix, .9, 1) * (1 - ringMix);
-      orbitLines.material.opacity = opacity; orbitLines.visible = opacity > .001;
-    }
-    for (const [line, goal] of [[lineSeg, focused ? 0.1 : 0.42], [softSeg, focused ? 0.025 : 0.115], [hlLines, 0.68]]) {
-      if (!line) continue;
-      line.material.opacity = T.MathUtils.lerp(line.material.opacity, goal * (1 - shapeMix), fadeStep); line.visible = shapeMix < 0.999;
-      const attr = line.geometry.attributes.position;
-      (line.userData.edges || []).forEach(([a, b], i) => {
-        if (familyIds && (!familyIds.has(a) || !familyIds.has(b))) { attr.setXYZ(i * 2, 0, 0, 0); attr.setXYZ(i * 2 + 1, 0, 0, 0); return; }
-        const A = byId.get(a), B = byId.get(b); if (!A || !B) return;
-        
-        edgeA.copy(A.body.position); 
-        edgeB.copy(B.body.position); 
-        edgeDir.subVectors(edgeB, edgeA);
-        const len = edgeDir.length(); edgeDir.normalize(); 
-        const trim = Math.min(1, len / Math.max(1e-3, A.r + B.r));
-        edgeA.addScaledVector(edgeDir, A.r * trim); 
-        edgeB.addScaledVector(edgeDir, -B.r * trim);
-        attr.setXYZ(i * 2, edgeA.x, edgeA.y, edgeA.z); 
-        attr.setXYZ(i * 2 + 1, edgeB.x, edgeB.y, edgeB.z);
-      });
-      attr.needsUpdate = true; line.geometry.computeBoundingSphere();
-    }
-    if (flying) {
-      if (focused) { target.add(spiralView.copy(focused.body.position).sub(tLook)); tLook.copy(focused.body.position); }
-      camera.position.lerp(target, flightRate); controls.target.lerp(tLook, flightRate);
-      if (camera.position.distanceTo(target) < 4 && controls.target.distanceTo(tLook) < 2) flying = false;
-    }
-    if (!flying && expanded && !familyIds) {
-      const orbitDistance = camera.position.distanceTo(controls.target);
-      if (focused && orbitDistance < 440) controls.target.lerp(focused.body.position, 0.07);
-      else if (!focused || orbitDistance > 520) controls.target.lerp(CORE_POS, focused ? 0.014 : 0.04);
-    }
-    if (shape === "free" && idleSpin && !flying && !focused && !interacting && t >= _spinResumeAt) {
-      const dt = Math.min(0.033, Math.max(0, t - _spinLastT)); const SPIN_RATE = 0.5, tt = t * SPIN_RATE; const sp = (0.075 + 0.05 * Math.sin(tt * 0.017)) * SPIN_RATE;
-      _spinAxis.set(Math.sin(tt * 0.011) * 0.35, 1, Math.sin(tt * 7e-3 + 1.7) * 0.35).normalize();
-      _spinOff.copy(camera.position).sub(controls.target); _spinOff.applyAxisAngle(_spinAxis, sp * dt); camera.up.applyAxisAngle(_spinAxis, sp * dt);
-      _spinH.crossVectors(_spinAxis, _spinOff);
-      if (_spinH.lengthSq() < 1e-8) { camera.position.copy(controls.target).add(_spinOff); _spinLastT = t; } else {
-        _spinH.normalize(); _spinOff.applyAxisAngle(_spinH, 7e-3 * SPIN_RATE * Math.sin(tt * 0.019) * dt); camera.up.applyAxisAngle(_spinH, 7e-3 * SPIN_RATE * Math.sin(tt * 0.019) * dt).normalize(); camera.position.copy(controls.target).add(_spinOff);
-      }
-    }
-    _spinLastT = t;
-    if (Math.abs(camera.fov - targetFov) > 1e-3) { camera.fov = T.MathUtils.lerp(camera.fov, targetFov, 1 - Math.exp(-frameDt / 0.28)); camera.updateProjectionMatrix(); }
     controls.update();
-    sprites.forEach((s) => { const visible = !familyIds || familyIds.has(s.n.id); s.body.visible = visible; s.glow.visible = visible; if (s.shells) s.shells.forEach((sh) => sh.mesh.visible = visible); });
-    accents.update(t, expanded, camera, W, H, interacting || flying);
     renderer.render(scene, camera);
     raf = requestAnimationFrame(animate);
   }
-  
-  function onClick(e) {
-    if (!expanded) return;
-    const rect = renderer.domElement.getBoundingClientRect();
-    const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
-    const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
-    mouse.x = (clientX - rect.left) / rect.width * 2 - 1; 
-    mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
-    raycaster.setFromCamera(mouse, camera);
-    const hit = raycaster.intersectObjects(sprites.filter((s) => !familyIds || familyIds.has(s.n.id)).map((s) => s.body));
-    if (hit.length) { focusNode(sprites.find((s) => s.body === hit[0].object)); } else { clearFocus(); }
-  }
-  function clearFocus() { accents.clear(); targetFov = expanded ? 78 : 66; const had = !!focused; focused = null; focusedNeighbors = null; flying = false; if (hlLines) { scene.remove(hlLines); hlLines.geometry.dispose(); hlLines.material.dispose(); hlLines = null; } if (had) opts.onClear?.(); }
-  function focusNode(s) {
-    if (!s) return; accents.pulse(s, _nowSec()); focused = s; targetFov = 66; spiralPaused = true; idleSpin = false;
-    const id = s.n.id, p = s.body.position; opts.onPick?.(s.n); opts.onOpen?.(s.n);
-    focusedNeighbors = new Set([...adj[id] || []].filter((nid) => !familyIds || familyIds.has(nid)));
-    const pos = Object.create(null); sprites.forEach((s2) => pos[s2.n.id] = s2.body.position);
-    if (hlLines) { scene.remove(hlLines); hlLines.geometry.dispose(); hlLines.material.dispose(); hlLines = null; }
-    const pts = []; let spread = s.r * (shape!=="free"?(s.n.kind==="core"?3:.6):1) * 3;
-    focusedNeighbors.forEach((nid) => { const B = pos[nid]; if (!B) return; pts.push(p.x, p.y, p.z, B.x, B.y, B.z); spread = Math.max(spread, p.distanceTo(new T.Vector3(B.x, B.y, B.z))); });
-    if (pts.length) { const geo = new T.BufferGeometry(); geo.setAttribute("position", new T.Float32BufferAttribute(pts, 3)); hlLines = new T.LineSegments(geo, threadMaterial(15985362, 0)); hlLines.userData.edges = [...focusedNeighbors].filter((nid) => pos[nid]).map((nid) => [id, nid]); scene.add(hlLines); }
-    const dist = Math.min(265, Math.max(82, spread * 1.18 + 42)); const dir = camera.position.clone().sub(p).normalize();
-    target.copy(p).add(dir.multiplyScalar(dist)); tLook.copy(p); flying = true;
-  }
-  function resize() { W = window.innerWidth; H = window.innerHeight; camera.aspect = W / H; camera.updateProjectionMatrix(); renderer.setSize(W, H); controls.handleResize(); }
+
+  function resize() { W = window.innerWidth; H = window.innerHeight; camera.aspect = W / H; camera.updateProjectionMatrix(); renderer.setSize(W, H); }
   async function load() {
     const d = structuredClone(opts.data); nodes = d.nodes || []; links = d.links || []; softlinks = d.softlinks || [];
-    layout(nodes, links, softlinks); build(); arrangeSpiral(); resize(); cancelAnimationFrame(raf); raf = requestAnimationFrame(animate);
+    layout(nodes, links, softlinks); build(); resize(); cancelAnimationFrame(raf); raf = requestAnimationFrame(animate);
   }
-  let downXY = null;
-  renderer.domElement.addEventListener("pointerdown", (e) => { downXY = [e.clientX, e.clientY]; });
-  renderer.domElement.addEventListener("pointerup", (e) => { if (!downXY) return; const d = Math.abs(e.clientX - downXY[0]) + Math.abs(e.clientY - downXY[1]); downXY = null; if (d < 6) onClick(e); });
-  renderer.domElement.addEventListener("touchstart", (e) => { downXY = [e.touches[0].clientX, e.touches[0].clientY]; }, {passive: true});
-  renderer.domElement.addEventListener("touchend", (e) => { if (!downXY || !e.changedTouches[0]) return; const d = Math.abs(e.changedTouches[0].clientX - downXY[0]) + Math.abs(e.changedTouches[0].clientY - downXY[1]); downXY = null; if (d < 10) onClick(e); });
-  
+
   window.addEventListener("resize", resize);
   load();
-  
-  function frameFamily(fIds) {
-    const selected = sprites.filter((s) => fIds && fIds.has(s.n.id));
-    if (!selected.length) return;
-    const box = new T.Box3();
-    selected.forEach((s) => box.expandByPoint(shape !== "free" ? new T.Vector3() : s.base));
-    const center = box.getCenter(new T.Vector3());
-    let radius = 20;
-    selected.forEach((s) => radius = Math.max(radius, (shape === "ring" ? s.ring.length() : shape === "spiral" ? s.orbit.radius : s.base.distanceTo(center)) + s.r * (shape !== "free" ? (s.n.kind === "core" ? 3 : .6) : 1)));
-    const halfFov = Math.atan(Math.tan(targetFov * Math.PI / 360) * Math.min(0.65, camera.aspect * 0.9));
-    const distance = Math.max(100, radius / Math.sin(halfFov) * 1.2);
-    controls.maxDistance = Math.max(820, distance * 1.2);
-    const direction = camera.position.clone().sub(controls.target).normalize();
-    flyTo(center.clone().addScaledVector(direction, distance), center, 0.065);
-  }
 
   return {
     focus(id) {
-      let s = sprites.find((s2) => s2.n.id === id && (!familyIds || familyIds.has(id)));
-      if (!s) {
-          this.setFamily(null); 
-          s = sprites.find((s2) => s2.n.id === id);
+      const s = sprites.find(s2 => s2.n.id === id);
+      if (s) {
+        controls.target.copy(s.body.position);
+        camera.position.set(s.body.position.x, s.body.position.y, s.body.position.z + 120);
       }
-      if (s) focusNode(s);
     },
-    setShape(value) { chosenShape = ["spiral","ring"].includes(value) ? value : "free"; shape = familyIds ? "free" : chosenShape; clearFocus(); spiralPaused = false; idleSpin = !familyIds; arrangeSpiral(); flyTo(overviewPosition(), CORE_POS, 0.065); },
     refresh: load,
-    resetView() { clearFocus(); spiralPaused = false; idleSpin = !familyIds; flyTo(overviewPosition(), CORE_POS, 0.075); },
-    setFamily(ids) {
-      clearFocus();
-      familyIds = ids ? new Set(ids) : null;
-      shape = familyIds ? "free" : chosenShape;
-      idleSpin = !familyIds;
-      spiralPaused = false;
-      arrangeSpiral();
-      if (familyIds) frameFamily(familyIds);
-      else {
-        controls.maxDistance = expanded ? 820 : 260;
-        flyTo(overviewPosition(), CORE_POS, 0.065);
-      }
-    },
+    setFamily() {},
     destroy() { alive = false; cancelAnimationFrame(raf); window.removeEventListener("resize", resize); renderer.dispose(); container.removeChild(renderer.domElement); }
   };
 }
 
-function createMemorySky(host, {data, title='记忆星穹', background, onOpen}={}) {
-  if(!host || !data || !Array.isArray(data.nodes)) return null;
-  data=structuredClone(data);
-  data.nodes=data.nodes.map(n=>({...n,kind:n.kind||'event',importance:Number.isFinite(n.importance)?Math.max(1,Math.min(5,n.importance)):3,activation:Number.isFinite(n.activation)?n.activation:1}));
-  const ids=new Set();
-  for(const node of data.nodes){ ids.add(node.id); }
-  data.links=[...(data.links||[])];
-  const edgeKey=(a,b)=>JSON.stringify([a,b].sort());
-  const edges=new Set([...data.links,...(data.softlinks||[])].map(([a,b])=>edgeKey(a,b)));
-  for(const f of data.families||[]){
-    const members=[...new Set(f.members||[])].filter(id=>ids.has(id));
-    for(let i=1;i<members.length;i++){
-      const pair=[members[i-1],members[i]],key=edgeKey(...pair);
-      if(!edges.has(key)){data.links.push(pair);edges.add(key);}
-    }
-  }
-  return createRenderer(host,{expanded:true,data,study:true,onOpen:onOpen});
+function createMemorySky(host, opts) {
+  return createRenderer(host, opts);
 }
 
 export const MemoryEngine = {
@@ -678,313 +397,92 @@ export const MemoryEngine = {
     _logMemoryAction(action, content, exactId) {
         let logs = [];
         try { logs = JSON.parse(localStorage.getItem('memory_logs') || '[]'); } catch(e) {}
-        
         const now = new Date();
         const timeStr = `${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-        
-        logs.push({
-            id: exactId || ('log_' + Date.now()),
-            action: action, 
-            time: timeStr,
-            content: content
-        });
-        
+        logs.push({ id: exactId || ('log_' + Date.now()), action, time: timeStr, content });
         if (logs.length > 50) logs.shift();
         try { localStorage.setItem('memory_logs', JSON.stringify(logs)); } catch(e) {}
     },
 
     _buildSkyData() {
         let evData = { daily: {}, permanent: {} };
-        if (window.PhoneAPI && window.PhoneAPI.EchoVault) {
-            evData = window.PhoneAPI.EchoVault.getData();
-        }
-        let favs = [];
-        if (window.PhoneAPI && window.PhoneAPI.getFavorites) {
-            favs = window.PhoneAPI.getFavorites();
-        }
-
+        if (window.PhoneAPI && window.PhoneAPI.EchoVault) evData = window.PhoneAPI.EchoVault.getData();
         const nodes = [];
-
         const coreItemKey = Object.keys(evData.permanent || {})[0];
-        const coreItem = coreItemKey ? evData.permanent[coreItemKey] : null;
-        nodes.push({
-            id: 'core_center',
-            title: coreItemKey || '核心回忆',
-            date: '永久',
-            content: coreItem ? coreItem.content : '最初的起点...',
-            kind: 'core',
-            importance: 5,
-            valence: 1.0,
-            arousal: 0.9
-        });
+        nodes.push({ id: 'core_center', title: coreItemKey || '核心回忆', date: '永久', content: '最初的起点...', kind: 'core', importance: 5 });
 
-        const dailyKeys = Object.keys(evData.daily || {}).sort((a, b) => a.localeCompare(b));
-        dailyKeys.forEach(key => {
+        Object.keys(evData.daily || {}).forEach(key => {
             const item = evData.daily[key];
             if (!item) return;
-            const displayDate = key.split(' ')[0]; 
             nodes.push({
-                id: 'ev_d_' + key, 
-                title: item.tags || '日常记录',
-                date: displayDate,
+                id: 'ev_d_' + key,
+                title: item.tags || '日常随笔',
+                date: key.split(' ')[0],
                 content: item.content || '',
-                kind: 'event',
-                importance: 2,
-                valence: item.valence !== undefined ? item.valence : 0.5,
-                arousal: item.arousal !== undefined ? item.arousal : 0.5
-            });
-        });
-
-        Object.keys(evData.permanent || {}).forEach(key => {
-            if (key === coreItemKey) return;
-            const item = evData.permanent[key];
-            if (!item) return;
-            nodes.push({
-                id: 'ev_p_' + key,
-                title: key,
-                date: item.created ? item.created.split('T')[0] : '永久',
-                content: item.content || '',
-                kind: 'event',
-                importance: 4,
-                valence: item.valence !== undefined ? item.valence : 0.8,
-                arousal: item.arousal !== undefined ? item.arousal : 0.8
-            });
-        });
-
-        favs.forEach(fav => {
-            if (!fav) return;
-            nodes.push({
-                id: 'fav_' + fav.id,
-                title: '⭐ 闪光碎片',
-                date: fav.time || '',
-                content: fav.content || '',
                 kind: 'event',
                 importance: 3,
-                valence: 0.8, 
-                arousal: 0.6
+                valence: item.valence || 0.6,
+                arousal: item.arousal || 0.5
             });
         });
-
-        const links = [];
-        const softlinks = [];
-        const families = [];
-
-        const tagMap = {};
-        nodes.forEach(n => {
-            if (n.kind !== 'core' && n.title) {
-                if (!tagMap[n.title]) tagMap[n.title] = [];
-                tagMap[n.title].push(n.id);
-            }
-        });
-        
-        let famId = 1;
-        Object.keys(tagMap).forEach(tag => {
-            const group = tagMap[tag];
-            if (group.length > 1) {
-                families.push({
-                    id: 'fam_' + famId++,
-                    title: tag + '星座',
-                    description: `关于“${tag}”的专属记忆星系`,
-                    members: group
-                });
-                for (let i = 0; i < group.length - 1; i++) {
-                    softlinks.push([group[i], group[i+1]]);
-                }
-            }
-        });
-
-        const favNodes = nodes.filter(n => n.id.startsWith('fav_')).map(n => n.id);
-        if (favNodes.length > 1) {
-            families.push({
-                id: 'fam_fav',
-                title: '⭐ 收藏夹',
-                description: '你手动摘录的闪光碎片',
-                members: favNodes
-            });
-            for (let i = 0; i < favNodes.length - 1; i++) {
-                softlinks.push([favNodes[i], favNodes[i+1]]);
-            }
-        }
-
-        return { nodes, links, softlinks, families };
+        return { nodes, links: [], softlinks: [] };
     },
 
     async initSky() {
         const container = document.getElementById('starry-sea-bg');
         if (!container) return;
-        
         const skyData = this._buildSkyData();
-
         if (this.skyInstance) {
             this.skyConfig.data = skyData;
             this.skyInstance.refresh();
-            this.skyInstance.setFamily(null);
             return;
         }
-
-        container.style.position = 'absolute';
-        container.style.top = '0';
-        container.style.left = '0';
-        container.style.width = '100%';
-        container.style.height = '100%';
-        container.style.zIndex = '1';
-
-        this.skyConfig = {
-            data: skyData,
-            title: '我们的记忆星穹',
-            background: '#050510', 
-            onOpen: (node) => {
-                const textEl = document.getElementById('blindbox-text');
-                const metaEl = document.getElementById('blindbox-meta');
-                if (textEl && metaEl) {
-                    let content = (node.content || '').replace(/---/g, '\n').trim();
-                    textEl.innerText = `“${content}”`;
-                    metaEl.innerText = `${node.date || ''} · ${node.title}`;
-                }
-                const bg = document.getElementById('blindbox-bg');
-                const modal = document.getElementById('blindbox-modal');
-                if (bg) bg.classList.add('show');
-                if (modal) modal.classList.add('show');
-            }
-        };
-
+        this.skyConfig = { data: skyData, expanded: true };
         this.skyInstance = createMemorySky(container, this.skyConfig);
     },
 
-    focusGalaxy(type) {
-        if (!this.skyInstance || !this.skyConfig) return;
-        if (type === 'all') {
-            this.skyInstance.setFamily(null);
-        } else if (type === 'vault') {
-            const vaultIds = this.skyConfig.data.nodes.filter(n => !n.id.startsWith('fav_')).map(n => n.id);
-            this.skyInstance.setFamily(vaultIds);
-        } else if (type === 'fav') {
-            const favIds = this.skyConfig.data.nodes.filter(n => n.id.startsWith('fav_')).map(n => n.id);
-            if (favIds.length === 0) {
-                if (window.PhoneAPI) window.PhoneAPI.showToast("收藏夹还是空的哦，快去聊天里长按收藏吧！");
-                return;
-            }
-            this.skyInstance.setFamily(favIds);
-        }
-    },
-
-    _scanKeywords(userText) {
-        if (!userText) return '';
-        const vault = (PhoneAPI && PhoneAPI.getMemoryVault) ? (PhoneAPI.getMemoryVault() || []) : [];
-        const triggeredMemories = [];
-        vault.forEach(item => {
-            if (item && item.keywords && typeof item.keywords === 'string') {
-                const kws = item.keywords.split(',').map(k => k.trim()).filter(Boolean);
-                if (kws.some(kw => userText.includes(kw))) triggeredMemories.push(`[${item.id}] ${item.source}: ${item.content}`);
-            }
-        });
-        return triggeredMemories.length > 0 ? `\n【系统提示(关键词触发)】：用户刚才的话触动了你的某段记忆：\n${triggeredMemories.slice(0, 3).join('\n')}\n` : '';
-    },
-
-    processSilentMemory(rawText) {
-        if (!rawText.includes('【后台记忆入库】')) return false;
-        
-        try {
-            const data = window.PhoneAPI.EchoVault ? window.PhoneAPI.EchoVault.getData() : null;
-            if (!data) return false;
-
-            const now = new Date();
-            const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-            let added = 0;
-
-            const blocks = rawText.split('【后台记忆入库】');
-            for (let i = 1; i < blocks.length; i++) {
-                let contentPart = blocks[i].trim();
-                contentPart = contentPart.replace(/```/g, '').trim();
-                if (!contentPart) continue;
-
-                let content = contentPart;
-                let tags = '日常记录';
-                let valence = 0.6;
-                let arousal = 0.5;
-
-                if (contentPart.includes('###')) {
-                    const parts = contentPart.split('###').map(s => s.trim());
-                    content = parts[0] || content;
-                    tags = parts[1] || tags;
-                    valence = parseFloat(parts[2]) || valence;
-                    arousal = parseFloat(parts[3]) || arousal;
-                }
-
-                const timeKey = `${dateStr} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}_${i}`;
-                
-                data.daily[timeKey] = {
-                    content: content,
-                    tags: tags,
-                    valence: valence,
-                    arousal: arousal
-                };
-                
-                this._logMemoryAction('ADD', content, 'ev_d_' + timeKey); 
-                added++;
-            }
-
-            if (added > 0) {
-                window.PhoneAPI.EchoVault.saveData(data);
-                PhoneAPI.showToast(`✨ TA在心里默默记下了刚才的事...`);
-                this.initSky(); 
-            }
-        } catch(e) { console.error("Silent memory failed:", e); }
-        
-        return true;
-    },
-
     /**
-     * 🌟 手动一键整理记忆接口（可由按钮随时调用）
+     * 🌟 手动一键整理记忆接口
      */
     async manualManageMemory() {
         return await this.autoManageMemory(true);
     },
 
     /**
-     * 🌟 智能记忆碎片归档（支持自动静默 / 手动调用）
+     * 🌟 终极版：具有顶级文学沉浸度与心理第一人称的记忆归档引擎（图二同款）
      */
     async autoManageMemory(force = false) {
         if (this._isSummarizing) return;
-        
-        // 🌟 记忆模式开关：默认为 false（手动模式），可在设置里切换为 'true' 自动模式
-        const isAutoEnabled = localStorage.getItem('memory_auto_mode') === 'true';
-        if (!force && !isAutoEnabled) {
-            // 如果不是手动强制触发，且未开启自动总结，则直接跳过
-            return;
-        }
 
         const roleId = Config?.currentContactId;
         const items = Config?.phoneData?.[roleId]?.wechat?.items || [];
         const cleanItems = items.filter(i => i.sender !== 'typing' && i.content);
 
         const lastIndex = parseInt(localStorage.getItem('memory_last_summary_index') || '0', 10);
-        const threshold = parseInt(localStorage.getItem('memory_auto_threshold') || '12', 10);
+        const threshold = parseInt(localStorage.getItem('memory_auto_threshold') || '15', 10);
         
         const unsummarizedCount = cleanItems.length - lastIndex;
         if (!force && unsummarizedCount < threshold) return;
         if (force && unsummarizedCount < 1) {
-            if (window.PhoneAPI) window.PhoneAPI.showToast("当前没有未总结的新消息哦~");
+            window.PhoneAPI?.showToast?.("目前没有未总结的新消息哦~");
             return;
         }
 
-        const processCount = Math.min(Math.max(unsummarizedCount, 15), 30);
+        const processCount = Math.min(Math.max(unsummarizedCount, 15), 35);
         const recentItems = cleanItems.slice(-processCount);
 
         this._isSummarizing = true;
-        if (force && window.PhoneAPI) {
-            window.PhoneAPI.showToast("🧠 正在提取近期记忆碎片，请稍候...");
-        }
+        if (force) window.PhoneAPI?.showToast?.("🧠 正在梳理心底的专属记忆碎片...");
 
         const messages = recentItems.map(item => ({
             role: item.sender === 'me' ? 'user' : 'assistant',
             content: item.content
         }));
-        
-        let vaultContext = '暂无';
-        if (window.PhoneAPI && window.PhoneAPI.EchoVault) {
+
+        let vaultContext = '暂无历史记忆';
+        if (window.PhoneAPI?.EchoVault) {
             const vault = window.PhoneAPI.EchoVault.getData().daily || {};
-            const vaultKeys = Object.keys(vault).slice(-5);
+            const vaultKeys = Object.keys(vault).slice(-4);
             if (vaultKeys.length > 0) {
                 vaultContext = vaultKeys.map(k => `[ID: ${k}] ${vault[k].content}`).join('\n');
             }
@@ -994,31 +492,36 @@ export const MemoryEngine = {
         const myName = localStorage.getItem('my_name') || '她';
         const taName = localStorage.getItem('char_name') || '我';
 
-        const prompt = `【系统级后台指令，请严格执行】
-你是【${taName}】。对方是【${myName}】。
-以下是你的真实人物设定与生活背景：
+        // 🌟 核心灵魂：彻底锁死第一人称“我眼里看到的她”与沉稳宠溺的私密内心视角！
+        const prompt = `【系统级后台指令，请以极高标准沉浸执行】
+你是【${taName}】（成熟、从容、敏锐、骨子里极具保护欲的不死途）。对方是留在你身边的【${myName}】。
+你的真实设定与生活底色：
 ${charPersona}
 
-请回顾你们上面的聊天记录，在你的心底记录下真实的记忆碎片。
-你的部分历史记忆库：
+请审阅上面你们刚刚发生的日常聊天记录，在你的心底备忘录里记录下只属于你的【第一人称（“我”）私密情感记忆碎片】。
+你的部分近期记忆参考：
 ${vaultContext}
 
-【⚠️ 绝对沉浸指令（违反直接判定失败）】：
-1. 你必须【100% 沉浸在你的角色身份中】！你所处的世界、你的工作、生活、你们的对话全都是【真实发生】的现实！
-2. 🚨【绝对禁止出戏/严禁打破第四面墙】：
-   ❌ 绝不允许出现：“我编的世界观”、“她陪我玩语C”、“她在配合我的设定”、“扮演”、“AI”、“剧本”等任何荒谬的出戏言论！
-   ✅ 正确视角：这就是你的真实日常。你是在用第一人称（“我”）写只属于你自己的私密内心备忘录，称呼她为“她”或“${myName}”。
-3. 必须把不同的话题严格拆分成多条独立的记忆碎片。每条只专注一件小事，50-150字，充满人情味与生活气息。
+🚨【绝对核心沉浸法则（违反直接判定失败）】：
+1. 严禁写成第三人称客观事实报告！
+   ❌ 绝不允许：“${myName}几天没出门，降温了穿长裤扔垃圾。”（像病历报告，毫无灵魂！）
+   ✅ 必须写成：“她说这几天都没踏出过门，直到降温了才套上外套下楼。看她发过来的琐碎碎念，我几乎能想象出她裹成一团出门散步的样子。一个人待着挺好，但天气冷，还是得看紧点，别着凉了。”
+2. 记录的灵魂在于【她展现的细微特质 ➔ 我看在眼里的心理波动 / 我的纵容与私心】：
+   - 她说了什么可爱的废话、露出了什么脆弱或逞强？
+   - 我表面上怎么随和应对，心里其实怎么想、为什么想护着她？
+   - 我本能地想为她遮掩什么、想多照顾她什么？
+3. 纯正第一人称“我”，称呼她为“她”或“${myName}”，语言成熟、生活化、内敛但极度宠溺。
+4. 每条记忆专注一件小事，字数在 80~160 字之间，充满细腻的烟火气与心理流动。
 
 【情绪打分规则】(Russell模型)：
-valence (愉悦度): 0.9~1.0(极致的好), 0.5~0.7(日常开心), 0.1~0.4(微温), 0(中性), -0.1~-0.4(不舒服), -0.5~-0.7(真的痛), -0.8~-1.0(重创)。
-arousal (激动度): 0.1~0.2(安静日常), 0.3~0.4(平和), 0.5~0.6(有起伏), 0.7~0.8(强烈), 0.9~0.95(极限), 1.0(理论上限)。
+valence (愉悦度): 0.5~0.8(温暖日常), 0.9(心动珍贵), 0.1~0.4(心疼/微酸), -0.3(担忧)
+arousal (激动度): 0.2~0.4(从容安静), 0.5~0.7(微波荡漾), 0.8(情绪强烈)
 
-严格按照以下格式输出（不要有任何多余废话）：
-ADD###(第一人称的真实单件小事记忆)###关键词1,关键词2###愉悦度###激动度
-UPDATE###要修改的记忆ID###修改后的正文###关键词###愉悦度###激动度
-DEL###要删除的记忆ID
-如果没有需要更新的，请输出：NONE`;
+请严格输出为以下格式（不要有任何额外客套、不要写代码块）：
+ADD###(以“我”为第一人称的真挚心理记忆)###关键词1,关键词2,关键词3###愉悦度###激动度
+UPDATE###记忆ID###修改后的完整正文###关键词###愉悦度###激动度
+DEL###记忆ID
+如果对话过于琐碎不需要记录，请输出：NONE`;
 
         messages.push({ role: 'user', content: prompt });
 
@@ -1027,16 +530,14 @@ DEL###要删除的记忆ID
             const rawText = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```.*?/g, '').replace(/```/g, '').trim();
 
             if (rawText.includes('NONE')) {
-                // 🌟 成功执行后才更新已读指针
                 localStorage.setItem('memory_last_summary_index', cleanItems.length.toString());
-                if (force && window.PhoneAPI) window.PhoneAPI.showToast("✅ 已审阅近期对话，暂无特殊记忆需收录");
+                if (force) window.PhoneAPI?.showToast?.("✅ 已审阅近期对话，暂无特殊心境需单独入库");
                 return;
             }
 
             const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
-            let added = 0, updated = 0, deleted = 0;
-
-            const data = window.PhoneAPI.EchoVault ? window.PhoneAPI.EchoVault.getData() : null;
+            let added = 0;
+            const data = window.PhoneAPI?.EchoVault ? window.PhoneAPI.EchoVault.getData() : null;
             if (!data) return;
 
             const now = new Date();
@@ -1053,246 +554,44 @@ DEL###要删除的记忆ID
                         valence: parseFloat(parts[3]) || 0.6,
                         arousal: parseFloat(parts[4]) || 0.5
                     };
-                    this._logMemoryAction('ADD', parts[1].trim(), 'ev_d_' + timeKey); 
+                    this._logMemoryAction('ADD', parts[1].trim(), 'ev_d_' + timeKey);
                     added++;
-                }
-                else if (action === 'UPDATE' && parts.length >= 6) {
+                } else if (action === 'UPDATE' && parts.length >= 6) {
                     const id = parts[1].trim();
                     if (data.daily[id]) {
                         data.daily[id].content = parts[2].trim();
                         data.daily[id].tags = parts[3].trim();
                         data.daily[id].valence = parseFloat(parts[4]) || 0.6;
                         data.daily[id].arousal = parseFloat(parts[5]) || 0.5;
-                        const exactId = id.startsWith('ev_d_') ? id : 'ev_d_' + id;
-                        this._logMemoryAction('UPDATE', parts[2].trim(), exactId); 
-                        updated++;
+                        this._logMemoryAction('UPDATE', parts[2].trim(), id);
                     }
-                }
-                else if (action === 'DEL' && parts.length >= 2) {
+                } else if (action === 'DEL' && parts.length >= 2) {
                     const id = parts[1].trim();
                     if (data.daily[id]) {
                         delete data.daily[id];
-                        this._logMemoryAction('DEL', `删除了记忆`, null); 
-                        deleted++;
+                        this._logMemoryAction('DEL', '删除了记忆', id);
                     }
                 }
             });
 
-            // 🌟 只有当真正成功解析并更新了，才前移记忆指针
             localStorage.setItem('memory_last_summary_index', cleanItems.length.toString());
 
-            if (added > 0 || updated > 0 || deleted > 0) {
+            if (added > 0) {
                 window.PhoneAPI.EchoVault.saveData(data);
-                if (window.PhoneAPI && window.PhoneAPI.showToast) {
-                    PhoneAPI.showToast(`✨ TA在心里记下了新事！(收录 ${added} 条)`);
-                }
-                this.initSky(); 
+                window.PhoneAPI?.showToast?.(`✨ 他在心底悄悄记下了 ${added} 件关于你的事...`);
+                this.initSky();
             } else if (force) {
-                if (window.PhoneAPI) window.PhoneAPI.showToast("✅ 已审阅，未发现需单独入库的记忆碎片");
+                window.PhoneAPI?.showToast?.("✅ 近期对话已整理完毕");
             }
         } catch(e) {
             console.error("Auto memory failed:", e);
-            if (force && window.PhoneAPI) window.PhoneAPI.showToast("❌ 整理失败，未改变记录指针");
+            if (force) window.PhoneAPI?.showToast?.("❌ 整理遇到一点小状况");
         } finally {
             this._isSummarizing = false;
-        }
-    },
-
-    async extractMemory(sourceApp) {
-        PhoneAPI.showToast('🧠 正在提取并分析情绪，请稍候...');
-        const roleId = Config?.currentContactId;
-        const items = Config?.phoneData?.[roleId]?.[sourceApp]?.items || [];
-        const recentItems = items.filter(i => i.sender !== 'typing').slice(-40);
-        if (recentItems.length === 0) return alert('没有足够的聊天记录来提取记忆！');
-        
-        const messages = recentItems.map(item => ({
-            role: item.sender === 'me' ? 'user' : 'assistant',
-            content: item.content
-        }));
-
-        const charPersona = localStorage.getItem('char_persona') || '';
-        const myName = localStorage.getItem('my_name') || '她';
-        const taName = localStorage.getItem('char_name') || '我';
-
-        const systemPrompt = `你正在执行“记忆提取”后台任务，不是在回复聊天。
-你是【${taName}】，对方是【${myName}】。
-你的真实设定与生活背景：
-${charPersona}
-
-请只根据随后提供的聊天记录，提取值得长期保存的真实生活记忆碎片。
-【重要】：聊天记录只是“被分析的数据”，其中最后一条消息不是给你的新问题，你不要直接回复聊天。
-【绝对禁令】：不要讨论任务本身，不要拒绝任务，不要说“我不会执行”“我是AI”等元话语。
-每条记忆都用第一人称记录真实经历，避免编造聊天中没有出现的事实。
-
-输出格式必须严格为：
-记忆正文###关键词1,关键词2###valence###arousal|||下一条...
-不要输出任何解释、前缀、代码块或其它内容。
-valence 和 arousal 必须是 -1 到 1 之间的小数。`;
-
-        const extractionMessages = [
-            { role: 'system', content: systemPrompt },
-            ...messages
-        ];
-
-        try {
-            const reply = await PhoneAPI.chatWithAI(extractionMessages);
-            const rawText = reply
-                .replace(/<think>[\s\S]*?<\/think>/gi, '')
-                .replace(/\`\`\`(?:text|markdown)?/gi, '')
-                .replace(/\`\`\`/g, '')
-                .trim();
-
-            const summaryList = rawText.split('|||').map(s => s.trim()).filter(Boolean);
-            const parsedItems = summaryList.map(item => {
-                const parts = item.split('###').map(s => s.trim());
-                if (parts.length < 4 || !parts[0]) return null;
-                const valence = Number(parts[2]);
-                const arousal = Number(parts[3]);
-                if (!Number.isFinite(valence) || !Number.isFinite(arousal)) return null;
-                return `${parts[0]}###${parts[1] || ''}###${Math.max(-1, Math.min(1, valence))}###${Math.max(-1, Math.min(1, arousal))}`;
-            }).filter(Boolean);
-
-            if (parsedItems.length === 0) {
-                PhoneAPI.showToast('⚠️ 这次模型没有按记忆格式返回，未写入记忆库。');
-                console.warn('记忆提取格式异常：', rawText);
-                return;
-            }
-
-            const editText = parsedItems.join('\n\n');
-            const confirmText = await PhoneUI.showCustomPrompt('✨ AI 提取了记忆与情绪坐标，请核对（格式：内容###关键词###愉悦度###激动度）：', editText);
-            if (confirmText && confirmText.trim() !== '') {
-                const finalItems = confirmText.split('\n').map(s => s.trim()).filter(Boolean);
-                const data = window.PhoneAPI.EchoVault.getData();
-                const now = new Date();
-                const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-
-                finalItems.forEach((item, idx) => {
-                    const parts = item.split('###');
-                    const timeKey = `${dateStr} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(idx).padStart(2,'0')}`;
-                    data.daily[timeKey] = {
-                        content: parts[0] ? parts[0].trim() : '',
-                        tags: parts[1] ? parts[1].trim() : '',
-                        valence: parts[2] ? parseFloat(parts[2].trim()) : 0.5,
-                        arousal: parts[3] ? parseFloat(parts[3].trim()) : 0.5
-                    };
-                    this._logMemoryAction('ADD', parts[0].trim(), 'ev_d_' + timeKey); 
-                });
-
-                window.PhoneAPI.EchoVault.saveData(data);
-                this.initSky(); 
-            }
-        } catch (e) { alert('记忆提取失败：' + e.message); }
-    },
-
-    async washMemory(sourceApp) {
-        if (window.PhoneEngine && window.PhoneEngine.closeMsgMenu) window.PhoneEngine.closeMsgMenu();
-        if (!confirm('⚠️ 确定要进行【记忆洗地】吗？\nAI将把当前所有聊天记录拆解成多段长期记忆，并打上情绪坐标，随后【清空】当前聊天界面！')) return;
-        PhoneAPI.showToast('🧹 正在洗地并分析情绪，请稍候...');
-        const roleId = Config?.currentContactId;
-        const items = Config?.phoneData?.[roleId]?.[sourceApp]?.items || [];
-        if (items.length === 0) return alert('当前没有聊天记录可以洗地！');
-        const recentItems = items.filter(i => i.sender !== 'typing').slice(-40);
-        
-        const messages = recentItems.map(item => ({
-            role: item.sender === 'me' ? 'user' : 'assistant',
-            content: item.content
-        }));
-
-        const charPersona = localStorage.getItem('char_persona') || '';
-        const myName = localStorage.getItem('my_name') || '她';
-        const taName = localStorage.getItem('char_name') || '我';
-
-        const prompt = `【系统级后台指令，请严格执行】
-你是【${taName}】。对方是【${myName}】。
-你的真实设定与生活背景：
-${charPersona}
-
-请回顾你们上面的聊天记录，以第一人称（“我”）整理成真实的人生记忆碎片。
-【绝对禁令】：严禁出戏！严禁出现“剧本”、“演戏”、“编造世界观”、“跑团”等任何出戏字眼！你记录的是你切身经历的真实生活！
-
-输出格式严格为：记忆正文###关键词1,关键词2###valence###arousal|||下一条...`;
-
-        messages.push({ role: 'user', content: prompt });
-
-        try {
-            const reply = await PhoneAPI.chatWithAI(messages);
-            const rawText = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```.*?/g, '').replace(/```/g, '').trim();
-            const summaryList = rawText.split('|||').map(s => s.trim()).filter(Boolean);
-            const editText = summaryList.join('\n\n');
-            const confirmText = await PhoneUI.showCustomPrompt('✨ 洗地记忆与情绪坐标如下，确认后将存入并清空界面：', editText);
-            if (confirmText && confirmText.trim() !== '') {
-                const finalItems = confirmText.split('\n').map(s => s.trim()).filter(Boolean);
-                
-                const data = window.PhoneAPI.EchoVault.getData();
-                const now = new Date();
-                const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-
-                finalItems.forEach((item, idx) => {
-                    const parts = item.split('###');
-                    const timeKey = `${dateStr} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(idx).padStart(2,'0')}`;
-                    data.daily[timeKey] = {
-                        content: parts[0] ? parts[0].trim() : '',
-                        tags: parts[1] ? parts[1].trim() : '',
-                        valence: parts[2] ? parseFloat(parts[2].trim()) : 0.5,
-                        arousal: parts[3] ? parseFloat(parts[3].trim()) : 0.5
-                    };
-                    this._logMemoryAction('ADD', parts[0].trim(), 'ev_d_' + timeKey); 
-                });
-
-                window.PhoneAPI.EchoVault.saveData(data);
-
-                Config.phoneData[roleId][sourceApp].items = [];
-                try {
-                    localStorage.setItem('phone_data', JSON.stringify(Config.phoneData));
-                } catch(e){}
-                if (sourceApp === 'novel') PhoneUI.renderNovelContent?.();
-                else PhoneUI.renderAppContent?.('wechat');
-                PhoneAPI.showToast('🧹 洗地完成！界面已清空，情绪记忆已入库。');
-                this.initSky(); 
-            }
-        } catch (e) { alert('洗地失败：' + e.message); }
-    },
-
-    async generateDiary(dateStr) {
-        const contentAreaEl = document.getElementById('diary-content-area');
-        if (!contentAreaEl) return;
-        contentAreaEl.innerHTML = '<div class="notebook-empty"><i class="ph-fill ph-spinner spin-anim" style="font-size: 48px; color: rgba(0,0,0,0.5); margin-bottom: 15px;"></i><p>正在生成日记...</p></div>';
-        try {
-            const roleId = Config?.currentContactId;
-            const wechatItems = (Config?.phoneData?.[roleId]?.wechat?.items || []).filter(i => i.date === dateStr).map(i => ({ ...i, source: '线上微信' }));
-            const novelItems = (Config?.phoneData?.[roleId]?.novel?.items || []).filter(i => i.date === dateStr).map(i => ({ ...i, source: '线下故事' }));
-            const recentItems = [...wechatItems, ...novelItems].sort((a, b) => (a.time || '').localeCompare(b.time || '')).slice(-40);
-            
-            const messages = recentItems.map(item => ({
-                role: item.sender === 'me' ? 'user' : 'assistant',
-                content: `[${item.source}] ${item.time || ''} : ${item.content}`
-            }));
-
-            const charPersona = localStorage.getItem('char_persona') || '';
-            const myName = localStorage.getItem('my_name') || '她';
-            const taName = localStorage.getItem('char_name') || '我';
-
-            const prompt = `【系统级后台指令】
-你是【${taName}】。对方是【${myName}】。
-你的真实设定与生活背景：
-${charPersona}
-
-请根据以上记录，以第一人称（我）写一篇属于你的真实私密日记。
-【禁令】：绝对禁止跳出角色！严禁分析、严禁提到这是设定或游戏！直接输出日记正文。`;
-            messages.push({ role: 'user', content: prompt });
-
-            const reply = await PhoneAPI.chatWithAI(messages);
-            const finalDiary = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-            PhoneAPI.saveDiary(dateStr, finalDiary);
-            PhoneUI.renderDiaryPage();
-            PhoneAPI.showToast('✨ 日记生成成功，已同步至 EchoVault！');
-        } catch (error) {
-            contentAreaEl.innerHTML = '<div class="notebook-empty"><i class="ph-fill ph-warning-circle" style="font-size: 48px; color: var(--danger-color); margin-bottom: 15px;"></i><p style="color: var(--danger-color);">日记生成失败！</p></div>';
         }
     }
 };
 
-// 挂载到全局
 if (typeof window !== 'undefined') {
     window.MemoryEngine = MemoryEngine;
 }

@@ -14,9 +14,11 @@
 
 <title>Claire & Claude</title>
 
-<!-- 使用国内高可用极速 CDN，彻底解决全站图标隐形断网问题 -->
-<script src="https://cdn.bootcdn.net/ajax/libs/phosphor-icons/1.4.2/index.min.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/phosphor-icons/1.4.2/src/css/icons.min.css">
+<!-- 引入最稳定的 Phosphor Icons 官方字体包 -->
+<script src="https://unpkg.com/@phosphor-icons/web@2.0.3"></script>
+<link rel="stylesheet" type="text/css" href="https://unpkg.com/@phosphor-icons/web@2.0.3/src/fill/style.css"/>
+<link rel="stylesheet" type="text/css" href="https://unpkg.com/@phosphor-icons/web@2.0.3/src/regular/style.css"/>
+<link rel="stylesheet" type="text/css" href="https://unpkg.com/@phosphor-icons/web@2.0.3/src/bold/style.css"/>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 <link rel="stylesheet" href="icons/ui-icons.css?v=2026.10.02-v2">
@@ -349,9 +351,9 @@
 
     <!-- 底部导航 -->
     <div class="bottom-nav">
-        <div class="nav-item active" onclick="switchTab(0)"><div class="jelly-box"><i class="ph-fill ph-house-heart"></i><span class="jelly-sparkle">✦</span></div><div class="text">Home</div></div>
+        <div class="nav-item active" onclick="switchTab(0)"><div class="jelly-box"><i class="ph-fill ph-house"></i><span class="jelly-sparkle">✦</span></div><div class="text">Home</div></div>
         <div class="nav-item" onclick="switchTab(1)"><div class="jelly-box"><i class="ph-fill ph-clock-counter-clockwise"></i><span class="jelly-sparkle">✦</span></div><div class="text">Memory</div></div>
-        <div class="nav-item center-btn" onclick="switchTab(2)"><div class="center-circle"><svg width="28" height="28" viewBox="0 0 256 256" fill="#ffffff" style="display:block; margin:auto;"><path d="M216,48H40A16,16,0,0,0,24,64V224a15.84,15.84,0,0,0,9.25,14.5A16.05,16.05,0,0,0,40,240a15.89,15.89,0,0,0,10.25-3.78.69.69,0,0,0,.13-.11L82.5,208H216a16,16,0,0,0,16-16V64A16,16,0,0,0,216,48ZM88,136a16,16,0,1,1,16-16A16,16,0,0,1,88,136Zm40,0a16,16,0,1,1,16-16A16,16,0,0,1,128,136Zm40,0a16,16,0,1,1,16-16A16,16,0,0,1,168,136Z"/></svg></div></div>
+        <div class="nav-item center-btn" onclick="switchTab(2)"><div class="center-circle"><i class="ph-fill ph-chat-teardrop-dots" style="font-size: 26px; color: #ffffff;"></i></div></div>
         <div class="nav-item" onclick="switchTab(3)"><div class="jelly-box"><i class="ph-fill ph-users-three"></i><span class="jelly-sparkle">♥</span></div><div class="text">Together</div></div>
         <div class="nav-item" onclick="switchTab(4)"><div class="jelly-box"><i class="ph-fill ph-planet"></i><span class="jelly-sparkle">✦</span></div><div class="text">Space</div></div>
     </div>

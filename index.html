@@ -17,6 +17,7 @@
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
+<link rel="stylesheet" href="icons/ui-icons.css">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -116,7 +117,7 @@
         <div class="title" id="top-title">Claire & Claude</div>
         <div style="display: flex; gap: 10px;">
             <div class="menu-btn api-btn" id="api-fab" onclick="window.PhoneUI.openApiModal()"><i class="ph-fill ph-cpu"></i></div>
-            <div class="menu-btn" onclick="window.PhoneUI.openApp('settings', '系统设置')"><i class="ph-fill ph-gear"></i></div>
+            <div class="menu-btn" onclick="window.PhoneUI.openApp('settings', '系统设置')"><img src="icons/settings.svg" class="ui-icon-btn" alt="设置"></div>
         </div>
     </div>
 
@@ -339,18 +340,18 @@
         <!-- 页面 4: 朋友圈 (Space) -->
         <div id="page-moments" class="page">
             <div id="moments-content-area"></div>
-            <div class="fab-post" onclick="window.PhoneUI.openPostModal()"><i class="ph ph-camera"></i></div>
+            <div class="fab-post" onclick="window.PhoneUI.openPostModal()"><img src="icons/camera.svg" class="ui-icon-fab" alt="发动态"></div>
         </div>
 
     </div>
 
     <!-- 底部导航 -->
     <div class="bottom-nav">
-        <div class="nav-item active" onclick="switchTab(0)"><div class="icon"><i class="ph ph-house"></i></div><div class="text">Home</div></div>
-        <div class="nav-item" onclick="switchTab(1)"><div class="icon"><i class="ph ph-images"></i></div><div class="text">Memory</div></div>
-        <div class="nav-item center-btn" onclick="switchTab(2)"><div class="center-circle"><div class="icon"><i class="ph-fill ph-chat-circle-dots"></i></div></div></div>
-        <div class="nav-item" onclick="switchTab(3)"><div class="icon"><i class="ph ph-headphones"></i></div><div class="text">Together</div></div>
-        <div class="nav-item" onclick="switchTab(4)"><div class="icon"><i class="ph ph-planet"></i></div><div class="text">Space</div></div>
+        <div class="nav-item active" onclick="switchTab(0)"><div class="icon"><img src="icons/home.svg" class="ui-tab-icon" alt="Home"></div><div class="text">Home</div></div>
+        <div class="nav-item" onclick="switchTab(1)"><div class="icon"><img src="icons/memory.svg" class="ui-tab-icon" alt="Memory"></div><div class="text">Memory</div></div>
+        <div class="nav-item center-btn" onclick="switchTab(2)"><div class="center-circle"><div class="icon"><img src="icons/chat.svg" class="ui-tab-icon center-icon" alt="Chat"></div></div></div>
+        <div class="nav-item" onclick="switchTab(3)"><div class="icon"><img src="icons/together.svg" class="ui-tab-icon" alt="Together"></div><div class="text">Together</div></div>
+        <div class="nav-item" onclick="switchTab(4)"><div class="icon"><img src="icons/space.svg" class="ui-tab-icon" alt="Space"></div><div class="text">Space</div></div>
     </div>
 </div>
 
@@ -454,7 +455,7 @@
 </div>
 
 <div id="app-window" class="app-window" style="z-index: 1000;">
-    <div class="app-window-header"><div class="app-window-back" onclick="window.PhoneUI.closeApp()"><i class="ph ph-caret-left"></i></div><div class="app-window-title" id="app-window-title">应用</div></div>
+    <div class="app-window-header"><div class="app-window-back" onclick="window.PhoneUI.closeApp()"><img src="icons/back.svg" class="ui-back-icon" alt="返回"></div><div class="app-window-title" id="app-window-title">应用</div></div>
     <div class="app-window-content" id="app-window-content"></div>
 </div>
 

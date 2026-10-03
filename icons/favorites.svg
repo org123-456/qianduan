@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">
+  <style>
+    :root { --ui-icon-bg: white; }
+  </style>
+  <path d="M128 204 48 129c-26-25-9-70 28-70 21 0 38 13 52 31 14-18 31-31 52-31 37 0 54 45 28 70l-80 75Z"/>
+</svg>

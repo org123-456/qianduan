@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">
+  <style>
+    :root { --ui-icon-bg: white; }
+  </style>
+  <rect x="42" y="45" width="172" height="166" rx="24"/><path d="M74 91h108M74 128h108M74 165h68" fill="none" stroke="var(--ui-icon-bg, white)" stroke-width="14" stroke-linecap="round"/>
+</svg>

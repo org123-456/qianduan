@@ -1,0 +1,22 @@
+/* ui-icons.css */
+:root {
+  --ui-icon-color: #e6b0c4;
+  --ui-icon-bg: #ffffff;
+}
+[data-theme="pink"]   { --ui-icon-color:#e6b0c4; }
+[data-theme="purple"] { --ui-icon-color:#b8a8d8; }
+[data-theme="blue"]   { --ui-icon-color:#9fb9d2; }
+[data-theme="yellow"] { --ui-icon-color:#dfc48b; }
+
+.ui-icon {
+  width: 24px;
+  height: 24px;
+  display: inline-block;
+  color: var(--ui-icon-color);
+}
+.ui-icon img,
+img.ui-icon {
+  width: 100%;
+  height: 100%;
+  display: block;
+}

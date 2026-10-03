@@ -21,6 +21,20 @@ export const PhoneUI = {
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     },
 
+    enterStarrySea() {
+        const cover = document.getElementById('memory-cover-view');
+        const inside = document.getElementById('memory-inside-view');
+        if (cover) cover.classList.add('hide');
+        if (inside) inside.classList.add('show');
+        if (this.initStarrySea) this.initStarrySea();
+        // 🌟 自动清除怪异的同心圆/中心大蓝球，重置回最纯净的自由散开星海
+        try {
+            localStorage.setItem('sky_shape', 'free');
+            if (this.changeSkyShape) this.changeSkyShape('free');
+            if (this.resetSkyView) this.resetSkyView();
+        } catch(e) {}
+    },
+
     showDiaryShelf() {
         const coverView = document.getElementById('diary-cover-view');
         const insideView = document.getElementById('diary-inside-view');

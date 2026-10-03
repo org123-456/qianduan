@@ -336,31 +336,36 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
     50% { opacity: 1; transform: scale(1.35) rotate(15deg); }
 }
 
-/* 🌟 中间圆形悬浮聊天主按钮 */
-.center-btn { position: relative; }
+/* 🌟 中间圆形聊天主按钮（完美收纳在底栏框内） */
+.center-btn { 
+    position: relative; 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 @keyframes loveFloat { 
-    0%{ transform: translate(-50%, 0); } 
-    50%{ transform: translate(-50%, -5px); } 
-    100%{ transform: translate(-50%, 0); } 
+    0%, 100% { transform: scale(1); } 
+    50% { transform: scale(1.05); } 
 }
 .center-circle { 
-    position: absolute; 
-    top: -25px; 
-    left: 50%; 
-    transform: translateX(-50%); 
-    width: 58px; 
-    height: 58px; 
+    position: relative; 
+    top: 0; 
+    left: 0; 
+    transform: none; 
+    width: 50px; 
+    height: 50px; 
     background: var(--btn-gradient) !important; 
     border-radius: 50%; 
     display: flex; 
     justify-content: center; 
     align-items: center; 
-    box-shadow: 0 8px 22px rgba(0,0,0,0.18); 
-    border: 4px solid var(--window-bg) !important; 
-    animation: loveFloat 4s ease-in-out infinite; 
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12); 
+    border: 3px solid var(--window-bg) !important; 
+    animation: loveFloat 3.5s ease-in-out infinite; 
 }
-.center-circle i { 
-    font-size: 26px !important; 
+.center-circle i,
+.center-circle svg { 
+    font-size: 24px !important; 
     color: #ffffff !important; 
 }
 

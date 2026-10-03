@@ -240,9 +240,16 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 .bottom-nav { position: absolute; bottom: 20px; left: 15px; right: 15px; height: 70px; background: var(--card-bg); display: flex; justify-content: space-around; align-items: center; border-radius: 35px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); z-index: 20; border: 1px solid rgba(255,255,255,0.4); }
 [data-theme="dark"] .bottom-nav { border-color: rgba(255,255,255,0.05); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
 .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-sub); font-size: 10px; cursor: pointer; flex: 1; transition: 0.3s; }
-.nav-item.active { color: var(--secondary-color); font-weight: bold; transform: scale(1.1); }
-.nav-item.active .icon { filter: drop-shadow(0 0 8px var(--primary-color)); }
-.nav-item .icon { font-size: 26px; margin-bottom: 2px; }
+.nav-item.active { color: var(--secondary-color); font-weight: bold; transform: scale(1.08); }
+.nav-item.active .icon { filter: drop-shadow(0 4px 10px rgba(111, 168, 220, 0.45)); }
+.nav-item .icon { font-size: 26px; margin-bottom: 2px; display: flex; justify-content: center; align-items: center; }
+
+/* 🌟 新 SVG 图标尺寸与质感 */
+.ui-tab-icon { width: 28px; height: 28px; object-fit: contain; pointer-events: none; transition: transform 0.2s ease; }
+.ui-tab-icon.center-icon { width: 32px; height: 32px; }
+.ui-icon-btn { width: 22px; height: 22px; object-fit: contain; }
+.ui-icon-fab { width: 28px; height: 28px; object-fit: contain; }
+.ui-back-icon { width: 24px; height: 24px; object-fit: contain; }
 
 .center-btn { position: relative; }
 @keyframes loveFloat { 0%{ transform:translate(-50%, 0); } 50%{ transform:translate(-50%, -6px); } 100%{ transform:translate(-50%, 0); } }

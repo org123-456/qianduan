@@ -237,59 +237,87 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 .app-icon .icon { width: 64px; height: 64px; background: var(--icon-bg); border-radius: 22px; display: flex; justify-content: center; align-items: center; font-size: 32px; margin-bottom: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); overflow: hidden;}
 .app-icon .name { font-size: 12px; font-weight: 600; color: var(--text-main); text-align: center; margin-top: 8px;}
 
-.bottom-nav { position: absolute; bottom: 20px; left: 15px; right: 15px; height: 70px; background: var(--card-bg); display: flex; justify-content: space-around; align-items: center; border-radius: 35px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); z-index: 20; border: 1px solid rgba(255,255,255,0.4); }
-[data-theme="dark"] .bottom-nav { border-color: rgba(255,255,255,0.05); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-.nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-sub); font-size: 10px; cursor: pointer; flex: 1; transition: 0.3s; }
-.nav-item.active { color: var(--secondary-color); font-weight: bold; transform: scale(1.08); }
-.nav-item.active .icon { filter: drop-shadow(0 4px 10px rgba(111, 168, 220, 0.45)); }
-.nav-item .icon { font-size: 26px; margin-bottom: 2px; display: flex; justify-content: center; align-items: center; }
+.bottom-nav { 
+    position: absolute; 
+    bottom: 20px; 
+    left: 15px; 
+    right: 15px; 
+    height: 70px; 
+    background: var(--card-bg); 
+    display: flex; 
+    justify-content: space-around; 
+    align-items: center; 
+    border-radius: 35px; 
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+    z-index: 20; 
+    border: 1px solid rgba(255,255,255,0.4); 
+}
+[data-theme="dark"] .bottom-nav { 
+    border-color: rgba(255,255,255,0.05); 
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+}
 
-/* 🌟 真正还原设计图的「果冻微光胶囊」神仙质感 */
+.nav-item { 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center; 
+    color: var(--text-sub); 
+    cursor: pointer; 
+    flex: 1; 
+    height: 100%;
+    transition: transform 0.25s ease; 
+}
+
+/* 🌟 标准果冻容器与真实大图标尺寸 */
 .jelly-box {
     position: relative;
-    width: 38px;
-    height: 38px;
-    border-radius: 14px;
+    width: 40px;
+    height: 34px;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 20px;
+    margin-bottom: 2px;
+}
+
+.jelly-box i {
+    font-size: 24px !important;
+    line-height: 1;
     color: var(--text-sub);
-    background: transparent;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    margin-bottom: 3px;
+    transition: color 0.2s, transform 0.2s;
 }
 
 /* 小星星 / 小爱心点缀 */
 .jelly-sparkle {
     position: absolute;
-    top: 2px;
-    right: 3px;
-    font-size: 8px;
+    top: -2px;
+    right: 1px;
+    font-size: 10px;
     color: var(--primary-color);
     opacity: 0;
-    transform: scale(0.5);
+    transform: scale(0.4);
     transition: all 0.3s ease;
     pointer-events: none;
+    line-height: 1;
 }
 
 .nav-item .text {
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
     line-height: 1;
     color: var(--text-sub);
+    letter-spacing: 0.3px;
     transition: color 0.2s;
 }
 
-/* 选中激活时的果冻Q弹高光效果（完全还原你的原画！） */
-.nav-item.active .jelly-box {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.3));
-    color: var(--primary-color);
-    transform: translateY(-2px) scale(1.08);
-    box-shadow: 
-        0 4px 12px rgba(0, 0, 0, 0.06),
-        inset 0 0 0 1.5px rgba(255, 255, 255, 0.9),
-        0 0 15px var(--primary-color);
+/* 🌟 选中激活：Q弹上浮、主题色加深、小星星点亮 */
+.nav-item.active {
+    transform: translateY(-2px);
+}
+
+.nav-item.active .jelly-box i {
+    color: var(--primary-color) !important;
+    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.12));
 }
 
 .nav-item.active .jelly-sparkle {
@@ -304,23 +332,37 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 }
 
 @keyframes sparkleBlink {
-    0%, 100% { opacity: 0.6; transform: scale(0.9); }
-    50% { opacity: 1; transform: scale(1.2) rotate(15deg); }
+    0%, 100% { opacity: 0.7; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.35) rotate(15deg); }
 }
 
-/* 顶部设置图标 */
-.icon-settings-btn {
-    font-size: 20px;
-    color: var(--primary-color);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
+/* 🌟 中间圆形悬浮聊天主按钮 */
 .center-btn { position: relative; }
-@keyframes loveFloat { 0%{ transform:translate(-50%, 0); } 50%{ transform:translate(-50%, -6px); } 100%{ transform:translate(-50%, 0); } }
-.center-circle { position: absolute; top: -25px; left: 50%; transform: translateX(-50%); width: 58px; height: 58px; background: var(--btn-gradient); border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 8px 25px rgba(0,0,0,0.2); border: 4px solid var(--window-bg); animation: loveFloat 4s ease-in-out infinite; }
-.center-circle .icon { font-size: 24px; color: #fff; }
+@keyframes loveFloat { 
+    0%{ transform: translate(-50%, 0); } 
+    50%{ transform: translate(-50%, -5px); } 
+    100%{ transform: translate(-50%, 0); } 
+}
+.center-circle { 
+    position: absolute; 
+    top: -25px; 
+    left: 50%; 
+    transform: translateX(-50%); 
+    width: 58px; 
+    height: 58px; 
+    background: var(--btn-gradient) !important; 
+    border-radius: 50%; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    box-shadow: 0 8px 22px rgba(0,0,0,0.18); 
+    border: 4px solid var(--window-bg) !important; 
+    animation: loveFloat 4s ease-in-out infinite; 
+}
+.center-circle i { 
+    font-size: 26px !important; 
+    color: #ffffff !important; 
+}
 
 .btn-refresh { width: 100%; padding: 12px; background: var(--btn-gradient); color: white; border: none; border-radius: 18px !important; font-size: 16px; margin-top: 20px; display: flex; justify-content: center; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.15);}
 .btn-refresh:disabled { opacity: 0.6; cursor: not-allowed; }

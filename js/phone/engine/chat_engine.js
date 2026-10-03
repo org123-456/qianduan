@@ -385,10 +385,119 @@ export const ChatEngine = {
             PhoneUI.renderAppContent('wechat');
             this._safeSaveData();
         }
+    },
+
+    // 🌟 提取记忆（星海归档）
+    async extractMemory(appId = 'wechat') {
+        const roleId = Config?.currentContactId;
+        const allItems = Config?.phoneData?.[roleId]?.[appId]?.items || [];
+        const cleanItems = allItems.filter(i => i.sender !== 'typing' && i.content);
+        
+        let lastIdx = parseInt(localStorage.getItem('memory_last_summary_index') || '0', 10);
+        if (lastIdx > cleanItems.length) lastIdx = 0;
+
+        const newItems = cleanItems.slice(lastIdx);
+        if (newItems.length === 0) {
+            PhoneAPI?.showToast?.('🌿 暂无需要提取的新对话记忆哦');
+            return;
+        }
+
+        PhoneAPI?.showToast?.(`✨ 正在提炼最近 ${newItems.length} 条对话记忆...`);
+
+        try {
+            const conversationText = newItems.map(item => {
+                const who = item.sender === 'me' ? '我' : 'TA';
+                return `${who}: ${item.content}`;
+            }).join('\n');
+
+            const summaryPrompt = [
+                {
+                    role: 'system',
+                    content: '你是一个敏锐细腻的记忆整理官。请阅读以下这段对话，提炼出 1~3 条值得被铭记的核心记忆、重要约定、感情升温细节或关键事实。每条用一两句话概括，温暖真实，条理清晰。'
+                },
+                {
+                    role: 'user',
+                    content: `【近期对话记录】：\n${conversationText}\n\n请输出记忆摘要：`
+                }
+            ];
+
+            const summary = await PhoneAPI.chatWithAI(summaryPrompt);
+            if (!summary) throw new Error('提炼记忆返回为空');
+
+            // 存入 memory_vault / 星海
+            if (!Config.phoneData[roleId]) Config.phoneData[roleId] = {};
+            if (!Config.phoneData[roleId].memory_vault) Config.phoneData[roleId].memory_vault = { items: [] };
+
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}`;
+
+            Config.phoneData[roleId].memory_vault.items.unshift({
+                id: 'mem_' + Date.now(),
+                type: 'daily',
+                date: dateStr,
+                content: summary.trim(),
+                source: '微信提炼'
+            });
+
+            // 更新指针
+            localStorage.setItem('memory_last_summary_index', cleanItems.length.toString());
+            await this._safeSaveData();
+
+            PhoneAPI?.showToast?.('💎 记忆提炼成功，已收录进星海！');
+            if (PhoneUI?.updateHomeWidget) PhoneUI.updateHomeWidget();
+            if (Config.currentAppId === 'settings' && PhoneUI?.renderSettings) {
+                PhoneUI.renderSettings();
+                PhoneUI.switchSetTab('ai');
+            }
+        } catch (e) {
+            console.error('提取记忆失败:', e);
+            PhoneAPI?.showToast?.('⚠️ 提取记忆遇到异常: ' + (e.message || ''));
+        }
+    },
+
+    // 🌟 设置页“立即提取”记忆方法别名
+    async manualManageMemory() {
+        return this.extractMemory('wechat');
+    },
+
+    // 🌟 记忆洗地：清理已归档的早期聊天气泡，保持系统轻盈飞速
+    async washMemory(appId = 'wechat') {
+        const roleId = Config?.currentContactId;
+        const target = Config?.phoneData?.[roleId]?.[appId];
+        if (!target || !Array.isArray(target.items)) {
+            PhoneAPI?.showToast?.('当前暂无需要洗地的消息');
+            return;
+        }
+
+        const keepCount = 120; // 始终保留最近 120 条
+        const lastIdx = parseInt(localStorage.getItem('memory_last_summary_index') || '0', 10);
+        
+        if (target.items.length <= keepCount) {
+            PhoneAPI?.showToast?.(`🌱 消息总共才 ${target.items.length} 条，无需洗地哦`);
+            return;
+        }
+
+        const deletableCount = Math.max(0, target.items.length - keepCount);
+        const confirmed = confirm(`🧹 记忆洗地安全提示：\n\n已归档到星海的早期消息共有 ${deletableCount} 条可以安全清理（将保留最近 ${keepCount} 条完整上下文）。\n\n是否确认清理？`);
+        if (!confirmed) return;
+
+        target.items.splice(0, deletableCount);
+        // 重置/对齐总结指针
+        localStorage.setItem('memory_last_summary_index', Math.max(0, lastIdx - deletableCount).toString());
+        await this._safeSaveData();
+
+        PhoneUI.renderAppContent?.('wechat');
+        PhoneAPI?.showToast?.(`✨ 洗地完成！已释放 ${deletableCount} 条历史消息占用的内存`);
+        
+        if (Config.currentAppId === 'settings' && PhoneUI?.renderSettings) {
+            PhoneUI.renderSettings();
+            PhoneUI.switchSetTab('ai');
+        }
     }
 };
 
 if (typeof window !== 'undefined') { 
     window.ChatEngine = ChatEngine; 
-    window.PhoneEngine = ChatEngine;
+    // 安全合并，绝不覆盖已有模块方法
+    window.PhoneEngine = Object.assign(window.PhoneEngine || {}, ChatEngine);
 }

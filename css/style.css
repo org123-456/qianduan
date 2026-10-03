@@ -244,72 +244,67 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 .nav-item.active .icon { filter: drop-shadow(0 4px 10px rgba(111, 168, 220, 0.45)); }
 .nav-item .icon { font-size: 26px; margin-bottom: 2px; display: flex; justify-content: center; align-items: center; }
 
-/* 🌟 新 SVG 图标：果冻微光胶囊质感滤镜 */
+/* 🌟 核心：使用 CSS Mask 彻底终结死黑，完美呈现主题色 */
+.ui-mask-icon {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    background-color: var(--text-sub);
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* 各功能图标路径绑定 */
+.icon-home { -webkit-mask-image: url('../icons/home.svg'); mask-image: url('../icons/home.svg'); }
+.icon-memory { -webkit-mask-image: url('../icons/memory.svg'); mask-image: url('../icons/memory.svg'); }
+.icon-chat { -webkit-mask-image: url('../icons/chat.svg'); mask-image: url('../icons/chat.svg'); }
+.icon-together { -webkit-mask-image: url('../icons/together.svg'); mask-image: url('../icons/together.svg'); }
+.icon-space { -webkit-mask-image: url('../icons/space.svg'); mask-image: url('../icons/space.svg'); }
+.icon-settings { -webkit-mask-image: url('../icons/settings.svg'); mask-image: url('../icons/settings.svg'); background-color: var(--primary-color); }
+.icon-camera { -webkit-mask-image: url('../icons/camera.svg'); mask-image: url('../icons/camera.svg'); }
+.icon-back { -webkit-mask-image: url('../icons/back.svg'); mask-image: url('../icons/back.svg'); background-color: var(--primary-color); }
+
+/* 导航项排版与自适应间距，告别裁切与重叠 */
 .nav-item .icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 14px;
-    background: var(--card-bg);
+    width: 28px;
+    height: 28px;
     display: flex;
     justify-content: center;
     align-items: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-    position: relative;
+    margin-bottom: 3px;
 }
 
-/* 激活时变如果冻发光小药丸 */
-.nav-item.active .icon {
-    background: var(--btn-gradient);
-    box-shadow: 0 6px 16px rgba(111, 168, 220, 0.45);
-    transform: translateY(-2px);
+.nav-item .text {
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--text-sub);
+    transition: color 0.2s;
 }
 
-/* 将纯黑色的 SVG 智能翻转为柔美颜色 */
-.ui-tab-icon {
-    width: 24px;
-    height: 24px;
-    object-fit: contain;
-    pointer-events: none;
-    transition: filter 0.3s ease, transform 0.2s ease;
-    /* 未选中时：柔和灰粉/灰紫 */
-    filter: invert(45%) sepia(20%) saturate(600%) hue-rotate(180deg) brightness(95%);
-    opacity: 0.85;
+/* 选中激活状态：图标变成鲜亮主题色并微放大，文字同色加粗 */
+.nav-item.active .ui-mask-icon {
+    background-color: var(--primary-color);
+    transform: scale(1.15);
+    filter: drop-shadow(0 2px 6px rgba(230, 176, 196, 0.5));
 }
 
-/* 选中激活状态：变成纯白光洁图标 */
-.nav-item.active .ui-tab-icon {
-    filter: brightness(0) invert(1) drop-shadow(0 2px 4px rgba(0,0,0,0.15));
-    opacity: 1;
+.nav-item.active .text {
+    color: var(--primary-color);
+    font-weight: bold;
 }
 
-/* 中间聊天大圆形图标 */
-.center-circle .ui-tab-icon.center-icon {
-    width: 28px;
-    height: 28px;
-    filter: brightness(0) invert(1);
-}
-
-/* 顶部与发圈等按钮的图标 */
-.ui-icon-btn {
-    width: 20px;
-    height: 20px;
-    object-fit: contain;
-    filter: invert(40%) sepia(30%) saturate(800%) hue-rotate(180deg);
-}
-
-.ui-icon-fab {
+/* 中间悬浮聊天气泡图标：纯白微光 */
+.center-circle .ui-mask-icon.center-icon {
     width: 26px;
     height: 26px;
-    object-fit: contain;
-    filter: brightness(0) invert(1);
-}
-
-.ui-back-icon {
-    width: 22px;
-    height: 22px;
-    object-fit: contain;
-    filter: invert(30%) sepia(50%) saturate(600%) hue-rotate(180deg);
+    background-color: #ffffff;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
 }
 
 .center-btn { position: relative; }

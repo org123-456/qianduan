@@ -244,12 +244,73 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 .nav-item.active .icon { filter: drop-shadow(0 4px 10px rgba(111, 168, 220, 0.45)); }
 .nav-item .icon { font-size: 26px; margin-bottom: 2px; display: flex; justify-content: center; align-items: center; }
 
-/* 🌟 新 SVG 图标尺寸与质感 */
-.ui-tab-icon { width: 28px; height: 28px; object-fit: contain; pointer-events: none; transition: transform 0.2s ease; }
-.ui-tab-icon.center-icon { width: 32px; height: 32px; }
-.ui-icon-btn { width: 22px; height: 22px; object-fit: contain; }
-.ui-icon-fab { width: 28px; height: 28px; object-fit: contain; }
-.ui-back-icon { width: 24px; height: 24px; object-fit: contain; }
+/* 🌟 新 SVG 图标：果冻微光胶囊质感滤镜 */
+.nav-item .icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: var(--card-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    position: relative;
+}
+
+/* 激活时变如果冻发光小药丸 */
+.nav-item.active .icon {
+    background: var(--btn-gradient);
+    box-shadow: 0 6px 16px rgba(111, 168, 220, 0.45);
+    transform: translateY(-2px);
+}
+
+/* 将纯黑色的 SVG 智能翻转为柔美颜色 */
+.ui-tab-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    pointer-events: none;
+    transition: filter 0.3s ease, transform 0.2s ease;
+    /* 未选中时：柔和灰粉/灰紫 */
+    filter: invert(45%) sepia(20%) saturate(600%) hue-rotate(180deg) brightness(95%);
+    opacity: 0.85;
+}
+
+/* 选中激活状态：变成纯白光洁图标 */
+.nav-item.active .ui-tab-icon {
+    filter: brightness(0) invert(1) drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+    opacity: 1;
+}
+
+/* 中间聊天大圆形图标 */
+.center-circle .ui-tab-icon.center-icon {
+    width: 28px;
+    height: 28px;
+    filter: brightness(0) invert(1);
+}
+
+/* 顶部与发圈等按钮的图标 */
+.ui-icon-btn {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    filter: invert(40%) sepia(30%) saturate(800%) hue-rotate(180deg);
+}
+
+.ui-icon-fab {
+    width: 26px;
+    height: 26px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+}
+
+.ui-back-icon {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    filter: invert(30%) sepia(50%) saturate(600%) hue-rotate(180deg);
+}
 
 .center-btn { position: relative; }
 @keyframes loveFloat { 0%{ transform:translate(-50%, 0); } 50%{ transform:translate(-50%, -6px); } 100%{ transform:translate(-50%, 0); } }

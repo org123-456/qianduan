@@ -244,39 +244,33 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
 .nav-item.active .icon { filter: drop-shadow(0 4px 10px rgba(111, 168, 220, 0.45)); }
 .nav-item .icon { font-size: 26px; margin-bottom: 2px; display: flex; justify-content: center; align-items: center; }
 
-/* 🌟 核心：使用 CSS Mask 彻底终结死黑，完美呈现主题色 */
-.ui-mask-icon {
-    display: inline-block;
-    width: 24px;
-    height: 24px;
-    background-color: var(--text-sub);
-    -webkit-mask-size: contain;
-    mask-size: contain;
-    -webkit-mask-repeat: no-repeat;
-    mask-repeat: no-repeat;
-    -webkit-mask-position: center;
-    mask-position: center;
-    transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
-}
-
-/* 各功能图标路径绑定 */
-.icon-home { -webkit-mask-image: url('../icons/home.svg'); mask-image: url('../icons/home.svg'); }
-.icon-memory { -webkit-mask-image: url('../icons/memory.svg'); mask-image: url('../icons/memory.svg'); }
-.icon-chat { -webkit-mask-image: url('../icons/chat.svg'); mask-image: url('../icons/chat.svg'); }
-.icon-together { -webkit-mask-image: url('../icons/together.svg'); mask-image: url('../icons/together.svg'); }
-.icon-space { -webkit-mask-image: url('../icons/space.svg'); mask-image: url('../icons/space.svg'); }
-.icon-settings { -webkit-mask-image: url('../icons/settings.svg'); mask-image: url('../icons/settings.svg'); background-color: var(--primary-color); }
-.icon-camera { -webkit-mask-image: url('../icons/camera.svg'); mask-image: url('../icons/camera.svg'); }
-.icon-back { -webkit-mask-image: url('../icons/back.svg'); mask-image: url('../icons/back.svg'); background-color: var(--primary-color); }
-
-/* 导航项排版与自适应间距，告别裁切与重叠 */
-.nav-item .icon {
-    width: 28px;
-    height: 28px;
+/* 🌟 真正还原设计图的「果冻微光胶囊」神仙质感 */
+.jelly-box {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    border-radius: 14px;
     display: flex;
     justify-content: center;
     align-items: center;
+    font-size: 20px;
+    color: var(--text-sub);
+    background: transparent;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     margin-bottom: 3px;
+}
+
+/* 小星星 / 小爱心点缀 */
+.jelly-sparkle {
+    position: absolute;
+    top: 2px;
+    right: 3px;
+    font-size: 8px;
+    color: var(--primary-color);
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all 0.3s ease;
+    pointer-events: none;
 }
 
 .nav-item .text {
@@ -287,24 +281,40 @@ body { font-family: var(--global-font); background-color: var(--bg-gradient-star
     transition: color 0.2s;
 }
 
-/* 选中激活状态：图标变成鲜亮主题色并微放大，文字同色加粗 */
-.nav-item.active .ui-mask-icon {
-    background-color: var(--primary-color);
-    transform: scale(1.15);
-    filter: drop-shadow(0 2px 6px rgba(230, 176, 196, 0.5));
+/* 选中激活时的果冻Q弹高光效果（完全还原你的原画！） */
+.nav-item.active .jelly-box {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.3));
+    color: var(--primary-color);
+    transform: translateY(-2px) scale(1.08);
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.06),
+        inset 0 0 0 1.5px rgba(255, 255, 255, 0.9),
+        0 0 15px var(--primary-color);
+}
+
+.nav-item.active .jelly-sparkle {
+    opacity: 1;
+    transform: scale(1.1);
+    animation: sparkleBlink 2s infinite ease-in-out;
 }
 
 .nav-item.active .text {
     color: var(--primary-color);
-    font-weight: bold;
+    font-weight: 800;
 }
 
-/* 中间悬浮聊天气泡图标：纯白微光 */
-.center-circle .ui-mask-icon.center-icon {
-    width: 26px;
-    height: 26px;
-    background-color: #ffffff;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+@keyframes sparkleBlink {
+    0%, 100% { opacity: 0.6; transform: scale(0.9); }
+    50% { opacity: 1; transform: scale(1.2) rotate(15deg); }
+}
+
+/* 顶部设置图标 */
+.icon-settings-btn {
+    font-size: 20px;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .center-btn { position: relative; }

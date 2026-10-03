@@ -859,10 +859,19 @@ export const PhoneUI = {
         const myAvatar = localStorage.getItem('my_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=Me&backgroundColor=e8f0fa';
         const taAvatar = localStorage.getItem('ta_avatar') || 'https://api.dicebear.com/7.x/notionists/svg?seed=TA&backgroundColor=e8f0fa';
 
-        const roleId = window.Config?.currentContactId || 'role_001';
-        const allItems = window.Config?.phoneData?.[roleId]?.wechat?.items || [];
+        // 🌟 智能获取活跃角色 ID，防止因写死 role_001 导致找不到聊天记录
+        const activeRoleId = window.Config?.currentContactId 
+            || (window.Config?.phoneData ? Object.keys(window.Config.phoneData)[0] : null) 
+            || 'default';
+        const allItems = window.Config?.phoneData?.[activeRoleId]?.wechat?.items || [];
         const cleanItems = allItems.filter(i => i.sender !== 'typing' && i.content);
-        const lastIdx = parseInt(localStorage.getItem('memory_last_summary_index') || '0', 10);
+        
+        let lastIdx = parseInt(localStorage.getItem('memory_last_summary_index') || '0', 10);
+        // 若指针越界，自动回正
+        if (lastIdx > cleanItems.length || lastIdx < 0) {
+            lastIdx = 0;
+            localStorage.setItem('memory_last_summary_index', '0');
+        }
         const unsummarizedCount = Math.max(0, cleanItems.length - lastIdx);
 
         // 🌟 读取上下文设置与自动总结参数
@@ -973,19 +982,25 @@ export const PhoneUI = {
             <div class="card" style="padding: 16px; border: 1px solid var(--border-color);">
                 <h3 style="color:var(--primary-color);margin-bottom:12px; font-size: 15px;"><i class="ph-fill ph-brain"></i> 记忆管理与上下文调控</h3>
                 
-                <div style="background: var(--icon-bg); padding: 14px; border-radius: 12px; margin-bottom: 16px; border: 1px dashed var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-size: 12px; font-weight: bold; color: var(--text-main);">未总结的历史聊天账目</div>
-                        <div style="font-size: 20px; font-weight: 800; color: var(--primary-color); margin-top: 2px;">
-                            ${unsummarizedCount} <span style="font-size: 12px; font-weight: normal; color: var(--text-sub);">条</span>
+                <div style="background: var(--icon-bg); padding: 14px; border-radius: 12px; margin-bottom: 16px; border: 1px dashed var(--border-color);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <div>
+                            <div style="font-size: 12px; font-weight: bold; color: var(--text-main);">待提炼的聊天记忆</div>
+                            <div style="font-size: 22px; font-weight: 800; color: var(--primary-color); margin-top: 2px;">
+                                ${unsummarizedCount} <span style="font-size: 12px; font-weight: normal; color: var(--text-sub);">条新记录</span>
+                            </div>
+                        </div>
+                        <div style="text-align: right; font-size: 11px; color: var(--text-sub); line-height: 1.5;">
+                            <div>总聊天：<b>${cleanItems.length}</b> 条</div>
+                            <div>已归档进度：第 <b>${lastIdx}</b> 条</div>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 8px;">
-                        <button onclick="if(window.PhoneEngine){window.PhoneEngine.manualManageMemory(); PhoneUI.renderSettings(); PhoneUI.switchSetTab('ai');}" style="padding: 8px 14px; font-size: 12px; font-weight: bold; border-radius: 10px; background: var(--primary-color); color: #fff; border: none; cursor: pointer;">
-                            <i class="ph-fill ph-sparkle"></i> 立即提取
+                    <div style="display: flex; gap: 8px; margin-top: 10px;">
+                        <button onclick="if(window.PhoneEngine){window.PhoneEngine.manualManageMemory(); PhoneUI.renderSettings(); PhoneUI.switchSetTab('ai');}" style="flex: 2; padding: 10px; font-size: 12px; font-weight: bold; border-radius: 10px; background: var(--primary-color); color: #fff; border: none; cursor: pointer;">
+                            <i class="ph-fill ph-sparkle"></i> ${unsummarizedCount > 0 ? '提炼新记忆' : '重新提炼近期记忆'}
                         </button>
-                        <button onclick="localStorage.setItem('memory_last_summary_index', cleanItems.length.toString()); PhoneUI.renderSettings(); PhoneUI.switchSetTab('ai'); PhoneAPI.showToast('✅ 历史旧账已全部清零！');" style="padding: 8px 10px; font-size: 12px; border-radius: 10px; background: transparent; color: var(--text-sub); border: 1px solid var(--border-color); cursor: pointer;">
-                            清零旧账
+                        <button onclick="localStorage.setItem('memory_last_summary_index', '0'); PhoneUI.renderSettings(); PhoneUI.switchSetTab('ai'); PhoneAPI.showToast('🔄 进度已重置，现在可提炼全部记录！');" style="flex: 1; padding: 10px 8px; font-size: 11px; border-radius: 10px; background: transparent; color: var(--text-sub); border: 1px solid var(--border-color); cursor: pointer;">
+                            重置进度
                         </button>
                     </div>
                 </div>

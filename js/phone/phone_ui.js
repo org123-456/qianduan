@@ -109,6 +109,9 @@ export const PhoneUI = {
 
     changeAppColor(color) {
         document.documentElement.setAttribute('data-color', color);
+        document.documentElement.setAttribute('data-theme-color', color);
+        const mappedTheme = color === 'gold' ? 'yellow' : color;
+        document.documentElement.setAttribute('data-icon-theme', mappedTheme);
         localStorage.setItem('app_color', color);
         document.querySelectorAll('.color-circle').forEach(el => el.classList.remove('active'));
         const active = document.getElementById('color-btn-' + color);

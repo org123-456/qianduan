@@ -17,8 +17,8 @@
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-<link rel="stylesheet" href="icons/ui-icons.css">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="icons/ui-icons.css?v=2026.10.02-v1">
+<link rel="stylesheet" href="css/style.css?v=2026.10.02-v1">
 </head>
 <body>
 
@@ -117,7 +117,7 @@
         <div class="title" id="top-title">Claire & Claude</div>
         <div style="display: flex; gap: 10px;">
             <div class="menu-btn api-btn" id="api-fab" onclick="window.PhoneUI.openApiModal()"><i class="ph-fill ph-cpu"></i></div>
-            <div class="menu-btn" onclick="window.PhoneUI.openApp('settings', '系统设置')"><img src="icons/settings.svg" class="ui-icon-btn" alt="设置"></div>
+            <div class="menu-btn" onclick="window.PhoneUI.openApp('settings', '系统设置')"><span class="ui-mask-icon icon-settings" style="width:20px;height:20px;"></span></div>
         </div>
     </div>
 
@@ -340,18 +340,18 @@
         <!-- 页面 4: 朋友圈 (Space) -->
         <div id="page-moments" class="page">
             <div id="moments-content-area"></div>
-            <div class="fab-post" onclick="window.PhoneUI.openPostModal()"><img src="icons/camera.svg" class="ui-icon-fab" alt="发动态"></div>
+            <div class="fab-post" onclick="window.PhoneUI.openPostModal()"><span class="ui-mask-icon icon-camera" style="width:24px;height:24px;background:#ffffff;"></span></div>
         </div>
 
     </div>
 
     <!-- 底部导航 -->
     <div class="bottom-nav">
-        <div class="nav-item active" onclick="switchTab(0)"><div class="icon"><img src="icons/home.svg" class="ui-tab-icon" alt="Home"></div><div class="text">Home</div></div>
-        <div class="nav-item" onclick="switchTab(1)"><div class="icon"><img src="icons/memory.svg" class="ui-tab-icon" alt="Memory"></div><div class="text">Memory</div></div>
-        <div class="nav-item center-btn" onclick="switchTab(2)"><div class="center-circle"><div class="icon"><img src="icons/chat.svg" class="ui-tab-icon center-icon" alt="Chat"></div></div></div>
-        <div class="nav-item" onclick="switchTab(3)"><div class="icon"><img src="icons/together.svg" class="ui-tab-icon" alt="Together"></div><div class="text">Together</div></div>
-        <div class="nav-item" onclick="switchTab(4)"><div class="icon"><img src="icons/space.svg" class="ui-tab-icon" alt="Space"></div><div class="text">Space</div></div>
+        <div class="nav-item active" onclick="switchTab(0)"><div class="icon"><span class="ui-mask-icon icon-home"></span></div><div class="text">Home</div></div>
+        <div class="nav-item" onclick="switchTab(1)"><div class="icon"><span class="ui-mask-icon icon-memory"></span></div><div class="text">Memory</div></div>
+        <div class="nav-item center-btn" onclick="switchTab(2)"><div class="center-circle"><div class="icon"><span class="ui-mask-icon icon-chat center-icon"></span></div></div></div>
+        <div class="nav-item" onclick="switchTab(3)"><div class="icon"><span class="ui-mask-icon icon-together"></span></div><div class="text">Together</div></div>
+        <div class="nav-item" onclick="switchTab(4)"><div class="icon"><span class="ui-mask-icon icon-space"></span></div><div class="text">Space</div></div>
     </div>
 </div>
 

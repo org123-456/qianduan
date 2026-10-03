@@ -389,17 +389,25 @@ export const ChatEngine = {
 
     // 🌟 提取记忆（星海归档）
     async extractMemory(appId = 'wechat') {
-        const roleId = Config?.currentContactId;
+        const roleId = Config?.currentContactId 
+            || (Config?.phoneData ? Object.keys(Config.phoneData)[0] : null) 
+            || 'default';
         const allItems = Config?.phoneData?.[roleId]?.[appId]?.items || [];
         const cleanItems = allItems.filter(i => i.sender !== 'typing' && i.content);
         
         let lastIdx = parseInt(localStorage.getItem('memory_last_summary_index') || '0', 10);
-        if (lastIdx > cleanItems.length) lastIdx = 0;
+        if (lastIdx > cleanItems.length || lastIdx < 0) lastIdx = 0;
 
-        const newItems = cleanItems.slice(lastIdx);
+        let newItems = cleanItems.slice(lastIdx);
+        // 如果指针已经到了最后但用户主动点了提炼，默认取最近 20 条重新提炼
         if (newItems.length === 0) {
-            PhoneAPI?.showToast?.('🌿 暂无需要提取的新对话记忆哦');
-            return;
+            if (cleanItems.length > 0) {
+                newItems = cleanItems.slice(-20);
+                PhoneAPI?.showToast?.('🌿 正在重新提炼最近 20 条对话记忆...');
+            } else {
+                PhoneAPI?.showToast?.('🌿 暂无任何对话记录可提炼哦');
+                return;
+            }
         }
 
         PhoneAPI?.showToast?.(`✨ 正在提炼最近 ${newItems.length} 条对话记忆...`);

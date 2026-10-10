@@ -183,28 +183,42 @@ function layout(nodes, links, softlinks) {
   const idx = Object.create(null);
   nodes.forEach((n, i) => {
     idx[n.id] = i; const h1 = hash(n.id, 1), h2 = hash(n.id, 2), h3 = hash(n.id, 3);
-    const rr = 30 + h1 * 70, phi = Math.acos(1 - 2 * h2), th = 6.2832 * h3;
-    n.x = rr * Math.sin(phi) * Math.cos(th); n.y = rr * Math.cos(phi); n.z = rr * Math.sin(phi) * Math.sin(th);
+    // 🌟 充满全屏的真实星海尺度：半径展开至 70 ~ 240
+    const rr = 70 + h1 * 170, phi = Math.acos(1 - 2 * h2), th = 6.2832 * h3;
+    n.x = rr * Math.sin(phi) * Math.cos(th); n.y = rr * Math.cos(phi); n.z = rr * Math.sin(phi) * Math.sin(th) * 0.6;
     n.pinned = n.kind === "core"; if (n.pinned) { n.x = n.y = n.z = 0; }
   });
   const REST_VAR = 0.82; const restOf = (a, b, base, seed) => base * (1 - REST_VAR + 2 * REST_VAR * hash(a + "|" + b, seed));
   const edges = [];
-  (links || []).forEach(([a, b]) => { if (idx[a] != null && idx[b] != null) edges.push([idx[a], idx[b], 0.06, restOf(a, b, 60, 59)]); });
-  (softlinks || []).forEach(([a, b]) => { if (idx[a] != null && idx[b] != null) edges.push([idx[a], idx[b], 0.022, restOf(a, b, 88, 61)]); });
-  const N = nodes.length, REP = 2e3, CENTER = 85e-4;
-  const space = nodes.map((n) => n.pinned ? 1 : 0.28 + 1.9 * Math.pow(hash(n.id, 73), 1.6));
-  const pull = nodes.map((n) => 0.65 + 0.7 * hash(n.id, 79));
+  (links || []).forEach(([a, b]) => { if (idx[a] != null && idx[b] != null) edges.push([idx[a], idx[b], 0.04, restOf(a, b, 90, 59)]); });
+  (softlinks || []).forEach(([a, b]) => { if (idx[a] != null && idx[b] != null) edges.push([idx[a], idx[b], 0.015, restOf(a, b, 120, 61)]); });
+  const N = nodes.length, REP = 1200, CENTER = 18e-4;
+  const space = nodes.map((n) => n.pinned ? 1 : 0.4 + 1.6 * Math.pow(hash(n.id, 73), 1.6));
+  const pull = nodes.map((n) => 0.4 + 0.5 * hash(n.id, 79));
   const radii = nodes.map((n) => n.kind === "core" ? SIZE.core : impRadius(n.importance || 3));
   const fx = new Float64Array(N), fy = new Float64Array(N), fz = new Float64Array(N);
-  for (let it = 0; it < 320; it++) {
+  for (let it = 0; it < 260; it++) {
     fx.fill(0); fy.fill(0); fz.fill(0);
     for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) {
       let dx = nodes[i].x - nodes[j].x, dy = nodes[i].y - nodes[j].y, dz = nodes[i].z - nodes[j].z;
-      const d2 = dx * dx + dy * dy + dz * dz + 12, inv = 1 / Math.sqrt(d2);
-      const distance = Math.sqrt(Math.max(0, d2 - 12));
-      const f = Math.max(REP * Math.sqrt(space[i] * space[j]) / d2, (radii[i] + radii[j] + 3 - distance) * 0.9);
+      const d2 = dx * dx + dy * dy + dz * dz + 16, inv = 1 / Math.sqrt(d2);
+      const distance = Math.sqrt(Math.max(0, d2 - 16));
+      const f = Math.max(REP * Math.sqrt(space[i] * space[j]) / d2, (radii[i] + radii[j] + 6 - distance) * 0.7);
       dx *= inv; dy *= inv; dz *= inv; fx[i] += dx * f; fy[i] += dy * f; fz[i] += dz * f; fx[j] -= dx * f; fy[j] -= dy * f; fz[j] -= dz * f;
     }
+    for (const [i, j, k, rest] of edges) {
+      const dx = nodes[j].x - nodes[i].x, dy = nodes[j].y - nodes[i].y, dz = nodes[j].z - nodes[i].z;
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) + 0.01, f = k * (dist - rest) / dist;
+      fx[i] += dx * f; fy[i] += dy * f; fz[i] += dz * f; fx[j] -= dx * f; fy[j] -= dy * f; fz[j] -= dz * f;
+    }
+    const cool = Math.max(0.2, 1 - it / 280);
+    for (let i = 0; i < N; i++) {
+      if (nodes[i].pinned) { nodes[i].x = nodes[i].y = nodes[i].z = 0; continue; }
+      fx[i] -= nodes[i].x * CENTER * pull[i]; fy[i] -= nodes[i].y * CENTER * pull[i]; fz[i] -= nodes[i].z * CENTER * pull[i];
+      nodes[i].x += Math.max(-10, Math.min(10, fx[i])) * cool; nodes[i].y += Math.max(-10, Math.min(10, fy[i])) * cool; nodes[i].z += Math.max(-10, Math.min(10, fz[i])) * cool;
+    }
+  }
+}
     for (const [i, j, k, rest] of edges) {
       const dx = nodes[j].x - nodes[i].x, dy = nodes[j].y - nodes[i].y, dz = nodes[j].z - nodes[i].z;
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) + 0.01, f = k * (dist - rest) / dist;
@@ -274,10 +288,10 @@ function createRenderer(container, opts) {
   let W = window.innerWidth, H = window.innerHeight;
   
   const scene = new T.Scene();
-  const camera = new T.PerspectiveCamera(opts.expanded ? 78 : 66, W / H, 0.5, 6e3);
-  let targetFov = opts.expanded ? 78 : 66;
-  const DEF_POS = new T.Vector3(0, 0, 230);
-  const EXP_POS = new T.Vector3(149, 62, 620);
+  const camera = new T.PerspectiveCamera(opts.expanded ? 68 : 60, W / H, 0.5, 6e3);
+  let targetFov = opts.expanded ? 68 : 60;
+  const DEF_POS = new T.Vector3(0, 0, 240);
+  const EXP_POS = new T.Vector3(0, 0, 260);
   const CORE_POS = new T.Vector3(0, 0, 0);
   camera.position.copy(opts.expanded ? EXP_POS : DEF_POS);
   const renderer = new T.WebGLRenderer({ antialias: true, alpha: true });
@@ -487,12 +501,23 @@ export const MemoryEngine = {
         if (!container) return;
         const skyData = this._buildSkyData();
         if (this.skyInstance) {
-            this.skyConfig.data = skyData;
-            this.skyInstance.refresh();
-            return;
+            this.skyInstance.destroy();
+            this.skyInstance = null;
         }
         this.skyConfig = { data: skyData, expanded: true };
         this.skyInstance = createMemorySky(container, this.skyConfig);
+
+        // 🌟 确保右下角控制台按钮拥有最高点击优先级
+        const fab = document.querySelector('.sky-fab');
+        if (fab) {
+            fab.style.pointerEvents = 'auto';
+            fab.style.zIndex = '900';
+            fab.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.PhoneUI?.openSkyConsole?.();
+            };
+        }
     },
 
     /**

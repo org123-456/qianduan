@@ -55,17 +55,19 @@ export const MemoryUI = {
         const container = document.getElementById('vault-content-area');
         if (!container) return;
 
-        if (!document.getElementById('vault-list-container')) {
+        // 强制重构顶部操作栏，确保【自动拉取 TG 记忆】100% 出现，不被旧 HTML 结构缓存阻挡
+        let opBar = document.getElementById('vault-op-bar');
+        if (!opBar) {
             container.innerHTML = `
-                <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px;">
+                <div id="vault-op-bar" style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px;">
+                    <button type="button" onclick="window.MemoryEngine && window.MemoryEngine.syncFromAstrBot(true)" style="width:100%; padding:12px 10px; border:1px solid #06b6d4; border-radius:14px; background:linear-gradient(135deg, rgba(6,182,212,0.15), rgba(6,182,212,0.05)); color:#0891b2; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:6px; cursor:pointer; box-shadow:0 2px 8px rgba(6,182,212,0.15);">
+                        <i class="ph-bold ph-arrows-clockwise" style="font-size:16px;"></i> 🔄 自动拉取 TG / 平板最新记忆
+                    </button>
                     <div style="display:flex; gap:8px;">
-                        <button type="button" onclick="window.MemoryEngine && window.MemoryEngine.syncFromAstrBot(true)" style="flex:1; padding:10px 8px; border:1px solid #06b6d4; border-radius:12px; background:rgba(6,182,212,0.12); color:#0891b2; font-size:12px; font-weight:600;">
-                            <i class="ph ph-arrows-clockwise"></i> 🔄 自动拉取 TG 记忆
-                        </button>
-                        <button type="button" onclick="window.PhoneUI.exportLivingMemoryJson()" style="flex:1; padding:10px 8px; border:1px solid #6366f1; border-radius:12px; background:rgba(99,102,241,0.12); color:#6366f1; font-size:12px; font-weight:600;">
+                        <button type="button" onclick="window.PhoneUI.exportLivingMemoryJson()" style="flex:1; padding:10px 8px; border:1px solid #6366f1; border-radius:12px; background:rgba(99,102,241,0.08); color:#6366f1; font-size:12px; font-weight:600;">
                             <i class="ph ph-robot"></i> 导出给 TG (JSON)
                         </button>
-                        <button type="button" onclick="window.PhoneUI.openAstrBotPanel()" style="padding:10px 10px; border:1px solid #10b981; border-radius:12px; background:rgba(16,185,129,0.12); color:#10b981; font-size:12px; font-weight:600;">
+                        <button type="button" onclick="window.PhoneUI.openAstrBotPanel()" style="padding:10px 14px; border:1px solid #10b981; border-radius:12px; background:rgba(16,185,129,0.08); color:#10b981; font-size:12px; font-weight:600;">
                             <i class="ph ph-broadcast"></i> 中枢
                         </button>
                     </div>
@@ -79,17 +81,20 @@ export const MemoryUI = {
                         <input type="file" id="memory-vault-import-file" accept=".json,application/json" style="display:none" onchange="window.PhoneUI.importMemoryVault(event)">
                     </div>
                 </div>
-                <div style="font-size:11px; color:var(--text-sub); margin:0 2px 12px;">导出的 LivingMemory JSON 可直接在 AstrBot 中一键导入，TG 聊天直接无缝继承心底记忆。</div>
+                <div style="font-size:11px; color:var(--text-sub); margin:0 2px 12px; line-height:1.5;">✨ 点上方蓝键可直接顺着 Cloudflare 隧道把 TG 新产生的记忆拉回前端；导出的 JSON 亦可直接在 AstrBot 中一键导入。</div>
                 <div style="margin-bottom: 15px;">
                     <input type="text" id="vault-search-input" placeholder="🔍 搜索日期、标签、正文..." style="width: 100%; padding: 10px 15px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 13px; outline: none; box-sizing: border-box;">
                 </div>
                 <div id="vault-list-container"></div>
             `;
             
-            document.getElementById('vault-search-input').addEventListener('input', (e) => {
-                this.vaultSearchQuery = e.target.value.toLowerCase();
-                this.updateVaultList(); 
-            });
+            const searchInput = document.getElementById('vault-search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    this.vaultSearchQuery = e.target.value.toLowerCase();
+                    this.updateVaultList(); 
+                });
+            }
         }
         
         this.updateVaultList();

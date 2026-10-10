@@ -80,11 +80,27 @@ export const MemoryUI = {
 
     // Export only EchoVault data; do not touch chat history, settings, or IndexedDB assets.
     openSkyConsole() {
-        const bg = document.getElementById('sky-console-bg');
+        // 🌟 极简操控台：直接弹出清爽的记忆管理与txt导出选项，砍掉容易出bug的花哨形态选项
         const modal = document.getElementById('sky-console-modal');
+        if (modal) {
+            modal.innerHTML = `
+                <div style="font-weight:700;font-size:16px;color:#1e293b;margin-bottom:14px;text-align:center;">✨ 记忆手札管理</div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <button type="button" onclick="window.PhoneUI.exportMemoryVault();window.PhoneUI.closeSkyConsole();" style="padding:12px;background:#6366f1;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;">
+                        📖 导出记忆手札 (.txt 文本)
+                    </button>
+                    <button type="button" onclick="window.PhoneUI.openApp('memory_vault','记忆库');window.PhoneUI.closeSkyConsole();" style="padding:12px;background:#f1f5f9;color:#334155;border:none;border-radius:12px;font-size:14px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;">
+                        📜 查看心底记忆列表
+                    </button>
+                    <button type="button" onclick="window.PhoneUI.closeSkyConsole();" style="padding:10px;background:transparent;color:#94a3b8;border:none;font-size:13px;cursor:pointer;margin-top:4px;">
+                        关闭
+                    </button>
+                </div>
+            `;
+        }
+        const bg = document.getElementById('sky-console-bg');
         if (bg) { bg.style.zIndex = '9999'; bg.classList.add('show'); }
         if (modal) { modal.style.zIndex = '10000'; modal.classList.add('show'); }
-        try { this.handleStarSearch(''); } catch(e) {}
     },
 
     closeSkyConsole() {
@@ -510,14 +526,15 @@ export const MemoryUI = {
     }
 };
 
-// 🌟 全局挂载：彻底打通模式切换、视角回正、txt导出，杜绝点击无反应
+// 🌟 全局纯净挂载：彻底打通所有必要函数
 if (typeof window !== 'undefined') {
     window.PhoneUI = window.PhoneUI || {};
     Object.assign(window.PhoneUI, MemoryUI);
     window.MemoryUI = MemoryUI;
-    window.changeSkyShape = (shape) => MemoryUI.changeSkyShape(shape);
-    window.resetSkyView = () => MemoryUI.resetSkyView();
+    window.exportMemoryVault = () => MemoryUI.exportMemoryVault();
     window.closeSkyConsole = () => MemoryUI.closeSkyConsole();
     window.openSkyConsole = () => MemoryUI.openSkyConsole();
     window.focusGalaxy = (mode) => MemoryUI.focusGalaxy(mode);
+    window.changeSkyShape = () => {};
+    window.resetSkyView = () => MemoryUI.resetSkyView();
 }

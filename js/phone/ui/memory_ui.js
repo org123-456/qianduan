@@ -199,9 +199,18 @@ export const MemoryUI = {
     },
 
     changeSkyShape(shape) {
-        if (window.MemoryEngine) window.MemoryEngine.skyShape = shape;
+        localStorage.setItem('memory_sky_shape', shape);
+        if (window.MemoryEngine) {
+            window.MemoryEngine.skyShape = shape;
+            if (window.MemoryEngine.skyInstance?.setShape) {
+                window.MemoryEngine.skyInstance.setShape(shape);
+            } else {
+                this.resetSkyView();
+            }
+        }
         this.closeSkyConsole();
-        this.resetSkyView();
+        const names = { free: '自由星系', spiral: '恒星轨道', ring: '星环模式' };
+        window.PhoneAPI?.showToast?.(`🌌 已切换为：${names[shape] || shape}`);
     },
 
     resetSkyView() {
@@ -236,27 +245,62 @@ export const MemoryUI = {
         try {
             const data = window.PhoneAPI?.EchoVault?.getData?.();
             if (!data || typeof data !== 'object') throw new Error('当前记忆库不可用');
-            const payload = {
-                format: 'qianduan-memory-vault',
-                version: 1,
-                exportedAt: new Date().toISOString(),
-                vault: {
-                    daily: data.daily || {},
-                    permanent: data.permanent || {},
-                    archive: data.archive || {}
-                }
-            };
-            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+            
+            const myName = localStorage.getItem('my_name') || '卿卿';
+            const taName = localStorage.getItem('char_name') || '不死途';
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+
+            let txt = `========================================\n`;
+            txt += `      📖 《${taName}与${myName}的心底记忆手札》\n`;
+            txt += `      导出时间：${dateStr}\n`;
+            txt += `========================================\n\n`;
+
+            // 1. 核心永久锚点
+            txt += `【🌟 永恒锚点记忆】\n`;
+            txt += `----------------------------------------\n`;
+            const permKeys = Object.keys(data.permanent || {});
+            if (permKeys.length === 0) {
+                txt += `（暂无永久锚点）\n\n`;
+            } else {
+                permKeys.forEach((key, idx) => {
+                    const item = data.permanent[key];
+                    const content = (item?.content || String(item)).replace(/---/g, '\n').trim();
+                    const tags = item?.tags ? ` [标签: ${item.tags}]` : '';
+                    txt += `${idx + 1}. [${key}]${tags}\n${content}\n\n`;
+                });
+            }
+
+            // 2. 日常碎片记录
+            txt += `\n【📅 日常心境与陪伴碎片】\n`;
+            txt += `----------------------------------------\n`;
+            const dailyKeys = Object.keys(data.daily || {}).sort((a, b) => b.localeCompare(a));
+            if (dailyKeys.length === 0) {
+                txt += `（暂无日常记忆）\n\n`;
+            } else {
+                dailyKeys.forEach((date, idx) => {
+                    const item = data.daily[date];
+                    const content = (item?.content || '').replace(/---/g, '\n').trim();
+                    const tags = item?.tags ? ` | 🏷️ ${item.tags}` : '';
+                    txt += `【${date}${tags}】\n${content}\n\n`;
+                });
+            }
+
+            txt += `========================================\n`;
+            txt += `               手札记录完毕               \n`;
+            txt += `========================================\n`;
+
+            const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const stamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
             a.href = url;
-            a.download = `qianduan-memory-backup-${stamp}.json`;
+            a.download = `${taName}与${myName}的记忆手札-${stamp}.txt`;
             document.body.appendChild(a);
             a.click();
             a.remove();
             setTimeout(() => URL.revokeObjectURL(url), 1000);
-            window.PhoneAPI?.showToast?.('记忆库备份已导出');
+            window.PhoneAPI?.showToast?.('✨ 记忆手札已导出为文本文件！');
         } catch (err) {
             alert('导出失败：' + (err?.message || '未知错误'));
         }

@@ -79,6 +79,88 @@ export const MemoryUI = {
     },
 
     // Export only EchoVault data; do not touch chat history, settings, or IndexedDB assets.
+    openSkyConsole() {
+        document.getElementById('sky-console-bg')?.classList.add('show');
+        document.getElementById('sky-console-modal')?.classList.add('show');
+        this.handleStarSearch('');
+    },
+
+    closeSkyConsole() {
+        document.getElementById('sky-console-bg')?.classList.remove('show');
+        document.getElementById('sky-console-modal')?.classList.remove('show');
+    },
+
+    showMemoryStarDetail(node) {
+        const title = String(node?.title || '记忆');
+        const content = String(node?.content || '暂无内容');
+        window.alert(title + '\n' + (node?.date || '') + '\n\n' + content);
+    },
+
+    handleStarSearch(query) {
+        const box = document.getElementById('sky-search-results');
+        if (!box) return;
+        const data = window.PhoneAPI?.EchoVault?.getData?.() || {daily:{}, permanent:{}, archive:{}};
+        const q = String(query || '').trim().toLowerCase();
+        const found = [];
+        ['daily', 'permanent', 'archive'].forEach(section => {
+            Object.entries(data[section] || {}).forEach(([key, item]) => {
+                const text = typeof item === 'string' ? item : String(item?.content || '');
+                if (!q || key.toLowerCase().includes(q) || text.toLowerCase().includes(q)) {
+                    found.push({section, key, text});
+                }
+            });
+        });
+        box.innerHTML = found.slice(0, 25).map(item =>
+            '<button class="action-btn" style="text-align:left;white-space:normal" onclick="window.PhoneUI.openApp(\'memory_vault\', \'记忆库列表\');window.PhoneUI.closeSkyConsole();">' +
+            this.escapeHtml(item.key) + '<div style="font-size:12px;margin-top:4px">' + this.escapeHtml(item.text.slice(0,100)) + '</div></button>'
+        ).join('') || '<div class="ev-empty">没有找到匹配的记忆</div>';
+    },
+
+    focusGalaxy(mode) {
+        if (mode === 'vault') {
+            this.openApp('memory_vault', '记忆库列表');
+            this.closeSkyConsole();
+            return;
+        }
+        if (mode === 'fav') {
+            window.alert('收藏星系暂未建立独立数据标记。');
+        }
+    },
+
+    changeSkyShape(shape) {
+        if (window.MemoryEngine) window.MemoryEngine.skyShape = shape;
+        this.closeSkyConsole();
+        this.resetSkyView();
+    },
+
+    resetSkyView() {
+        if (window.MemoryEngine?.skyInstance) {
+            window.MemoryEngine.skyInstance.destroy();
+            window.MemoryEngine.skyInstance = null;
+        }
+        window.MemoryEngine?.initSky?.();
+    },
+
+    openMemoryLog() {
+        const bg = document.getElementById('memory-log-bg');
+        const modal = document.getElementById('memory-log-modal');
+        const list = document.getElementById('memory-log-list');
+        let logs = [];
+        try { logs = JSON.parse(localStorage.getItem('memory_logs') || '[]'); } catch (e) {}
+        if (list) list.innerHTML = logs.length ? logs.slice().reverse().map(log =>
+            '<div class="ev-card"><div class="ev-card-header"><span>' + this.escapeHtml(log.time || '') +
+            '</span><span>' + this.escapeHtml(log.action || '') + '</span></div><div class="ev-body">' +
+            this.escapeHtml(log.content || '') + '</div></div>'
+        ).join('') : '<div class="ev-empty">暂时没有星海变动日志</div>';
+        bg?.classList.add('show');
+        modal?.classList.add('show');
+    },
+
+    closeMemoryLog() {
+        document.getElementById('memory-log-bg')?.classList.remove('show');
+        document.getElementById('memory-log-modal')?.classList.remove('show');
+    },
+
     exportMemoryVault() {
         try {
             const data = window.PhoneAPI?.EchoVault?.getData?.();

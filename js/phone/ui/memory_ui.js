@@ -95,9 +95,76 @@ export const MemoryUI = {
     },
 
     showMemoryStarDetail(node) {
-        const title = String(node?.title || '记忆');
-        const content = String(node?.content || '暂无内容');
-        window.alert(title + '\n' + (node?.date || '') + '\n\n' + content);
+        if (!node) return;
+        let modalBg = document.getElementById('star-detail-bg');
+        let modal = document.getElementById('star-detail-modal');
+
+        if (!modalBg) {
+            modalBg = document.createElement('div');
+            modalBg.id = 'star-detail-bg';
+            modalBg.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:99998;opacity:0;pointer-events:none;transition:opacity 0.25s ease;';
+            document.body.appendChild(modalBg);
+            modalBg.onclick = () => window.PhoneUI.closeMemoryStarDetail();
+        }
+
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'star-detail-modal';
+            modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.92);width:86%;max-width:340px;background:rgba(25,27,42,0.88);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.18);border-radius:24px;box-shadow:0 20px 50px rgba(0,0,0,0.65),0 0 30px rgba(167,139,250,0.18);z-index:99999;opacity:0;pointer-events:none;transition:all 0.28s cubic-bezier(0.16,1,0.3,1);padding:22px;box-sizing:border-box;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;';
+            document.body.appendChild(modal);
+        }
+
+        const title = this.escapeHtml(node.title || '心底的记忆');
+        const date = this.escapeHtml(node.date || '星历');
+        const rawContent = (node.content || '暂无内容').replace(/---/g, '\n').trim();
+        const contentHtml = this.escapeHtml(rawContent).replace(/\n/g, '<br style="margin-bottom:8px;">');
+
+        modal.innerHTML = `
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:12px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <div style="width:30px;height:30px;border-radius:10px;background:linear-gradient(135deg,rgba(167,139,250,0.35),rgba(196,181,253,0.1));display:flex;align-items:center;justify-content:center;color:#c4b5fd;font-size:16px;">
+                        <i class="ph-fill ph-sparkle"></i>
+                    </div>
+                    <div>
+                        <div style="font-size:14px;font-weight:700;color:#f3f4f6;letter-spacing:0.3px;">${title}</div>
+                        <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:2px;">${date}</div>
+                    </div>
+                </div>
+                <button onclick="window.PhoneUI.closeMemoryStarDetail()" style="background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.6);width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;transition:0.2s;">
+                    ✕
+                </button>
+            </div>
+            <div style="max-height:55vh;overflow-y:auto;font-size:13px;line-height:1.75;color:rgba(255,255,255,0.85);letter-spacing:0.4px;padding-right:4px;word-break:break-word;">
+                ${contentHtml}
+            </div>
+            <div style="margin-top:18px;display:flex;justify-content:flex-end;">
+                <button onclick="window.PhoneUI.closeMemoryStarDetail()" style="padding:8px 20px;border-radius:12px;background:linear-gradient(135deg,#8b5cf6,#a78bfa);border:none;color:#fff;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 4px 14px rgba(139,92,246,0.35);">
+                    收起
+                </button>
+            </div>
+        `;
+
+        requestAnimationFrame(() => {
+            modalBg.style.opacity = '1';
+            modalBg.style.pointerEvents = 'auto';
+            modal.style.opacity = '1';
+            modal.style.pointerEvents = 'auto';
+            modal.style.transform = 'translate(-50%,-50%) scale(1)';
+        });
+    },
+
+    closeMemoryStarDetail() {
+        const modalBg = document.getElementById('star-detail-bg');
+        const modal = document.getElementById('star-detail-modal');
+        if (modalBg) {
+            modalBg.style.opacity = '0';
+            modalBg.style.pointerEvents = 'none';
+        }
+        if (modal) {
+            modal.style.opacity = '0';
+            modal.style.pointerEvents = 'none';
+            modal.style.transform = 'translate(-50%,-50%) scale(0.92)';
+        }
     },
 
     handleStarSearch(query) {

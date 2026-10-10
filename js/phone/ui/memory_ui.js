@@ -509,3 +509,15 @@ export const MemoryUI = {
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     }
 };
+
+// 🌟 全局挂载：彻底打通模式切换、视角回正、txt导出，杜绝点击无反应
+if (typeof window !== 'undefined') {
+    window.PhoneUI = window.PhoneUI || {};
+    Object.assign(window.PhoneUI, MemoryUI);
+    window.MemoryUI = MemoryUI;
+    window.changeSkyShape = (shape) => MemoryUI.changeSkyShape(shape);
+    window.resetSkyView = () => MemoryUI.resetSkyView();
+    window.closeSkyConsole = () => MemoryUI.closeSkyConsole();
+    window.openSkyConsole = () => MemoryUI.openSkyConsole();
+    window.focusGalaxy = (mode) => MemoryUI.focusGalaxy(mode);
+}

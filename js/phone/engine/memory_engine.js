@@ -354,26 +354,14 @@ function createRenderer(container, opts) {
     if (t0 == null) { t0 = ts; _rawLast = 0; }
     const _raw = (ts - t0) / 1e3; const frameDt = Math.min(0.05, Math.max(0, _raw - _rawLast)); _tAcc += frameDt; _rawLast = _raw; const t = _tAcc;
 
+    // 🌟 纯粹轻量：自然呼吸漂浮，无任何冗余轨道计算，绝对稳定流畅
     sprites.forEach((s) => {
       const isCore = s.n.kind === "core";
       if (isCore) {
         s.body.position.set(0, 0, 0);
-      } else if (shape === "spiral") {
-        // 恒星轨道（绕中心慢速旋转）
-        const ang = s.ph + t * (0.08 + (s.r % 0.05));
-        const rDist = Math.hypot(s.base.x, s.base.y) || 120;
-        s.body.position.set(Math.cos(ang) * rDist, Math.sin(ang) * rDist, s.base.z * 0.3);
-      } else if (shape === "ring") {
-        // 宇宙指环（扁平倾斜同心环）
-        const ang = s.ph + t * 0.04;
-        const rDist = 90 + ((s.n.importance || 3) * 26) + (Math.abs(s.base.x) % 50);
-        const rx = Math.cos(ang) * rDist;
-        const ry = Math.sin(ang) * (rDist * 0.38);
-        s.body.position.set(rx, ry + s.base.z * 0.2, Math.sin(ang) * (rDist * 0.4));
       } else {
-        // 自由星系模式
-        const driftX = Math.sin(t * 0.5 + s.ph) * 6;
-        const driftY = Math.cos(t * 0.4 + s.ph) * 6;
+        const driftX = Math.sin(t * 0.3 + s.ph) * 4;
+        const driftY = Math.cos(t * 0.25 + s.ph) * 4;
         s.body.position.set(s.base.x + driftX, s.base.y + driftY, s.base.z);
       }
 

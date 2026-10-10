@@ -447,6 +447,22 @@ export const MemoryEngine = {
     skyConfig: null,
     _isSummarizing: false,
 
+    changeSkyShape(shape) {
+        if (window.PhoneUI?.changeSkyShape) {
+            window.PhoneUI.changeSkyShape(shape);
+        } else if (this.skyInstance?.setShape) {
+            this.skyInstance.setShape(shape);
+        }
+    },
+
+    resetSkyView() {
+        if (window.PhoneUI?.resetSkyView) {
+            window.PhoneUI.resetSkyView();
+        } else if (this.skyInstance?.resetView) {
+            this.skyInstance.resetView();
+        }
+    },
+
     _logMemoryAction(action, content, exactId) {
         let logs = [];
         try { logs = JSON.parse(localStorage.getItem('memory_logs') || '[]'); } catch(e) {}

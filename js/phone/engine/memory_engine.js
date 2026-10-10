@@ -470,13 +470,8 @@ export const MemoryEngine = {
                 arousal: item.arousal || 0.5
             });
         });
-        // Connect memories to the core and to nearby chronological entries.
-        const memoryNodes = nodes.filter(n => n.kind !== 'core');
-        const links = memoryNodes.map(n => ['core_center', n.id]);
-        for (let i = 1; i < memoryNodes.length; i++) {
-            links.push([memoryNodes[i - 1].id, memoryNodes[i].id]);
-        }
-        return { nodes, links, softlinks: [] };
+        // 纯净星海：不渲染刺猬蜘蛛网连线，保持清澈深邃的星空感
+        return { nodes, links: [], softlinks: [] };
     },
 
     async initSky() {

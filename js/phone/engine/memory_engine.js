@@ -368,6 +368,25 @@ function createRenderer(container, opts) {
     layout(nodes, links, softlinks); build(); resize(); cancelAnimationFrame(raf); raf = requestAnimationFrame(animate);
   }
 
+  function onCanvasClick(event) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(sprites.map(s => s.body), true);
+    if (!hits.length) return;
+    let object = hits[0].object;
+    while (object && !object.userData?.id) object = object.parent;
+    if (object?.userData?.id && object.userData.kind !== "core") {
+      const node = object.userData;
+      if (window.PhoneUI && typeof window.PhoneUI.showMemoryStarDetail === "function") {
+        window.PhoneUI.showMemoryStarDetail(node);
+      } else {
+        window.alert((node.title || "记忆") + "\\n\\n" + (node.content || "暂无内容"));
+      }
+    }
+  }
+  renderer.domElement.addEventListener("click", onCanvasClick);
   window.addEventListener("resize", resize);
   load();
 
@@ -381,7 +400,7 @@ function createRenderer(container, opts) {
     },
     refresh: load,
     setFamily() {},
-    destroy() { alive = false; cancelAnimationFrame(raf); window.removeEventListener("resize", resize); renderer.dispose(); container.removeChild(renderer.domElement); }
+    destroy() { alive = false; cancelAnimationFrame(raf); renderer.domElement.removeEventListener("click", onCanvasClick); window.removeEventListener("resize", resize); renderer.dispose(); container.removeChild(renderer.domElement); }
   };
 }
 

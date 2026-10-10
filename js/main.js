@@ -1,6 +1,6 @@
 import { Config } from './phone/phone_config.js';
 import { PhoneAPI } from './phone/phone_api.js';
-import { PhoneUI } from './phone/phone_ui.js?v=2026.10.02-storage3';
+import { PhoneUI } from './phone/phone_ui.js?v=2026.10.10-memory-navigation-fix1';
 import { PhoneEngine } from './phone/phone_engine.js?v=2'; 
 import { WechatApp } from './apps/wechat.js';
 import { GameUI } from './games/index.js';

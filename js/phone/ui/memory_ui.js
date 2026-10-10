@@ -53,6 +53,16 @@ export const MemoryUI = {
 
         if (!document.getElementById('vault-list-container')) {
             container.innerHTML = `
+                <div style="display:flex; gap:8px; margin-bottom:10px;">
+                    <button type="button" onclick="window.PhoneUI.exportMemoryVault()" style="flex:1; padding:10px 8px; border:1px solid var(--border-color); border-radius:12px; background:var(--icon-bg); color:var(--text-main); font-size:12px;">
+                        <i class="ph ph-download-simple"></i> 导出记忆备份
+                    </button>
+                    <button type="button" onclick="document.getElementById('memory-vault-import-file').click()" style="flex:1; padding:10px 8px; border:1px solid var(--border-color); border-radius:12px; background:var(--icon-bg); color:var(--text-main); font-size:12px;">
+                        <i class="ph ph-upload-simple"></i> 导入记忆备份
+                    </button>
+                    <input type="file" id="memory-vault-import-file" accept=".json,application/json" style="display:none" onchange="window.PhoneUI.importMemoryVault(event)">
+                </div>
+                <div style="font-size:11px; color:var(--text-sub); margin:0 2px 12px;">仅备份记忆库内容，不包含聊天记录、图片或其他设置。导入采用合并模式，不覆盖已有条目。</div>
                 <div style="margin-bottom: 15px;">
                     <input type="text" id="vault-search-input" placeholder="🔍 搜索日期、标签、正文..." style="width: 100%; padding: 10px 15px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 13px; outline: none; box-sizing: border-box;">
                 </div>
@@ -66,6 +76,102 @@ export const MemoryUI = {
         }
         
         this.updateVaultList();
+    },
+
+    // Export only EchoVault data; do not touch chat history, settings, or IndexedDB assets.
+    exportMemoryVault() {
+        try {
+            const data = window.PhoneAPI?.EchoVault?.getData?.();
+            if (!data || typeof data !== 'object') throw new Error('当前记忆库不可用');
+            const payload = {
+                format: 'qianduan-memory-vault',
+                version: 1,
+                exportedAt: new Date().toISOString(),
+                vault: {
+                    daily: data.daily || {},
+                    permanent: data.permanent || {},
+                    archive: data.archive || {}
+                }
+            };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+            a.href = url;
+            a.download = `qianduan-memory-backup-${stamp}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            window.PhoneAPI?.showToast?.('记忆库备份已导出');
+        } catch (err) {
+            alert('导出失败：' + (err?.message || '未知错误'));
+        }
+    },
+
+    // Validate the backup and merge only non-conflicting keys; existing records are never overwritten.
+    async importMemoryVault(event) {
+        const input = event?.target;
+        const file = input?.files?.[0];
+        if (!file) return;
+        try {
+            if (file.size > 20 * 1024 * 1024) throw new Error('备份文件超过 20MB，已停止导入');
+            const text = await file.text();
+            const payload = JSON.parse(text);
+            const vault = payload?.format === 'qianduan-memory-vault' ? payload.vault : payload;
+            if (!vault || typeof vault !== 'object' || Array.isArray(vault)) throw new Error('文件格式不正确');
+            for (const key of ['daily', 'permanent', 'archive']) {
+                if (vault[key] !== undefined && (!vault[key] || typeof vault[key] !== 'object' || Array.isArray(vault[key]))) {
+                    throw new Error('记忆分区格式不正确：' + key);
+                }
+            }
+            if (!['daily', 'permanent', 'archive'].some(key => Object.keys(vault[key] || {}).length > 0)) {
+                throw new Error('备份中没有可导入的记忆条目');
+            }
+            if (!confirm('将备份中的记忆合并到当前记忆库。已有同名条目不会被覆盖，冲突条目会跳过。是否继续？')) return;
+            const api = window.PhoneAPI;
+            if (!api?.EchoVault?.getData || !api?.EchoVault?.saveData) throw new Error('记忆库接口不可用');
+            const current = api.EchoVault.getData();
+            const merged = {
+                daily: { ...(current.daily || {}) },
+                permanent: { ...(current.permanent || {}) },
+                archive: { ...(current.archive || {}) }
+            };
+            let added = 0, skipped = 0;
+            for (const section of ['daily', 'permanent', 'archive']) {
+                for (const [key, value] of Object.entries(vault[section] || {})) {
+                    if (!key || !value || typeof value !== 'object' || Array.isArray(value)) {
+                        skipped++;
+                        continue;
+                    }
+                    if (Object.prototype.hasOwnProperty.call(merged[section], key)) {
+                        skipped++;
+                        continue;
+                    }
+                    merged[section][key] = value;
+                    added++;
+                }
+            }
+            if (added === 0) {
+                alert('没有新增记忆。可能是条目都已存在，或备份内容不符合格式。跳过 ' + skipped + ' 条。');
+                return;
+            }
+            const serialized = JSON.stringify(merged);
+            // Check browser storage capacity before committing, then verify the saved payload.
+            try {
+                localStorage.setItem('echovault_data', serialized);
+                const check = JSON.parse(localStorage.getItem('echovault_data') || 'null');
+                if (!check || !check.daily || !check.permanent || !check.archive) throw new Error('写入后校验失败');
+            } catch (writeErr) {
+                throw new Error('写入失败，原有记忆未主动清除。请检查浏览器存储空间。' + (writeErr?.message ? ' (' + writeErr.message + ')' : ''));
+            }
+            window.PhoneAPI?.showToast?.('导入完成：新增 ' + added + ' 条，跳过 ' + skipped + ' 条');
+            this.updateVaultList();
+        } catch (err) {
+            alert('导入失败：' + (err?.message || '请确认选择的是有效的记忆备份 JSON 文件'));
+        } finally {
+            if (input) input.value = '';
+        }
     },
 
     updateVaultList() {

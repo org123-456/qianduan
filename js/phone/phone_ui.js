@@ -21,6 +21,71 @@ export const PhoneUI = {
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     },
 
+    // 🌟 安全的系统维护与同步操作函数，彻底杜绝无响应假死
+    async handleCloudBackup() {
+        if (typeof window.PhoneAPI?.syncToCloud === 'function') {
+            return window.PhoneAPI.syncToCloud();
+        }
+        if (typeof window.CloudSync?.backup === 'function') {
+            return window.CloudSync.backup();
+        }
+        window.PhoneAPI?.showToast?.('⚠️ 云端备份组件未就绪或未配置 Cloudflare 同步服务');
+    },
+
+    async handleCloudRestore() {
+        if (typeof window.PhoneAPI?.restoreFromCloud === 'function') {
+            return window.PhoneAPI.restoreFromCloud();
+        }
+        if (typeof window.CloudSync?.restore === 'function') {
+            return window.CloudSync.restore();
+        }
+        window.PhoneAPI?.showToast?.('⚠️ 云端拉取组件未就绪或未配置 Cloudflare 同步服务');
+    },
+
+    handleExportData() {
+        if (typeof window.PhoneAPI?.exportData === 'function') {
+            return window.PhoneAPI.exportData();
+        }
+        try {
+            const dataToExport = {
+                config: window.Config || {},
+                storage: { ...localStorage }
+            };
+            const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `backup_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            window.PhoneAPI?.showToast?.('✨ 本地备份已导出！');
+        } catch (e) {
+            alert('导出失败：' + e.message);
+        }
+    },
+
+    handleImportDataClick() {
+        let input = document.getElementById('temp-system-backup-input');
+        if (!input) {
+            input = document.createElement('input');
+            input.type = 'file';
+            input.id = 'temp-system-backup-input';
+            input.accept = '.json,application/json';
+            input.style.display = 'none';
+            document.body.appendChild(input);
+        }
+        input.onchange = (e) => {
+            if (typeof window.PhoneAPI?.importData === 'function') {
+                window.PhoneAPI.importData(e);
+            } else {
+                alert('系统导入接口未找到，请检查控制台脚本。');
+            }
+        };
+        input.click();
+    },
+
     enterStarrySea() {
         // Keep the class names aligned with css/style.css; old hide/show
         // classes left the inside view invisible and non-interactive.
@@ -1111,15 +1176,17 @@ export const PhoneUI = {
         <div id="set-sec-sys" class="set-section" style="flex-direction: column; gap: 15px; padding-bottom: 100px;">
             <div class="card" style="border: 1px solid var(--primary-color); padding: 16px;">
                 <h3 style="color:var(--primary-color);margin-bottom:10px; font-size: 15px;"><i class="ph-fill ph-cloud-check"></i> Cloudflare 云端同步</h3>
-                <div style="display:flex;gap:10px;"><button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.syncToCloud()" style="flex:1;margin-top:0;background:linear-gradient(135deg, var(--primary-color), var(--secondary-color));"><i class="ph-fill ph-cloud-arrow-up"></i> 备份到云端</button><button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.restoreFromCloud()" style="flex:1;margin-top:0;background:var(--icon-bg);color:var(--text-main);border:1px solid var(--border-color);"><i class="ph-fill ph-cloud-arrow-down"></i> 从云端拉取</button></div>
+                <div style="display:flex;gap:10px;">
+                    <button class="btn-refresh" type="button" onclick="window.PhoneUI.handleCloudBackup()" style="flex:1;margin-top:0;background:linear-gradient(135deg, var(--primary-color), var(--secondary-color));cursor:pointer;"><i class="ph-fill ph-cloud-arrow-up"></i> 备份到云端</button>
+                    <button class="btn-refresh" type="button" onclick="window.PhoneUI.handleCloudRestore()" style="flex:1;margin-top:0;background:var(--icon-bg);color:var(--text-main);border:1px solid var(--border-color);cursor:pointer;"><i class="ph-fill ph-cloud-arrow-down"></i> 从云端拉取</button>
+                </div>
             </div>
             
             <div class="card" style="padding: 16px;">
                 <h3 style="color:var(--primary-color);margin-bottom:15px; font-size: 15px;"><i class="ph-fill ph-floppy-disk-back"></i> 本地文件备份 (JSON)</h3>
                 <div style="display:flex;gap:10px;">
-                    <button class="btn-refresh" onclick="if(window.PhoneAPI) window.PhoneAPI.exportData()" style="flex:1;margin-top:0;background:var(--secondary-color);"><i class="ph ph-export"></i> 导出文件</button>
-                    <button class="btn-refresh" onclick="document.getElementById('import-file').click()" style="flex:1;margin-top:0;background:#2a9d8f;"><i class="ph ph-import"></i> 导入文件</button>
-                    <input type="file" id="import-file" style="display:none" accept=".json" onchange="if(window.PhoneAPI) window.PhoneAPI.importData(event)">
+                    <button class="btn-refresh" type="button" onclick="window.PhoneUI.handleExportData()" style="flex:1;margin-top:0;background:var(--secondary-color);cursor:pointer;"><i class="ph ph-export"></i> 导出文件</button>
+                    <button class="btn-refresh" type="button" onclick="window.PhoneUI.handleImportDataClick()" style="flex:1;margin-top:0;background:#2a9d8f;cursor:pointer;"><i class="ph ph-import"></i> 导入文件</button>
                 </div>
             </div>
 

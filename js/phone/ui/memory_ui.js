@@ -417,8 +417,24 @@ export const MemoryUI = {
 
     // Validate the backup and merge only non-conflicting keys; existing records are never overwritten.
     async importMemoryVault(event) {
-        const input = event?.target;
-        const file = input?.files?.[0];
+        // 🌟 解决点不动的核心：如果是普通按钮触发（非 <input type="file">），自动唤起文件选择器
+        if (!event?.target?.files || !event.target.files.length) {
+            let fileInput = document.getElementById('temp-memory-file-input');
+            if (!fileInput) {
+                fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.id = 'temp-memory-file-input';
+                fileInput.accept = '.json,application/json';
+                fileInput.style.display = 'none';
+                document.body.appendChild(fileInput);
+            }
+            fileInput.onchange = (e) => this.importMemoryVault(e);
+            fileInput.click();
+            return;
+        }
+
+        const input = event.target;
+        const file = input.files[0];
         if (!file) return;
         try {
             if (file.size > 20 * 1024 * 1024) throw new Error('备份文件超过 20MB，已停止导入');
@@ -620,23 +636,35 @@ export const MemoryUI = {
 
     // 🌟 打开或配置平板 AstrBot 后台
     openAstrBotPanel() {
-        let url = localStorage.getItem('astrbot_tunnel_url') || 'https://fairly-mon-sporting-stamp.trycloudflare.com';
-        const input = prompt('当前平板 AstrBot 穿透地址：\n(如穿透网址变动可在此更新，点击确定直接打开平板控制台)', url);
+        let url = localStorage.getItem('astrbot_tunnel_url') || '';
+        const input = prompt('当前平板穿透地址：\n(如穿透网址变动可在此更新，点击确定生效并打开)', url);
         if (input !== null && input.trim()) {
             url = input.trim().replace(/\/+$/, '');
             localStorage.setItem('astrbot_tunnel_url', url);
+            window.PhoneAPI?.showToast?.('🔗 隧道地址已更新');
             window.open(url, '_blank');
+        }
+    },
+
+    // 🌟 无论从设置、顶部按钮还是控制台触发，必定有响应与 Toast 反馈的同步入口
+    syncFromAstrBot(showFeedback = true) {
+        if (window.MemoryEngine && typeof window.MemoryEngine.syncFromAstrBot === 'function') {
+            window.MemoryEngine.syncFromAstrBot(showFeedback);
+        } else {
+            window.PhoneAPI?.showToast?.('⚠️ 同步模块正在初始化中，请稍候再试');
         }
     }
 };
 
-// 🌟 全局纯净挂载：彻底打通所有必要函数
+// 🌟 全局纯净挂载：彻底打通所有必要函数，杜绝任何“未定义”导致的点击卡死
 if (typeof window !== 'undefined') {
     window.PhoneUI = window.PhoneUI || {};
     Object.assign(window.PhoneUI, MemoryUI);
     window.MemoryUI = MemoryUI;
     window.exportLivingMemoryJson = () => MemoryUI.exportLivingMemoryJson();
     window.exportMemoryVault = () => MemoryUI.exportMemoryVault();
+    window.importMemoryVault = (e) => MemoryUI.importMemoryVault(e);
+    window.syncFromAstrBot = (fb) => MemoryUI.syncFromAstrBot(fb);
     window.closeSkyConsole = () => MemoryUI.closeSkyConsole();
     window.openSkyConsole = () => MemoryUI.openSkyConsole();
     window.focusGalaxy = (mode) => MemoryUI.focusGalaxy(mode);

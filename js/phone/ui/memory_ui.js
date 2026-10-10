@@ -275,7 +275,11 @@ export const MemoryUI = {
 
             const memories = [];
 
-            // 1. 处理永久锚点
+            const myName = localStorage.getItem('my_name') || '卿卿';
+            const taName = localStorage.getItem('char_name') || '不死途';
+            const participants = [myName, taName].filter(Boolean);
+
+            // 1. 处理永久锚点（core 核心记忆，权重0.9，不硬编码session_id确保TG能全局调取）
             Object.entries(data.permanent || {}).forEach(([key, item]) => {
                 const text = (typeof item === 'string' ? item : item?.content || '').replace(/---/g, '\n').trim();
                 if (!text) return;
@@ -285,12 +289,17 @@ export const MemoryUI = {
                     importance: 0.9,
                     topics: rawTags.length ? rawTags : ['核心记忆'],
                     key_facts: [key],
+                    participants: participants,
                     memory_type: 'core',
-                    original_id: 'ev_p_' + key
+                    original_id: 'ev_p_' + key,
+                    metadata: {
+                        source: 'echovault',
+                        anchor_key: key
+                    }
                 });
             });
 
-            // 2. 处理日常碎片
+            // 2. 处理日常碎片（episodic 情节记忆，根据情绪动态调整权重）
             Object.entries(data.daily || {}).forEach(([dateKey, item]) => {
                 const text = (item?.content || '').replace(/---/g, '\n').trim();
                 if (!text) return;
@@ -302,8 +311,13 @@ export const MemoryUI = {
                     importance: importance,
                     topics: rawTags.length ? rawTags : ['日常'],
                     key_facts: rawTags,
+                    participants: participants,
                     memory_type: 'episodic',
-                    original_id: 'ev_d_' + dateKey
+                    original_id: 'ev_d_' + dateKey,
+                    metadata: {
+                        source: 'echovault',
+                        record_date: dateKey
+                    }
                 });
             });
 
@@ -312,6 +326,7 @@ export const MemoryUI = {
                 return;
             }
 
+            // 完全遵循 LivingMemory 2.7.0 规范
             const payload = {
                 format: "livingmemory",
                 schema_version: 1,
@@ -602,19 +617,19 @@ export const MemoryUI = {
     escapeHtml(str) {
         if (!str) return '';
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-    }
-};
+    },
 
     // 🌟 打开或配置平板 AstrBot 后台
-openAstrBotPanel() {
-let url = localStorage.getItem('astrbot_tunnel_url') || 'https://fairly-mon-sporting-stamp.trycloudflare.com';
-const input = prompt('当前平板 AstrBot 穿透地址：\n(如穿透网址变动可在此更新，点击确定直接打开平板控制台)', url);
-if (input !== null && input.trim()) {
-url = input.trim().replace(/\/+$/, '');
-localStorage.setItem('astrbot_tunnel_url', url);
-window.open(url, '_blank');
-}
-},
+    openAstrBotPanel() {
+        let url = localStorage.getItem('astrbot_tunnel_url') || 'https://fairly-mon-sporting-stamp.trycloudflare.com';
+        const input = prompt('当前平板 AstrBot 穿透地址：\n(如穿透网址变动可在此更新，点击确定直接打开平板控制台)', url);
+        if (input !== null && input.trim()) {
+            url = input.trim().replace(/\/+$/, '');
+            localStorage.setItem('astrbot_tunnel_url', url);
+            window.open(url, '_blank');
+        }
+    }
+};
 
 // 🌟 全局纯净挂载：彻底打通所有必要函数
 if (typeof window !== 'undefined') {

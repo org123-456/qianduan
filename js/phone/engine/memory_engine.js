@@ -339,6 +339,19 @@ function createRenderer(container, opts) {
       const sp = { n, body, glow, r, coreMat, shells, base: new T.Vector3(n.x, n.y, n.z), ph: hash(n.id, 9) * 6.28 };
       sprites.push(sp);
     });
+    const nodeById = Object.create(null);
+    nodes.forEach(n => { nodeById[n.id] = n; });
+    const positions = [];
+    (links || []).forEach(edge => {
+      const a = nodeById[edge[0]], b = nodeById[edge[1]];
+      if (a && b) positions.push(a.x, a.y, a.z, b.x, b.y, b.z);
+    });
+    if (positions.length) {
+      const geometry = new T.BufferGeometry();
+      geometry.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
+      lineSeg = new T.LineSegments(geometry, new T.LineBasicMaterial({ color: 0x9eafe8, transparent: true, opacity: 0.38 }));
+      scene.add(lineSeg);
+    }
   }
 
   function animate(ts) {

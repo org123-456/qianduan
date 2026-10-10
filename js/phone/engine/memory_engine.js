@@ -411,7 +411,8 @@ export const MemoryEngine = {
         const coreItemKey = Object.keys(evData.permanent || {})[0];
         nodes.push({ id: 'core_center', title: coreItemKey || '核心回忆', date: '永久', content: '最初的起点...', kind: 'core', importance: 5 });
 
-        Object.keys(evData.daily || {}).forEach(key => {
+        const dailyKeys = Object.keys(evData.daily || {});
+        dailyKeys.forEach((key, index) => {
             const item = evData.daily[key];
             if (!item) return;
             nodes.push({
@@ -425,7 +426,28 @@ export const MemoryEngine = {
                 arousal: item.arousal || 0.5
             });
         });
-        return { nodes, links: [], softlinks: [] };
+        const permanentKeys = Object.keys(evData.permanent || {});
+        permanentKeys.forEach((key, index) => {
+            const item = evData.permanent[key];
+            if (!item) return;
+            nodes.push({
+                id: 'ev_p_' + key,
+                title: item.tags || key || '重要记忆',
+                date: item.date || '永久',
+                content: item.content || String(item),
+                kind: 'event',
+                importance: 5,
+                valence: item.valence || 0.6,
+                arousal: item.arousal || 0.5
+            });
+        });
+        // Connect memories to the core and to nearby chronological entries.
+        const memoryNodes = nodes.filter(n => n.kind !== 'core');
+        const links = memoryNodes.map(n => ['core_center', n.id]);
+        for (let i = 1; i < memoryNodes.length; i++) {
+            links.push([memoryNodes[i - 1].id, memoryNodes[i].id]);
+        }
+        return { nodes, links, softlinks: [] };
     },
 
     async initSky() {

@@ -33,6 +33,11 @@ export const PhoneUI = {
         if (window.MemoryEngine && typeof window.MemoryEngine.initSky === 'function') {
             window.MemoryEngine.initSky();
         }
+
+        // 🌟 强力打通：把星海控制台的所有全局触发器全部挂载到 window，确保点击绝对生效
+        window.changeSkyShape = (shape) => window.PhoneUI.changeSkyShape(shape);
+        window.resetSkyView = () => window.PhoneUI.resetSkyView();
+        window.exportMemoryVault = () => window.PhoneUI.exportMemoryVault();
     },
 
     showDiaryShelf() {

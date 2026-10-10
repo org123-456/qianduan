@@ -1,7 +1,3 @@
-import { Config } from '../phone_config.js';
-import { PhoneAPI } from '../phone_api.js';
-import { PhoneUI } from '../phone_ui.js';
-
 import * as Three from 'https://esm.sh/three@0.160.0';
 import { TrackballControls } from 'https://esm.sh/three@0.160.0/examples/jsm/controls/TrackballControls.js';
 
@@ -520,8 +516,8 @@ export const MemoryEngine = {
     async autoManageMemory(force = false) {
         if (this._isSummarizing) return;
 
-        const roleId = Config?.currentContactId;
-        const items = Config?.phoneData?.[roleId]?.wechat?.items || [];
+        const roleId = window.Config?.currentContactId;
+        const items = window.Config?.phoneData?.[roleId]?.wechat?.items || [];
         const cleanItems = items.filter(i => i.sender !== 'typing' && i.content);
 
         const lastIndex = parseInt(localStorage.getItem('memory_last_summary_index') || '0', 10);

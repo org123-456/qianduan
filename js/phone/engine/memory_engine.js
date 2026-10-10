@@ -448,18 +448,20 @@ export const MemoryEngine = {
     _isSummarizing: false,
 
     changeSkyShape(shape) {
-        if (window.PhoneUI?.changeSkyShape) {
-            window.PhoneUI.changeSkyShape(shape);
-        } else if (this.skyInstance?.setShape) {
+        if (this.skyInstance?.setShape) {
             this.skyInstance.setShape(shape);
+        }
+        if (window.PhoneUI && typeof window.PhoneUI.changeSkyShape === 'function' && window.PhoneUI.changeSkyShape !== this.changeSkyShape) {
+            window.PhoneUI.changeSkyShape(shape);
         }
     },
 
     resetSkyView() {
-        if (window.PhoneUI?.resetSkyView) {
-            window.PhoneUI.resetSkyView();
-        } else if (this.skyInstance?.resetView) {
+        if (this.skyInstance?.resetView) {
             this.skyInstance.resetView();
+        }
+        if (window.PhoneUI && typeof window.PhoneUI.resetSkyView === 'function' && window.PhoneUI.resetSkyView !== this.resetSkyView) {
+            window.PhoneUI.resetSkyView();
         }
     },
 

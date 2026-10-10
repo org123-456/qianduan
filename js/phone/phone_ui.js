@@ -1,5 +1,5 @@
 import { ChatUI } from './ui/chat_ui.js';
-import { MemoryUI } from './ui/memory_ui.js?v=2026.10.10-starfix2';
+import { MemoryUI } from './ui/memory_ui.js?v=2026.10.10-txtmode9';
 import { DiaryUI } from './ui/diary_ui.js?v=2026.10.01-diary4';
 import { MomentsUI } from './ui/moments_ui.js?v=2026.10.01-diary4';
 import { ScheduleUI } from './ui/schedule_ui.js';

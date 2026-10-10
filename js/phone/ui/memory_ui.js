@@ -56,7 +56,10 @@ export const MemoryUI = {
                 <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px;">
                     <div style="display:flex; gap:8px;">
                         <button type="button" onclick="window.PhoneUI.exportLivingMemoryJson()" style="flex:1; padding:10px 8px; border:1px solid #6366f1; border-radius:12px; background:rgba(99,102,241,0.12); color:#6366f1; font-size:12px; font-weight:600;">
-                            <i class="ph ph-robot"></i> 导出 LivingMemory 格式 (TG/AstrBot)
+                            <i class="ph ph-robot"></i> 导出 LivingMemory (TG/AstrBot)
+                        </button>
+                        <button type="button" onclick="window.PhoneUI.openAstrBotPanel()" style="flex:1; padding:10px 8px; border:1px solid #10b981; border-radius:12px; background:rgba(16,185,129,0.12); color:#10b981; font-size:12px; font-weight:600;">
+                            <i class="ph ph-broadcast"></i> 直通平板 AstrBot 中枢
                         </button>
                     </div>
                     <div style="display:flex; gap:8px;">
@@ -601,6 +604,17 @@ export const MemoryUI = {
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     }
 };
+
+    // 🌟 打开或配置平板 AstrBot 后台
+openAstrBotPanel() {
+let url = localStorage.getItem('astrbot_tunnel_url') || 'https://fairly-mon-sporting-stamp.trycloudflare.com';
+const input = prompt('当前平板 AstrBot 穿透地址：\n(如穿透网址变动可在此更新，点击确定直接打开平板控制台)', url);
+if (input !== null && input.trim()) {
+url = input.trim().replace(/\/+$/, '');
+localStorage.setItem('astrbot_tunnel_url', url);
+window.open(url, '_blank');
+}
+},
 
 // 🌟 全局纯净挂载：彻底打通所有必要函数
 if (typeof window !== 'undefined') {

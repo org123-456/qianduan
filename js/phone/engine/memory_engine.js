@@ -631,19 +631,39 @@ DEL###记忆ID
             const now = new Date();
             const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 
+            const newMemoriesForSync = [];
+
             lines.forEach((line, idx) => {
                 const parts = line.split('###');
                 const action = parts[0];
                 if (action === 'ADD' && parts.length >= 5) {
                     const timeKey = `${dateStr} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(idx).padStart(2,'0')}`;
+                    const contentText = parts[1].trim();
+                    const tagsText = parts[2].trim();
+                    const valenceVal = parseFloat(parts[3]) || 0.6;
+                    const arousalVal = parseFloat(parts[4]) || 0.5;
+
                     data.daily[timeKey] = {
-                        content: parts[1].trim(),
-                        tags: parts[2].trim(),
-                        valence: parseFloat(parts[3]) || 0.6,
-                        arousal: parseFloat(parts[4]) || 0.5
+                        content: contentText,
+                        tags: tagsText,
+                        valence: valenceVal,
+                        arousal: arousalVal
                     };
-                    this._logMemoryAction('ADD', parts[1].trim(), 'ev_d_' + timeKey);
+                    this._logMemoryAction('ADD', contentText, 'ev_d_' + timeKey);
                     added++;
+
+                    const rawTags = tagsText.split(/[,，\s]+/).filter(Boolean);
+                    const importance = Math.min(0.85, Math.max(0.4, Number((valenceVal * 0.5 + 0.35).toFixed(2))));
+                    newMemoriesForSync.push({
+                        content: contentText,
+                        importance: importance,
+                        topics: rawTags.length ? rawTags : ['日常'],
+                        key_facts: rawTags,
+                        participants: [myName, taName],
+                        memory_type: 'episodic',
+                        original_id: 'ev_d_' + timeKey,
+                        metadata: { source: 'echovault', record_date: timeKey }
+                    });
                 } else if (action === 'UPDATE' && parts.length >= 6) {
                     const id = parts[1].trim();
                     if (data.daily[id]) {
@@ -668,6 +688,11 @@ DEL###记忆ID
                 window.PhoneAPI.EchoVault.saveData(data);
                 window.PhoneAPI?.showToast?.(`✨ 他在心底悄悄记下了 ${added} 件关于你的事...`);
                 this.initSky();
+
+                // 🌟 静默同步给平板 AstrBot (LivingMemory)
+                if (newMemoriesForSync.length > 0) {
+                    this._silentSyncToAstrBot(newMemoriesForSync);
+                }
             } else if (force) {
                 window.PhoneAPI?.showToast?.("✅ 近期对话已整理完毕");
             }
@@ -676,6 +701,36 @@ DEL###记忆ID
             if (force) window.PhoneAPI?.showToast?.("❌ 整理遇到一点小状况");
         } finally {
             this._isSummarizing = false;
+        }
+    },
+
+    /**
+     * 🌟 静默推送增量记忆到平板 AstrBot
+     */
+    async _silentSyncToAstrBot(memories) {
+        if (!memories || !memories.length) return;
+        try {
+            const baseUrl = (localStorage.getItem('astrbot_tunnel_url') || 'https://fairly-mon-sporting-stamp.trycloudflare.com').replace(/\/+$/, '');
+            const payload = {
+                format: "livingmemory",
+                schema_version: 1,
+                memories: memories
+            };
+
+            const response = await fetch(`${baseUrl}/api/livingmemory/import`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                mode: 'cors'
+            }).catch(() => null);
+
+            if (response && response.ok) {
+                console.log(`[AstrBot Sync] 成功静默推送 ${memories.length} 条记忆到平板！`);
+                window.PhoneAPI?.showToast?.(`☁️ 已自动同步 ${memories.length} 条心境到不死途平板中枢`);
+            }
+        } catch(e) {
+            // 静默失败，绝不干扰前端主体验
+            console.warn('[AstrBot Sync] 平板可能离线，已保留本地记忆', e);
         }
     }
 };

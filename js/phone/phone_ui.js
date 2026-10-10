@@ -22,11 +22,17 @@ export const PhoneUI = {
     },
 
     enterStarrySea() {
+        // Keep the class names aligned with css/style.css; old hide/show
+        // classes left the inside view invisible and non-interactive.
         const cover = document.getElementById('memory-cover-view');
         const inside = document.getElementById('memory-inside-view');
-        if (cover) cover.classList.add('hide');
-        if (inside) inside.classList.add('show');
-        if (this.initStarrySea) this.initStarrySea();
+        const bubbles = document.getElementById('floating-bubbles');
+        if (cover) cover.classList.add('dive-in');
+        if (inside) inside.classList.add('active');
+        if (bubbles) setTimeout(() => bubbles.classList.add('show'), 300);
+        if (window.MemoryEngine && typeof window.MemoryEngine.initSky === 'function') {
+            window.MemoryEngine.initSky();
+        }
     },
 
     showDiaryShelf() {

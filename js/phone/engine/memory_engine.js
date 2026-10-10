@@ -705,6 +705,79 @@ DEL###记忆ID
     },
 
     /**
+     * 🌟 从平板 AstrBot (LivingMemory) 全自动拉取最新记忆到前端星海
+     */
+    async syncFromAstrBot(showToast = false) {
+        try {
+            const baseUrl = (localStorage.getItem('astrbot_tunnel_url') || 'https://fairly-mon-sporting-stamp.trycloudflare.com').replace(/\/+$/, '');
+            if (showToast) window.PhoneAPI?.showToast?.("☁️ 正在从不死途平板中枢同步最新心境...");
+
+            // 请求平板端 LivingMemory 导出的记忆
+            const response = await fetch(`${baseUrl}/api/livingmemory/export`, {
+                method: 'GET',
+                mode: 'cors'
+            }).catch(() => null);
+
+            if (!response || !response.ok) {
+                if (showToast) window.PhoneAPI?.showToast?.("⚠️ 平板中枢暂无响应，请确认平板端运行正常");
+                return;
+            }
+
+            const data = await response.json();
+            const list = data.memories || data.data || (Array.isArray(data) ? data : []);
+            if (!list.length) {
+                if (showToast) window.PhoneAPI?.showToast?.("✅ 平板端暂无新记忆碎片");
+                return;
+            }
+
+            const vault = window.PhoneAPI?.EchoVault ? window.PhoneAPI.EchoVault.getData() : null;
+            if (!vault) return;
+
+            let newCount = 0;
+            list.forEach((m, idx) => {
+                const content = m.content || m.summary || m.text;
+                if (!content) return;
+
+                // 判断是否已经存在（避免重复导入）
+                const alreadyExists = Object.values(vault.daily || {}).some(d => d.content === content) ||
+                                      Object.values(vault.permanent || {}).some(p => (p.content || p) === content);
+
+                if (!alreadyExists) {
+                    const timeKey = m.metadata?.record_date || (new Date().toISOString().slice(0, 10) + ' ' + String(10 + idx) + ':00:00');
+                    const tags = (m.topics || []).join(',') || 'TG日常';
+                    
+                    if (m.memory_type === 'core') {
+                        vault.permanent[tags || ('tg_core_' + idx)] = {
+                            content: content,
+                            tags: tags,
+                            date: timeKey
+                        };
+                    } else {
+                        vault.daily[timeKey] = {
+                            content: content,
+                            tags: tags,
+                            valence: 0.65,
+                            arousal: 0.5
+                        };
+                    }
+                    newCount++;
+                }
+            });
+
+            if (newCount > 0) {
+                window.PhoneAPI.EchoVault.saveData(vault);
+                this.initSky();
+                window.PhoneAPI?.showToast?.(`✨ 成功从不死途那里同步了 ${newCount} 条全新回忆！`);
+            } else if (showToast) {
+                window.PhoneAPI?.showToast?.("✅ 记忆库已是最新状态");
+            }
+        } catch (e) {
+            console.warn('[AstrBot Pull Sync Failed]', e);
+            if (showToast) window.PhoneAPI?.showToast?.("⚠️ 同步失败，请检查网络穿透");
+        }
+    },
+
+    /**
      * 🌟 静默推送增量记忆到平板 AstrBot
      */
     async _silentSyncToAstrBot(memories) {

@@ -80,14 +80,18 @@ export const MemoryUI = {
 
     // Export only EchoVault data; do not touch chat history, settings, or IndexedDB assets.
     openSkyConsole() {
-        document.getElementById('sky-console-bg')?.classList.add('show');
-        document.getElementById('sky-console-modal')?.classList.add('show');
-        this.handleStarSearch('');
+        const bg = document.getElementById('sky-console-bg');
+        const modal = document.getElementById('sky-console-modal');
+        if (bg) { bg.style.zIndex = '9999'; bg.classList.add('show'); }
+        if (modal) { modal.style.zIndex = '10000'; modal.classList.add('show'); }
+        try { this.handleStarSearch(''); } catch(e) {}
     },
 
     closeSkyConsole() {
-        document.getElementById('sky-console-bg')?.classList.remove('show');
-        document.getElementById('sky-console-modal')?.classList.remove('show');
+        const bg = document.getElementById('sky-console-bg');
+        const modal = document.getElementById('sky-console-modal');
+        if (bg) bg.classList.remove('show');
+        if (modal) modal.classList.remove('show');
     },
 
     showMemoryStarDetail(node) {

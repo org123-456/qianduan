@@ -192,18 +192,18 @@ function layout(nodes, links, softlinks) {
   const edges = [];
   (links || []).forEach(([a, b]) => { if (idx[a] != null && idx[b] != null) edges.push([idx[a], idx[b], 0.04, restOf(a, b, 90, 59)]); });
   (softlinks || []).forEach(([a, b]) => { if (idx[a] != null && idx[b] != null) edges.push([idx[a], idx[b], 0.015, restOf(a, b, 120, 61)]); });
-  const N = nodes.length, REP = 1200, CENTER = 18e-4;
-  const space = nodes.map((n) => n.pinned ? 1 : 0.4 + 1.6 * Math.pow(hash(n.id, 73), 1.6));
-  const pull = nodes.map((n) => 0.4 + 0.5 * hash(n.id, 79));
+  const N = nodes.length, REP = 1600, CENTER = 3e-4;
+  const space = nodes.map((n) => n.pinned ? 1 : 0.6 + 1.8 * Math.pow(hash(n.id, 73), 1.6));
+  const pull = nodes.map((n) => 0.2 + 0.4 * hash(n.id, 79));
   const radii = nodes.map((n) => n.kind === "core" ? SIZE.core : impRadius(n.importance || 3));
   const fx = new Float64Array(N), fy = new Float64Array(N), fz = new Float64Array(N);
-  for (let it = 0; it < 260; it++) {
+  for (let it = 0; it < 220; it++) {
     fx.fill(0); fy.fill(0); fz.fill(0);
     for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) {
       let dx = nodes[i].x - nodes[j].x, dy = nodes[i].y - nodes[j].y, dz = nodes[i].z - nodes[j].z;
-      const d2 = dx * dx + dy * dy + dz * dz + 16, inv = 1 / Math.sqrt(d2);
-      const distance = Math.sqrt(Math.max(0, d2 - 16));
-      const f = Math.max(REP * Math.sqrt(space[i] * space[j]) / d2, (radii[i] + radii[j] + 6 - distance) * 0.7);
+      const d2 = dx * dx + dy * dy + dz * dz + 25, inv = 1 / Math.sqrt(d2);
+      const distance = Math.sqrt(Math.max(0, d2 - 25));
+      const f = Math.max(REP * Math.sqrt(space[i] * space[j]) / d2, (radii[i] + radii[j] + 12 - distance) * 0.8);
       dx *= inv; dy *= inv; dz *= inv; fx[i] += dx * f; fy[i] += dy * f; fz[i] += dz * f; fx[j] -= dx * f; fy[j] -= dy * f; fz[j] -= dz * f;
     }
     for (const [i, j, k, rest] of edges) {
@@ -211,24 +211,11 @@ function layout(nodes, links, softlinks) {
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) + 0.01, f = k * (dist - rest) / dist;
       fx[i] += dx * f; fy[i] += dy * f; fz[i] += dz * f; fx[j] -= dx * f; fy[j] -= dy * f; fz[j] -= dz * f;
     }
-    const cool = Math.max(0.2, 1 - it / 280);
+    const cool = Math.max(0.18, 1 - it / 240);
     for (let i = 0; i < N; i++) {
       if (nodes[i].pinned) { nodes[i].x = nodes[i].y = nodes[i].z = 0; continue; }
       fx[i] -= nodes[i].x * CENTER * pull[i]; fy[i] -= nodes[i].y * CENTER * pull[i]; fz[i] -= nodes[i].z * CENTER * pull[i];
       nodes[i].x += Math.max(-10, Math.min(10, fx[i])) * cool; nodes[i].y += Math.max(-10, Math.min(10, fy[i])) * cool; nodes[i].z += Math.max(-10, Math.min(10, fz[i])) * cool;
-    }
-  }
-}
-    for (const [i, j, k, rest] of edges) {
-      const dx = nodes[j].x - nodes[i].x, dy = nodes[j].y - nodes[i].y, dz = nodes[j].z - nodes[i].z;
-      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) + 0.01, f = k * (dist - rest) / dist;
-      fx[i] += dx * f; fy[i] += dy * f; fz[i] += dz * f; fx[j] -= dx * f; fy[j] -= dy * f; fz[j] -= dz * f;
-    }
-    const cool = Math.max(0.15, 1 - it / 340);
-    for (let i = 0; i < N; i++) {
-      if (nodes[i].pinned) { nodes[i].x = nodes[i].y = nodes[i].z = 0; continue; }
-      fx[i] -= nodes[i].x * CENTER * pull[i]; fy[i] -= nodes[i].y * CENTER * pull[i]; fz[i] -= nodes[i].z * CENTER * pull[i];
-      nodes[i].x += Math.max(-12, Math.min(12, fx[i])) * cool; nodes[i].y += Math.max(-12, Math.min(12, fy[i])) * cool; nodes[i].z += Math.max(-12, Math.min(12, fz[i])) * cool;
     }
   }
 }

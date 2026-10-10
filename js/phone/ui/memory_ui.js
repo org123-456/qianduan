@@ -52,51 +52,32 @@ export const MemoryUI = {
 
     // 🌟 纯净记忆库界面：只有搜索框和记忆列表，支持导出 LivingMemory 格式
     renderMemoryVault() {
-        const container = document.getElementById('vault-content-area');
-        if (!container) return;
+        // 动态强制注入【自动拉取 TG / 平板最新记忆】按钮，精准命中任何已有旧按钮布局
+        const injectSyncBtn = () => {
+            if (document.getElementById('btn-astrbot-sync-auto')) return;
+            const targetContainer = document.querySelector('#vault-content-area, #app-window-content');
+            if (!targetContainer) return;
 
-        // 强制重构顶部操作栏，确保【自动拉取 TG 记忆】100% 出现，不被旧 HTML 结构缓存阻挡
-        let opBar = document.getElementById('vault-op-bar');
-        if (!opBar) {
-            container.innerHTML = `
-                <div id="vault-op-bar" style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px;">
-                    <button type="button" onclick="window.MemoryEngine && window.MemoryEngine.syncFromAstrBot(true)" style="width:100%; padding:12px 10px; border:1px solid #06b6d4; border-radius:14px; background:linear-gradient(135deg, rgba(6,182,212,0.15), rgba(6,182,212,0.05)); color:#0891b2; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:6px; cursor:pointer; box-shadow:0 2px 8px rgba(6,182,212,0.15);">
-                        <i class="ph-bold ph-arrows-clockwise" style="font-size:16px;"></i> 🔄 自动拉取 TG / 平板最新记忆
-                    </button>
-                    <div style="display:flex; gap:8px;">
-                        <button type="button" onclick="window.PhoneUI.exportLivingMemoryJson()" style="flex:1; padding:10px 8px; border:1px solid #6366f1; border-radius:12px; background:rgba(99,102,241,0.08); color:#6366f1; font-size:12px; font-weight:600;">
-                            <i class="ph ph-robot"></i> 导出给 TG (JSON)
-                        </button>
-                        <button type="button" onclick="window.PhoneUI.openAstrBotPanel()" style="padding:10px 14px; border:1px solid #10b981; border-radius:12px; background:rgba(16,185,129,0.08); color:#10b981; font-size:12px; font-weight:600;">
-                            <i class="ph ph-broadcast"></i> 中枢
-                        </button>
-                    </div>
-                    <div style="display:flex; gap:8px;">
-                        <button type="button" onclick="window.PhoneUI.exportMemoryVault()" style="flex:1; padding:9px 8px; border:1px solid var(--border-color); border-radius:12px; background:var(--icon-bg); color:var(--text-main); font-size:12px;">
-                            <i class="ph ph-download-simple"></i> 导出手札 (.txt)
-                        </button>
-                        <button type="button" onclick="document.getElementById('memory-vault-import-file').click()" style="flex:1; padding:9px 8px; border:1px solid var(--border-color); border-radius:12px; background:var(--icon-bg); color:var(--text-main); font-size:12px;">
-                            <i class="ph ph-upload-simple"></i> 导入备份 (JSON)
-                        </button>
-                        <input type="file" id="memory-vault-import-file" accept=".json,application/json" style="display:none" onchange="window.PhoneUI.importMemoryVault(event)">
-                    </div>
-                </div>
-                <div style="font-size:11px; color:var(--text-sub); margin:0 2px 12px; line-height:1.5;">✨ 点上方蓝键可直接顺着 Cloudflare 隧道把 TG 新产生的记忆拉回前端；导出的 JSON 亦可直接在 AstrBot 中一键导入。</div>
-                <div style="margin-bottom: 15px;">
-                    <input type="text" id="vault-search-input" placeholder="🔍 搜索日期、标签、正文..." style="width: 100%; padding: 10px 15px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 13px; outline: none; box-sizing: border-box;">
-                </div>
-                <div id="vault-list-container"></div>
-            `;
+            // 寻找现有的“导出 LivingMemory”或“直通平板”按钮所在的父级容器
+            const allBtns = Array.from(targetContainer.querySelectorAll('button'));
+            const exportBtn = allBtns.find(b => b.textContent.includes('LivingMemory') || b.textContent.includes('AstrBot'));
             
-            const searchInput = document.getElementById('vault-search-input');
-            if (searchInput) {
-                searchInput.addEventListener('input', (e) => {
-                    this.vaultSearchQuery = e.target.value.toLowerCase();
-                    this.updateVaultList(); 
-                });
+            const syncBtnHtml = `
+                <button type="button" id="btn-astrbot-sync-auto" onclick="window.MemoryEngine && window.MemoryEngine.syncFromAstrBot(true)" style="width:100%; padding:13px 12px; margin-bottom:10px; border:1px solid #06b6d4; border-radius:14px; background:linear-gradient(135deg, rgba(6,182,212,0.18), rgba(6,182,212,0.06)); color:#0891b2; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; box-shadow:0 3px 10px rgba(6,182,212,0.15); transition:transform 0.15s ease;">
+                    <i class="ph-bold ph-arrows-clockwise" style="font-size:17px;"></i> 🔄 自动拉取 TG / 平板最新记忆
+                </button>
+            `;
+
+            if (exportBtn && exportBtn.parentElement) {
+                exportBtn.parentElement.insertAdjacentHTML('beforebegin', syncBtnHtml);
+            } else {
+                targetContainer.insertAdjacentHTML('afterbegin', syncBtnHtml);
             }
-        }
-        
+        };
+
+        injectSyncBtn();
+        setTimeout(injectSyncBtn, 100);
+
         this.updateVaultList();
     },
 

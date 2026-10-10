@@ -13,6 +13,10 @@ export const MemoryUI = {
         if (window.MemoryEngine && typeof window.MemoryEngine.initSky === 'function') {
             window.MemoryEngine.initSky();
         }
+        // 🌟 进星海时自动在后台静默向平板拉取一次 TG 的最新记忆
+        if (window.MemoryEngine && typeof window.MemoryEngine.syncFromAstrBot === 'function') {
+            window.MemoryEngine.syncFromAstrBot(false);
+        }
     },
 
     exitStarrySea() {
@@ -55,11 +59,14 @@ export const MemoryUI = {
             container.innerHTML = `
                 <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px;">
                     <div style="display:flex; gap:8px;">
-                        <button type="button" onclick="window.PhoneUI.exportLivingMemoryJson()" style="flex:1; padding:10px 8px; border:1px solid #6366f1; border-radius:12px; background:rgba(99,102,241,0.12); color:#6366f1; font-size:12px; font-weight:600;">
-                            <i class="ph ph-robot"></i> 导出 LivingMemory (TG/AstrBot)
+                        <button type="button" onclick="window.MemoryEngine && window.MemoryEngine.syncFromAstrBot(true)" style="flex:1; padding:10px 8px; border:1px solid #06b6d4; border-radius:12px; background:rgba(6,182,212,0.12); color:#0891b2; font-size:12px; font-weight:600;">
+                            <i class="ph ph-arrows-clockwise"></i> 🔄 自动拉取 TG 记忆
                         </button>
-                        <button type="button" onclick="window.PhoneUI.openAstrBotPanel()" style="flex:1; padding:10px 8px; border:1px solid #10b981; border-radius:12px; background:rgba(16,185,129,0.12); color:#10b981; font-size:12px; font-weight:600;">
-                            <i class="ph ph-broadcast"></i> 直通平板 AstrBot 中枢
+                        <button type="button" onclick="window.PhoneUI.exportLivingMemoryJson()" style="flex:1; padding:10px 8px; border:1px solid #6366f1; border-radius:12px; background:rgba(99,102,241,0.12); color:#6366f1; font-size:12px; font-weight:600;">
+                            <i class="ph ph-robot"></i> 导出给 TG (JSON)
+                        </button>
+                        <button type="button" onclick="window.PhoneUI.openAstrBotPanel()" style="padding:10px 10px; border:1px solid #10b981; border-radius:12px; background:rgba(16,185,129,0.12); color:#10b981; font-size:12px; font-weight:600;">
+                            <i class="ph ph-broadcast"></i> 中枢
                         </button>
                     </div>
                     <div style="display:flex; gap:8px;">
@@ -96,6 +103,9 @@ export const MemoryUI = {
             modal.innerHTML = `
                 <div style="font-weight:700;font-size:16px;color:#1e293b;margin-bottom:14px;text-align:center;">✨ 记忆手札管理</div>
                 <div style="display:flex;flex-direction:column;gap:10px;">
+                    <button type="button" onclick="window.MemoryEngine && window.MemoryEngine.syncFromAstrBot(true);window.PhoneUI.closeSkyConsole();" style="padding:12px;background:#06b6d4;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;">
+                        🔄 同步 TG / 平板最新记忆
+                    </button>
                     <button type="button" onclick="window.PhoneUI.exportMemoryVault();window.PhoneUI.closeSkyConsole();" style="padding:12px;background:#6366f1;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;">
                         📖 导出记忆手札 (.txt 文本)
                     </button>

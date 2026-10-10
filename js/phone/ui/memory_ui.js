@@ -52,20 +52,23 @@ export const MemoryUI = {
 
     // 🌟 纯净记忆库界面：只有搜索框和记忆列表，支持导出 LivingMemory 格式
     renderMemoryVault() {
-        // 动态强制注入【自动拉取 TG / 平板最新记忆】按钮，精准命中任何已有旧按钮布局
         const injectSyncBtn = () => {
             if (document.getElementById('btn-astrbot-sync-auto')) return;
             const targetContainer = document.querySelector('#vault-content-area, #app-window-content');
             if (!targetContainer) return;
 
-            // 寻找现有的“导出 LivingMemory”或“直通平板”按钮所在的父级容器
             const allBtns = Array.from(targetContainer.querySelectorAll('button'));
             const exportBtn = allBtns.find(b => b.textContent.includes('LivingMemory') || b.textContent.includes('AstrBot'));
             
             const syncBtnHtml = `
-                <button type="button" id="btn-astrbot-sync-auto" onclick="window.MemoryEngine && window.MemoryEngine.syncFromAstrBot(true)" style="width:100%; padding:13px 12px; margin-bottom:10px; border:1px solid #06b6d4; border-radius:14px; background:linear-gradient(135deg, rgba(6,182,212,0.18), rgba(6,182,212,0.06)); color:#0891b2; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; box-shadow:0 3px 10px rgba(6,182,212,0.15); transition:transform 0.15s ease;">
-                    <i class="ph-bold ph-arrows-clockwise" style="font-size:17px;"></i> 🔄 自动拉取 TG / 平板最新记忆
-                </button>
+                <div style="display:flex;gap:8px;margin-bottom:12px;">
+                    <button type="button" id="btn-astrbot-sync-auto" onclick="window.MemoryEngine && window.MemoryEngine.syncFromAstrBot(true)" style="flex:1; padding:12px 10px; border:1px solid #06b6d4; border-radius:14px; background:linear-gradient(135deg, rgba(6,182,212,0.22), rgba(6,182,212,0.08)); color:#0891b2; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:6px; cursor:pointer; box-shadow:0 3px 10px rgba(6,182,212,0.12);">
+                        <i class="ph-bold ph-arrows-clockwise" style="font-size:16px;"></i> 🔄 拉取 TG 记忆
+                    </button>
+                    <button type="button" onclick="window.PhoneUI.openAstrBotPanel()" style="padding:12px 14px; border:1px solid rgba(0,0,0,0.08); border-radius:14px; background:#f8fafc; color:#64748b; font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:4px; cursor:pointer;">
+                        ⚙️ 设置隧道
+                    </button>
+                </div>
             `;
 
             if (exportBtn && exportBtn.parentElement) {

@@ -46,23 +46,30 @@ export const MemoryUI = {
         this.updateVaultList();
     },
 
-    // 🌟 纯净记忆库界面：只有搜索框和记忆列表
+    // 🌟 纯净记忆库界面：只有搜索框和记忆列表，支持导出 LivingMemory 格式
     renderMemoryVault() {
         const container = document.getElementById('vault-content-area');
         if (!container) return;
 
         if (!document.getElementById('vault-list-container')) {
             container.innerHTML = `
-                <div style="display:flex; gap:8px; margin-bottom:10px;">
-                    <button type="button" onclick="window.PhoneUI.exportMemoryVault()" style="flex:1; padding:10px 8px; border:1px solid var(--border-color); border-radius:12px; background:var(--icon-bg); color:var(--text-main); font-size:12px;">
-                        <i class="ph ph-download-simple"></i> 导出记忆备份
-                    </button>
-                    <button type="button" onclick="document.getElementById('memory-vault-import-file').click()" style="flex:1; padding:10px 8px; border:1px solid var(--border-color); border-radius:12px; background:var(--icon-bg); color:var(--text-main); font-size:12px;">
-                        <i class="ph ph-upload-simple"></i> 导入记忆备份
-                    </button>
-                    <input type="file" id="memory-vault-import-file" accept=".json,application/json" style="display:none" onchange="window.PhoneUI.importMemoryVault(event)">
+                <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px;">
+                    <div style="display:flex; gap:8px;">
+                        <button type="button" onclick="window.PhoneUI.exportLivingMemoryJson()" style="flex:1; padding:10px 8px; border:1px solid #6366f1; border-radius:12px; background:rgba(99,102,241,0.12); color:#6366f1; font-size:12px; font-weight:600;">
+                            <i class="ph ph-robot"></i> 导出 LivingMemory 格式 (TG/AstrBot)
+                        </button>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button type="button" onclick="window.PhoneUI.exportMemoryVault()" style="flex:1; padding:9px 8px; border:1px solid var(--border-color); border-radius:12px; background:var(--icon-bg); color:var(--text-main); font-size:12px;">
+                            <i class="ph ph-download-simple"></i> 导出手札 (.txt)
+                        </button>
+                        <button type="button" onclick="document.getElementById('memory-vault-import-file').click()" style="flex:1; padding:9px 8px; border:1px solid var(--border-color); border-radius:12px; background:var(--icon-bg); color:var(--text-main); font-size:12px;">
+                            <i class="ph ph-upload-simple"></i> 导入备份 (JSON)
+                        </button>
+                        <input type="file" id="memory-vault-import-file" accept=".json,application/json" style="display:none" onchange="window.PhoneUI.importMemoryVault(event)">
+                    </div>
                 </div>
-                <div style="font-size:11px; color:var(--text-sub); margin:0 2px 12px;">仅备份记忆库内容，不包含聊天记录、图片或其他设置。导入采用合并模式，不覆盖已有条目。</div>
+                <div style="font-size:11px; color:var(--text-sub); margin:0 2px 12px;">导出的 LivingMemory JSON 可直接在 AstrBot 中一键导入，TG 聊天直接无缝继承心底记忆。</div>
                 <div style="margin-bottom: 15px;">
                     <input type="text" id="vault-search-input" placeholder="🔍 搜索日期、标签、正文..." style="width: 100%; padding: 10px 15px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--icon-bg); color: var(--text-main); font-size: 13px; outline: none; box-sizing: border-box;">
                 </div>
@@ -255,6 +262,75 @@ export const MemoryUI = {
     closeMemoryLog() {
         document.getElementById('memory-log-bg')?.classList.remove('show');
         document.getElementById('memory-log-modal')?.classList.remove('show');
+    },
+
+    // 🌟 导出符合 LivingMemory 2.7.0 规范的专属 JSON 格式，供 AstrBot 导入
+    exportLivingMemoryJson() {
+        try {
+            const data = window.PhoneAPI?.EchoVault?.getData?.();
+            if (!data || typeof data !== 'object') throw new Error('当前记忆库不可用');
+
+            const memories = [];
+
+            // 1. 处理永久锚点
+            Object.entries(data.permanent || {}).forEach(([key, item]) => {
+                const text = (typeof item === 'string' ? item : item?.content || '').replace(/---/g, '\n').trim();
+                if (!text) return;
+                const rawTags = (item?.tags || key || '永久记忆').split(/[,，\s]+/).filter(Boolean);
+                memories.push({
+                    content: text,
+                    importance: 0.9,
+                    topics: rawTags.length ? rawTags : ['核心记忆'],
+                    key_facts: [key],
+                    memory_type: 'core',
+                    original_id: 'ev_p_' + key
+                });
+            });
+
+            // 2. 处理日常碎片
+            Object.entries(data.daily || {}).forEach(([dateKey, item]) => {
+                const text = (item?.content || '').replace(/---/g, '\n').trim();
+                if (!text) return;
+                const rawTags = (item?.tags || '日常随笔').split(/[,，\s]+/).filter(Boolean);
+                const valence = Number(item?.valence) || 0.6;
+                const importance = Math.min(0.85, Math.max(0.4, Number((valence * 0.5 + 0.35).toFixed(2))));
+                memories.push({
+                    content: text,
+                    importance: importance,
+                    topics: rawTags.length ? rawTags : ['日常'],
+                    key_facts: rawTags,
+                    memory_type: 'episodic',
+                    original_id: 'ev_d_' + dateKey
+                });
+            });
+
+            if (memories.length === 0) {
+                alert('当前记忆库没有任何记录可导出。');
+                return;
+            }
+
+            const payload = {
+                format: "livingmemory",
+                schema_version: 1,
+                memories: memories
+            };
+
+            const jsonStr = JSON.stringify(payload, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const now = new Date();
+            const stamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+            a.href = url;
+            a.download = `livingmemory_vault_${stamp}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            window.PhoneAPI?.showToast?.(`✨ 成功导出 ${memories.length} 条 LivingMemory 格式记忆！`);
+        } catch (err) {
+            alert('导出失败：' + (err?.message || '未知错误'));
+        }
     },
 
     exportMemoryVault() {
@@ -531,6 +607,7 @@ if (typeof window !== 'undefined') {
     window.PhoneUI = window.PhoneUI || {};
     Object.assign(window.PhoneUI, MemoryUI);
     window.MemoryUI = MemoryUI;
+    window.exportLivingMemoryJson = () => MemoryUI.exportLivingMemoryJson();
     window.exportMemoryVault = () => MemoryUI.exportMemoryVault();
     window.closeSkyConsole = () => MemoryUI.closeSkyConsole();
     window.openSkyConsole = () => MemoryUI.openSkyConsole();

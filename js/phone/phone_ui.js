@@ -21,25 +21,51 @@ export const PhoneUI = {
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     },
 
-    // 🌟 安全的系统维护与同步操作函数，彻底杜绝无响应假死
+    // 🌟 安全的 Supabase / 云端同步操作，自动优先调用 Supabase 同步引擎
     async handleCloudBackup() {
+        const url = localStorage.getItem('supabase_url') || localStorage.getItem('sup_url') || '';
+        const key = localStorage.getItem('supabase_key') || localStorage.getItem('sup_key') || '';
+        if (!url || !key) {
+            window.PhoneAPI?.showToast?.('⚠️ 请先填写 Supabase URL 和 Key');
+            return;
+        }
+
+        if (typeof window.PhoneAPI?.syncToSupabase === 'function') {
+            return window.PhoneAPI.syncToSupabase();
+        }
         if (typeof window.PhoneAPI?.syncToCloud === 'function') {
             return window.PhoneAPI.syncToCloud();
+        }
+        if (typeof window.SupabaseSync?.backup === 'function') {
+            return window.SupabaseSync.backup();
         }
         if (typeof window.CloudSync?.backup === 'function') {
             return window.CloudSync.backup();
         }
-        window.PhoneAPI?.showToast?.('⚠️ 云端备份组件未就绪或未配置 Cloudflare 同步服务');
+        window.PhoneAPI?.showToast?.('⚠️ Supabase 同步引擎加载中，请稍候重试');
     },
 
     async handleCloudRestore() {
+        const url = localStorage.getItem('supabase_url') || localStorage.getItem('sup_url') || '';
+        const key = localStorage.getItem('supabase_key') || localStorage.getItem('sup_key') || '';
+        if (!url || !key) {
+            window.PhoneAPI?.showToast?.('⚠️ 请先填写 Supabase URL 和 Key');
+            return;
+        }
+
+        if (typeof window.PhoneAPI?.restoreFromSupabase === 'function') {
+            return window.PhoneAPI.restoreFromSupabase();
+        }
         if (typeof window.PhoneAPI?.restoreFromCloud === 'function') {
             return window.PhoneAPI.restoreFromCloud();
+        }
+        if (typeof window.SupabaseSync?.restore === 'function') {
+            return window.SupabaseSync.restore();
         }
         if (typeof window.CloudSync?.restore === 'function') {
             return window.CloudSync.restore();
         }
-        window.PhoneAPI?.showToast?.('⚠️ 云端拉取组件未就绪或未配置 Cloudflare 同步服务');
+        window.PhoneAPI?.showToast?.('⚠️ Supabase 同步引擎加载中，请稍候重试');
     },
 
     handleExportData() {
@@ -1200,7 +1226,15 @@ export const PhoneUI = {
         <!-- 4. 系统维护 -->
         <div id="set-sec-sys" class="set-section" style="flex-direction: column; gap: 15px; padding-bottom: 100px;">
             <div class="card" style="border: 1px solid var(--primary-color); padding: 16px;">
-                <h3 style="color:var(--primary-color);margin-bottom:10px; font-size: 15px;"><i class="ph-fill ph-cloud-check"></i> Cloudflare 云端同步</h3>
+                <h3 style="color:var(--primary-color);margin-bottom:12px; font-size: 15px;"><i class="ph-fill ph-cloud-check"></i> Supabase 云端同步</h3>
+                <div style="margin-bottom:10px;">
+                    <label style="font-size:12px;color:var(--text-main);font-weight:bold;display:block;margin-bottom:4px;">Supabase URL</label>
+                    <input type="text" id="supabase-url" placeholder="https://xxx.supabase.co" oninput="localStorage.setItem('supabase_url', this.value.trim()); localStorage.setItem('sup_url', this.value.trim());" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border-color);background:var(--window-bg);color:var(--text-main);font-size:12px;">
+                </div>
+                <div style="margin-bottom:14px;">
+                    <label style="font-size:12px;color:var(--text-main);font-weight:bold;display:block;margin-bottom:4px;">Supabase Anon / API Key</label>
+                    <input type="password" id="supabase-key" placeholder="eyJhbGciOi..." oninput="localStorage.setItem('supabase_key', this.value.trim()); localStorage.setItem('sup_key', this.value.trim());" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border-color);background:var(--window-bg);color:var(--text-main);font-size:12px;">
+                </div>
                 <div style="display:flex;gap:10px;">
                     <button class="btn-refresh" type="button" onclick="window.PhoneUI.handleCloudBackup()" style="flex:1;margin-top:0;background:linear-gradient(135deg, var(--primary-color), var(--secondary-color));cursor:pointer;"><i class="ph-fill ph-cloud-arrow-up"></i> 备份到云端</button>
                     <button class="btn-refresh" type="button" onclick="window.PhoneUI.handleCloudRestore()" style="flex:1;margin-top:0;background:var(--icon-bg);color:var(--text-main);border:1px solid var(--border-color);cursor:pointer;"><i class="ph-fill ph-cloud-arrow-down"></i> 从云端拉取</button>
@@ -1257,6 +1291,12 @@ export const PhoneUI = {
             const charPersonaEl = document.getElementById('char-persona');
             if (sysPromptEl) sysPromptEl.value = finalSys;
             if (charPersonaEl) charPersonaEl.value = finalChar;
+
+            // 🌟 自动回填已有的 Supabase 配置
+            const supUrlEl = document.getElementById('supabase-url');
+            const supKeyEl = document.getElementById('supabase-key');
+            if (supUrlEl) supUrlEl.value = localStorage.getItem('supabase_url') || localStorage.getItem('sup_url') || '';
+            if (supKeyEl) supKeyEl.value = localStorage.getItem('supabase_key') || localStorage.getItem('sup_key') || '';
 
             const saveBtn = document.getElementById('btn-direct-save-preset');
             if (saveBtn) {

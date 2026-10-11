@@ -57,26 +57,26 @@ export const MemoryUI = {
                 if (!dynamicBody) {
                     dynamicBody = document.createElement('div');
                     dynamicBody.id = 'vault-dynamic-body';
-                    dynamicBody.style.cssText = 'padding: 12px 16px; display: flex; flex-direction: column; gap: 12px;';
+                    dynamicBody.style.cssText = 'padding: 10px 14px; display: flex; flex-direction: column; gap: 12px;';
                     tabs.parentElement.appendChild(dynamicBody);
                 }
-        dynamicBody.innerHTML = `
-            <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
-                <div style="position:relative;flex:1;">
-                    <input type="text" id="vault-search-input" placeholder="🔍 搜索日常或锚点记忆..." 
-                        oninput="window.MemoryUI.handleVaultSearch(this.value)"
-                        style="width:100%;box-sizing:border-box;padding:8px 12px 8px 32px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;font-size:12px;outline:none;" />
-                    <i class="ph-bold ph-magnifying-glass" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:13px;"></i>
-                </div>
-                <button type="button" onclick="window.PhoneUI.importMemoryVault()" title="智能去重导入" style="padding:8px 12px;background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;border-radius:12px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;">
-                    <i class="ph-bold ph-arrow-down" style="color:#0284c7;"></i> 导入
-                </button>
-                <button type="button" onclick="window.PhoneUI.exportLivingMemoryJson()" title="导出 LivingMemory 记忆库" style="padding:8px 12px;background:linear-gradient(135deg, #8b5cf6, #6366f1);color:#fff;border:none;border-radius:12px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;box-shadow:0 2px 6px rgba(99,102,241,0.25);">
-                    <i class="ph-bold ph-arrow-up"></i> 导出
-                </button>
-            </div>
-            <div id="vault-list-container" style="display:flex;flex-direction:column;gap:12px;"></div>
-        `;
+                dynamicBody.innerHTML = `
+                    <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;">
+                        <div style="position:relative;flex:1;min-width:0;">
+                            <input type="text" id="vault-search-input" placeholder="🔍 搜索记忆..." 
+                                oninput="window.MemoryUI.handleVaultSearch(this.value)"
+                                style="width:100%;box-sizing:border-box;padding:8px 10px 8px 30px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;font-size:12px;outline:none;" />
+                            <i class="ph-bold ph-magnifying-glass" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:13px;"></i>
+                        </div>
+                        <button type="button" onclick="window.PhoneUI.importMemoryVault()" title="智能去重导入 JSON" style="flex-shrink:0;padding:8px 10px;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:12px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:3px;cursor:pointer;white-space:nowrap;">
+                            <i class="ph-bold ph-arrow-down" style="color:#0284c7;"></i> 导入 JSON
+                        </button>
+                        <button type="button" onclick="window.PhoneUI.exportLivingMemoryJson()" title="导出 TG (LivingMemory) 专属 JSON" style="flex-shrink:0;padding:8px 10px;background:linear-gradient(135deg, #8b5cf6, #6366f1);color:#fff;border:none;border-radius:12px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:3px;cursor:pointer;white-space:nowrap;box-shadow:0 2px 6px rgba(99,102,241,0.25);">
+                            <i class="ph-bold ph-arrow-up"></i> 导出 TG JSON
+                        </button>
+                    </div>
+                    <div id="vault-list-container" style="display:flex;flex-direction:column;gap:12px;"></div>
+                `;
             }
         }
         this.updateVaultList();

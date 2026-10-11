@@ -46,8 +46,33 @@ export const MemoryUI = {
         this.updateVaultList();
     },
 
-    // 🌟 纯净记忆库界面：只有搜索框和记忆列表
+    // 🌟 纯净记忆库界面：包含搜索栏、导入导出与手札列表
     renderMemoryVault() {
+        // 寻找记忆库主视图容器
+        let container = document.getElementById('vault-list-container');
+        if (!container) {
+            const tabs = document.getElementById('tab-daily')?.parentElement;
+            if (tabs && tabs.parentElement) {
+                let dynamicBody = document.getElementById('vault-dynamic-body');
+                if (!dynamicBody) {
+                    dynamicBody = document.createElement('div');
+                    dynamicBody.id = 'vault-dynamic-body';
+                    dynamicBody.style.cssText = 'padding: 12px 16px; display: flex; flex-direction: column; gap: 12px;';
+                    tabs.parentElement.appendChild(dynamicBody);
+                }
+                dynamicBody.innerHTML = `
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <div style="position:relative;flex:1;">
+                            <input type="text" id="vault-search-input" placeholder="🔍 搜索日常或锚点记忆..." 
+                                oninput="window.MemoryUI.handleVaultSearch(this.value)"
+                                style="width:100%;box-sizing:border-box;padding:9px 12px 9px 34px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;font-size:13px;outline:none;" />
+                            <i class="ph-bold ph-magnifying-glass" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:14px;"></i>
+                        </div>
+                    </div>
+                    <div id="vault-list-container" style="display:flex;flex-direction:column;gap:12px;"></div>
+                `;
+            }
+        }
         this.updateVaultList();
     },
 
@@ -544,61 +569,88 @@ export const MemoryUI = {
     },
 
     updateVaultList() {
-        const listContainer = document.getElementById('vault-list-container');
-        if (!listContainer || !window.PhoneAPI || !window.PhoneAPI.EchoVault) return;
+        let listContainer = document.getElementById('vault-list-container');
+        if (!listContainer) {
+            this.renderMemoryVault();
+            listContainer = document.getElementById('vault-list-container');
+            if (!listContainer) return;
+        }
 
-        const data = window.PhoneAPI.EchoVault.getData();
+        const rawData = window.PhoneAPI?.EchoVault?.getData?.() || {};
+        const data = {
+            daily: rawData.daily || {},
+            permanent: rawData.permanent || {},
+            archive: rawData.archive || {}
+        };
+
         const tab = window.Config?.memoryVaultTab || 'daily';
         const query = this.vaultSearchQuery || '';
         
         let html = '';
         if (tab === 'daily') {
             let dates = Object.keys(data.daily).sort((a, b) => b.localeCompare(a));
-            if (query) dates = dates.filter(d => d.includes(query) || (data.daily[d].tags||'').toLowerCase().includes(query) || data.daily[d].content.toLowerCase().includes(query));
+            if (query) {
+                dates = dates.filter(d => {
+                    const item = data.daily[d];
+                    const content = typeof item === 'string' ? item : (item?.content || '');
+                    const tags = item?.tags || '';
+                    return d.includes(query) || tags.toLowerCase().includes(query) || content.toLowerCase().includes(query);
+                });
+            }
             if (dates.length === 0) {
-                html = '<div class="ev-empty"><i class="ph-fill ph-empty" style="font-size:48px;color:var(--border-color);"></i><br>暂无记忆</div>';
+                html = '<div class="ev-empty" style="text-align:center;padding:40px 20px;color:#94a3b8;font-size:13px;"><i class="ph-fill ph-tray" style="font-size:36px;opacity:0.4;display:block;margin-bottom:8px;"></i>暂无日常记忆记录</div>';
             } else {
                 dates.forEach(date => {
                     const item = data.daily[date];
-                    let content = item.content.replace(/---/g, '\n').trim();
+                    let content = (typeof item === 'string' ? item : item?.content || '').replace(/---/g, '\n').trim();
+                    const tags = item?.tags || '日常';
                     html += `
-                    <div class="ev-card">
-                        <div class="ev-card-header">
-                            <span><i class="ph-fill ph-calendar-blank"></i> ${date}</span>
-                            <span><i class="ph-fill ph-tag"></i> ${this.escapeHtml(item.tags)}</span>
+                    <div class="ev-card" style="background:#fff;border:1px solid #f1f5f9;border-radius:16px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,0.02);margin-bottom:10px;">
+                        <div class="ev-card-header" style="display:flex;justify-content:space-between;font-size:12px;color:#94a3b8;margin-bottom:8px;">
+                            <span><i class="ph-bold ph-calendar-blank"></i> ${date}</span>
+                            <span style="background:#f1f5f9;color:#64748b;padding:2px 8px;border-radius:10px;font-size:11px;"># ${this.escapeHtml(tags)}</span>
                         </div>
-                        <div class="ev-body">${this.escapeHtml(content)}</div>
-                        <div class="ev-card-footer">
-                            <i class="ph-fill ph-share-network" onclick="window.PhoneUI.shareMemoryItem('${date}', 'daily')" title="发送到聊天"></i>
-                            <i class="ph-fill ph-pencil-simple" onclick="window.PhoneUI.openEvEdit('${date}', 'daily')"></i>
-                            <i class="ph-fill ph-trash" onclick="window.PhoneUI.deleteMemoryItem('${date}', 'daily')"></i>
+                        <div class="ev-body" style="font-size:13px;line-height:1.6;color:#334155;white-space:pre-wrap;word-break:break-word;">${this.escapeHtml(content)}</div>
+                        <div class="ev-card-footer" style="display:flex;justify-content:flex-end;gap:14px;margin-top:10px;padding-top:8px;border-top:1px dashed #f1f5f9;color:#94a3b8;font-size:15px;cursor:pointer;">
+                            <i class="ph-bold ph-share-network" onclick="window.PhoneUI.shareMemoryItem('${date}', 'daily')" title="发送到聊天"></i>
+                            <i class="ph-bold ph-pencil-simple" onclick="window.PhoneUI.openEvEdit('${date}', 'daily')" title="编辑"></i>
+                            <i class="ph-bold ph-trash" onclick="window.PhoneUI.deleteMemoryItem('${date}', 'daily')" title="删除" style="color:#f87171;"></i>
                         </div>
                     </div>`;
                 });
             }
         } else {
             let keys = Object.keys(data.permanent).sort((a, b) => {
-                const timeA = data.permanent[a].created || '';
-                const timeB = data.permanent[b].created || '';
+                const timeA = data.permanent[a]?.created || '';
+                const timeB = data.permanent[b]?.created || '';
                 return timeB.localeCompare(timeA);
             });
-            if (query) keys = keys.filter(k => k.toLowerCase().includes(query) || (data.permanent[k].tags||'').toLowerCase().includes(query) || data.permanent[k].content.toLowerCase().includes(query));
+            if (query) {
+                keys = keys.filter(k => {
+                    const item = data.permanent[k];
+                    const content = typeof item === 'string' ? item : (item?.content || '');
+                    const tags = item?.tags || '';
+                    return k.toLowerCase().includes(query) || tags.toLowerCase().includes(query) || content.toLowerCase().includes(query);
+                });
+            }
             if (keys.length === 0) {
-                html = '<div class="ev-empty"><i class="ph-fill ph-empty" style="font-size:48px;color:var(--border-color);"></i><br>暂无记忆</div>';
+                html = '<div class="ev-empty" style="text-align:center;padding:40px 20px;color:#94a3b8;font-size:13px;"><i class="ph-fill ph-anchor" style="font-size:36px;opacity:0.4;display:block;margin-bottom:8px;"></i>暂无永恒锚点记忆</div>';
             } else {
                 keys.forEach(key => {
                     const item = data.permanent[key];
+                    let content = (typeof item === 'string' ? item : item?.content || '').replace(/---/g, '\n').trim();
+                    const tags = item?.tags || '永恒';
                     html += `
-                    <div class="ev-card ev-permanent-card">
-                        <div class="ev-card-header">
-                            <span><i class="ph-fill ph-anchor"></i> ${this.escapeHtml(key)}</span>
-                            <span><i class="ph-fill ph-tag"></i> ${this.escapeHtml(item.tags)}</span>
+                    <div class="ev-card ev-permanent-card" style="background:linear-gradient(135deg,rgba(245,243,255,0.7),#fff);border:1px solid #ede9fe;border-radius:16px;padding:14px;box-shadow:0 2px 8px rgba(124,58,237,0.03);margin-bottom:10px;">
+                        <div class="ev-card-header" style="display:flex;justify-content:space-between;font-size:12px;color:#8b5cf6;margin-bottom:8px;">
+                            <span style="font-weight:600;"><i class="ph-fill ph-anchor"></i> ${this.escapeHtml(key)}</span>
+                            <span style="background:#ede9fe;color:#7c3aed;padding:2px 8px;border-radius:10px;font-size:11px;">★ ${this.escapeHtml(tags)}</span>
                         </div>
-                        <div class="ev-body">${this.escapeHtml(item.content)}</div>
-                        <div class="ev-card-footer">
-                            <i class="ph-fill ph-share-network" onclick="window.PhoneUI.shareMemoryItem('${key}', 'permanent')" title="发送到聊天"></i>
-                            <i class="ph-fill ph-pencil-simple" onclick="window.PhoneUI.openEvEdit('${key}', 'permanent')"></i>
-                            <i class="ph-fill ph-trash" onclick="window.PhoneUI.deleteMemoryItem('${key}', 'permanent')"></i>
+                        <div class="ev-body" style="font-size:13px;line-height:1.6;color:#334155;white-space:pre-wrap;word-break:break-word;">${this.escapeHtml(content)}</div>
+                        <div class="ev-card-footer" style="display:flex;justify-content:flex-end;gap:14px;margin-top:10px;padding-top:8px;border-top:1px dashed #ede9fe;color:#a78bfa;font-size:15px;cursor:pointer;">
+                            <i class="ph-bold ph-share-network" onclick="window.PhoneUI.shareMemoryItem('${key}', 'permanent')" title="发送到聊天"></i>
+                            <i class="ph-bold ph-pencil-simple" onclick="window.PhoneUI.openEvEdit('${key}', 'permanent')" title="编辑"></i>
+                            <i class="ph-bold ph-trash" onclick="window.PhoneUI.deleteMemoryItem('${key}', 'permanent')" title="删除" style="color:#f87171;"></i>
                         </div>
                     </div>`;
                 });

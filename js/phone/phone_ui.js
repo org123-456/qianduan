@@ -21,14 +21,15 @@ export const PhoneUI = {
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     },
 
-    // 🌟 安全的 Supabase / 云端同步操作，内置永久 URL 和 Key 兜底
+    // 🌟 安全的 Supabase / 云端同步操作，永久内置专属 URL 和 Key 兜底
     async handleCloudBackup() {
-        const url = localStorage.getItem('supabase_url') || localStorage.getItem('sup_url') || '你的Supabase_URL';
-        const key = localStorage.getItem('supabase_key') || localStorage.getItem('sup_key') || '你的Supabase_KEY';
-        if (!url || !key || url === '你的Supabase_URL') {
-            window.PhoneAPI?.showToast?.('⚠️ 请先填写 Supabase URL 和 Key');
-            return;
-        }
+        const DEFAULT_URL = 'https://surgrksyiscmaxgggitx.supabase.co';
+        const DEFAULT_KEY = 'sb_publishable_Q1a5lFcqiUK1t2UHH3P2bQ_jw3LFoaa';
+        const url = localStorage.getItem('supabase_url') || localStorage.getItem('sup_url') || DEFAULT_URL;
+        const key = localStorage.getItem('supabase_key') || localStorage.getItem('sup_key') || DEFAULT_KEY;
+
+        localStorage.setItem('supabase_url', url);
+        localStorage.setItem('supabase_key', key);
 
         if (typeof window.PhoneAPI?.syncToSupabase === 'function') {
             return window.PhoneAPI.syncToSupabase();
@@ -46,12 +47,13 @@ export const PhoneUI = {
     },
 
     async handleCloudRestore() {
-        const url = localStorage.getItem('supabase_url') || localStorage.getItem('sup_url') || '你的Supabase_URL';
-        const key = localStorage.getItem('supabase_key') || localStorage.getItem('sup_key') || '你的Supabase_KEY';
-        if (!url || !key || url === '你的Supabase_URL') {
-            window.PhoneAPI?.showToast?.('⚠️ 请先填写 Supabase URL 和 Key');
-            return;
-        }
+        const DEFAULT_URL = 'https://surgrksyiscmaxgggitx.supabase.co';
+        const DEFAULT_KEY = 'sb_publishable_Q1a5lFcqiUK1t2UHH3P2bQ_jw3LFoaa';
+        const url = localStorage.getItem('supabase_url') || localStorage.getItem('sup_url') || DEFAULT_URL;
+        const key = localStorage.getItem('supabase_key') || localStorage.getItem('sup_key') || DEFAULT_KEY;
+
+        localStorage.setItem('supabase_url', url);
+        localStorage.setItem('supabase_key', key);
 
         if (typeof window.PhoneAPI?.restoreFromSupabase === 'function') {
             return window.PhoneAPI.restoreFromSupabase();
@@ -1292,11 +1294,17 @@ export const PhoneUI = {
             if (sysPromptEl) sysPromptEl.value = finalSys;
             if (charPersonaEl) charPersonaEl.value = finalChar;
 
-            // 🌟 自动回填已有的 Supabase 配置
+            // 🌟 自动回填永久内置的 Supabase 配置
+            const DEFAULT_SUP_URL = 'https://surgrksyiscmaxgggitx.supabase.co';
+            const DEFAULT_SUP_KEY = 'sb_publishable_Q1a5lFcqiUK1t2UHH3P2bQ_jw3LFoaa';
             const supUrlEl = document.getElementById('supabase-url');
             const supKeyEl = document.getElementById('supabase-key');
-            if (supUrlEl) supUrlEl.value = localStorage.getItem('supabase_url') || localStorage.getItem('sup_url') || '';
-            if (supKeyEl) supKeyEl.value = localStorage.getItem('supabase_key') || localStorage.getItem('sup_key') || '';
+            const curUrl = localStorage.getItem('supabase_url') || localStorage.getItem('sup_url') || DEFAULT_SUP_URL;
+            const curKey = localStorage.getItem('supabase_key') || localStorage.getItem('sup_key') || DEFAULT_SUP_KEY;
+            localStorage.setItem('supabase_url', curUrl);
+            localStorage.setItem('supabase_key', curKey);
+            if (supUrlEl) supUrlEl.value = curUrl;
+            if (supKeyEl) supKeyEl.value = curKey;
 
             const saveBtn = document.getElementById('btn-direct-save-preset');
             if (saveBtn) {

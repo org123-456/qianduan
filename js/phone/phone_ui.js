@@ -76,14 +76,39 @@ export const PhoneUI = {
             input.style.display = 'none';
             document.body.appendChild(input);
         }
-        input.onchange = (e) => {
-            if (typeof window.PhoneAPI?.importData === 'function') {
-                window.PhoneAPI.importData(e);
-            } else {
-                alert('系统导入接口未找到，请检查控制台脚本。');
-            }
-        };
+        input.onchange = (e) => this.handleDirectImport(e);
         input.click();
+    },
+
+    async handleDirectImport(event) {
+        const file = event?.target?.files?.[0];
+        if (!file) return;
+
+        try {
+            if (typeof window.PhoneAPI?.importData === 'function') {
+                await window.PhoneAPI.importData(event);
+                return;
+            }
+
+            const text = await file.text();
+            const data = JSON.parse(text);
+
+            if (data.storage) {
+                Object.entries(data.storage).forEach(([k, v]) => {
+                    try { localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); } catch (e) {}
+                });
+            }
+            if (data.config && window.Config) {
+                Object.assign(window.Config, data.config);
+            }
+
+            alert('✅ 备份文件导入成功！即将刷新生效。');
+            window.location.reload();
+        } catch (err) {
+            alert('❌ 导入失败：' + (err?.message || '文件格式不正确'));
+        } finally {
+            if (event.target) event.target.value = '';
+        }
     },
 
     enterStarrySea() {
@@ -1186,7 +1211,10 @@ export const PhoneUI = {
                 <h3 style="color:var(--primary-color);margin-bottom:15px; font-size: 15px;"><i class="ph-fill ph-floppy-disk-back"></i> 本地文件备份 (JSON)</h3>
                 <div style="display:flex;gap:10px;">
                     <button class="btn-refresh" type="button" onclick="window.PhoneUI.handleExportData()" style="flex:1;margin-top:0;background:var(--secondary-color);cursor:pointer;"><i class="ph ph-export"></i> 导出文件</button>
-                    <button class="btn-refresh" type="button" onclick="window.PhoneUI.handleImportDataClick()" style="flex:1;margin-top:0;background:#2a9d8f;cursor:pointer;"><i class="ph ph-import"></i> 导入文件</button>
+                    <label class="btn-refresh" style="flex:1;margin-top:0;background:#2a9d8f;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;text-align:center;padding:12px;border-radius:10px;color:#fff;font-size:13px;font-weight:600;box-sizing:border-box;">
+                        <i class="ph ph-import"></i> 导入文件
+                        <input type="file" accept=".json,application/json" onchange="window.PhoneUI.handleDirectImport(event)" style="display:none;">
+                    </label>
                 </div>
             </div>
 

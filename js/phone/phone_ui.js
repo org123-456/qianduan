@@ -21,11 +21,11 @@ export const PhoneUI = {
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     },
 
-    // 🌟 安全的 Supabase / 云端同步操作，自动优先调用 Supabase 同步引擎
+    // 🌟 安全的 Supabase / 云端同步操作，内置永久 URL 和 Key 兜底
     async handleCloudBackup() {
-        const url = localStorage.getItem('supabase_url') || localStorage.getItem('sup_url') || '';
-        const key = localStorage.getItem('supabase_key') || localStorage.getItem('sup_key') || '';
-        if (!url || !key) {
+        const url = localStorage.getItem('supabase_url') || localStorage.getItem('sup_url') || '你的Supabase_URL';
+        const key = localStorage.getItem('supabase_key') || localStorage.getItem('sup_key') || '你的Supabase_KEY';
+        if (!url || !key || url === '你的Supabase_URL') {
             window.PhoneAPI?.showToast?.('⚠️ 请先填写 Supabase URL 和 Key');
             return;
         }
@@ -46,9 +46,9 @@ export const PhoneUI = {
     },
 
     async handleCloudRestore() {
-        const url = localStorage.getItem('supabase_url') || localStorage.getItem('sup_url') || '';
-        const key = localStorage.getItem('supabase_key') || localStorage.getItem('sup_key') || '';
-        if (!url || !key) {
+        const url = localStorage.getItem('supabase_url') || localStorage.getItem('sup_url') || '你的Supabase_URL';
+        const key = localStorage.getItem('supabase_key') || localStorage.getItem('sup_key') || '你的Supabase_KEY';
+        if (!url || !key || url === '你的Supabase_URL') {
             window.PhoneAPI?.showToast?.('⚠️ 请先填写 Supabase URL 和 Key');
             return;
         }

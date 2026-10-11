@@ -379,9 +379,16 @@ export const MemoryUI = {
         }
     },
 
-    // Validate the backup and merge only non-conflicting keys; existing records are never overwritten.
+    // 🌟 文本指纹清洗（去除标点和多余空格换行，用于内容级别去重判断）
+    getMemoryFingerprint(text) {
+        if (!text) return '';
+        return String(text)
+            .replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '')
+            .toLowerCase();
+    },
+
+    // 🌟 智能去重导入：支持前端旧备份与 LivingMemory JSON，只合并新增记忆！
     async importMemoryVault(event) {
-        // 🌟 解决点不动的核心：如果是普通按钮触发（非 <input type="file">），自动唤起文件选择器
         if (!event?.target?.files || !event.target.files.length) {
             let fileInput = document.getElementById('temp-memory-file-input');
             if (!fileInput) {
@@ -400,61 +407,137 @@ export const MemoryUI = {
         const input = event.target;
         const file = input.files[0];
         if (!file) return;
+
         try {
-            if (file.size > 20 * 1024 * 1024) throw new Error('备份文件超过 20MB，已停止导入');
+            if (file.size > 20 * 1024 * 1024) throw new Error('文件超过 20MB，已停止导入');
             const text = await file.text();
             const payload = JSON.parse(text);
-            const vault = payload?.format === 'qianduan-memory-vault' ? payload.vault : payload;
-            if (!vault || typeof vault !== 'object' || Array.isArray(vault)) throw new Error('文件格式不正确');
-            for (const key of ['daily', 'permanent', 'archive']) {
-                if (vault[key] !== undefined && (!vault[key] || typeof vault[key] !== 'object' || Array.isArray(vault[key]))) {
-                    throw new Error('记忆分区格式不正确：' + key);
-                }
-            }
-            if (!['daily', 'permanent', 'archive'].some(key => Object.keys(vault[key] || {}).length > 0)) {
-                throw new Error('备份中没有可导入的记忆条目');
-            }
-            if (!confirm('将备份中的记忆合并到当前记忆库。已有同名条目不会被覆盖，冲突条目会跳过。是否继续？')) return;
+
             const api = window.PhoneAPI;
-            if (!api?.EchoVault?.getData || !api?.EchoVault?.saveData) throw new Error('记忆库接口不可用');
-            const current = api.EchoVault.getData();
+            if (!api?.EchoVault?.getData || !api?.EchoVault?.saveData) throw new Error('记忆库存储接口不可用');
+            
+            const current = api.EchoVault.getData() || { daily: {}, permanent: {}, archive: {} };
             const merged = {
                 daily: { ...(current.daily || {}) },
                 permanent: { ...(current.permanent || {}) },
                 archive: { ...(current.archive || {}) }
             };
-            let added = 0, skipped = 0;
-            for (const section of ['daily', 'permanent', 'archive']) {
-                for (const [key, value] of Object.entries(vault[section] || {})) {
-                    if (!key || !value || typeof value !== 'object' || Array.isArray(value)) {
+
+            // 预先建立现有记忆的内容指纹库（防止内容相同但标题/ID不同）
+            const existingDailyFps = new Set();
+            const existingPermFps = new Set();
+
+            Object.values(merged.daily || {}).forEach(item => {
+                const fp = this.getMemoryFingerprint(item?.content || item);
+                if (fp) existingDailyFps.add(fp);
+            });
+            Object.values(merged.permanent || {}).forEach(item => {
+                const fp = this.getMemoryFingerprint(item?.content || item);
+                if (fp) existingPermFps.add(fp);
+            });
+
+            let added = 0;
+            let skipped = 0;
+
+            // 情况 A：导入的是 LivingMemory 格式 JSON
+            if (Array.isArray(payload.memories)) {
+                payload.memories.forEach((m, idx) => {
+                    const content = (m.content || '').trim();
+                    if (!content) { skipped++; return; }
+
+                    const fp = this.getMemoryFingerprint(content);
+                    const isCore = m.memory_type === 'core';
+                    const targetSection = isCore ? 'permanent' : 'daily';
+                    const targetFpSet = isCore ? existingPermFps : existingDailyFps;
+
+                    // 内容查重
+                    if (targetFpSet.has(fp)) {
                         skipped++;
-                        continue;
+                        return;
                     }
-                    if (Object.prototype.hasOwnProperty.call(merged[section], key)) {
-                        skipped++;
-                        continue;
+
+                    if (isCore) {
+                        const anchorKey = m.metadata?.anchor_key || m.key_facts?.[0] || `核心记忆_${Date.now()}_${idx}`;
+                        if (merged.permanent[anchorKey]) {
+                            skipped++;
+                            return;
+                        }
+                        const tags = Array.isArray(m.topics) ? m.topics.join(', ') : (m.topics || '核心');
+                        merged.permanent[anchorKey] = {
+                            content: content,
+                            tags: tags,
+                            created: m.timestamp || new Date().toISOString()
+                        };
+                        targetFpSet.add(fp);
+                        added++;
+                    } else {
+                        const now = new Date();
+                        const timeOffset = idx * 1000;
+                        const dateObj = new Date(now.getTime() - timeOffset);
+                        const defaultDateStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth()+1).padStart(2,'0')}-${String(dateObj.getDate()).padStart(2,'0')} ${String(dateObj.getHours()).padStart(2,'0')}:${String(dateObj.getMinutes()).padStart(2,'0')}:${String(dateObj.getSeconds()).padStart(2,'0')}`;
+                        
+                        let dateKey = m.metadata?.record_date || defaultDateStr;
+                        // 避免 key 碰撞
+                        if (merged.daily[dateKey]) {
+                            dateKey = `${dateKey}_${idx}`;
+                        }
+                        const tags = Array.isArray(m.topics) ? m.topics.join(', ') : (m.topics || '日常');
+                        merged.daily[dateKey] = {
+                            content: content,
+                            tags: tags,
+                            valence: (typeof m.importance === 'number') ? m.importance : 0.6
+                        };
+                        targetFpSet.add(fp);
+                        added++;
                     }
-                    merged[section][key] = value;
-                    added++;
+                });
+            } else {
+                // 情况 B：常规备份 JSON (qianduan-memory-vault 或直接导出结构)
+                const vault = payload?.format === 'qianduan-memory-vault' ? payload.vault : payload;
+                if (!vault || typeof vault !== 'object' || Array.isArray(vault)) {
+                    throw new Error('未识别的文件格式');
+                }
+
+                for (const section of ['daily', 'permanent', 'archive']) {
+                    const targetFpSet = section === 'permanent' ? existingPermFps : existingDailyFps;
+                    for (const [key, value] of Object.entries(vault[section] || {})) {
+                        if (!key || !value) { skipped++; continue; }
+
+                        // 键值相同去重
+                        if (Object.prototype.hasOwnProperty.call(merged[section], key)) {
+                            skipped++;
+                            continue;
+                        }
+
+                        // 内容指纹去重
+                        const itemContent = typeof value === 'string' ? value : value.content;
+                        const fp = this.getMemoryFingerprint(itemContent);
+                        if (fp && targetFpSet.has(fp)) {
+                            skipped++;
+                            continue;
+                        }
+
+                        merged[section][key] = value;
+                        if (fp) targetFpSet.add(fp);
+                        added++;
+                    }
                 }
             }
+
             if (added === 0) {
-                alert('没有新增记忆。可能是条目都已存在，或备份内容不符合格式。跳过 ' + skipped + ' 条。');
+                alert(`💡 未发现新记忆：备份中的记忆均已存在，智能去重跳过了 ${skipped} 条重复记录。`);
                 return;
             }
-            const serialized = JSON.stringify(merged);
-            // Check browser storage capacity before committing, then verify the saved payload.
-            try {
-                localStorage.setItem('echovault_data', serialized);
-                const check = JSON.parse(localStorage.getItem('echovault_data') || 'null');
-                if (!check || !check.daily || !check.permanent || !check.archive) throw new Error('写入后校验失败');
-            } catch (writeErr) {
-                throw new Error('写入失败，原有记忆未主动清除。请检查浏览器存储空间。' + (writeErr?.message ? ' (' + writeErr.message + ')' : ''));
-            }
-            window.PhoneAPI?.showToast?.('导入完成：新增 ' + added + ' 条，跳过 ' + skipped + ' 条');
+
+            // 保存合并并去重后的纯净数据
+            api.EchoVault.saveData(merged);
+            alert(`🎉 智能导入完成！\n\n✨ 成功新增：${added} 条新记忆\n🛡️ 智能去重：跳过 ${skipped} 条重复记忆`);
             this.updateVaultList();
+            if (window.MemoryEngine && typeof window.MemoryEngine.initSky === 'function') {
+                window.MemoryEngine.initSky();
+            }
         } catch (err) {
-            alert('导入失败：' + (err?.message || '请确认选择的是有效的记忆备份 JSON 文件'));
+            alert('❌ 导入失败：' + (err?.message || '请确认文件格式有效'));
         } finally {
             if (input) input.value = '';
         }

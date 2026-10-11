@@ -13,10 +13,6 @@ export const MemoryUI = {
         if (window.MemoryEngine && typeof window.MemoryEngine.initSky === 'function') {
             window.MemoryEngine.initSky();
         }
-        // 🌟 进星海时自动在后台静默向平板拉取一次 TG 的最新记忆
-        if (window.MemoryEngine && typeof window.MemoryEngine.syncFromAstrBot === 'function') {
-            window.MemoryEngine.syncFromAstrBot(false);
-        }
     },
 
     exitStarrySea() {
@@ -50,37 +46,8 @@ export const MemoryUI = {
         this.updateVaultList();
     },
 
-    // 🌟 纯净记忆库界面：只有搜索框和记忆列表，支持导出 LivingMemory 格式
+    // 🌟 纯净记忆库界面：只有搜索框和记忆列表
     renderMemoryVault() {
-        const injectSyncBtn = () => {
-            if (document.getElementById('btn-astrbot-sync-auto')) return;
-            const targetContainer = document.querySelector('#vault-content-area, #app-window-content');
-            if (!targetContainer) return;
-
-            const allBtns = Array.from(targetContainer.querySelectorAll('button'));
-            const exportBtn = allBtns.find(b => b.textContent.includes('LivingMemory') || b.textContent.includes('AstrBot'));
-            
-            const syncBtnHtml = `
-                <div style="display:flex;gap:8px;margin-bottom:12px;">
-                    <button type="button" id="btn-astrbot-sync-auto" onclick="window.MemoryEngine && window.MemoryEngine.syncFromAstrBot(true)" style="flex:1; padding:12px 10px; border:1px solid #06b6d4; border-radius:14px; background:linear-gradient(135deg, rgba(6,182,212,0.22), rgba(6,182,212,0.08)); color:#0891b2; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:6px; cursor:pointer; box-shadow:0 3px 10px rgba(6,182,212,0.12);">
-                        <i class="ph-bold ph-arrows-clockwise" style="font-size:16px;"></i> 🔄 拉取 TG 记忆
-                    </button>
-                    <button type="button" onclick="window.PhoneUI.openAstrBotPanel()" style="padding:12px 14px; border:1px solid rgba(0,0,0,0.08); border-radius:14px; background:#f8fafc; color:#64748b; font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:4px; cursor:pointer;">
-                        ⚙️ 设置隧道
-                    </button>
-                </div>
-            `;
-
-            if (exportBtn && exportBtn.parentElement) {
-                exportBtn.parentElement.insertAdjacentHTML('beforebegin', syncBtnHtml);
-            } else {
-                targetContainer.insertAdjacentHTML('afterbegin', syncBtnHtml);
-            }
-        };
-
-        injectSyncBtn();
-        setTimeout(injectSyncBtn, 100);
-
         this.updateVaultList();
     },
 
@@ -92,9 +59,6 @@ export const MemoryUI = {
             modal.innerHTML = `
                 <div style="font-weight:700;font-size:16px;color:#1e293b;margin-bottom:14px;text-align:center;">✨ 记忆手札管理</div>
                 <div style="display:flex;flex-direction:column;gap:10px;">
-                    <button type="button" onclick="window.MemoryEngine && window.MemoryEngine.syncFromAstrBot(true);window.PhoneUI.closeSkyConsole();" style="padding:12px;background:#06b6d4;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;">
-                        🔄 同步 TG / 平板最新记忆
-                    </button>
                     <button type="button" onclick="window.PhoneUI.exportMemoryVault();window.PhoneUI.closeSkyConsole();" style="padding:12px;background:#6366f1;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;">
                         📖 导出记忆手札 (.txt 文本)
                     </button>
@@ -632,31 +596,10 @@ export const MemoryUI = {
     escapeHtml(str) {
         if (!str) return '';
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-    },
-
-    // 🌟 打开或配置平板 AstrBot 后台
-    openAstrBotPanel() {
-        let url = localStorage.getItem('astrbot_tunnel_url') || '';
-        const input = prompt('当前平板穿透地址：\n(如穿透网址变动可在此更新，点击确定生效并打开)', url);
-        if (input !== null && input.trim()) {
-            url = input.trim().replace(/\/+$/, '');
-            localStorage.setItem('astrbot_tunnel_url', url);
-            window.PhoneAPI?.showToast?.('🔗 隧道地址已更新');
-            window.open(url, '_blank');
-        }
-    },
-
-    // 🌟 无论从设置、顶部按钮还是控制台触发，必定有响应与 Toast 反馈的同步入口
-    syncFromAstrBot(showFeedback = true) {
-        if (window.MemoryEngine && typeof window.MemoryEngine.syncFromAstrBot === 'function') {
-            window.MemoryEngine.syncFromAstrBot(showFeedback);
-        } else {
-            window.PhoneAPI?.showToast?.('⚠️ 同步模块正在初始化中，请稍候再试');
-        }
     }
 };
 
-// 🌟 全局纯净挂载：彻底打通所有必要函数，杜绝任何“未定义”导致的点击卡死
+// 🌟 全局纯净挂载
 if (typeof window !== 'undefined') {
     window.PhoneUI = window.PhoneUI || {};
     Object.assign(window.PhoneUI, MemoryUI);
@@ -664,7 +607,6 @@ if (typeof window !== 'undefined') {
     window.exportLivingMemoryJson = () => MemoryUI.exportLivingMemoryJson();
     window.exportMemoryVault = () => MemoryUI.exportMemoryVault();
     window.importMemoryVault = (e) => MemoryUI.importMemoryVault(e);
-    window.syncFromAstrBot = (fb) => MemoryUI.syncFromAstrBot(fb);
     window.closeSkyConsole = () => MemoryUI.closeSkyConsole();
     window.openSkyConsole = () => MemoryUI.openSkyConsole();
     window.focusGalaxy = (mode) => MemoryUI.focusGalaxy(mode);

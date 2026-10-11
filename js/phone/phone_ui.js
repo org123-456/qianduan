@@ -21,53 +21,119 @@ export const PhoneUI = {
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     },
 
-    // 🌟 安全的 Supabase / 云端同步操作，永久内置专属 URL 和 Key 兜底
-    async handleCloudBackup() {
+    // 🌟 核心：直接通过 Supabase REST API 实现全量云端备份与还原
+    async _supabaseRequest(endpoint, options = {}) {
         const DEFAULT_URL = 'https://surgrksyiscmaxgggitx.supabase.co';
         const DEFAULT_KEY = 'sb_publishable_Q1a5lFcqiUK1t2UHH3P2bQ_jw3LFoaa';
-        const url = localStorage.getItem('supabase_url') || localStorage.getItem('sup_url') || DEFAULT_URL;
-        const key = localStorage.getItem('supabase_key') || localStorage.getItem('sup_key') || DEFAULT_KEY;
+        const baseUrl = (localStorage.getItem('supabase_url') || DEFAULT_URL).replace(/\/+$/, '');
+        const apiKey = localStorage.getItem('supabase_key') || DEFAULT_KEY;
 
-        localStorage.setItem('supabase_url', url);
-        localStorage.setItem('supabase_key', key);
+        const headers = {
+            'apikey': apiKey,
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation',
+            ...(options.headers || {})
+        };
 
-        if (typeof window.PhoneAPI?.syncToSupabase === 'function') {
-            return window.PhoneAPI.syncToSupabase();
+        return fetch(`${baseUrl}/rest/v1/${endpoint}`, {
+            ...options,
+            headers
+        });
+    },
+
+    async handleCloudBackup() {
+        try {
+            window.PhoneAPI?.showToast?.('☁️ 正在上传备份到 Supabase...');
+            const backupPayload = {
+                id: 'primary_backup',
+                config: window.Config || {},
+                storage: { ...localStorage },
+                updated_at: new Date().toISOString()
+            };
+
+            // 智能适配常见表名
+            const candidateTables = ['backups', 'phone_backup', 'cloud_sync'];
+            let success = false;
+            let lastError = null;
+
+            for (const table of candidateTables) {
+                try {
+                    const res = await this._supabaseRequest(`${table}?on_conflict=id`, {
+                        method: 'POST',
+                        headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+                        body: JSON.stringify(backupPayload)
+                    });
+                    if (res.ok) {
+                        success = true;
+                        break;
+                    } else if (res.status !== 404) {
+                        const errJson = await res.json().catch(() => ({}));
+                        lastError = errJson.message || `HTTP ${res.status}`;
+                    }
+                } catch (e) {
+                    lastError = e.message;
+                }
+            }
+
+            if (success) {
+                window.PhoneAPI?.showToast?.('🎉 成功备份到 Supabase 云端！');
+            } else {
+                alert(`❌ 备份失败: ${lastError || '请检查 Supabase 表是否存在 (建议建一张 backups 表)'}`);
+            }
+        } catch (err) {
+            alert('❌ 备份异常：' + err.message);
         }
-        if (typeof window.PhoneAPI?.syncToCloud === 'function') {
-            return window.PhoneAPI.syncToCloud();
-        }
-        if (typeof window.SupabaseSync?.backup === 'function') {
-            return window.SupabaseSync.backup();
-        }
-        if (typeof window.CloudSync?.backup === 'function') {
-            return window.CloudSync.backup();
-        }
-        window.PhoneAPI?.showToast?.('⚠️ Supabase 同步引擎加载中，请稍候重试');
     },
 
     async handleCloudRestore() {
-        const DEFAULT_URL = 'https://surgrksyiscmaxgggitx.supabase.co';
-        const DEFAULT_KEY = 'sb_publishable_Q1a5lFcqiUK1t2UHH3P2bQ_jw3LFoaa';
-        const url = localStorage.getItem('supabase_url') || localStorage.getItem('sup_url') || DEFAULT_URL;
-        const key = localStorage.getItem('supabase_key') || localStorage.getItem('sup_key') || DEFAULT_KEY;
+        if (!confirm('从云端拉取将覆盖当前本地的聊天与设置，确定继续吗？')) return;
 
-        localStorage.setItem('supabase_url', url);
-        localStorage.setItem('supabase_key', key);
+        try {
+            window.PhoneAPI?.showToast?.('☁️ 正在从 Supabase 拉取云端数据...');
+            const candidateTables = ['backups', 'phone_backup', 'cloud_sync'];
+            let remoteData = null;
+            let lastError = null;
 
-        if (typeof window.PhoneAPI?.restoreFromSupabase === 'function') {
-            return window.PhoneAPI.restoreFromSupabase();
+            for (const table of candidateTables) {
+                try {
+                    const res = await this._supabaseRequest(`${table}?id=eq.primary_backup&select=*`, {
+                        method: 'GET'
+                    });
+                    if (res.ok) {
+                        const rows = await res.json();
+                        if (rows && rows.length > 0) {
+                            remoteData = rows[0];
+                            break;
+                        }
+                    } else if (res.status !== 404) {
+                        const errJson = await res.json().catch(() => ({}));
+                        lastError = errJson.message || `HTTP ${res.status}`;
+                    }
+                } catch (e) {
+                    lastError = e.message;
+                }
+            }
+
+            if (!remoteData) {
+                alert(`❌ 未找到云端备份数据: ${lastError || '请确认云端已有备份记录'}`);
+                return;
+            }
+
+            if (remoteData.storage) {
+                Object.entries(remoteData.storage).forEach(([k, v]) => {
+                    try { localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); } catch (e) {}
+                });
+            }
+            if (remoteData.config && window.Config) {
+                Object.assign(window.Config, remoteData.config);
+            }
+
+            alert('🎉 云端数据拉取成功！页面即将自动刷新。');
+            window.location.reload();
+        } catch (err) {
+            alert('❌ 拉取异常：' + err.message);
         }
-        if (typeof window.PhoneAPI?.restoreFromCloud === 'function') {
-            return window.PhoneAPI.restoreFromCloud();
-        }
-        if (typeof window.SupabaseSync?.restore === 'function') {
-            return window.SupabaseSync.restore();
-        }
-        if (typeof window.CloudSync?.restore === 'function') {
-            return window.CloudSync.restore();
-        }
-        window.PhoneAPI?.showToast?.('⚠️ Supabase 同步引擎加载中，请稍候重试');
     },
 
     handleExportData() {
